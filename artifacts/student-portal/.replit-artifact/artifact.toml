@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Student Portal"
+version = "1.0.0"
+id = "artifacts/student-portal"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21993
+
+[services.development]
+run = "pnpm --filter @workspace/student-portal run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/student-portal", "run", "build" ]
+publicDir = "artifacts/student-portal/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21993"
+BASE_PATH = "/"

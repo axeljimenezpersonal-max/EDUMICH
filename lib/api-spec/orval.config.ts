@@ -52,6 +52,7 @@ export default defineConfig({
       client: "zod",
       target: "generated",
       schemas: { path: "generated/types", type: "typescript" },
+      indexFiles: false,
       mode: "split",
       clean: true,
       prettier: true,

@@ -1,0 +1,133 @@
+{
+  "colorScheme": "light",
+  "fonts": [
+    {
+      "family": "Arial",
+      "role": "body"
+    },
+    {
+      "family": "Helvetica",
+      "role": "body"
+    },
+    {
+      "family": "Segoe UI",
+      "role": "heading"
+    },
+    {
+      "family": "Tahoma",
+      "role": "body"
+    },
+    {
+      "family": "Gotham",
+      "role": "unknown"
+    }
+  ],
+  "colors": {
+    "primary": "#2672EC",
+    "secondary": "#0000FF",
+    "accent": "#5DADE2",
+    "background": "#FFFFFF",
+    "textPrimary": "#000000",
+    "link": "#5DADE2"
+  },
+  "typography": {
+    "fontFamilies": {
+      "primary": "Arial",
+      "heading": "Segoe UI"
+    },
+    "fontStacks": {
+      "heading": [
+        "Segoe UI",
+        "Segoe",
+        "SegoeUI-Regular-final",
+        "Tahoma",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "body": [
+        "Segoe UI",
+        "Segoe",
+        "SegoeUI-Regular-final",
+        "Tahoma",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ],
+      "paragraph": [
+        "Segoe UI",
+        "Segoe",
+        "SegoeUI-Regular-final",
+        "Tahoma",
+        "Helvetica",
+        "Arial",
+        "sans-serif"
+      ]
+    },
+    "fontSizes": {
+      "h1": "28.8px",
+      "h2": "28.8px",
+      "body": "14.4px"
+    }
+  },
+  "spacing": {
+    "baseUnit": 4,
+    "borderRadius": "0px"
+  },
+  "components": {
+    "input": {
+      "background": "#FFFFFF",
+      "textColor": "#000000",
+      "borderColor": "#BABABA",
+      "borderRadius": "0px",
+      "borderRadiusCorners": {
+        "topLeft": "0px",
+        "topRight": "0px",
+        "bottomRight": "0px",
+        "bottomLeft": "0px"
+      },
+      "shadow": "none"
+    }
+  },
+  "images": {
+    "logo": "https://amfs.tec.mx/nidp/itesm/ls/MasterPages/logoTecUTM.jpg",
+    "favicon": "https://amfs.tec.mx/nidp/itesm/ls/favicon.ico",
+    "ogImage": null
+  },
+  "__llm_logo_reasoning": {
+    "selectedIndex": 0,
+    "reasoning": "Selected #0 because it is visible, has a large size, and the source URL suggests it is related to the brand (logoTecUTM.jpg).",
+    "confidence": 0.85,
+    "source": "llm"
+  },
+  "personality": {
+    "tone": "professional",
+    "energy": "medium",
+    "targetAudience": "students and faculty of Tecnológico de Monterrey"
+  },
+  "designSystem": {
+    "framework": "custom",
+    "componentLibrary": ""
+  },
+  "confidence": {
+    "buttons": 0,
+    "colors": 0.9,
+    "overall": 0.45
+  },
+  "__llm_metadata": {
+    "logoSelection": {
+      "llmCalled": true,
+      "llmSucceeded": true,
+      "finalSource": "llm",
+      "rawLogoSelection": {
+        "selectedLogoIndex": 0,
+        "selectedLogoReasoning": "Selected #0 because it is visible, has a large size, and the source URL suggests it is related to the brand (logoTecUTM.jpg).",
+        "confidence": 0.85
+      }
+    },
+    "buttonClassification": {
+      "llmCalled": false,
+      "llmSucceeded": false
+    }
+  }
+}
