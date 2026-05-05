@@ -9,17 +9,20 @@
  */
 
 import { Router } from 'express';
-import { eq } from 'drizzle-orm';
+import { eq, and, gt } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../db'; // ajustar al path real del Replit
-import { users, gestores, estudiantes, administradores, municipios, auditLog } from '@workspace/db/schema';
+import { users, gestores, estudiantes, administradores, municipios, auditLog, passwordResetTokens } from '@workspace/db/schema';
 import {
   authRequired,
   setSessionCookie,
   clearSessionCookie,
   type SessionUser,
 } from '../middleware/auth';
+import { sendRecuperarPassword } from '../services/email';
+import { tryAuditLog } from '../utils/audit';
 
 const router = Router();
 
@@ -156,15 +159,125 @@ router.post('/cambiar-password', authRequired, async (req, res) => {
     })
     .where(eq(users.id, userId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId,
     accion: 'cambiar_password',
     entidad: 'users',
     entidadId: userId,
+    detalle: 'Cambió su contraseña desde el perfil',
     metadata: { via: 'perfil' },
+    req,
   });
 
   res.json({ ok: true });
+});
+
+// ─── POST /auth/recuperar-password ───────────────────────────────────────
+const recuperarSchema = z.object({ email: z.string().email() });
+
+router.post('/recuperar-password', async (req, res) => {
+  const parse = recuperarSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Correo inválido' });
+    return;
+  }
+  const { email } = parse.data;
+
+  const RESPUESTA_GENERICA = {
+    ok: true,
+    mensaje: 'Si el correo existe en el sistema, recibirás instrucciones para recuperar tu contraseña.',
+  };
+
+  try {
+    const [user] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.email, email));
+
+    if (user && user.activo) {
+      const token = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+      const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+
+      await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiraEn });
+
+      const portalBase = process.env.PORTAL_URL || 'http://localhost:5173';
+      const resetUrl = `${portalBase}/reset-password?token=${token}`;
+
+      await sendRecuperarPassword(email, { nombre: email.split('@')[0], resetUrl, token });
+    }
+
+    res.json(RESPUESTA_GENERICA);
+  } catch {
+    res.json(RESPUESTA_GENERICA);
+  }
+});
+
+// ─── GET /auth/validar-token-reset ───────────────────────────────────────
+router.get('/validar-token-reset', async (req, res) => {
+  const token = (req.query.token as string) || '';
+  if (!token) { res.status(400).json({ valido: false, error: 'Token requerido' }); return; }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  try {
+    const [row] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(eq(passwordResetTokens.tokenHash, tokenHash), gt(passwordResetTokens.expiraEn, new Date())));
+
+    if (!row) { res.json({ valido: false, error: 'Este enlace no es válido o ya expiró.' }); return; }
+    if (row.usadoEn) { res.json({ valido: false, error: 'Este enlace ya fue utilizado.' }); return; }
+
+    res.json({ valido: true });
+  } catch {
+    res.status(500).json({ valido: false, error: 'Error interno' });
+  }
+});
+
+// ─── POST /auth/reset-password ────────────────────────────────────────────
+const resetSchema = z.object({
+  token: z.string().min(1),
+  nuevaPassword: z
+    .string()
+    .min(8, 'Mínimo 8 caracteres')
+    .regex(/[0-9]/, 'Debe incluir al menos un número'),
+});
+
+router.post('/reset-password', async (req, res) => {
+  const parse = resetSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
+    return;
+  }
+  const { token, nuevaPassword } = parse.data;
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+  try {
+    const [row] = await db
+      .select()
+      .from(passwordResetTokens)
+      .where(and(eq(passwordResetTokens.tokenHash, tokenHash), gt(passwordResetTokens.expiraEn, new Date())));
+
+    if (!row) { res.status(400).json({ error: 'Este enlace no es válido o ya expiró.' }); return; }
+    if (row.usadoEn) { res.status(400).json({ error: 'Este enlace ya fue utilizado.' }); return; }
+
+    const nuevoHash = await bcrypt.hash(nuevaPassword, 10);
+    await db.update(users).set({ passwordHash: nuevoHash, passwordTemporal: false, updatedAt: new Date() }).where(eq(users.id, row.userId));
+    await db.update(passwordResetTokens).set({ usadoEn: new Date() }).where(eq(passwordResetTokens.id, row.id));
+
+    await tryAuditLog({
+      userId: row.userId,
+      accion: 'reset_password',
+      entidad: 'users',
+      entidadId: row.userId,
+      detalle: 'Restableció contraseña via enlace de correo',
+      metadata: { via: 'token_email' },
+      req,
+    });
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'Error interno' });
+  }
 });
 
 export default router;

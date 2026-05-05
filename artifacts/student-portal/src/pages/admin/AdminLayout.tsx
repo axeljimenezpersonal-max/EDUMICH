@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
-  Home, Bell, Search,
+  Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
+  CheckCircle, XCircle, Star, ChevronRight,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -15,11 +16,242 @@ type SidebarSnapshot = {
   solicitudesPendientes: number;
 };
 
+type Notif = {
+  id: number;
+  tipo: string;
+  prioridad: 'baja' | 'normal' | 'alta' | 'urgente';
+  titulo: string;
+  cuerpo: string;
+  enlace: string | null;
+  leida: boolean;
+  creadaEn: string;
+};
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function apellido(nombre: string): string {
   const parts = nombre.trim().split(/\s+/);
   return parts[parts.length - 1] ?? nombre;
+}
+
+function tiempoRelativo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'ahora';
+  if (m < 60) return `hace ${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `hace ${h}h`;
+  return `hace ${Math.floor(h / 24)}d`;
+}
+
+const PRIORIDAD_COLOR: Record<string, string> = {
+  baja: '#a8a29e',
+  normal: '#2563eb',
+  alta: '#d97706',
+  urgente: '#dc2626',
+};
+
+const TIPO_ICONO: Record<string, React.ComponentType<{ size?: number }>> = {
+  solicitud_nueva: UserPlus,
+  documento_subido_revisar: FileText,
+  pago_subido_verificar: CreditCard,
+  documento_aprobado: CheckCircle,
+  documento_rechazado: XCircle,
+  pago_verificado: CheckCircle,
+  matricula_asignada: Star,
+  alumno_asignado: UserPlus,
+  anuncio_dirigido: Megaphone,
+};
+
+function NotifIcon({ tipo }: { tipo: string }) {
+  const Icon = TIPO_ICONO[tipo] ?? Bell;
+  return <Icon size={14} />;
+}
+
+function NotifItem({ notif, onLeer }: { notif: Notif; onLeer: (id: number) => void }) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        gap: 10,
+        padding: '10px 14px',
+        background: notif.leida ? 'transparent' : '#fdf8f0',
+        borderBottom: '1px solid #f5f5f4',
+        cursor: 'pointer',
+      }}
+      onClick={() => {
+        if (!notif.leida) onLeer(notif.id);
+        if (notif.enlace) window.location.href = notif.enlace;
+      }}
+    >
+      <div
+        style={{
+          width: 3,
+          borderRadius: 2,
+          flexShrink: 0,
+          background: PRIORIDAD_COLOR[notif.prioridad] ?? '#a8a29e',
+          alignSelf: 'stretch',
+        }}
+      />
+      <div style={{ color: PRIORIDAD_COLOR[notif.prioridad] ?? '#78716c', flexShrink: 0, marginTop: 1 }}>
+        <NotifIcon tipo={notif.tipo} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: notif.leida ? 400 : 600, color: '#2a2a2a', lineHeight: 1.3 }}>
+          {notif.titulo}
+        </div>
+        <div style={{ fontSize: 11, color: '#78716c', marginTop: 2, lineHeight: 1.4 }}>
+          {notif.cuerpo}
+        </div>
+        <div style={{ fontSize: 10, color: '#a8a29e', marginTop: 3 }}>
+          {tiempoRelativo(notif.creadaEn)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotifBell() {
+  const [noLeidas, setNoLeidas] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const cargarContador = () => {
+    api.get<{ noLeidas: number }>('/notificaciones/contador')
+      .then(r => setNoLeidas(r.noLeidas))
+      .catch(() => {});
+  };
+
+  const cargarNotifs = () => {
+    api.get<{ notificaciones: Notif[] }>('/notificaciones?limit=8')
+      .then(r => setNotifs(r.notificaciones))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    cargarContador();
+    const interval = setInterval(cargarContador, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (open) cargarNotifs();
+  }, [open]);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function marcarLeida(id: number) {
+    api.put(`/notificaciones/${id}/leer`, {}).catch(() => {});
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
+    setNoLeidas(prev => Math.max(0, prev - 1));
+  }
+
+  function marcarTodas() {
+    api.put('/notificaciones/leer-todas', {}).catch(() => {});
+    setNotifs(prev => prev.map(n => ({ ...n, leida: true })));
+    setNoLeidas(0);
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="relative w-[38px] h-[38px] rounded-lg border flex items-center justify-center"
+        style={{ background: open ? '#f0eae0' : '#f8f4ec', borderColor: '#e7e5e4', color: '#44403c' }}
+      >
+        <Bell size={14} />
+        {noLeidas > 0 && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 5,
+              right: 5,
+              minWidth: 16,
+              height: 16,
+              borderRadius: 8,
+              background: 'var(--color-guinda-700)',
+              color: 'white',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 3px',
+              border: '2px solid white',
+            }}
+          >
+            {noLeidas > 99 ? '99+' : noLeidas}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 'calc(100% + 8px)',
+            width: 340,
+            background: 'white',
+            border: '1px solid #e7e5e4',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            zIndex: 200,
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#2a2a2a' }}>
+              Notificaciones {noLeidas > 0 && <span style={{ color: 'var(--color-guinda-700)' }}>({noLeidas})</span>}
+            </span>
+            {noLeidas > 0 && (
+              <button
+                onClick={marcarTodas}
+                style={{ fontSize: 11, color: 'var(--color-guinda-700)', background: 'none', border: 'none', cursor: 'pointer' }}
+              >
+                Marcar todas leídas
+              </button>
+            )}
+          </div>
+
+          <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+            {notifs.length === 0 ? (
+              <div style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: 13 }}>
+                Sin notificaciones
+              </div>
+            ) : (
+              notifs.map(n => <NotifItem key={n.id} notif={n} onLeer={marcarLeida} />)
+            )}
+          </div>
+
+          <a
+            href="/notificaciones"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              padding: '10px 14px',
+              borderTop: '1px solid #f5f5f4',
+              fontSize: 12,
+              color: 'var(--color-guinda-700)',
+              textDecoration: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Ver todas las notificaciones <ChevronRight size={12} />
+          </a>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function SidebarBadge({ count, muted = false }: { count: number; muted?: boolean }) {
@@ -96,9 +328,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const otrosItems = [
-    { href: '/admin/convocatorias', icon: Calendar,  label: 'Convocatorias' },
-    { href: '/admin/reportes',      icon: BarChart2, label: 'Reportes' },
-    { href: '/admin/configuracion', icon: Settings,  label: 'Configuración' },
+    { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
+    { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
+    { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes' },
+    { href: '/admin/configuracion', icon: Settings,   label: 'Configuración' },
   ];
 
   return (
@@ -134,7 +367,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <div className="w-px h-9" style={{ background: '#d6d3d1' }} />
             <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.15 }}>
               <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Prepa Abierta</div>
-              <div className="text-xs" style={{ color: '#78716c' }}>Sistema de Gestión · IEMSyS</div>
+              <div className="text-xs" style={{ color: '#78716c', display: 'flex', alignItems: 'center', gap: 6 }}>
+                Sistema de Gestión · IEMSyS
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center',
+                  background: '#f8e8ef', color: 'var(--color-guinda-700)',
+                  border: '1px solid #e8c4d4', borderRadius: 4,
+                  padding: '1px 5px', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+                }}>
+                  EDUMICH
+                </span>
+              </div>
             </div>
           </div>
 
@@ -148,18 +391,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 placeholder="Buscar alumno, gestor, folio..."
               />
             </div>
-            <button
-              className="relative w-[38px] h-[38px] rounded-lg border flex items-center justify-center"
-              style={{ background: '#f8f4ec', borderColor: '#e7e5e4', color: '#44403c' }}
-            >
-              <Bell size={14} />
-              {sidebar.solicitudesPendientes > 0 && (
-                <span
-                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white"
-                  style={{ background: 'var(--color-guinda-700)' }}
-                />
-              )}
-            </button>
+            <NotifBell />
             <div className="flex items-center gap-2.5">
               <div className="text-right" style={{ lineHeight: 1.2 }}>
                 <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a' }}>
@@ -272,6 +504,16 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {children}
         </main>
       </div>
+
+      <footer className="bg-white" style={{ borderTop: '1px solid #e7e5e4', marginTop: 0 }}>
+        <div className="max-w-[1400px] mx-auto px-6 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div>© {new Date().getFullYear()} Gobierno del Estado de Michoacán</div>
+          <div style={{ fontWeight: 500 }}>
+            Powered by <strong style={{ color: 'var(--color-guinda-700)' }}>EDUMICH</strong> · Plataforma Educativa Digital
+          </div>
+          <div style={{ opacity: 0.7 }}>v0.1 (demo) · IEMSyS</div>
+        </div>
+      </footer>
     </div>
   );
 }

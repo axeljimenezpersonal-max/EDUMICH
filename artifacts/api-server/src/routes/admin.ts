@@ -28,10 +28,16 @@ import {
   expedienteDocumentos,
   administradores,
   convocatoriasEtapas,
+  anuncios,
+  anunciosVistos,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal } from '../utils/password';
+import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
+import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import { tryAuditLog } from '../utils/audit';
+import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 
 const QR_SECRET = process.env.QR_SECRET || 'prepa-qr-secret-dev';
 
@@ -156,13 +162,28 @@ router.post('/pagos/:pagoId/verificar', async (req, res) => {
     })
     .where(eq(pagos.id, pagoId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: req.user!.userId,
     accion: aprobado ? 'verificar_pago' : 'rechazar_pago',
     entidad: 'pagos',
     entidadId: pagoId,
+    detalle: aprobado ? `Verificó pago ID ${pagoId}` : `Rechazó pago ID ${pagoId}`,
     metadata: { aprobado, motivoRechazo: motivoRechazo ?? null },
+    req,
   });
+
+  if (pago.estudianteId) {
+    notificar({
+      userId: pago.estudianteId,
+      tipo: 'pago_verificado',
+      prioridad: aprobado ? 'alta' : 'normal',
+      titulo: aprobado ? 'Pago verificado' : 'Pago rechazado',
+      cuerpo: aprobado
+        ? `Tu comprobante de pago fue verificado y aprobado.`
+        : `Tu comprobante de pago fue rechazado. Motivo: ${motivoRechazo ?? '—'}`,
+      enlace: '/estudiante',
+    });
+  }
 
   res.json({ ok: true });
 });
@@ -287,12 +308,14 @@ router.post('/estudiantes/:estudianteId/calificaciones', async (req, res) => {
     }
   }
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: req.user!.userId,
     accion: 'capturar_calificacion',
     entidad: 'calificaciones',
     entidadId: calif.id,
+    detalle: `Capturó calificación ${data.calificacion} para alumno ID ${estudianteId} en módulo ${data.moduloId}`,
     metadata: { estudianteId, moduloId: data.moduloId, calificacion: data.calificacion, aprobado },
+    req,
   });
 
   res.status(201).json({ ok: true, calificacion: calif });
@@ -325,12 +348,14 @@ router.patch('/calificaciones/:califId', async (req, res) => {
 
   await db.update(calificaciones).set(setValues).where(eq(calificaciones.id, califId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: req.user!.userId,
     accion: 'editar_calificacion',
     entidad: 'calificaciones',
     entidadId: califId,
-    metadata: data,
+    detalle: `Editó calificación ID ${califId}`,
+    metadata: data as Record<string, unknown>,
+    req,
   });
 
   res.json({ ok: true });
@@ -463,10 +488,9 @@ router.get('/gestores', async (req, res) => {
           u.ultimo_login,
           (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id)::int AS total_alumnos_sub,
           (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id AND (
-            SELECT count(DISTINCT tipo) FROM expediente_documentos x
+            SELECT count(*) FROM expediente_documentos x
             WHERE x.estudiante_id = e.user_id AND x.estado = 'aprobado'
-            AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')
-          ) = 4)::int AS expedientes_completos,
+          ) >= 4)::int AS expedientes_completos,
           (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id AND (
             SELECT count(*) FROM estudiantes_modulos_progreso emp
             WHERE emp.estudiante_id = e.user_id AND emp.estado = 'aprobado'
@@ -606,6 +630,10 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
     }
   }
 
+  const folioSol = await generarFolioPreregistro();
+  const ahoraSol = new Date();
+  const vigenteHastaSol = agregarDiasHabiles(ahoraSol, 15);
+
   const newUser = await db.transaction(async (tx) => {
     const [user] = await tx
       .insert(users)
@@ -628,6 +656,9 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
       gestorId: asignarGestorId ?? null,
       emailVerificado: true,
       registroTipo: 'solicitud_cuenta',
+      folioPreregistro: folioSol,
+      preregistroGeneradoEn: ahoraSol,
+      preregistroVigenteHasta: vigenteHastaSol.toISOString().split('T')[0],
     });
 
     // Inscribir en convocatoria activa si existe
@@ -655,15 +686,17 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
       })
       .where(eq(solicitudesCuenta.id, solicitudId));
 
-    await tx.insert(auditLog).values({
-      userId: adminId,
-      accion: 'aprobar_solicitud_cuenta',
-      entidad: 'solicitudes_cuenta',
-      entidadId: solicitudId,
-      metadata: { nuevoUserId: user.id, asignarGestorId: asignarGestorId ?? null },
-    });
-
     return user;
+  });
+
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'aprobar_solicitud_cuenta',
+    entidad: 'solicitudes_cuenta',
+    entidadId: solicitudId,
+    detalle: `Aprobó solicitud de cuenta de ${solicitud.nombreCompleto} (nuevo userId: ${newUser.id})`,
+    metadata: { nuevoUserId: newUser.id, asignarGestorId: asignarGestorId ?? null },
+    req,
   });
 
   // Send welcome email
@@ -683,6 +716,17 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
       await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, newUser.id));
     }
   } catch {}
+
+  if (asignarGestorId) {
+    notificar({
+      userId: asignarGestorId,
+      tipo: 'alumno_asignado',
+      prioridad: 'normal',
+      titulo: 'Nuevo alumno asignado',
+      cuerpo: `${solicitud.nombreCompleto} fue asignado a tu cartera de alumnos.`,
+      enlace: `/gestor/alumnos/${newUser.id}`,
+    });
+  }
 
   res.status(201).json({
     ok: true,
@@ -722,12 +766,14 @@ router.post('/solicitudes-cuenta/:id/rechazar', async (req, res) => {
     })
     .where(eq(solicitudesCuenta.id, solicitudId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: req.user!.userId,
     accion: 'rechazar_solicitud_cuenta',
     entidad: 'solicitudes_cuenta',
     entidadId: solicitudId,
+    detalle: `Rechazó solicitud de cuenta ID ${solicitudId}`,
     metadata: { motivo: parse.data.motivoRechazo ?? null },
+    req,
   });
 
   res.json({ ok: true });
@@ -791,12 +837,14 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     }
   } catch {}
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: req.user!.userId,
     accion: 'reenviar_credenciales',
     entidad: 'users',
     entidadId: alumnoId,
+    detalle: `Reenvió credenciales al alumno ID ${alumnoId}`,
     metadata: { emailEnviado, modoEmail },
+    req,
   });
 
   res.json({
@@ -966,10 +1014,9 @@ router.get('/dashboard', async (req, res) => {
         FROM (
           SELECT estudiante_id
           FROM expediente_documentos
-          WHERE tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')
-            AND estado = 'aprobado'
+          WHERE estado = 'aprobado'
           GROUP BY estudiante_id
-          HAVING count(DISTINCT tipo) = 4
+          HAVING count(*) >= 4
         ) x
       `);
       expedientesCompletos = Number((completosResult.rows[0] as { completos: string | number })?.completos ?? 0);
@@ -988,11 +1035,10 @@ router.get('/dashboard', async (req, res) => {
         FROM (
           SELECT estudiante_id
           FROM expediente_documentos
-          WHERE tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')
-            AND estado = 'aprobado'
+          WHERE estado = 'aprobado'
             AND created_at >= NOW() - INTERVAL '7 days'
           GROUP BY estudiante_id
-          HAVING count(DISTINCT tipo) = 4
+          HAVING count(*) >= 4
         ) x
       `);
       expedientesCompletosLastWeek = Number((deltaResult.rows[0] as { completos: string | number })?.completos ?? 0);
@@ -1161,6 +1207,7 @@ router.get('/dashboard', async (req, res) => {
       municipioNombre: string | null;
       gestorNombre: string | null;
       createdAt: Date;
+      matriculaOficialDGB: string | null;
     };
 
     let alumnosRecientes: Array<{
@@ -1169,7 +1216,7 @@ router.get('/dashboard', async (req, res) => {
       iniciales: string;
       municipio: string | null;
       gestorNombre: string | null;
-      estadoExpediente: 'completo' | 'pendiente' | 'rechazado' | 'sin_docs';
+      estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
       estadoTexto: string;
       creadoEn: string;
     }> = [];
@@ -1183,6 +1230,7 @@ router.get('/dashboard', async (req, res) => {
           municipioNombre: municipios.nombre,
           gestorNombre: gestoresAlias.nombreCompleto,
           createdAt: estudiantes.createdAt,
+          matriculaOficialDGB: estudiantes.matriculaOficialDGB,
         })
         .from(estudiantes)
         .leftJoin(municipios, eq(estudiantes.municipioId, municipios.id))
@@ -1195,35 +1243,36 @@ router.get('/dashboard', async (req, res) => {
           const palabras = alumno.nombreCompleto.trim().split(/\s+/);
           const iniciales = palabras.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 
-          let estadoExpediente: 'completo' | 'pendiente' | 'rechazado' | 'sin_docs' = 'sin_docs';
+          let estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo' = 'sin_documentos';
           let estadoTexto = 'Sin docs';
 
           try {
-            const docs = await db
-              .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado })
-              .from(expedienteDocumentos)
-              .where(eq(expedienteDocumentos.estudianteId, alumno.userId));
+            const [docsResult, pagosVerif] = await Promise.all([
+              db.select({ estado: expedienteDocumentos.estado }).from(expedienteDocumentos).where(eq(expedienteDocumentos.estudianteId, alumno.userId)),
+              db.select({ id: pagos.id }).from(pagos).where(and(eq(pagos.estudianteId, alumno.userId), eq(pagos.estado, 'verificado'))).limit(1),
+            ]);
+            const docs = docsResult;
+            const aprobados = docs.filter((d) => d.estado === 'aprobado');
+            const rechazados = docs.filter((d) => d.estado === 'rechazado');
 
             if (docs.length === 0) {
-              estadoExpediente = 'sin_docs';
+              estadoExpediente = 'sin_documentos';
               estadoTexto = 'Sin docs';
+            } else if (rechazados.length > 0) {
+              estadoExpediente = 'rechazado';
+              estadoTexto = `${rechazados.length} rechazado`;
+            } else if (aprobados.length < 4) {
+              estadoExpediente = 'en_proceso';
+              estadoTexto = `${aprobados.length}/4 docs`;
+            } else if (pagosVerif.length === 0) {
+              estadoExpediente = 'pago_pendiente';
+              estadoTexto = 'Pago pendiente';
+            } else if (!alumno.matriculaOficialDGB) {
+              estadoExpediente = 'esperando_matricula';
+              estadoTexto = 'Sin matrícula';
             } else {
-              const rechazados = docs.filter((d) => d.estado === 'rechazado');
-              const aprobados = docs.filter((d) => d.estado === 'aprobado');
-              const tiposRequeridos = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio'];
-              const tiposAprobados = aprobados.map((d) => d.tipo);
-              const todosCompletos = tiposRequeridos.every((t) => tiposAprobados.includes(t));
-
-              if (rechazados.length > 0) {
-                estadoExpediente = 'rechazado';
-                estadoTexto = `${rechazados.length} rechazado`;
-              } else if (todosCompletos) {
-                estadoExpediente = 'completo';
-                estadoTexto = 'Completo';
-              } else {
-                estadoExpediente = 'pendiente';
-                estadoTexto = `${aprobados.length}/${docs.length} docs`;
-              }
+              estadoExpediente = 'activo';
+              estadoTexto = 'Activo';
             }
           } catch {}
 
@@ -1310,12 +1359,24 @@ router.get('/dashboard', async (req, res) => {
 });
 
 // ─── GET /admin/municipios ────────────────────────────────────────────────
-router.get('/municipios', async (_req, res) => {
+router.get('/municipios', async (req, res) => {
   try {
-    const result = await db.execute<{ id: number; nombre: string }>(sql`
-      SELECT id, nombre FROM municipios ORDER BY nombre ASC
-    `);
-    res.json({ municipios: result.rows });
+    const activos = req.query.activos === 'true';
+    const result = await db.execute<{ id: number; nombre: string; alumnos_count: number }>(
+      activos
+        ? sql`SELECT m.id, m.nombre, COUNT(e.user_id)::int AS alumnos_count
+              FROM municipios m
+              LEFT JOIN estudiantes e ON e.municipio_id = m.id
+              GROUP BY m.id, m.nombre
+              HAVING COUNT(e.user_id) > 0
+              ORDER BY m.nombre ASC`
+        : sql`SELECT m.id, m.nombre, COUNT(e.user_id)::int AS alumnos_count
+              FROM municipios m
+              LEFT JOIN estudiantes e ON e.municipio_id = m.id
+              GROUP BY m.id, m.nombre
+              ORDER BY m.nombre ASC`
+    );
+    res.json({ municipios: result.rows.map(r => ({ id: r.id, nombre: r.nombre, alumnosCount: Number(r.alumnos_count) })) });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error interno' });
   }
@@ -1324,11 +1385,15 @@ router.get('/municipios', async (_req, res) => {
 // ─── GET /admin/gestores-list ─────────────────────────────────────────────
 router.get('/gestores-list', async (_req, res) => {
   try {
-    type GestorRow = { user_id: number; nombre_completo: string; municipio_id: number | null; municipio_nombre: string | null };
+    type GestorRow = { user_id: number; nombre_completo: string; municipio_id: number | null; municipio_nombre: string | null; alumnos_count: number };
     const result = await db.execute<GestorRow>(sql`
-      SELECT g.user_id, g.nombre_completo, g.municipio_id, m.nombre AS municipio_nombre
+      SELECT g.user_id, g.nombre_completo, g.municipio_id, m.nombre AS municipio_nombre,
+             COUNT(e.user_id)::int AS alumnos_count
       FROM gestores g
       LEFT JOIN municipios m ON g.municipio_id = m.id
+      LEFT JOIN estudiantes e ON e.gestor_id = g.user_id
+      WHERE g.estado = 'activo'
+      GROUP BY g.user_id, g.nombre_completo, g.municipio_id, m.nombre
       ORDER BY g.nombre_completo ASC
     `);
     res.json({
@@ -1341,6 +1406,7 @@ router.get('/gestores-list', async (_req, res) => {
           iniciales,
           municipioId: r.municipio_id ?? null,
           municipioNombre: r.municipio_nombre ?? null,
+          alumnosCount: Number(r.alumnos_count),
         };
       }),
     });
@@ -1352,15 +1418,25 @@ router.get('/gestores-list', async (_req, res) => {
 // ─── GET /admin/etapas ────────────────────────────────────────────────────
 router.get('/etapas', async (_req, res) => {
   try {
-    const result = await db.execute<{ id: number; clave: string; etapa: string; fase: string; anio: number; examen_sabado: string }>(sql`
-      SELECT id, clave, etapa, fase, anio, examen_sabado::text
-      FROM convocatorias_etapas
-      ORDER BY examen_sabado DESC
+    type EtapaRow = { id: number; clave: string; etapa: string; fase: string; anio: number; estado: string; examen_sabado: string; inscritos_count: number };
+    const result = await db.execute<EtapaRow>(sql`
+      SELECT ce.id, ce.clave, ce.etapa, ce.fase, ce.anio, ce.estado, ce.examen_sabado::text,
+             COUNT(DISTINCT ei.estudiante_id)::int AS inscritos_count
+      FROM convocatorias_etapas ce
+      LEFT JOIN examenes_inscripciones ei ON ei.etapa_id = ce.id
+      GROUP BY ce.id, ce.clave, ce.etapa, ce.fase, ce.anio, ce.estado, ce.examen_sabado
+      ORDER BY ce.examen_sabado DESC
     `);
     res.json({
       etapas: result.rows.map((r) => ({
         id: r.id,
         label: `Etapa ${r.etapa} Fase ${r.fase} · ${r.anio}`,
+        nombreCompleto: `Etapa ${r.etapa} · Fase ${r.fase} · ${r.anio}`,
+        clave: r.clave,
+        fase: r.fase,
+        anio: r.anio,
+        estado: r.estado,
+        inscritosCount: Number(r.inscritos_count),
       })),
     });
   } catch (err) {
@@ -1451,13 +1527,15 @@ router.get('/alumnos', async (req, res) => {
     expediente_incompleto: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')) < 4`,
   };
 
-  const VALID_ESTADO_EXP = ['completo', 'en_revision', 'pendiente', 'rechazado', 'sin_docs'];
+  const VALID_ESTADO_EXP = ['activo', 'esperando_matricula', 'pago_pendiente', 'en_proceso', 'rechazado', 'sin_documentos', 'inactivo'];
   const estadoExpSnippets: Record<string, string> = {
-    completo: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')) = 4`,
-    en_revision: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'pendiente_revision')`,
-    pendiente: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id) AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado IN ('pendiente_revision','rechazado')) AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')) < 4`,
+    activo: `AND u.activo = true AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') AND (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado') >= 4 AND EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') AND e.matricula_oficial_dgb IS NOT NULL`,
+    esperando_matricula: `AND (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado') >= 4 AND EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') AND e.matricula_oficial_dgb IS NULL`,
+    pago_pendiente: `AND (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado') >= 4 AND NOT EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado')`,
+    en_proceso: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id) AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') AND (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado') < 4`,
     rechazado: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado')`,
-    sin_docs: `AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)`,
+    sin_documentos: `AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)`,
+    inactivo: `AND u.activo = false`,
   };
 
   const sortColMap: Record<string, string> = {
@@ -1495,6 +1573,7 @@ router.get('/alumnos', async (req, res) => {
       gestor_nombre: string | null;
       estado_expediente: string;
       docs_aprobados: number;
+      docs_total: number;
       ultima_actividad: Date | null;
       created_at: Date;
     };
@@ -1521,13 +1600,16 @@ router.get('/alumnos', async (req, res) => {
           e.gestor_id,
           g.nombre_completo AS gestor_nombre,
           CASE
+            WHEN u.activo = false THEN 'inactivo'
             WHEN EXISTS (SELECT 1 FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'rechazado') THEN 'rechazado'
-            WHEN EXISTS (SELECT 1 FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'pendiente_revision') THEN 'en_revision'
-            WHEN (SELECT count(DISTINCT tipo) FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')) = 4 THEN 'completo'
-            WHEN EXISTS (SELECT 1 FROM expediente_documentos x WHERE x.estudiante_id = e.user_id) THEN 'pendiente'
-            ELSE 'sin_docs'
+            WHEN NOT EXISTS (SELECT 1 FROM expediente_documentos x WHERE x.estudiante_id = e.user_id) THEN 'sin_documentos'
+            WHEN (SELECT count(*) FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'aprobado') < 4 THEN 'en_proceso'
+            WHEN NOT EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') THEN 'pago_pendiente'
+            WHEN e.matricula_oficial_dgb IS NULL THEN 'esperando_matricula'
+            ELSE 'activo'
           END AS estado_expediente,
-          (SELECT count(DISTINCT tipo) FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio'))::int AS docs_aprobados,
+          (SELECT count(*) FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'aprobado')::int AS docs_aprobados,
+          (SELECT count(*) FROM expediente_documentos x WHERE x.estudiante_id = e.user_id)::int AS docs_total,
           GREATEST(
             (SELECT MAX(updated_at) FROM expediente_documentos WHERE estudiante_id = e.user_id),
             (SELECT MAX(updated_at) FROM pagos WHERE estudiante_id = e.user_id),
@@ -1586,9 +1668,9 @@ router.get('/alumnos', async (req, res) => {
         email: r.email,
         municipio: r.municipio_id ? { id: r.municipio_id, nombre: r.municipio_nombre ?? '' } : null,
         gestor: r.gestor_id ? { id: r.gestor_id, nombreCompleto: r.gestor_nombre ?? '', iniciales: gestorIniciales } : null,
-        estadoExpediente: r.estado_expediente as 'completo' | 'en_revision' | 'pendiente' | 'rechazado' | 'sin_docs',
+        estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
         docsAprobados,
-        docsTotal: 4,
+        docsTotal: Number(r.docs_total ?? 0),
         ultimaActividad: ultimaActividad ? ultimaActividad.toISOString() : null,
         ultimaActividadTexto: relativaActividad(ultimaActividad),
         creadoEn: new Date(r.created_at as string | Date).toISOString(),
@@ -1610,6 +1692,171 @@ router.get('/alumnos', async (req, res) => {
         desdeDigitalDashboard: !!filtroValido,
         descripcionFiltro: filtroValido ? FILTRO_DESC[filtroValido] : undefined,
       },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─── GET /admin/alumnos/:id ───────────────────────────────────────────────
+router.get('/alumnos/:id', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  try {
+    type AlumnoDetalleRow = {
+      user_id: number;
+      nombre_completo: string;
+      curp: string | null;
+      fecha_nacimiento: string | null;
+      telefono: string | null;
+      direccion: string | null;
+      municipio_id: number | null;
+      municipio_nombre: string | null;
+      gestor_id: number | null;
+      gestor_nombre: string | null;
+      gestor_email: string | null;
+      email: string;
+      password_temporal: boolean;
+      bienvenida_enviada_en: Date | null;
+      ultimo_login: Date | null;
+      created_at: Date;
+      estado_expediente: string;
+      docs_aprobados: number;
+      docs_total: number;
+      folio_preregistro: string | null;
+      preregistro_vigente_hasta: string | null;
+      matricula_oficial_dgb: string | null;
+      matricula_capturada_en: Date | null;
+    };
+
+    type ExamenRow = {
+      id: number;
+      modulo_id: number;
+      modulo_numero: number | null;
+      modulo_nombre: string | null;
+      etapa_id: number;
+      etapa_clave: string | null;
+      etapa: string | null;
+      fase: string | null;
+      anio: number | null;
+      estado: string;
+      calificacion: number | null;
+      created_at: Date;
+    };
+
+    const [alumnoResult, docs, pagosRows, examenResult] = await Promise.all([
+      db.execute<AlumnoDetalleRow>(sql`
+        SELECT
+          e.user_id, e.nombre_completo, e.curp,
+          e.fecha_nacimiento::text AS fecha_nacimiento,
+          e.telefono, e.direccion,
+          e.municipio_id, m.nombre AS municipio_nombre,
+          e.gestor_id, g.nombre_completo AS gestor_nombre, gu.email AS gestor_email,
+          u.email, u.password_temporal, u.bienvenida_enviada_en, u.ultimo_login,
+          e.created_at,
+          e.folio_preregistro, e.preregistro_vigente_hasta::text AS preregistro_vigente_hasta,
+          e.matricula_oficial_dgb, e.matricula_capturada_en,
+          CASE
+            WHEN u.activo = false THEN 'inactivo'
+            WHEN EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') THEN 'rechazado'
+            WHEN NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id) THEN 'sin_documentos'
+            WHEN (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado') < 4 THEN 'en_proceso'
+            WHEN NOT EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') THEN 'pago_pendiente'
+            WHEN e.matricula_oficial_dgb IS NULL THEN 'esperando_matricula'
+            ELSE 'activo'
+          END AS estado_expediente,
+          (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado')::int AS docs_aprobados,
+          (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)::int AS docs_total
+        FROM estudiantes e
+        LEFT JOIN users u ON e.user_id = u.id
+        LEFT JOIN municipios m ON e.municipio_id = m.id
+        LEFT JOIN gestores g ON e.gestor_id = g.user_id
+        LEFT JOIN users gu ON g.user_id = gu.id
+        WHERE e.user_id = ${alumnoId}
+      `),
+      db.select().from(expedienteDocumentos).where(eq(expedienteDocumentos.estudianteId, alumnoId)).orderBy(desc(expedienteDocumentos.createdAt)),
+      db.select().from(pagos).where(eq(pagos.estudianteId, alumnoId)).orderBy(desc(pagos.createdAt)),
+      db.execute<ExamenRow>(sql`
+        SELECT
+          ei.id, ei.modulo_id, ei.etapa_id, ei.estado, ei.calificacion, ei.created_at,
+          mo.numero AS modulo_numero, mo.nombre AS modulo_nombre,
+          ce.clave AS etapa_clave, ce.etapa, ce.fase, ce.anio
+        FROM examenes_inscripciones ei
+        LEFT JOIN modulos mo ON ei.modulo_id = mo.id
+        LEFT JOIN convocatorias_etapas ce ON ei.etapa_id = ce.id
+        WHERE ei.estudiante_id = ${alumnoId}
+        ORDER BY ei.created_at DESC
+      `),
+    ]);
+
+    const r = alumnoResult.rows[0];
+    if (!r) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+    const palabras = r.nombre_completo.trim().split(/\s+/);
+    const iniciales = palabras.slice(0, 2).map((p: string) => p[0]?.toUpperCase() ?? '').join('');
+
+    res.json({
+      alumno: {
+        id: r.user_id,
+        nombreCompleto: r.nombre_completo,
+        iniciales,
+        curp: r.curp ?? null,
+        fechaNacimiento: r.fecha_nacimiento ?? null,
+        telefono: r.telefono ?? null,
+        direccion: r.direccion ?? null,
+        municipio: r.municipio_id ? { id: r.municipio_id, nombre: r.municipio_nombre ?? '' } : null,
+        gestor: r.gestor_id ? { id: r.gestor_id, nombreCompleto: r.gestor_nombre ?? '', email: r.gestor_email ?? '' } : null,
+        email: r.email,
+        passwordTemporal: r.password_temporal ?? false,
+        bienvenidaEnviadaEn: r.bienvenida_enviada_en ? new Date(r.bienvenida_enviada_en as string | Date).toISOString() : null,
+        ultimaActividad: r.ultimo_login ? new Date(r.ultimo_login as string | Date).toISOString() : null,
+        estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
+        docsAprobados: Number(r.docs_aprobados ?? 0),
+        docsTotal: Number(r.docs_total ?? 0),
+        creadoEn: new Date(r.created_at as string | Date).toISOString(),
+        folioPreregistro: r.folio_preregistro ?? null,
+        preregistroVigenteHasta: r.preregistro_vigente_hasta ?? null,
+        matriculaOficialDGB: r.matricula_oficial_dgb ?? null,
+        matriculaCapturadaEn: r.matricula_capturada_en ? new Date(r.matricula_capturada_en as string | Date).toISOString() : null,
+      },
+      documentos: docs.map((d) => ({
+        id: d.id,
+        tipo: d.tipo,
+        estado: d.estado,
+        motivoRechazo: d.motivoRechazo ?? null,
+        rutaArchivo: d.rutaArchivo,
+        nombreOriginal: d.nombreOriginal,
+        tamanoBytes: d.tamanoBytes ?? null,
+        subidoEn: new Date(d.subidoEn as string | Date).toISOString(),
+        revisadoEn: d.revisadoEn ? new Date(d.revisadoEn as string | Date).toISOString() : null,
+      })),
+      pagos: pagosRows.map((p) => ({
+        id: p.id,
+        concepto: p.concepto,
+        conceptoDetalle: p.conceptoDetalle ?? null,
+        monto: p.monto,
+        fechaPago: p.fechaPago,
+        metodoPago: p.metodoPago,
+        estado: p.estado,
+        motivoRechazo: p.motivoRechazo ?? null,
+        notas: p.notas ?? null,
+        createdAt: new Date(p.createdAt as string | Date).toISOString(),
+      })),
+      examenes: examenResult.rows.map((e) => ({
+        id: e.id,
+        moduloId: e.modulo_id,
+        moduloNumero: e.modulo_numero ?? null,
+        moduloNombre: e.modulo_nombre ?? null,
+        etapaId: e.etapa_id,
+        etapaClave: e.etapa_clave ?? null,
+        etapaFase: e.fase ?? null,
+        etapaAnio: e.anio ?? null,
+        estado: e.estado,
+        calificacion: e.calificacion ?? null,
+        createdAt: new Date(e.created_at as string | Date).toISOString(),
+      })),
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
@@ -1799,12 +2046,14 @@ router.post('/calificaciones/batch', async (req, res) => {
       }
     });
 
-    await db.insert(auditLog).values({
+    await tryAuditLog({
       userId,
       accion: 'capturar_calificacion_batch',
       entidad: 'calificaciones',
+      detalle: `Capturó ${items.length} calificaciones en lote`,
       metadata: { count: items.length },
-    }).catch(() => {});
+      req,
+    });
 
     res.json({ ok: true, procesadas: items.length });
   } catch (err) {
@@ -2623,15 +2872,17 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
       })
       .where(eq(solicitudesCuenta.id, solicitudId));
 
-    await tx.insert(auditLog).values({
-      userId: adminId,
-      accion: 'aprobar_solicitud_cuenta',
-      entidad: 'solicitudes_cuenta',
-      entidadId: solicitudId,
-      metadata: { nuevoUserId: user.id, gestorAsignadoId: gestorAsignadoId ?? null },
-    });
-
     return user;
+  });
+
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'aprobar_solicitud_cuenta',
+    entidad: 'solicitudes_cuenta',
+    entidadId: solicitudId,
+    detalle: `Aprobó solicitud de cuenta de ${solicitud.nombreCompleto} (nuevo userId: ${newUser.id})`,
+    metadata: { nuevoUserId: newUser.id, gestorAsignadoId: gestorAsignadoId ?? null },
+    req,
   });
 
   // Send welcome email
@@ -2699,12 +2950,14 @@ router.post('/solicitudes/:solicitudId/rechazar', async (req, res) => {
     })
     .where(eq(solicitudesCuenta.id, solicitudId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: req.user!.userId,
     accion: 'rechazar_solicitud_cuenta',
     entidad: 'solicitudes_cuenta',
     entidadId: solicitudId,
+    detalle: `Rechazó solicitud de cuenta ID ${solicitudId}: ${motivoRechazo}`,
     metadata: { motivoRechazo, detallesRechazo: detallesRechazo ?? null },
+    req,
   });
 
   res.json({ ok: true });
@@ -2953,6 +3206,446 @@ router.get('/convocatorias/:etapaId/exportar-lista', async (req, res) => {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });
   }
+});
+
+// ─── PUT /admin/expediente-documentos/:id/aprobar ────────────────────────────
+router.patch('/expediente-documentos/:id/aprobar', async (req, res) => {
+  const userId = req.user!.userId;
+  const docId = Number(req.params.id);
+  if (Number.isNaN(docId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [doc] = await db.select().from(expedienteDocumentos).where(eq(expedienteDocumentos.id, docId));
+  if (!doc) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
+  if (doc.estado !== 'pendiente_revision') { res.status(400).json({ error: 'El documento no está pendiente de revisión' }); return; }
+
+  const [updated] = await db
+    .update(expedienteDocumentos)
+    .set({ estado: 'aprobado', revisadoPorUserId: userId, revisadoEn: new Date(), updatedAt: new Date() })
+    .where(eq(expedienteDocumentos.id, docId))
+    .returning();
+
+  await tryAuditLog({
+    userId,
+    accion: 'aprobar_documento',
+    entidad: 'expediente_documentos',
+    entidadId: docId,
+    detalle: `Aprobó documento tipo ${doc.tipo} del alumno ID ${doc.estudianteId}`,
+    metadata: { tipo: doc.tipo, estudianteId: doc.estudianteId },
+    req,
+  });
+
+  notificar({
+    userId: doc.estudianteId,
+    tipo: 'documento_aprobado',
+    prioridad: 'normal',
+    titulo: 'Documento aprobado',
+    cuerpo: `Tu documento "${doc.tipo}" fue aprobado.`,
+    enlace: '/estudiante/expediente',
+  });
+
+  res.json({ ok: true, documento: { id: updated.id, estado: updated.estado } });
+});
+
+// ─── PUT /admin/expediente-documentos/:id/rechazar ───────────────────────────
+const rechazarDocAdminSchema = z.object({ motivoRechazo: z.string().min(1).max(500) });
+
+router.patch('/expediente-documentos/:id/rechazar', async (req, res) => {
+  const userId = req.user!.userId;
+  const docId = Number(req.params.id);
+  if (Number.isNaN(docId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = rechazarDocAdminSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'motivoRechazo es requerido' }); return; }
+
+  const [doc] = await db.select().from(expedienteDocumentos).where(eq(expedienteDocumentos.id, docId));
+  if (!doc) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
+  if (doc.estado !== 'pendiente_revision') { res.status(400).json({ error: 'El documento no está pendiente de revisión' }); return; }
+
+  const [updated] = await db
+    .update(expedienteDocumentos)
+    .set({ estado: 'rechazado', motivoRechazo: parse.data.motivoRechazo, revisadoPorUserId: userId, revisadoEn: new Date(), updatedAt: new Date() })
+    .where(eq(expedienteDocumentos.id, docId))
+    .returning();
+
+  await tryAuditLog({
+    userId,
+    accion: 'rechazar_documento',
+    entidad: 'expediente_documentos',
+    entidadId: docId,
+    detalle: `Rechazó documento tipo ${doc.tipo} del alumno ID ${doc.estudianteId}`,
+    metadata: { tipo: doc.tipo, estudianteId: doc.estudianteId, motivo: parse.data.motivoRechazo },
+    req,
+  });
+
+  notificar({
+    userId: doc.estudianteId,
+    tipo: 'documento_rechazado',
+    prioridad: 'alta',
+    titulo: 'Documento rechazado — acción requerida',
+    cuerpo: `Tu documento "${doc.tipo}" fue rechazado. Motivo: ${parse.data.motivoRechazo}`,
+    enlace: '/estudiante/expediente',
+  });
+
+  res.json({ ok: true, documento: { id: updated.id, estado: updated.estado } });
+});
+
+// ─── Anuncios CRUD ────────────────────────────────────────────────────────────
+
+const anuncioSchema = z.object({
+  titulo: z.string().min(1).max(200),
+  contenido: z.string().min(1),
+  prioridad: z.enum(['informativo', 'importante', 'urgente']).default('informativo'),
+  audiencia: z.enum(['todos', 'alumnos', 'gestores', 'alumnos_municipio', 'alumnos_etapa', 'gestor_especifico']).default('todos'),
+  audienciaParam: z.string().max(120).optional().nullable(),
+  estado: z.enum(['borrador', 'publicado', 'archivado']).default('borrador'),
+  ctaTexto: z.string().max(80).optional().nullable(),
+  ctaUrl: z.string().max(500).optional().nullable(),
+  activoHasta: z.string().optional().nullable(),
+});
+
+router.get('/anuncios', async (req, res) => {
+  const estado = (req.query.estado as string) || 'publicado';
+  const rows = await db
+    .select({
+      id: anuncios.id,
+      titulo: anuncios.titulo,
+      contenido: anuncios.contenido,
+      prioridad: anuncios.prioridad,
+      audiencia: anuncios.audiencia,
+      audienciaParam: anuncios.audienciaParam,
+      estado: anuncios.estado,
+      ctaTexto: anuncios.ctaTexto,
+      ctaUrl: anuncios.ctaUrl,
+      publicadoEn: anuncios.publicadoEn,
+      activoHasta: anuncios.activoHasta,
+      createdAt: anuncios.createdAt,
+      creadoPorUserId: anuncios.creadoPorUserId,
+    })
+    .from(anuncios)
+    .where(estado === 'todos' ? sql`true` : eq(anuncios.estado, estado as 'borrador' | 'publicado' | 'archivado'))
+    .orderBy(desc(anuncios.createdAt));
+
+  const resumen = {
+    total: rows.length,
+    publicados: rows.filter(r => r.estado === 'publicado').length,
+    borradores: rows.filter(r => r.estado === 'borrador').length,
+    archivados: rows.filter(r => r.estado === 'archivado').length,
+    urgentes: rows.filter(r => r.prioridad === 'urgente' && r.estado === 'publicado').length,
+  };
+
+  res.json({ anuncios: rows, resumen });
+});
+
+router.post('/anuncios', async (req, res) => {
+  const userId = req.user!.userId;
+  const parse = anuncioSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: parse.error.errors[0].message }); return; }
+
+  const d = parse.data;
+  const publicadoEn = d.estado === 'publicado' ? new Date() : null;
+
+  const [created] = await db.insert(anuncios).values({
+    titulo: d.titulo,
+    contenido: d.contenido,
+    prioridad: d.prioridad,
+    audiencia: d.audiencia,
+    audienciaParam: d.audienciaParam ?? null,
+    estado: d.estado,
+    ctaTexto: d.ctaTexto ?? null,
+    ctaUrl: d.ctaUrl ?? null,
+    publicadoEn,
+    activoHasta: d.activoHasta ? new Date(d.activoHasta) : null,
+    creadoPorUserId: userId,
+  }).returning();
+
+  if (d.estado === 'publicado') {
+    notificarATodosLosAdmins({
+      tipo: 'anuncio_dirigido',
+      prioridad: d.prioridad === 'urgente' ? 'urgente' : 'normal',
+      titulo: `Anuncio publicado: ${d.titulo}`,
+      cuerpo: `Se publicó un anuncio para "${d.audiencia}".`,
+      enlace: '/admin/anuncios',
+    });
+  }
+
+  res.status(201).json({ anuncio: created });
+});
+
+router.put('/anuncios/:id', async (req, res) => {
+  const userId = req.user!.userId;
+  const anuncioId = Number(req.params.id);
+  if (Number.isNaN(anuncioId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = anuncioSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: parse.error.errors[0].message }); return; }
+
+  const [existing] = await db.select().from(anuncios).where(eq(anuncios.id, anuncioId));
+  if (!existing) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
+
+  const d = parse.data;
+  const publicadoEn = d.estado === 'publicado' && !existing.publicadoEn ? new Date() : existing.publicadoEn;
+
+  const [updated] = await db.update(anuncios)
+    .set({
+      titulo: d.titulo,
+      contenido: d.contenido,
+      prioridad: d.prioridad,
+      audiencia: d.audiencia,
+      audienciaParam: d.audienciaParam ?? null,
+      estado: d.estado,
+      ctaTexto: d.ctaTexto ?? null,
+      ctaUrl: d.ctaUrl ?? null,
+      publicadoEn,
+      activoHasta: d.activoHasta ? new Date(d.activoHasta) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(anuncios.id, anuncioId))
+    .returning();
+
+  await tryAuditLog({ userId, accion: 'editar_anuncio', entidad: 'anuncios', entidadId: anuncioId, detalle: `Editó anuncio "${d.titulo}"`, metadata: { titulo: d.titulo }, req });
+
+  res.json({ anuncio: updated });
+});
+
+router.patch('/anuncios/:id', async (req, res) => {
+  const userId = req.user!.userId;
+  const anuncioId = Number(req.params.id);
+  if (Number.isNaN(anuncioId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = anuncioSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: parse.error.errors[0].message }); return; }
+
+  const [existing] = await db.select().from(anuncios).where(eq(anuncios.id, anuncioId));
+  if (!existing) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
+
+  const d = parse.data;
+  const publicadoEn = d.estado === 'publicado' && !existing.publicadoEn ? new Date() : existing.publicadoEn;
+
+  const [updated] = await db.update(anuncios)
+    .set({
+      titulo: d.titulo,
+      contenido: d.contenido,
+      prioridad: d.prioridad,
+      audiencia: d.audiencia,
+      audienciaParam: d.audienciaParam ?? null,
+      estado: d.estado,
+      ctaTexto: d.ctaTexto ?? null,
+      ctaUrl: d.ctaUrl ?? null,
+      publicadoEn,
+      activoHasta: d.activoHasta ? new Date(d.activoHasta) : null,
+      updatedAt: new Date(),
+    })
+    .where(eq(anuncios.id, anuncioId))
+    .returning();
+
+  await tryAuditLog({ userId, accion: 'editar_anuncio', entidad: 'anuncios', entidadId: anuncioId, detalle: `Editó anuncio "${d.titulo}"`, metadata: { titulo: d.titulo }, req });
+
+  res.json({ anuncio: updated });
+});
+
+router.post('/anuncios/:id/archivar', async (req, res) => {
+  const anuncioId = Number(req.params.id);
+  if (Number.isNaN(anuncioId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [existing] = await db.select().from(anuncios).where(eq(anuncios.id, anuncioId));
+  if (!existing) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
+
+  await db.update(anuncios).set({ estado: 'archivado', updatedAt: new Date() }).where(eq(anuncios.id, anuncioId));
+  res.json({ ok: true });
+});
+
+router.post('/anuncios/:id/desarchivar', async (req, res) => {
+  const anuncioId = Number(req.params.id);
+  if (Number.isNaN(anuncioId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [existing] = await db.select().from(anuncios).where(eq(anuncios.id, anuncioId));
+  if (!existing) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
+
+  await db.update(anuncios).set({ estado: 'publicado', updatedAt: new Date() }).where(eq(anuncios.id, anuncioId));
+  res.json({ ok: true });
+});
+
+router.delete('/anuncios/:id', async (req, res) => {
+  const userId = req.user!.userId;
+  const anuncioId = Number(req.params.id);
+  if (Number.isNaN(anuncioId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [existing] = await db.select().from(anuncios).where(eq(anuncios.id, anuncioId));
+  if (!existing) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
+
+  await db.delete(anuncios).where(eq(anuncios.id, anuncioId));
+  await tryAuditLog({ userId, accion: 'eliminar_anuncio', entidad: 'anuncios', entidadId: anuncioId, detalle: `Eliminó anuncio "${existing.titulo}"`, metadata: { titulo: existing.titulo }, req });
+
+  res.json({ ok: true });
+});
+
+// ─── POST /admin/alumnos/:id/matricula ───────────────────────────────────────
+const adminMatriculaSchema = z.object({
+  matricula: z.string().min(8).max(20).regex(/^[A-Z0-9]+$/, 'Solo caracteres alfanuméricos'),
+});
+
+router.post('/alumnos/:id/matricula', async (req, res) => {
+  const adminId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = adminMatriculaSchema.safeParse({ matricula: (req.body.matricula as string)?.toUpperCase() });
+  if (!parse.success) { res.status(400).json({ error: parse.error.errors[0].message }); return; }
+  const { matricula } = parse.data;
+
+  const [alumno] = await db.select({ userId: estudiantes.userId }).from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  const [duplicate] = await db
+    .select({ userId: estudiantes.userId })
+    .from(estudiantes)
+    .where(and(eq(estudiantes.matriculaOficialDGB, matricula), sql`${estudiantes.userId} != ${alumnoId}`));
+  if (duplicate) { res.status(409).json({ error: 'Esta matrícula ya está asignada a otro alumno' }); return; }
+
+  await db.update(estudiantes).set({
+    matriculaOficialDGB: matricula,
+    matriculaCapturadaEn: new Date(),
+    matriculaCapturadaPor: adminId,
+    updatedAt: new Date(),
+  }).where(eq(estudiantes.userId, alumnoId));
+
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'capturar_matricula',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Capturó matrícula DGB "${matricula}" para alumno ID ${alumnoId}`,
+    metadata: { matricula },
+    req,
+  });
+
+  res.json({ ok: true, matricula });
+});
+
+// ─── GET /admin/alumnos/:id/ficha-preregistro ────────────────────────────────
+router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  let [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  // Auto-generate folio if missing (all students should have one)
+  if (!est.folioPreregistro) {
+    const folio = await generarFolioPreregistro();
+    const ahora = new Date();
+    const vigencia = agregarDiasHabiles(ahora, 15);
+    await db.update(estudiantes).set({
+      folioPreregistro: folio,
+      preregistroGeneradoEn: ahora,
+      preregistroVigenteHasta: vigencia.toISOString().split('T')[0],
+    }).where(eq(estudiantes.userId, alumnoId));
+    [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, alumnoId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+  const [gestorRow] = est.gestorId
+    ? await db.select({ nombreCompleto: gestores.nombreCompleto, emailPublico: gestores.emailPublico }).from(gestores).where(eq(gestores.userId, est.gestorId))
+    : [null];
+
+  const pdf = await generarFichaPreregistro({
+    folio: est.folioPreregistro!,
+    generadoEn: est.preregistroGeneradoEn ?? new Date(),
+    vigenteHasta: est.preregistroVigenteHasta ?? null,
+    nombreCompleto: est.nombreCompleto,
+    curp: est.curp ?? null,
+    fechaNacimiento: est.fechaNacimiento ?? null,
+    genero: (est as any).genero ?? null,
+    nacionalidad: (est as any).nacionalidad ?? 'Mexicana',
+    telefono: est.telefono ?? null,
+    email: userRow?.email ?? '',
+    municipio: municipio?.nombre ?? null,
+    gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
+    fotoPath: (est as any).foto ?? null,
+    qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
+  });
+
+  const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="ficha-preregistro-${safeFolio}.pdf"`);
+  res.send(pdf);
+});
+
+// ─── POST /admin/alumnos/:id/renovar-preregistro ─────────────────────────────
+router.post('/alumnos/:id/renovar-preregistro', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [est] = await db.select({ folioPreregistro: estudiantes.folioPreregistro }).from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  const ahora = new Date();
+  const vigencia = agregarDiasHabiles(ahora, 15);
+  const folio = est.folioPreregistro ?? await generarFolioPreregistro();
+
+  await db.update(estudiantes).set({
+    folioPreregistro: folio,
+    preregistroGeneradoEn: ahora,
+    preregistroVigenteHasta: vigencia.toISOString().split('T')[0],
+  }).where(eq(estudiantes.userId, alumnoId));
+
+  await tryAuditLog({
+    userId: req.user!.userId,
+    accion: 'renovar_preregistro',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Renovó pre-registro del alumno ID ${alumnoId}, vigente hasta ${vigencia.toISOString().split('T')[0]}`,
+    metadata: { folio, vigenteHasta: vigencia.toISOString().split('T')[0] },
+    req,
+  });
+
+  res.json({ ok: true, folio, vigenteHasta: vigencia.toISOString().split('T')[0] });
+});
+
+// ─── GET /admin/alumnos/:id/ficha-registro ───────────────────────────────────
+router.get('/alumnos/:id/ficha-registro', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  if (!est.matriculaOficialDGB) { res.status(400).json({ error: 'El alumno aún no tiene matrícula oficial asignada' }); return; }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, alumnoId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+  const [gestorRow] = est.gestorId
+    ? await db.select({ nombreCompleto: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, est.gestorId))
+    : [null];
+
+  const docsValidados = await db
+    .select({ tipo: expedienteDocumentos.tipo, revisadoEn: expedienteDocumentos.revisadoEn })
+    .from(expedienteDocumentos)
+    .where(and(eq(expedienteDocumentos.estudianteId, alumnoId), eq(expedienteDocumentos.estado, 'aprobado')));
+
+  const pdf = await generarFichaRegistro({
+    matricula: est.matriculaOficialDGB,
+    folio: est.folioPreregistro ?? '—',
+    nombreCompleto: est.nombreCompleto,
+    curp: est.curp ?? null,
+    fechaNacimiento: est.fechaNacimiento ?? null,
+    telefono: est.telefono ?? null,
+    email: userRow?.email ?? '',
+    municipio: municipio?.nombre ?? null,
+    gestor: gestorRow ? { nombre: gestorRow.nombreCompleto } : null,
+    matriculaCapturadaEn: est.matriculaCapturadaEn ?? null,
+    documentosValidados: docsValidados.map(d => ({ tipo: d.tipo, validadoEn: d.revisadoEn ?? null })),
+    pagos: [],
+  });
+
+  const safeMat = est.matriculaOficialDGB.replace(/[^a-zA-Z0-9]/g, '');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="ficha-registro-${safeMat}.pdf"`);
+  res.send(pdf);
 });
 
 export default router;

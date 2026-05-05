@@ -1,0 +1,135 @@
+import { BookOpen, Cpu, MapPin, Users, ShieldCheck, Zap } from 'lucide-react';
+
+export default function AcercaDe() {
+  return (
+    <div style={{ maxWidth: 700 }}>
+      {/* Hero EDUMICH */}
+      <div
+        style={{
+          background: 'linear-gradient(135deg, #f8e8ef 0%, #fdf4f8 60%, #fff 100%)',
+          border: '1px solid #e8c4d4',
+          borderRadius: 16,
+          padding: '40px 48px',
+          marginBottom: 32,
+          textAlign: 'center',
+        }}
+      >
+        <div
+          style={{
+            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontWeight: 900,
+            fontSize: 56,
+            letterSpacing: '-0.04em',
+            background: 'linear-gradient(135deg, #6B0F3C 0%, #3d0722 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            marginBottom: 12,
+            lineHeight: 1,
+          }}
+        >
+          EDUMICH
+        </div>
+        <h1 style={{ fontSize: 18, fontWeight: 700, color: '#2a2a2a', margin: '0 0 12px', letterSpacing: '-0.01em' }}>
+          Plataforma Educativa Digital del Estado de Michoacán
+        </h1>
+        <p style={{ fontSize: 14, color: '#78716c', lineHeight: 1.6, margin: '0 auto', maxWidth: 480 }}>
+          EDUMICH es la iniciativa tecnológica del Gobierno de Michoacán para digitalizar y
+          modernizar la gestión educativa del estado, comenzando con el sistema de Preparatoria
+          Abierta del IEMSyS.
+        </p>
+      </div>
+
+      {/* Info cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 32 }}>
+        {[
+          {
+            icon: Zap,
+            titulo: 'La plataforma',
+            desc: 'EDUMICH es la capa tecnológica que integra y moderniza los procesos institucionales del IEMSyS, comenzando por la gestión de Prepa Abierta.',
+          },
+          {
+            icon: BookOpen,
+            titulo: 'Prepa Abierta',
+            desc: 'El módulo activo de EDUMICH gestiona las inscripciones, expedientes, calificaciones y comunicación del Plan Modular de Preparatoria Abierta.',
+          },
+          {
+            icon: Users,
+            titulo: 'Gestores municipales',
+            desc: 'Los gestores son el puente entre la institución y los aspirantes en cada municipio de Michoacán. EDUMICH facilita su trabajo diario.',
+          },
+          {
+            icon: MapPin,
+            titulo: 'Cobertura estatal',
+            desc: 'El sistema opera en los 113 municipios del Estado de Michoacán, con gestores municipales asignados a cada región.',
+          },
+          {
+            icon: Cpu,
+            titulo: 'Tecnología',
+            desc: 'EDUMICH está construido con tecnología moderna: Node.js, PostgreSQL, React y pnpm workspaces para garantizar rendimiento y escalabilidad.',
+          },
+          {
+            icon: ShieldCheck,
+            titulo: 'Seguridad y privacidad',
+            desc: 'Cumple con la Ley General de Protección de Datos Personales (LGPDPPSO). Los datos son almacenados de forma segura en servidores del Estado.',
+          },
+        ].map(({ icon: Icon, titulo, desc }) => (
+          <div
+            key={titulo}
+            style={{
+              background: 'white',
+              border: '1px solid #e7e5e4',
+              borderRadius: 12,
+              padding: '20px 22px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <div style={{
+                width: 32, height: 32, borderRadius: 8,
+                background: '#f8e8ef', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--color-guinda-700)', flexShrink: 0,
+              }}>
+                <Icon size={16} />
+              </div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: '#2a2a2a' }}>{titulo}</div>
+            </div>
+            <p style={{ fontSize: 12, color: '#78716c', lineHeight: 1.55, margin: 0 }}>{desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Jerarquía de nombres */}
+      <div style={{ background: 'white', border: '1px solid #e7e5e4', borderRadius: 12, padding: '24px 28px', marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#a8a29e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
+          Jerarquía de marca
+        </div>
+        {[
+          { num: '1', nombre: 'EDUMICH', desc: 'La marca tecnológica — el nombre del proyecto/plataforma', color: 'var(--color-guinda-700)' },
+          { num: '2', nombre: 'Prepa Abierta', desc: 'El servicio educativo principal que se gestiona', color: '#44403c' },
+          { num: '3', nombre: 'IEMSyS', desc: 'La institución que opera el sistema', color: '#78716c' },
+          { num: '4', nombre: 'Gobierno de Michoacán', desc: 'El ente gubernamental que respalda todo', color: '#a8a29e' },
+        ].map(({ num, nombre, desc, color }) => (
+          <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: num !== '4' ? '1px solid #f5f5f4' : 'none' }}>
+            <div style={{
+              width: 24, height: 24, borderRadius: 6, background: '#f5f5f4',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, color: '#a8a29e', flexShrink: 0,
+            }}>
+              {num}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color }}>{nombre}</div>
+              <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{desc}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Version info */}
+      <div style={{ fontSize: 11, color: '#a8a29e', textAlign: 'center', lineHeight: 1.6 }}>
+        EDUMICH v0.1 (demo) · Módulo Prepa Abierta · {new Date().getFullYear()}<br />
+        Gobierno del Estado de Michoacán · Instituto de Educación Media Superior y Superior
+      </div>
+    </div>
+  );
+}

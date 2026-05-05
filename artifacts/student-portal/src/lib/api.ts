@@ -37,6 +37,11 @@ export const api = {
       method: 'POST',
       body: body instanceof FormData ? body : JSON.stringify(body ?? {}),
     }),
+  put: <T>(path: string, body?: unknown) =>
+    request<T>(path, {
+      method: 'PUT',
+      body: JSON.stringify(body ?? {}),
+    }),
   patch: <T>(path: string, body?: unknown) =>
     request<T>(path, {
       method: 'PATCH',
@@ -154,6 +159,9 @@ export interface DashboardEstudiante {
   };
   siguientesPasos: SiguientePaso[];
   avisosNoLeidos: number;
+  folioPreregistro: string | null;
+  preregistroVigenteHasta: string | null;
+  matriculaOficialDGB: string | null;
 }
 
 export interface Aviso {
@@ -357,6 +365,7 @@ export interface GestorExpedienteResponse {
 }
 
 export interface DocExpediente {
+  id: number;
   estado: ExpedienteDocEstado;
   motivoRechazo: string | null;
   nombreOriginal: string;
@@ -425,6 +434,38 @@ export interface PagosResponse {
     pendientes: number;
     rechazados: number;
   };
+}
+
+// ── Anuncios ──────────────────────────────────────────────────────────────
+export type AnuncioPrioridad = 'informativo' | 'importante' | 'urgente';
+export type AnuncioAudiencia = 'todos' | 'alumnos' | 'gestores' | 'alumnos_municipio' | 'alumnos_etapa' | 'gestor_especifico';
+export type AnuncioEstado = 'borrador' | 'publicado' | 'archivado';
+
+export interface AnuncioMio {
+  id: number;
+  titulo: string;
+  contenido: string;
+  prioridad: AnuncioPrioridad;
+  ctaTexto: string | null;
+  ctaUrl: string | null;
+  publicadoEn: string | null;
+  activoHasta: string | null;
+  yaVisto: boolean;
+}
+
+export interface AnuncioAdmin {
+  id: number;
+  titulo: string;
+  contenido: string;
+  prioridad: AnuncioPrioridad;
+  audiencia: AnuncioAudiencia;
+  audienciaParam: string | null;
+  estado: AnuncioEstado;
+  ctaTexto: string | null;
+  ctaUrl: string | null;
+  publicadoEn: string | null;
+  activoHasta: string | null;
+  createdAt: string;
 }
 
 // ── Calificaciones ────────────────────────────────────────────────────────

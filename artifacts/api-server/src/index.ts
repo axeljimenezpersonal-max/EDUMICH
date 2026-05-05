@@ -15,6 +15,11 @@ import publicoRoutes from './routes/publico';
 import adminRoutes from './routes/admin';
 import pagosRoutes from './routes/pagos';
 import calificacionesRoutes from './routes/calificaciones';
+import anunciosRoutes from './routes/anuncios';
+import notificacionesRoutes from './routes/notificaciones';
+import reportesRoutes, { ejecutarReportesProgramados } from './routes/reportes';
+import configuracionRoutes from './routes/configuracion';
+import cron from 'node-cron';
 
 const app = express();
 
@@ -35,10 +40,20 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/gestor', gestorRoutes);
 app.use('/api/estudiante', estudianteRoutes);
+app.use('/api/alumno', estudianteRoutes);
 app.use('/api/publico', publicoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/calificaciones', calificacionesRoutes);
+app.use('/api/anuncios', anunciosRoutes);
+app.use('/api/notificaciones', notificacionesRoutes);
+app.use('/api/admin/reportes', reportesRoutes);
+app.use('/api/admin/configuracion', configuracionRoutes);
+
+// Cron: check programmed reports every hour
+cron.schedule('0 * * * *', () => {
+  ejecutarReportesProgramados().catch((e) => console.error('[Reportes Cron]', e));
+});
 
 // 404
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Endpoint no existe' }));

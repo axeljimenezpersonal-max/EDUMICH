@@ -12,7 +12,7 @@
  */
 
 import { Router } from 'express';
-import { and, desc, eq, count } from 'drizzle-orm';
+import { and, desc, eq, count, sql } from 'drizzle-orm';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -34,6 +34,10 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal } from '../utils/password';
+import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
+import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import { tryAuditLog } from '../utils/audit';
+import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 
 const router = Router();
 
@@ -219,6 +223,10 @@ router.post('/alumnos', async (req, res) => {
     })
     .returning();
 
+  const folio = await generarFolioPreregistro();
+  const ahora = new Date();
+  const vigenteHasta = agregarDiasHabiles(ahora, 15);
+
   await db.insert(estudiantes).values({
     userId: user.id,
     nombreCompleto: data.nombreCompleto,
@@ -228,6 +236,9 @@ router.post('/alumnos', async (req, res) => {
     direccion: data.direccion,
     municipioId: ctx.municipioId,
     gestorId: userId,
+    folioPreregistro: folio,
+    preregistroGeneradoEn: ahora,
+    preregistroVigenteHasta: vigenteHasta.toISOString().split('T')[0],
   });
 
   const [insc] = await db
@@ -262,12 +273,14 @@ router.post('/alumnos', async (req, res) => {
     }
   } catch {}
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId,
     accion: 'crear_alumno',
     entidad: 'estudiante',
     entidadId: user.id,
+    detalle: `Registró nuevo alumno CURP ${data.curp}`,
     metadata: { curp: data.curp, convocatoriaId: data.convocatoriaId, emailEnviado },
+    req,
   });
 
   res.status(201).json({
@@ -307,18 +320,7 @@ router.post(
     const docIne = files?.['doc_ine']?.[0];
     const docDomicilio = files?.['doc_domicilio']?.[0];
 
-    const allFiles = [docCurp, docActa, docIne, docDomicilio];
-    const missing: string[] = [];
-    if (!docCurp) missing.push('CURP');
-    if (!docActa) missing.push('Acta de nacimiento');
-    if (!docIne) missing.push('Identificación oficial (INE)');
-    if (!docDomicilio) missing.push('Comprobante de domicilio');
-
-    if (missing.length > 0) {
-      for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
-      res.status(400).json({ error: `Faltan documentos: ${missing.join(', ')}` });
-      return;
-    }
+    const allFiles = [docCurp, docActa, docIne, docDomicilio].filter(Boolean) as Express.Multer.File[];
 
     const body = req.body as Record<string, string>;
     const parse = crearAlumnoSchema.safeParse({
@@ -347,7 +349,11 @@ router.post(
       return;
     }
 
-    const uploadedFiles = [docCurp!, docActa!, docIne!, docDomicilio!];
+    const uploadedFiles = allFiles;
+    const folioRC = await generarFolioPreregistro();
+    const ahoraRC = new Date();
+    const vigenteHastaRC = agregarDiasHabiles(ahoraRC, 15);
+
     try {
       const result = await db.transaction(async (tx) => {
         const tempPassword = generarPasswordTemporal();
@@ -367,6 +373,9 @@ router.post(
           direccion: data.direccion,
           municipioId: ctx.municipioId,
           gestorId: userId,
+          folioPreregistro: folioRC,
+          preregistroGeneradoEn: ahoraRC,
+          preregistroVigenteHasta: vigenteHastaRC.toISOString().split('T')[0],
         });
 
         const [insc] = await tx
@@ -380,11 +389,11 @@ router.post(
           .returning();
 
         const docDefs = [
-          { file: docCurp!, tipo: 'curp', nombre: 'CURP' },
-          { file: docActa!, tipo: 'acta', nombre: 'Acta de nacimiento' },
-          { file: docIne!, tipo: 'ine', nombre: 'Identificación oficial (INE)' },
-          { file: docDomicilio!, tipo: 'domicilio', nombre: 'Comprobante de domicilio' },
-        ];
+          { file: docCurp, tipo: 'curp', nombre: 'CURP' },
+          { file: docActa, tipo: 'acta', nombre: 'Acta de nacimiento' },
+          { file: docIne, tipo: 'ine', nombre: 'Identificación oficial (INE)' },
+          { file: docDomicilio, tipo: 'domicilio', nombre: 'Comprobante de domicilio' },
+        ].filter((d): d is { file: Express.Multer.File; tipo: string; nombre: string } => d.file != null);
         const docsInserted = [];
         for (const def of docDefs) {
           const [doc] = await tx
@@ -403,14 +412,6 @@ router.post(
           docsInserted.push(doc);
         }
 
-        await tx.insert(auditLog).values({
-          userId,
-          accion: 'registro_completo',
-          entidad: 'estudiante',
-          entidadId: user.id,
-          metadata: { curp: data.curp, convocatoriaId: data.convocatoriaId, docs: 4 },
-        });
-
         return {
           alumno: {
             userId: user.id,
@@ -422,6 +423,16 @@ router.post(
           credencialTemporal: tempPassword,
           documentos: docsInserted,
         };
+      });
+
+      await tryAuditLog({
+        userId,
+        accion: 'registro_completo',
+        entidad: 'estudiante',
+        entidadId: result.alumno.userId,
+        detalle: `Registró alumno completo CURP ${data.curp} con ${result.documentos.length} documentos`,
+        metadata: { curp: data.curp, convocatoriaId: data.convocatoriaId, docs: result.documentos.length },
+        req,
       });
 
       // Send welcome email after transaction
@@ -458,6 +469,57 @@ router.post(
     }
   }
 );
+
+// ─── GET /gestor/alumnos-pendientes-docs ────────────────────────────
+router.get('/alumnos-pendientes-docs', async (req, res) => {
+  const userId = req.user!.userId;
+
+  const rows = await db
+    .select({
+      userId: estudiantes.userId,
+      nombreCompleto: estudiantes.nombreCompleto,
+      createdAt: estudiantes.createdAt,
+    })
+    .from(estudiantes)
+    .where(eq(estudiantes.gestorId, userId))
+    .orderBy(desc(estudiantes.createdAt));
+
+  const result = [];
+  for (const r of rows) {
+    const [insc] = await db
+      .select({ id: inscripciones.id })
+      .from(inscripciones)
+      .where(eq(inscripciones.estudianteId, r.userId))
+      .orderBy(desc(inscripciones.createdAt))
+      .limit(1);
+
+    const [{ c: docsCount }] = insc
+      ? await db.select({ c: count() }).from(documentos).where(eq(documentos.inscripcionId, insc.id))
+      : [{ c: 0 }];
+
+    if (docsCount < 4) {
+      const creadoEn = new Date(r.createdAt as string | Date);
+      const diasDesdeRegistro = Math.floor((Date.now() - creadoEn.getTime()) / 86400000);
+      const parts = r.nombreCompleto.split(' ').filter(Boolean);
+      const iniciales = parts.length >= 2
+        ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
+        : r.nombreCompleto.substring(0, 2).toUpperCase();
+
+      result.push({
+        id: r.userId,
+        nombreCompleto: r.nombreCompleto,
+        iniciales,
+        docsAprobados: docsCount,
+        docsTotal: 4,
+        docsFaltantes: 4 - docsCount,
+        creadoEn: creadoEn.toISOString(),
+        diasDesdeRegistro,
+      });
+    }
+  }
+
+  res.json({ alumnos: result, total: result.length });
+});
 
 // ─── GET /gestor/alumnos/:id ─────────────────────────────────────────
 router.get('/alumnos/:id', async (req, res) => {
@@ -577,12 +639,22 @@ router.post('/alumnos/:id/documentos', upload.single('archivo'), async (req, res
       .where(eq(inscripciones.id, insc.id));
   }
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId,
     accion: 'subir_documento',
     entidad: 'documento',
     entidadId: doc.id,
+    detalle: `Subió documento tipo ${tipoSugerido} para alumno ID ${alumnoId}`,
     metadata: { tipoSugerido, alumnoId },
+    req,
+  });
+
+  notificarATodosLosAdmins({
+    tipo: 'documento_subido_revisar',
+    prioridad: 'normal',
+    titulo: 'Documento pendiente de revisión',
+    cuerpo: `El gestor subió un documento (${tipoSugerido}) para el alumno ID ${alumnoId}.`,
+    enlace: `/admin/alumnos/${alumnoId}`,
   });
 
   res.status(201).json({ documento: doc });
@@ -668,6 +740,7 @@ router.get('/alumnos/:id/expediente', async (req, res) => {
   const docsPorTipo: Record<string, unknown> = {};
   for (const d of docs) {
     docsPorTipo[d.tipo] = {
+      id: d.id,
       estado: d.estado,
       motivoRechazo: d.motivoRechazo ?? null,
       nombreOriginal: d.nombreOriginal,
@@ -746,12 +819,22 @@ router.post(
         },
       });
 
-    await db.insert(auditLog).values({
+    await tryAuditLog({
       userId: gestorId,
       accion: 'subir_documento_expediente',
       entidad: 'expediente_documentos',
       entidadId: alumnoId,
+      detalle: `Subió documento de expediente tipo ${tipo} para alumno ID ${alumnoId}`,
       metadata: { tipo, alumnoId },
+      req,
+    });
+
+    notificarATodosLosAdmins({
+      tipo: 'documento_subido_revisar',
+      prioridad: 'normal',
+      titulo: 'Documento de expediente para revisar',
+      cuerpo: `Gestor subió documento "${tipo}" para alumno ID ${alumnoId}.`,
+      enlace: `/admin/alumnos/${alumnoId}`,
     });
 
     res.json({ ok: true, tipo, nombreOriginal: req.file.originalname });
@@ -851,12 +934,14 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     }
   } catch {}
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId: gestorUserId,
     accion: 'reenviar_credenciales',
     entidad: 'users',
     entidadId: alumnoId,
+    detalle: `Reenvió credenciales al alumno ID ${alumnoId}`,
     metadata: { emailEnviado, modoEmail },
+    req,
   });
 
   res.json({
@@ -877,6 +962,259 @@ router.get('/alumnos/:id/expediente/documento/:tipo/preview', async (req, res) =
 router.get('/alumnos/:id/expediente/documento/:tipo/descargar', async (req, res) => {
   const alumnoId = Number(req.params.id as string);
   await servirDocExpedienteGestor(req.user!.userId, alumnoId, req.params.tipo as string, 'attachment', res);
+});
+
+// ─── GET helper: find a gestors student by doc id ────────────────────
+async function verificarAlumnoDelGestorPorDoc(gestorId: number, docId: number) {
+  const [row] = await db
+    .select({
+      id: expedienteDocumentos.id,
+      estado: expedienteDocumentos.estado,
+      tipo: expedienteDocumentos.tipo,
+      estudianteId: expedienteDocumentos.estudianteId,
+    })
+    .from(expedienteDocumentos)
+    .innerJoin(
+      estudiantes,
+      and(
+        eq(estudiantes.userId, expedienteDocumentos.estudianteId),
+        eq(estudiantes.gestorId, gestorId)
+      )
+    )
+    .where(eq(expedienteDocumentos.id, docId));
+  return row ?? null;
+}
+
+// ─── PUT /gestor/expediente-documentos/:id/aprobar ────────────────────
+router.patch('/expediente-documentos/:id/aprobar', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const docId = Number(req.params.id);
+  if (Number.isNaN(docId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const doc = await verificarAlumnoDelGestorPorDoc(gestorId, docId);
+  if (!doc) { res.status(404).json({ error: 'Documento no encontrado o no pertenece a tus alumnos' }); return; }
+  if (doc.estado !== 'pendiente_revision') { res.status(400).json({ error: 'El documento no está pendiente de revisión' }); return; }
+
+  await db
+    .update(expedienteDocumentos)
+    .set({ estado: 'aprobado', revisadoPorUserId: gestorId, revisadoEn: new Date(), updatedAt: new Date() })
+    .where(eq(expedienteDocumentos.id, docId));
+
+  await tryAuditLog({
+    userId: gestorId,
+    accion: 'aprobar_documento',
+    entidad: 'expediente_documentos',
+    entidadId: docId,
+    detalle: `Aprobó documento tipo ${doc.tipo} del alumno ID ${doc.estudianteId}`,
+    metadata: { tipo: doc.tipo, estudianteId: doc.estudianteId },
+    req,
+  });
+
+  notificar({
+    userId: doc.estudianteId,
+    tipo: 'documento_aprobado',
+    prioridad: 'normal',
+    titulo: 'Documento aprobado',
+    cuerpo: `Tu documento "${doc.tipo}" fue aprobado por tu gestor.`,
+    enlace: '/estudiante/expediente',
+  });
+
+  res.json({ ok: true });
+});
+
+// ─── PUT /gestor/expediente-documentos/:id/rechazar ───────────────────
+const rechazarDocGestorSchema = z.object({ motivoRechazo: z.string().min(1).max(500) });
+
+router.patch('/expediente-documentos/:id/rechazar', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const docId = Number(req.params.id);
+  if (Number.isNaN(docId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = rechazarDocGestorSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'motivoRechazo es requerido' }); return; }
+
+  const doc = await verificarAlumnoDelGestorPorDoc(gestorId, docId);
+  if (!doc) { res.status(404).json({ error: 'Documento no encontrado o no pertenece a tus alumnos' }); return; }
+  if (doc.estado !== 'pendiente_revision') { res.status(400).json({ error: 'El documento no está pendiente de revisión' }); return; }
+
+  await db
+    .update(expedienteDocumentos)
+    .set({ estado: 'rechazado', motivoRechazo: parse.data.motivoRechazo, revisadoPorUserId: gestorId, revisadoEn: new Date(), updatedAt: new Date() })
+    .where(eq(expedienteDocumentos.id, docId));
+
+  await tryAuditLog({
+    userId: gestorId,
+    accion: 'rechazar_documento',
+    entidad: 'expediente_documentos',
+    entidadId: docId,
+    detalle: `Rechazó documento tipo ${doc.tipo} del alumno ID ${doc.estudianteId}`,
+    metadata: { tipo: doc.tipo, estudianteId: doc.estudianteId, motivo: parse.data.motivoRechazo },
+    req,
+  });
+
+  notificar({
+    userId: doc.estudianteId,
+    tipo: 'documento_rechazado',
+    prioridad: 'alta',
+    titulo: 'Documento rechazado — acción requerida',
+    cuerpo: `Tu documento "${doc.tipo}" fue rechazado. Motivo: ${parse.data.motivoRechazo}`,
+    enlace: '/estudiante/expediente',
+  });
+
+  res.json({ ok: true });
+});
+
+// ─── POST /gestor/alumnos/:id/matricula ──────────────────────────────────────
+const matriculaSchema = z.object({
+  matricula: z.string().min(8).max(20).regex(/^[A-Z0-9]+$/, 'Solo caracteres alfanuméricos'),
+});
+
+router.post('/alumnos/:id/matricula', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = matriculaSchema.safeParse({ matricula: (req.body.matricula as string)?.toUpperCase() });
+  if (!parse.success) { res.status(400).json({ error: parse.error.errors[0].message }); return; }
+  const { matricula } = parse.data;
+
+  const [alumno] = await db
+    .select({ userId: estudiantes.userId })
+    .from(estudiantes)
+    .where(and(eq(estudiantes.userId, alumnoId), eq(estudiantes.gestorId, gestorId)));
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado o no pertenece a tus alumnos' }); return; }
+
+  const [duplicate] = await db
+    .select({ userId: estudiantes.userId })
+    .from(estudiantes)
+    .where(and(eq(estudiantes.matriculaOficialDGB, matricula), sql`${estudiantes.userId} != ${alumnoId}`));
+  if (duplicate) { res.status(409).json({ error: 'Esta matrícula ya está asignada a otro alumno' }); return; }
+
+  await db.update(estudiantes).set({
+    matriculaOficialDGB: matricula,
+    matriculaCapturadaEn: new Date(),
+    matriculaCapturadaPor: gestorId,
+    updatedAt: new Date(),
+  }).where(eq(estudiantes.userId, alumnoId));
+
+  await tryAuditLog({
+    userId: gestorId,
+    accion: 'capturar_matricula',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Capturó matrícula DGB "${matricula}" para alumno ID ${alumnoId}`,
+    metadata: { matricula },
+    req,
+  });
+
+  notificar({
+    userId: alumnoId,
+    tipo: 'matricula_asignada',
+    prioridad: 'alta',
+    titulo: '¡Matrícula DGB asignada!',
+    cuerpo: `Se te asignó la matrícula oficial ${matricula}. Ya puedes descargar tu ficha de registro.`,
+    enlace: '/estudiante',
+  });
+
+  res.json({ ok: true, matricula });
+});
+
+// ─── GET /gestor/alumnos/:id/ficha-preregistro ───────────────────────────────
+router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  let [est] = await db
+    .select()
+    .from(estudiantes)
+    .where(and(eq(estudiantes.userId, alumnoId), eq(estudiantes.gestorId, gestorId)));
+  if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  if (!est.folioPreregistro) {
+    const folio = await generarFolioPreregistro();
+    const ahora = new Date();
+    const vigencia = agregarDiasHabiles(ahora, 15);
+    await db.update(estudiantes).set({
+      folioPreregistro: folio,
+      preregistroGeneradoEn: ahora,
+      preregistroVigenteHasta: vigencia.toISOString().split('T')[0],
+    }).where(eq(estudiantes.userId, alumnoId));
+    [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, alumnoId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+  const [gestorRow] = await db.select({ nombreCompleto: gestores.nombreCompleto, emailPublico: gestores.emailPublico }).from(gestores).where(eq(gestores.userId, gestorId));
+
+  const pdf = await generarFichaPreregistro({
+    folio: est.folioPreregistro!,
+    generadoEn: est.preregistroGeneradoEn ?? new Date(),
+    vigenteHasta: est.preregistroVigenteHasta ?? null,
+    nombreCompleto: est.nombreCompleto,
+    curp: est.curp ?? null,
+    fechaNacimiento: est.fechaNacimiento ?? null,
+    genero: (est as any).genero ?? null,
+    nacionalidad: (est as any).nacionalidad ?? 'Mexicana',
+    telefono: est.telefono ?? null,
+    email: userRow?.email ?? '',
+    municipio: municipio?.nombre ?? null,
+    gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
+    fotoPath: (est as any).foto ?? null,
+    qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
+  });
+
+  const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="ficha-preregistro-${safeFolio}.pdf"`);
+  res.send(pdf);
+});
+
+// ─── GET /gestor/alumnos/:id/ficha-registro ──────────────────────────────────
+router.get('/alumnos/:id/ficha-registro', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [est] = await db
+    .select()
+    .from(estudiantes)
+    .where(and(eq(estudiantes.userId, alumnoId), eq(estudiantes.gestorId, gestorId)));
+  if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  if (!est.matriculaOficialDGB) { res.status(400).json({ error: 'El alumno aún no tiene matrícula oficial asignada' }); return; }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, alumnoId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+  const [gestorRow] = await db.select({ nombreCompleto: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, gestorId));
+
+  const docsValidados = await db
+    .select({ tipo: expedienteDocumentos.tipo, revisadoEn: expedienteDocumentos.revisadoEn })
+    .from(expedienteDocumentos)
+    .where(and(eq(expedienteDocumentos.estudianteId, alumnoId), eq(expedienteDocumentos.estado, 'aprobado')));
+
+  const pdf = await generarFichaRegistro({
+    matricula: est.matriculaOficialDGB,
+    folio: est.folioPreregistro ?? '—',
+    nombreCompleto: est.nombreCompleto,
+    curp: est.curp ?? null,
+    fechaNacimiento: est.fechaNacimiento ?? null,
+    telefono: est.telefono ?? null,
+    email: userRow?.email ?? '',
+    municipio: municipio?.nombre ?? null,
+    gestor: gestorRow ? { nombre: gestorRow.nombreCompleto } : null,
+    matriculaCapturadaEn: est.matriculaCapturadaEn ?? null,
+    documentosValidados: docsValidados.map(d => ({ tipo: d.tipo, validadoEn: d.revisadoEn ?? null })),
+    pagos: [],
+  });
+
+  const safeMat = est.matriculaOficialDGB.replace(/[^a-zA-Z0-9]/g, '');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="ficha-registro-${safeMat}.pdf"`);
+  res.send(pdf);
 });
 
 export default router;

@@ -156,6 +156,7 @@ export default function NuevoAlumno() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [exito, setExito] = useState<RegistroExito | null>(null);
+  const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
 
   // One ref per file input
   const inputRefs = useRef<Record<DocKey, HTMLInputElement | null>>({
@@ -261,6 +262,43 @@ export default function NuevoAlumno() {
     try {
       const r = await api.post<RegistroExito>('/gestor/alumnos/registro-completo', fd);
       setExito(r);
+    } catch (err) {
+      setSubmitError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ── Guardar sin documentos completos ─────────────────────────────────
+  async function handleGuardarSinDocs() {
+    if (!conv) return;
+    setMostrarModalSinDocs(false);
+    setLoading(true);
+    setSubmitError(null);
+
+    const fd = new FormData();
+    fd.append('nombreCompleto', datos.nombreCompleto.trim());
+    fd.append('curp', datos.curp.toUpperCase());
+    fd.append('email', datos.email.toLowerCase());
+    fd.append('telefono', datos.telefono);
+    if (datos.fechaNacimiento) fd.append('fechaNacimiento', format(datos.fechaNacimiento, 'yyyy-MM-dd'));
+    fd.append('direccion', datos.direccion);
+    fd.append('convocatoriaId', String(conv.id));
+    if (archivos.curp) fd.append('doc_curp', archivos.curp);
+    if (archivos.acta) fd.append('doc_acta', archivos.acta);
+    if (archivos.ine) fd.append('doc_ine', archivos.ine);
+    if (archivos.domicilio) fd.append('doc_domicilio', archivos.domicilio);
+
+    try {
+      const r = await api.post<RegistroExito>('/gestor/alumnos/registro-completo', fd);
+      sessionStorage.setItem(
+        'gestor_toast',
+        JSON.stringify({
+          msg: `${r.alumno.nombreCompleto} registrado. Recuerda subir los documentos faltantes (${faltanCount} pendiente${faltanCount > 1 ? 's' : ''}).`,
+          type: 'warning',
+        })
+      );
+      setLocation('/gestor/alumnos');
     } catch (err) {
       setSubmitError((err as Error).message);
     } finally {
@@ -660,6 +698,16 @@ export default function NuevoAlumno() {
               Volver al paso 1
             </button>
 
+            {faltanCount > 0 && (
+              <button
+                onClick={() => setMostrarModalSinDocs(true)}
+                disabled={loading || !conv}
+                className="gov-btn-secondary inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Guardar y subir docs después
+              </button>
+            )}
+
             <button
               onClick={handleSubmit}
               disabled={faltanCount > 0 || loading || !conv}
@@ -674,6 +722,49 @@ export default function NuevoAlumno() {
                 btnLabel
               )}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: guardar sin documentos completos */}
+      {mostrarModalSinDocs && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="font-serif text-xl font-bold text-stone-900 mb-2">
+              ¿Guardar sin todos los documentos?
+            </h3>
+            <p className="text-sm text-stone-600 mb-4">
+              El alumno quedará registrado, pero deberás subir los documentos faltantes antes de que pueda ser validado.
+            </p>
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-3 mb-4">
+              <div className="text-xs uppercase tracking-widest text-amber-700 font-semibold mb-2">
+                Documentos faltantes ({faltanCount})
+              </div>
+              <div className="space-y-1">
+                {DOC_DEFS.filter((d) => !archivos[d.key]).map((d) => (
+                  <div key={d.key} className="flex items-center gap-2 text-sm text-amber-800">
+                    <AlertCircle size={13} className="flex-shrink-0" />
+                    {d.nombre}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setMostrarModalSinDocs(false)}
+                className="gov-btn-secondary"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleGuardarSinDocs}
+                disabled={loading}
+                className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-50"
+              >
+                {loading && <Loader2 size={14} className="animate-spin" />}
+                Sí, guardar sin documentos
+              </button>
+            </div>
           </div>
         </div>
       )}

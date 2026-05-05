@@ -6,13 +6,32 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar } from 'lucide-react';
+import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, type DashboardGestor, type Convocatoria } from '../../lib/api';
+
+interface AnuncioItem {
+  id: number;
+  titulo: string;
+  contenido: string;
+  prioridad: 'informativo' | 'importante' | 'urgente';
+  ctaTexto: string | null;
+  ctaUrl: string | null;
+  yaVisto: boolean;
+}
+
+interface AlumnoPendienteDocs {
+  id: number;
+  nombreCompleto: string;
+  docsFaltantes: number;
+}
 
 export default function GestorDashboard() {
   const [data, setData] = useState<DashboardGestor | null>(null);
   const [conv, setConv] = useState<Convocatoria | null>(null);
+  const [alumnosPendientes, setAlumnosPendientes] = useState<AlumnoPendienteDocs[]>([]);
+  const [anuncios, setAnuncios] = useState<AnuncioItem[]>([]);
+  const [closedIds, setClosedIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     api.get<DashboardGestor>('/gestor/dashboard').then(setData).catch(console.error);
@@ -20,7 +39,22 @@ export default function GestorDashboard() {
       .get<{ convocatoria: Convocatoria | null }>('/gestor/convocatoria-activa')
       .then((r) => setConv(r.convocatoria))
       .catch(console.error);
+    api
+      .get<{ alumnos: AlumnoPendienteDocs[] }>('/gestor/alumnos-pendientes-docs')
+      .then((r) => setAlumnosPendientes(r.alumnos))
+      .catch(console.error);
+    api
+      .get<{ anuncios: AnuncioItem[] }>('/anuncios/mios')
+      .then((r) => setAnuncios(r.anuncios.filter(a => !a.yaVisto)))
+      .catch(console.error);
   }, []);
+
+  function cerrarAnuncio(id: number) {
+    setClosedIds(prev => new Set(prev).add(id));
+    api.post(`/anuncios/${id}/cerrar`).catch(console.error);
+  }
+
+  const visibleAnuncios = anuncios.filter(a => !closedIds.has(a.id));
 
   return (
     <GestorLayout>
@@ -37,6 +71,62 @@ export default function GestorDashboard() {
           Aquí tienes un resumen de tus alumnos y documentos pendientes.
         </p>
       </div>
+
+      {/* Banners de anuncios */}
+      {visibleAnuncios.map(a => {
+        const colorMap = {
+          urgente:    { bg: '#fff1f2', border: '#fecdd3', text: '#be123c', icon: '#f43f5e' },
+          importante: { bg: '#fffbeb', border: '#fde68a', text: '#b45309', icon: '#f59e0b' },
+          informativo:{ bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', icon: '#3b82f6' },
+        };
+        const c = colorMap[a.prioridad];
+        return (
+          <div key={a.id} className="mb-3" style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <Megaphone size={15} style={{ color: c.icon, flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: c.text, marginBottom: 2 }}>{a.titulo}</div>
+              <div style={{ fontSize: 12, color: '#57534e', lineHeight: 1.4 }}>{a.contenido}</div>
+              {a.ctaTexto && a.ctaUrl && (
+                <a href={a.ctaUrl} style={{ display: 'inline-block', marginTop: 6, fontSize: 11, fontWeight: 600, color: c.text, textDecoration: 'underline' }}>
+                  {a.ctaTexto} →
+                </a>
+              )}
+            </div>
+            <button onClick={() => cerrarAnuncio(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a8a29e', flexShrink: 0, padding: 2 }}>
+              <X size={13} />
+            </button>
+          </div>
+        );
+      })}
+
+      {/* Banner: alumnos con documentos pendientes */}
+      {alumnosPendientes.length > 0 && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-md p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-md bg-amber-100 flex items-center justify-center text-amber-700 flex-shrink-0 mt-0.5">
+              <AlertCircle size={16} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-amber-900 mb-2">
+                {alumnosPendientes.length === 1
+                  ? '1 alumno con documentos pendientes'
+                  : `${alumnosPendientes.length} alumnos con documentos pendientes`}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {alumnosPendientes.map((a) => (
+                  <Link
+                    key={a.id}
+                    href={`/gestor/alumnos/${a.id}`}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white border border-amber-300 rounded-full text-xs font-medium text-amber-800 hover:bg-amber-50 hover:border-amber-400 transition-colors"
+                  >
+                    {a.nombreCompleto.split(' ')[0]} — {a.docsFaltantes} doc{a.docsFaltantes > 1 ? 's' : ''}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Convocatoria activa */}
       {conv && (

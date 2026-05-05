@@ -24,6 +24,7 @@ import {
   administradores,
   convocatorias,
   avisos,
+  anuncios,
   sedes,
   convocatoriasEtapas,
   convocatoriasModulosHorarios,
@@ -32,6 +33,16 @@ import {
   pagos,
   calificaciones,
   solicitudesCuenta,
+  reportesGenerados,
+  reportesProgramados,
+  datosInstitucionales,
+  datosBancarios,
+  conceptosPago,
+  plantillasCorreo,
+  integraciones,
+  preferenciasUsuario,
+  auditLog,
+  notificaciones,
 } from './schema';
 import { MUNICIPIOS_MICHOACAN } from './seed/municipios';
 import { MODULOS_PREPA_ABIERTA } from './seed/modulos';
@@ -375,6 +386,58 @@ async function main() {
     }
     const avisosCount = await db.select({ c: sql<number>`count(*)` }).from(avisos);
     console.log(`   ✓ ${avisosCount[0].c} avisos en BD\n`);
+
+    // ── Anuncios demo ──────────────────────────────────────────────────
+    console.log('📢 Sembrando anuncios...');
+    const anunciosData = [
+      {
+        titulo: 'Convocatoria 2026-1 abierta: inscripciones hasta el 30 de mayo',
+        contenido: 'Ya está abierta la inscripción a la Convocatoria 2026-1. Para participar debes tener tu expediente completo y aprobado. Revisa tu expediente en la sección "Mi Expediente" y asegúrate de subir todos los documentos requeridos antes de la fecha límite.',
+        prioridad: 'urgente' as const,
+        audiencia: 'alumnos' as const,
+        estado: 'publicado' as const,
+        ctaTexto: 'Ver mi convocatoria',
+        ctaUrl: '/estudiante/convocatoria',
+        publicadoEn: new Date(),
+        creadoPorUserId: adminForAvisos.id,
+      },
+      {
+        titulo: 'Actualización de materiales de estudio — Módulos 1 al 7',
+        contenido: 'Se han actualizado los materiales de apoyo para los Módulos 1 al 7. Los nuevos materiales incluyen resúmenes ampliados, ejercicios de práctica y simulacros de examen. Descárgalos desde la sección "Mis Módulos".',
+        prioridad: 'importante' as const,
+        audiencia: 'todos' as const,
+        estado: 'publicado' as const,
+        ctaTexto: 'Ir a Mis Módulos',
+        ctaUrl: '/estudiante/modulos',
+        publicadoEn: new Date(),
+        creadoPorUserId: adminForAvisos.id,
+      },
+      {
+        titulo: 'Gestores: Reporte trimestral de avance — entrega 15 de junio',
+        contenido: 'Recordamos a todos los gestores municipales que el plazo para entregar el reporte trimestral de avance de alumnos es el 15 de junio. Asegúrense de que todos sus alumnos tengan el expediente actualizado. Cualquier duda, contacten a la coordinación.',
+        prioridad: 'importante' as const,
+        audiencia: 'gestores' as const,
+        estado: 'publicado' as const,
+        publicadoEn: new Date(),
+        creadoPorUserId: adminForAvisos.id,
+      },
+      {
+        titulo: 'Sistema en mantenimiento el sábado 10 de mayo de 00:00 a 06:00',
+        contenido: 'El sistema estará en mantenimiento programado el sábado 10 de mayo de 2026 de 00:00 a 06:00 horas. Durante ese período no se podrán subir documentos ni realizar inscripciones. Disculpen los inconvenientes.',
+        prioridad: 'informativo' as const,
+        audiencia: 'todos' as const,
+        estado: 'publicado' as const,
+        publicadoEn: new Date(),
+        activoHasta: new Date('2026-05-11T06:00:00'),
+        creadoPorUserId: adminForAvisos.id,
+      },
+    ];
+
+    for (const anuncio of anunciosData) {
+      await db.insert(anuncios).values(anuncio as any).onConflictDoNothing();
+    }
+    const anunciosCount = await db.select({ c: sql<number>`count(*)` }).from(anuncios);
+    console.log(`   ✓ ${anunciosCount[0].c} anuncios en BD\n`);
   }
 
   // ── Sedes ─────────────────────────────────────────────────────────────
@@ -983,6 +1046,7 @@ async function main() {
 
   const daysAgoDate = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
   const hoursAgoDate = (h: number) => { const d = new Date(); d.setHours(d.getHours() - h); return d; };
+  const daysFromNowStr = (n: number) => { const d = new Date(); d.setDate(d.getDate() + n); return d.toISOString().split('T')[0]; };
 
   // ── Helper: getOrCreate user ──────────────────────────────────────────────
   async function demoUser(email: string, rol: 'gestor' | 'estudiante', passTemp: boolean, createdAt?: Date) {
@@ -1114,6 +1178,13 @@ async function main() {
     curp: 'LOPA980916MMNPRR03', fechaNacimiento: '1998-09-16',
     telefono: '434-100-2233', municipioId: dPat!.id,
     gestorId: gRamirezId, emailVerificado: true, registroTipo: 'gestor',
+    genero: 'femenino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2026-MICH-000001',
+    preregistroGeneradoEn: new Date('2026-01-15T10:00:00Z'),
+    preregistroVigenteHasta: '2026-02-05',
+    matriculaOficialDGB: '26016000142X',
+    matriculaCapturadaEn: new Date('2026-02-01T14:30:00Z'),
+    matriculaCapturadaPor: gRamirezId,
   }).onConflictDoNothing();
   await expDoc(anaId, 'acta_nacimiento', 'aprobado');
   await expDoc(anaId, 'curp', 'aprobado');
@@ -1132,6 +1203,10 @@ async function main() {
     curp: 'RABJ891015HMNMDR03', fechaNacimiento: '1989-10-15',
     telefono: '434-200-3344', municipioId: dPat!.id,
     gestorId: gRamirezId, emailVerificado: true, registroTipo: 'gestor',
+    genero: 'masculino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2026-MICH-000002',
+    preregistroGeneradoEn: new Date('2026-04-01T09:00:00Z'),
+    preregistroVigenteHasta: '2026-04-23',
   }).onConflictDoNothing();
   await expDoc(jorgeId, 'acta_nacimiento', 'aprobado');
   await expDoc(jorgeId, 'curp', 'aprobado');
@@ -1146,6 +1221,10 @@ async function main() {
     curp: 'CIRE950721MMNSMR04', fechaNacimiento: '1995-07-21',
     telefono: '434-300-4455', municipioId: dPat!.id,
     gestorId: gRamirezId, emailVerificado: false, registroTipo: 'gestor',
+    genero: 'femenino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2026-MICH-000003',
+    preregistroGeneradoEn: daysAgoDate(20),
+    preregistroVigenteHasta: daysFromNowStr(-5),
   }).onConflictDoNothing();
   await expDoc(elenaId, 'acta_nacimiento', 'aprobado');
   await expDoc(elenaId, 'curp', 'aprobado');
@@ -1163,6 +1242,13 @@ async function main() {
     curp: 'VENP880412MMNLDR06', fechaNacimiento: '1988-04-12',
     telefono: '443-500-6677', municipioId: dMor!.id,
     gestorId: gGonzalezId, emailVerificado: true, registroTipo: 'gestor',
+    genero: 'femenino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2024-MICH-000001',
+    preregistroGeneradoEn: new Date('2024-04-01T08:00:00Z'),
+    preregistroVigenteHasta: '2024-04-24',
+    matriculaOficialDGB: '26016000089K',
+    matriculaCapturadaEn: new Date('2024-04-05T10:00:00Z'),
+    matriculaCapturadaPor: gGonzalezId,
   }).onConflictDoNothing();
   await expDoc(patriciaId, 'acta_nacimiento', 'aprobado');
   await expDoc(patriciaId, 'curp', 'aprobado');
@@ -1190,6 +1276,13 @@ async function main() {
     curp: 'RAAD970728HMNMGR02', fechaNacimiento: '1997-07-28',
     telefono: '443-600-7788', municipioId: dMor!.id,
     gestorId: gGonzalezId, emailVerificado: true, registroTipo: 'gestor',
+    genero: 'masculino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2026-MICH-000004',
+    preregistroGeneradoEn: new Date('2026-01-20T09:00:00Z'),
+    preregistroVigenteHasta: '2026-02-12',
+    matriculaOficialDGB: '26016000201M',
+    matriculaCapturadaEn: new Date('2026-01-28T15:00:00Z'),
+    matriculaCapturadaPor: gGonzalezId,
   }).onConflictDoNothing();
   await expDoc(diegoId, 'acta_nacimiento', 'aprobado');
   await expDoc(diegoId, 'curp', 'aprobado');
@@ -1206,7 +1299,11 @@ async function main() {
     curp: 'MERS920622MMNDS04', fechaNacimiento: '1992-06-22',
     telefono: '443-700-8899', municipioId: dMor!.id,
     gestorId: gGonzalezId, emailVerificado: false, registroTipo: 'gestor',
+    genero: 'femenino', nacionalidad: 'Mexicana',
     createdAt: sofiaM,
+    folioPreregistro: 'PRE-2026-MICH-000005',
+    preregistroGeneradoEn: sofiaM,
+    preregistroVigenteHasta: daysFromNowStr(22),
   }).onConflictDoNothing();
   await expDoc(sofiaMId, 'acta_nacimiento', 'aprobado');
 
@@ -1223,6 +1320,10 @@ async function main() {
     curp: 'VASR940318HMNRLR07', fechaNacimiento: '1994-03-18',
     telefono: '452-800-9900', municipioId: dUru!.id,
     gestorId: gHernandezId, emailVerificado: true, registroTipo: 'gestor',
+    genero: 'masculino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2026-MICH-000006',
+    preregistroGeneradoEn: daysAgoDate(13),
+    preregistroVigenteHasta: daysFromNowStr(2),
   }).onConflictDoNothing();
   await expDoc(robertoId, 'acta_nacimiento', 'aprobado');
   await expDoc(robertoId, 'curp', 'aprobado');
@@ -1237,6 +1338,10 @@ async function main() {
     curp: 'TORG911105MMNRRR05', fechaNacimiento: '1991-11-05',
     telefono: '452-900-1010', municipioId: dUru!.id,
     gestorId: gHernandezId, emailVerificado: true, registroTipo: 'gestor',
+    genero: 'femenino', nacionalidad: 'Mexicana',
+    folioPreregistro: 'PRE-2026-MICH-000007',
+    preregistroGeneradoEn: daysAgoDate(6),
+    preregistroVigenteHasta: daysFromNowStr(9),
   }).onConflictDoNothing();
   await expDoc(maGuadId, 'acta_nacimiento', 'aprobado');
   await expDoc(maGuadId, 'curp', 'aprobado');
@@ -1259,7 +1364,11 @@ async function main() {
     curp: 'HESC891204HMNRTR01', fechaNacimiento: '1989-12-04',
     telefono: '351-100-2233', municipioId: dZam!.id,
     gestorId: null, emailVerificado: true, registroTipo: 'auto',
+    genero: 'masculino', nacionalidad: 'Mexicana',
     createdAt: daysAgoDate(3),
+    folioPreregistro: 'PRE-2026-MICH-000008',
+    preregistroGeneradoEn: daysAgoDate(3),
+    preregistroVigenteHasta: daysFromNowStr(17),
   }).onConflictDoNothing();
 
   // ALUMNO 10: Axel Jiménez García — en proceso autodirigido
@@ -1269,7 +1378,11 @@ async function main() {
     curp: 'JIGA950315HMNMRX09', fechaNacimiento: '1995-03-15',
     telefono: '443-152-9876', municipioId: dMor!.id,
     gestorId: null, emailVerificado: true, registroTipo: 'auto',
+    genero: 'masculino', nacionalidad: 'Mexicana',
     createdAt: daysAgoDate(7),
+    folioPreregistro: 'PRE-2026-MICH-000009',
+    preregistroGeneradoEn: daysAgoDate(7),
+    preregistroVigenteHasta: daysFromNowStr(14),
   }).onConflictDoNothing();
   await expDoc(axelId, 'acta_nacimiento', 'aprobado');
   await expDoc(axelId, 'curp', 'aprobado');
@@ -1348,6 +1461,363 @@ async function main() {
     console.log('   ✓ 4 solicitudes demo insertadas');
   } else {
     console.log('   ✓ Solicitudes demo ya existían');
+  }
+
+  // ── Reportes programados demo ──────────────────────────────────────
+  console.log('📊 Sembrando reportes programados y historial...');
+  const repProgCount = await db.select({ c: sql<number>`count(*)` }).from(reportesProgramados);
+  if (Number(repProgCount[0].c) === 0) {
+    const adminUserRes = await db.select({ id: users.id }).from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
+    const adminId = adminUserRes[0]?.id;
+
+    const ahora = new Date();
+    const manana = new Date(ahora); manana.setDate(manana.getDate() + 1); manana.setHours(8, 0, 0, 0);
+    const proxSemana = new Date(ahora); proxSemana.setDate(proxSemana.getDate() + 7); proxSemana.setHours(8, 0, 0, 0);
+    const proxMes = new Date(ahora); proxMes.setMonth(proxMes.getMonth() + 1); proxMes.setHours(8, 0, 0, 0);
+
+    await db.insert(reportesProgramados).values([
+      {
+        nombre: 'Inscripciones semanales',
+        tipo: 'inscripciones',
+        formato: 'excel',
+        frecuencia: 'semanal',
+        emailDestino: 'admin@michoacan.gob.mx',
+        activo: true,
+        proximaEjecucion: proxSemana,
+        creadoPorUserId: adminId,
+      },
+      {
+        nombre: 'Reporte ejecutivo mensual',
+        tipo: 'ejecutivo',
+        formato: 'pdf',
+        frecuencia: 'mensual',
+        emailDestino: 'director@michoacan.gob.mx',
+        activo: true,
+        proximaEjecucion: proxMes,
+        creadoPorUserId: adminId,
+      },
+      {
+        nombre: 'Financiero diario',
+        tipo: 'financiero',
+        formato: 'excel',
+        frecuencia: 'diaria',
+        emailDestino: 'finanzas@michoacan.gob.mx',
+        activo: false,
+        proximaEjecucion: manana,
+        creadoPorUserId: adminId,
+      },
+    ]);
+
+    // Historial demo
+    const hace7 = new Date(ahora); hace7.setDate(hace7.getDate() - 7);
+    const hace14 = new Date(ahora); hace14.setDate(hace14.getDate() - 14);
+    const hace3 = new Date(ahora); hace3.setDate(hace3.getDate() - 3);
+    const hace1 = new Date(ahora); hace1.setDate(hace1.getDate() - 1);
+
+    await db.insert(reportesGenerados).values([
+      { tipo: 'inscripciones', formato: 'excel', nombre: 'Reporte de Inscripciones', estado: 'listo', totalRegistros: 87, nombreArchivo: 'inscripciones_20260428.xlsx', tamanoBytes: 42800, generadoPorUserId: adminId, generadoEn: hace7 },
+      { tipo: 'ejecutivo', formato: 'pdf', nombre: 'Reporte Ejecutivo', estado: 'listo', totalRegistros: 6, nombreArchivo: 'ejecutivo_20260421.pdf', tamanoBytes: 185000, generadoPorUserId: adminId, generadoEn: hace14 },
+      { tipo: 'financiero', formato: 'excel', nombre: 'Reporte Financiero', estado: 'listo', totalRegistros: 34, nombreArchivo: 'financiero_20260502.xlsx', tamanoBytes: 28400, generadoPorUserId: adminId, generadoEn: hace3 },
+      { tipo: 'productividad_gestores', formato: 'excel', nombre: 'Productividad de Gestores', estado: 'listo', totalRegistros: 3, nombreArchivo: 'productividad_gestores_20260504.xlsx', tamanoBytes: 15200, generadoPorUserId: adminId, generadoEn: hace1 },
+      { tipo: 'solicitudes', formato: 'pdf', nombre: 'Reporte de Solicitudes de Cuenta', estado: 'listo', totalRegistros: 12, nombreArchivo: 'solicitudes_20260504.pdf', tamanoBytes: 95600, generadoPorUserId: adminId, generadoEn: hace1 },
+    ]);
+
+    console.log('   ✓ 3 reportes programados + 5 historial insertados');
+  } else {
+    console.log('   ✓ Reportes demo ya existían');
+  }
+
+  // ── Configuración: datos institucionales ───────────────────────────────
+  console.log('🏛️  Sembrando configuración institucional...');
+
+  const confDatosCount = await db.select({ c: sql<number>`count(*)` }).from(datosInstitucionales);
+  if (Number(confDatosCount[0].c) === 0) {
+    await db.insert(datosInstitucionales).values({
+      nombreOficial: 'Instituto de Educación Media Superior y Superior del Estado de Michoacán',
+      nombreCorto: 'IEMSyS Michoacán',
+      direccion: 'Av. Siervo de la Nación 2555, Col. Infonavit Popo, Morelia, Michoacán, C.P. 58070',
+      telefonoGeneral: '443 299 5000',
+      correoSoporte: 'soporte.preparatoria@michoacan.gob.mx',
+      rfc: 'IEM200815AB1',
+      sitioWeb: 'https://prepaabierta.michoacan.gob.mx',
+    });
+    console.log('   ✓ Datos institucionales insertados');
+  }
+
+  const confBancoCount = await db.select({ c: sql<number>`count(*)` }).from(datosBancarios);
+  if (Number(confBancoCount[0].c) === 0) {
+    await db.insert(datosBancarios).values({
+      banco: 'BBVA',
+      titular: 'Instituto de Educación Media Superior y Superior del Estado de Michoacán',
+      clabe: '012470012345678901',
+      numeroCuenta: '0123456789',
+      rfc: 'IEM200815AB1',
+      conceptoPago: 'CURP del alumno + clave de etapa DGB',
+    });
+    console.log('   ✓ Datos bancarios insertados');
+  }
+
+  const confConceptosCount = await db.select({ c: sql<number>`count(*)` }).from(conceptosPago);
+  if (Number(confConceptosCount[0].c) === 0) {
+    await db.insert(conceptosPago).values([
+      { clave: 'inscripcion_inicial', nombre: 'Inscripción inicial', descripcion: 'Derecho de inscripción al sistema Prepa Abierta', monto: '850.00', vigencia: 2026, activo: true },
+      { clave: 'examen_modulo', nombre: 'Examen por módulo', descripcion: 'Derecho de examen por cada módulo ordinario', monto: '95.00', vigencia: 2026, activo: true },
+      { clave: 'examen_extraordinario', nombre: 'Examen extraordinario', descripcion: 'Derecho de examen en convocatoria extraordinaria', monto: '95.00', vigencia: 2026, activo: true },
+      { clave: 'reposicion_credencial', nombre: 'Reposición de credencial', descripcion: 'Reposición por extravío o deterioro', monto: '44.00', vigencia: 2026, activo: true },
+      { clave: 'certificado_parcial', nombre: 'Certificado parcial', descripcion: 'Constancia de módulos aprobados', monto: '73.00', vigencia: 2026, activo: true },
+      { clave: 'certificado_total', nombre: 'Certificado total', descripcion: 'Certificado de terminación de bachillerato', monto: '51.00', vigencia: 2026, activo: true },
+      { clave: 'constancia_inscripcion', nombre: 'Constancia de inscripción', descripcion: 'Documento de vigencia de inscripción activa', monto: '0.00', vigencia: 2026, activo: true },
+    ]);
+    console.log('   ✓ Conceptos de pago insertados (7)');
+  }
+
+  // ── Municipios activos ──────────────────────────────────────────────────
+  const MUNICIPIOS_ACTIVOS = ['Morelia', 'Pátzcuaro', 'Uruapan', 'Zamora'];
+  for (const nombre of MUNICIPIOS_ACTIVOS) {
+    await db.update(municipios)
+      .set({ activo: true })
+      .where(eq(municipios.nombre, nombre));
+  }
+  // Desactivar el resto
+  await db.execute(
+    sql`UPDATE municipios SET activo = false WHERE nombre NOT IN ('Morelia', 'Pátzcuaro', 'Uruapan', 'Zamora')`
+  );
+  console.log('   ✓ Municipios activos actualizados (4 activos, resto inactivos)');
+
+  // ── Plantillas de correo ────────────────────────────────────────────────
+  const confPlantillasCount = await db.select({ c: sql<number>`count(*)` }).from(plantillasCorreo);
+  if (Number(confPlantillasCount[0].c) === 0) {
+    const headerHtml = `<div style="background:#6B0F3C;padding:20px 32px;margin-bottom:0"><p style="color:white;font-size:11px;margin:0;font-family:sans-serif;letter-spacing:0.1em;text-transform:uppercase">GOBIERNO DEL ESTADO DE MICHOACÁN</p><h1 style="color:white;font-size:20px;margin:8px 0 0;font-family:sans-serif;font-weight:700">Prepa Abierta Michoacán</h1></div>`;
+    const footerHtml = `<div style="background:#f5f0ea;padding:16px 32px;margin-top:32px;border-top:3px solid #6B0F3C"><p style="color:#78716c;font-size:11px;margin:0;font-family:sans-serif">Instituto de Educación Media Superior y Superior · Michoacán<br>prepaabierta.michoacan.gob.mx · soporte.preparatoria@michoacan.gob.mx</p></div>`;
+    const wrap = (body: string) => `${headerHtml}<div style="padding:32px;font-family:sans-serif;color:#2a2a2a">${body}</div>${footerHtml}`;
+
+    await db.insert(plantillasCorreo).values([
+      {
+        clave: 'bienvenida_credenciales',
+        nombre: 'Bienvenida con credenciales',
+        descripcion: 'Se envía al alumno cuando el gestor crea su cuenta',
+        asunto: 'Bienvenido a Prepa Abierta Michoacán — Tus credenciales de acceso',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Bienvenido, {{nombreCompleto}}</h2><p>Tu cuenta ha sido creada exitosamente en el Sistema de Prepa Abierta Michoacán.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0 0 8px"><strong>Correo:</strong> {{email}}</p><p style="margin:0"><strong>Contraseña temporal:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:15px">{{passwordTemporal}}</code></p></div><p>Tu gestor asignado es <strong>{{gestorNombre}}</strong> ({{gestorEmail}}).</p><p>Por seguridad, deberás cambiar tu contraseña en tu primer ingreso.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">Ingresar al portal</a>`),
+        variablesDisponibles: ['nombreCompleto', 'email', 'passwordTemporal', 'gestorNombre', 'gestorEmail', 'linkPortal'],
+        activa: true,
+      },
+      {
+        clave: 'verificacion_codigo',
+        nombre: 'Verificación de correo (código)',
+        descripcion: 'Código de 6 dígitos para verificar el correo en auto-registro',
+        asunto: 'Prepa Abierta — Tu código de verificación: {{codigo}}',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Verifica tu correo electrónico</h2><p>Usa el siguiente código para completar tu registro:</p><div style="text-align:center;margin:32px 0"><span style="font-size:40px;font-weight:800;letter-spacing:0.3em;color:#6B0F3C;font-family:monospace">{{codigo}}</span></div><p style="color:#78716c;font-size:13px">Este código expira en 15 minutos. Si no solicitaste esto, ignora este correo.</p>`),
+        variablesDisponibles: ['codigo', 'email'],
+        activa: true,
+      },
+      {
+        clave: 'recuperacion_password',
+        nombre: 'Recuperación de contraseña',
+        descripcion: 'Enlace de reset cuando el usuario solicita recuperar su contraseña',
+        asunto: 'Prepa Abierta — Recupera tu contraseña',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Restablecer contraseña</h2><p>Recibimos una solicitud para restablecer la contraseña de <strong>{{email}}</strong>.</p><a href="{{linkReset}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Restablecer contraseña</a><p style="color:#78716c;font-size:13px">Este enlace expira en 2 horas. Si no solicitaste el cambio, ignora este correo.</p>`),
+        variablesDisponibles: ['email', 'linkReset', 'nombreCompleto'],
+        activa: true,
+      },
+      {
+        clave: 'solicitud_aprobada',
+        nombre: 'Solicitud aprobada',
+        descripcion: 'Notifica al solicitante que su solicitud fue aprobada y le da sus credenciales',
+        asunto: 'Prepa Abierta — Tu solicitud fue aprobada',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">¡Tu solicitud fue aprobada!</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, nos complace informarte que tu solicitud de inscripción ha sido aprobada.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0 0 8px"><strong>Correo:</strong> {{email}}</p><p style="margin:0"><strong>Contraseña temporal:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px">{{passwordTemporal}}</code></p></div><p>Tu gestor asignado: <strong>{{gestorNombre}}</strong></p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">Ingresar al portal</a>`),
+        variablesDisponibles: ['nombreCompleto', 'email', 'passwordTemporal', 'gestorNombre', 'linkPortal'],
+        activa: true,
+      },
+      {
+        clave: 'solicitud_rechazada',
+        nombre: 'Solicitud rechazada',
+        descripcion: 'Notifica al solicitante que su solicitud fue rechazada con el motivo',
+        asunto: 'Prepa Abierta — Actualización sobre tu solicitud',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Actualización sobre tu solicitud</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, hemos revisado tu solicitud y lamentamos informarte que no fue posible aprobarla en este momento.</p><div style="background:#fff5f5;border-left:4px solid #ef4444;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0"><strong>Motivo:</strong> {{motivoRechazo}}</p></div><p>Si tienes dudas, comunícate con nosotros en soporte.preparatoria@michoacan.gob.mx</p>`),
+        variablesDisponibles: ['nombreCompleto', 'motivoRechazo', 'email'],
+        activa: true,
+      },
+      {
+        clave: 'anuncio_institucional',
+        nombre: 'Anuncio institucional',
+        descripcion: 'Plantilla genérica para comunicados y anuncios del sistema',
+        asunto: '{{asuntoAnuncio}} — Prepa Abierta Michoacán',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">{{tituloAnuncio}}</h2><div>{{contenidoAnuncio}}</div><p style="color:#78716c;font-size:12px;margin-top:24px">Para más información visita <a href="{{linkPortal}}" style="color:#6B0F3C">tu portal</a>.</p>`),
+        variablesDisponibles: ['tituloAnuncio', 'asuntoAnuncio', 'contenidoAnuncio', 'linkPortal'],
+        activa: true,
+      },
+      {
+        clave: 'documento_rechazado',
+        nombre: 'Documento rechazado',
+        descripcion: 'Notifica al alumno que un documento de su expediente fue rechazado',
+        asunto: 'Prepa Abierta — Documento requiere atención',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Documento requiere atención</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, tu documento <strong>"{{tipoDocumento}}"</strong> fue revisado y requiere corrección.</p><div style="background:#fff5f5;border-left:4px solid #ef4444;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0"><strong>Motivo:</strong> {{motivoRechazo}}</p></div><p>Vuelve a subir el documento corregido desde tu portal.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">Ir a mi expediente</a>`),
+        variablesDisponibles: ['nombreCompleto', 'tipoDocumento', 'motivoRechazo', 'linkPortal'],
+        activa: true,
+      },
+      {
+        clave: 'matricula_asignada',
+        nombre: 'Matrícula DGB asignada',
+        descripcion: 'Notifica al alumno cuando se le captura su matrícula oficial DGB',
+        asunto: 'Prepa Abierta — Tu matrícula oficial ha sido asignada',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">¡Matrícula oficial asignada!</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, nos complace informarte que tu matrícula oficial DGB ha sido registrada en el sistema.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px;text-align:center"><p style="margin:0 0 4px;font-size:12px;color:#78716c;text-transform:uppercase;letter-spacing:0.1em">Matrícula oficial DGB</p><p style="margin:0;font-size:24px;font-weight:800;color:#6B0F3C;font-family:monospace">{{matriculaDGB}}</p></div><p>Descarga tu ficha de registro oficial desde tu portal.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">Ver mi ficha de registro</a>`),
+        variablesDisponibles: ['nombreCompleto', 'matriculaDGB', 'linkPortal'],
+        activa: true,
+      },
+    ]);
+    console.log('   ✓ Plantillas de correo insertadas (8)');
+  }
+
+  // ── Integraciones ───────────────────────────────────────────────────────
+  const confIntCount = await db.select({ c: sql<number>`count(*)` }).from(integraciones);
+  if (Number(confIntCount[0].c) === 0) {
+    const ahora = new Date();
+    await db.insert(integraciones).values([
+      {
+        clave: 'resend',
+        nombre: 'Resend',
+        descripcion: 'Servicio de envío de correos transaccionales',
+        proveedor: 'Resend Inc.',
+        conectada: true,
+        configuracion: { apiKey: 're_demo_key_****', domain: 'michoacan.gob.mx', modo: 'produccion' },
+        ultimaPruebaEn: ahora,
+        ultimaPruebaExitosa: true,
+      },
+      {
+        clave: 'neon',
+        nombre: 'Neon',
+        descripcion: 'Base de datos PostgreSQL serverless',
+        proveedor: 'Neon Tech',
+        conectada: true,
+        configuracion: { connectionString: 'postgresql://***:***@ep-cool-name.neon.tech/neondb', region: 'us-east-1' },
+        ultimaPruebaEn: ahora,
+        ultimaPruebaExitosa: true,
+      },
+      {
+        clave: 's3',
+        nombre: 'AWS S3',
+        descripcion: 'Almacenamiento de documentos y archivos',
+        proveedor: 'Amazon Web Services',
+        conectada: false,
+        configuracion: { bucket: '', region: 'us-east-1', accessKey: '' },
+        ultimaPruebaEn: null,
+        ultimaPruebaExitosa: null,
+      },
+      {
+        clave: 'sep_dgb',
+        nombre: 'SEP-DGB',
+        descripcion: 'Sincronización con el sistema central de la Dirección General de Bachillerato',
+        proveedor: 'SEP México',
+        conectada: false,
+        configuracion: null,
+        ultimaPruebaEn: null,
+        ultimaPruebaExitosa: null,
+      },
+    ]);
+    console.log('   ✓ Integraciones insertadas (4)');
+  }
+
+  // ── Preferencias del admin ──────────────────────────────────────────────
+  const adminUserPref = await db.select({ id: users.id }).from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
+  if (adminUserPref.length > 0) {
+    const adminId = adminUserPref[0].id;
+    const prefCount = await db.select({ c: sql<number>`count(*)` }).from(preferenciasUsuario).where(eq(preferenciasUsuario.userId, adminId));
+    if (Number(prefCount[0].c) === 0) {
+      await db.insert(preferenciasUsuario).values({
+        userId: adminId,
+        notifEmail: true,
+        notifNavegador: false,
+        resumenDiario: true,
+        modoOscuro: false,
+        idioma: 'es-MX',
+        zonaHoraria: 'America/Mexico_City',
+      });
+      console.log('   ✓ Preferencias del admin insertadas');
+    }
+  }
+
+  // ── Audit log demo ──────────────────────────────────────────────────────
+  const auditCount = await db.select({ c: sql<number>`count(*)` }).from(auditLog);
+  if (Number(auditCount[0].c) < 5) {
+    const [adminUserAudit] = await db.select({ id: users.id }).from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
+    const adminId2 = adminUserAudit?.id;
+    const gestoresRes = await db.select({ id: gestores.userId, nombre: gestores.nombreCompleto }).from(gestores).limit(2);
+    const g1 = gestoresRes[0];
+    const g2 = gestoresRes[1];
+
+    const makeDate = (daysAgo: number) => {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      return d;
+    };
+
+    const auditEntries = [
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'LOGIN', entidad: 'sesion', detalle: 'Inició sesión desde 187.190.12.45', ip: '187.190.12.45', createdAt: makeDate(0) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'APROBAR', entidad: 'solicitud', entidadId: 1, detalle: 'Aprobó solicitud de Ana Cristina López y creó cuenta', ip: '187.190.12.45', createdAt: makeDate(1) },
+      { userId: g1?.id, userNombre: g1?.nombre, userRol: 'gestor', accion: 'CREATE', entidad: 'estudiante', detalle: 'Creó alumno: Roberto Vargas Mendoza (CURP: VAMR990101HMN)', ip: '187.190.88.22', createdAt: makeDate(2) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'UPDATE', entidad: 'documento', entidadId: 3, detalle: 'Aprobó documento "Acta de nacimiento" del alumno #3', ip: '187.190.12.45', createdAt: makeDate(2) },
+      { userId: g2?.id, userNombre: g2?.nombre, userRol: 'gestor', accion: 'UPDATE', entidad: 'matricula', entidadId: 5, detalle: 'Capturó matrícula DGB 26016000201M para Diego Ramírez', ip: '172.31.0.10', createdAt: makeDate(3) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'PUBLICAR', entidad: 'anuncio', entidadId: 1, detalle: 'Publicó anuncio "Convocatoria 2026-5A ya disponible"', ip: '187.190.12.45', createdAt: makeDate(3) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'RECHAZAR', entidad: 'documento', entidadId: 8, detalle: 'Rechazó documento "INE" del alumno #7 — motivo: foto ilegible', ip: '187.190.12.45', createdAt: makeDate(4) },
+      { userId: g1?.id, userNombre: g1?.nombre, userRol: 'gestor', accion: 'UPDATE', entidad: 'pago', detalle: 'Marcó pago $850 como verificado para alumno #2', ip: '192.168.1.5', createdAt: makeDate(4) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'EXPORTAR', entidad: 'reporte', detalle: 'Generó reporte de inscripciones en formato Excel (87 registros)', ip: '187.190.12.45', createdAt: makeDate(5) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'UPDATE', entidad: 'configuracion', detalle: 'Actualizó datos institucionales: teléfono general', ip: '187.190.12.45', createdAt: makeDate(6) },
+      { userId: g2?.id, userNombre: g2?.nombre, userRol: 'gestor', accion: 'CREATE', entidad: 'estudiante', detalle: 'Creó alumno: Sofía Mendoza Torres (CURP: METS010203MML)', ip: '187.190.44.11', createdAt: makeDate(7) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'LOGIN', entidad: 'sesion', detalle: 'Inició sesión desde 187.190.12.45', ip: '187.190.12.45', createdAt: makeDate(7) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'APROBAR', entidad: 'solicitud', entidadId: 2, detalle: 'Aprobó solicitud de Patricia Velázquez Ríos', ip: '187.190.12.45', createdAt: makeDate(8) },
+      { userId: g1?.id, userNombre: g1?.nombre, userRol: 'gestor', accion: 'UPDATE', entidad: 'expediente', detalle: 'Actualizó expediente del alumno #1: subió CURP', ip: '10.0.1.22', createdAt: makeDate(9) },
+      { userId: adminId2, userNombre: 'García Administrador', userRol: 'admin', accion: 'UPDATE', entidad: 'conceptos_pago', detalle: 'Modificó concepto "Examen por módulo": monto $85.00 → $95.00', ip: '187.190.12.45', metadata: { antes: { monto: '85.00' }, despues: { monto: '95.00' } }, createdAt: makeDate(10) },
+    ].filter((e) => e.userId != null);
+
+    for (const entry of auditEntries) {
+      await db.insert(auditLog).values(entry as any);
+    }
+    console.log(`   ✓ ${auditEntries.length} entradas de audit log demo insertadas`);
+  }
+
+  // ── Notificaciones demo ────────────────────────────────────────────────────
+  console.log('🔔 Sembrando notificaciones demo...');
+  const notifCount = await db.select({ c: sql<number>`count(*)` }).from(notificaciones);
+  if (Number(notifCount[0].c) === 0) {
+    const [adminUserNotif] = await db.select().from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
+    const [gestorNotif] = await db.select().from(users).where(eq(users.email, 'm.ramirez@michoacan.gob.mx'));
+    const [anaNotif] = await db.select().from(users).where(eq(users.email, 'ana.lopez@correo.com'));
+
+    const minsAgo = (n: number) => { const d = new Date(); d.setMinutes(d.getMinutes() - n); return d; };
+
+    const notifEntries = [
+      ...(adminUserNotif ? [
+        { userId: adminUserNotif.id, tipo: 'solicitud_nueva' as const, prioridad: 'alta' as const, titulo: 'Nueva solicitud de cuenta', cuerpo: 'Jorge Alfredo Ávila Mendoza solicitó una cuenta de acceso al sistema.', enlace: '/admin/solicitudes', leida: false, creadaEn: minsAgo(5) },
+        { userId: adminUserNotif.id, tipo: 'solicitud_nueva' as const, prioridad: 'alta' as const, titulo: 'Nueva solicitud de cuenta', cuerpo: 'María Concepción Torres Reyes solicitó una cuenta de acceso al sistema.', enlace: '/admin/solicitudes', leida: false, creadaEn: minsAgo(90) },
+        { userId: adminUserNotif.id, tipo: 'documento_subido_revisar' as const, prioridad: 'normal' as const, titulo: 'Documento pendiente de revisión', cuerpo: 'El gestor subió documento "acta_nacimiento" para un alumno.', enlace: '/admin/alumnos', leida: false, creadaEn: minsAgo(180) },
+        { userId: adminUserNotif.id, tipo: 'pago_subido_verificar' as const, prioridad: 'alta' as const, titulo: 'Comprobante de pago recibido', cuerpo: 'Alumno subió comprobante de pago por $850. Pendiente de verificación.', enlace: '/admin/alumnos?filtro=pagos_pendientes', leida: true, creadaEn: minsAgo(300) },
+        { userId: adminUserNotif.id, tipo: 'anuncio_dirigido' as const, prioridad: 'normal' as const, titulo: 'Anuncio publicado: Convocatoria 2026-5A', cuerpo: 'Se publicó un anuncio para "todos".', enlace: '/admin/anuncios', leida: true, creadaEn: minsAgo(1440) },
+      ] : []),
+      ...(gestorNotif ? [
+        { userId: gestorNotif.id, tipo: 'alumno_asignado' as const, prioridad: 'normal' as const, titulo: 'Nuevo alumno asignado', cuerpo: 'Roberto Vargas Mendoza fue asignado a tu cartera de alumnos.', enlace: '/gestor/alumnos', leida: false, creadaEn: minsAgo(30) },
+        { userId: gestorNotif.id, tipo: 'documento_aprobado' as const, prioridad: 'normal' as const, titulo: 'Documento aprobado', cuerpo: 'Tu revisión de "curp" para un alumno fue procesada correctamente.', enlace: '/gestor/alumnos', leida: true, creadaEn: minsAgo(720) },
+        { userId: gestorNotif.id, tipo: 'mi_alumno_subio_documento' as const, prioridad: 'normal' as const, titulo: 'Alumno subió documento', cuerpo: 'Ana Cristina López subió su comprobante de domicilio para revisión.', enlace: '/gestor/alumnos', leida: false, creadaEn: minsAgo(45) },
+        { userId: gestorNotif.id, tipo: 'matricula_asignada' as const, prioridad: 'alta' as const, titulo: 'Matrícula DGB confirmada', cuerpo: 'La matrícula 26016000201M fue validada por el sistema DGB.', enlace: '/gestor/alumnos', leida: true, creadaEn: minsAgo(2880) },
+      ] : []),
+      ...(anaNotif ? [
+        { userId: anaNotif.id, tipo: 'documento_aprobado' as const, prioridad: 'normal' as const, titulo: 'Documento aprobado', cuerpo: 'Tu documento "curp" fue aprobado por tu gestor.', enlace: '/estudiante/expediente', leida: false, creadaEn: minsAgo(20) },
+        { userId: anaNotif.id, tipo: 'documento_aprobado' as const, prioridad: 'normal' as const, titulo: 'Documento aprobado', cuerpo: 'Tu documento "acta_nacimiento" fue aprobado por tu gestor.', enlace: '/estudiante/expediente', leida: false, creadaEn: minsAgo(60) },
+        { userId: anaNotif.id, tipo: 'pago_verificado' as const, prioridad: 'alta' as const, titulo: 'Pago verificado', cuerpo: 'Tu comprobante de pago fue verificado y aprobado.', enlace: '/estudiante', leida: false, creadaEn: minsAgo(120) },
+        { userId: anaNotif.id, tipo: 'documento_rechazado' as const, prioridad: 'alta' as const, titulo: 'Documento rechazado — acción requerida', cuerpo: 'Tu documento "ine" fue rechazado. Motivo: La foto es ilegible, sube una imagen más clara.', enlace: '/estudiante/expediente', leida: true, creadaEn: minsAgo(1440) },
+        { userId: anaNotif.id, tipo: 'anuncio_dirigido' as const, prioridad: 'normal' as const, titulo: 'Nuevo anuncio: Convocatoria 2026-5A disponible', cuerpo: 'Ya puedes consultar las fechas de la próxima convocatoria en el portal.', enlace: '/estudiante/avisos', leida: true, creadaEn: minsAgo(2160) },
+      ] : []),
+    ];
+
+    if (notifEntries.length > 0) {
+      for (const n of notifEntries) {
+        await db.insert(notificaciones).values(n as any);
+      }
+      console.log(`   ✓ ${notifEntries.length} notificaciones demo insertadas`);
+    } else {
+      console.log('   ⚠ No se encontraron usuarios demo, omitiendo notificaciones');
+    }
+  } else {
+    console.log(`   ✓ Notificaciones ya existían (${notifCount[0].c})`);
   }
 
   console.log('\n✅ Datos demo para presentación listos.\n');

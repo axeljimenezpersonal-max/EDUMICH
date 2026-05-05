@@ -59,6 +59,22 @@ export default function CambiarPasswordPrimerLogin() {
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
+          {/* Bienvenida EDUMICH */}
+          <div className="text-center mb-5">
+            <div style={{
+              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 900, fontSize: 24, letterSpacing: '-0.03em',
+              color: 'var(--color-guinda-700)', marginBottom: 4,
+            }}>
+              EDUMICH
+            </div>
+            <div className="text-sm font-medium text-stone-700 mb-0.5">Bienvenido a EDUMICH</div>
+            <div className="text-xs text-stone-500">
+              La plataforma educativa digital del Gobierno de Michoacán.<br />
+              Aquí podrás gestionar tu inscripción a Prepa Abierta del IEMSyS.
+            </div>
+          </div>
+
           {/* Alerta de seguridad */}
           <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 mb-6">
             <ShieldAlert size={20} className="text-amber-600 mt-0.5 shrink-0" />

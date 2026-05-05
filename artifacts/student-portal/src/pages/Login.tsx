@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
-import { GraduationCap, Lock, Mail, Loader2, Edit3, UserPlus } from 'lucide-react';
+import { GraduationCap, Lock, Mail, Loader2, Edit3, UserPlus, Zap } from 'lucide-react';
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -87,6 +87,21 @@ export default function Login() {
             className="relative"
             style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 32, paddingBottom: 32 }}
           >
+            {/* EDUMICH pill */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 8,
+                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)',
+                borderRadius: 999, padding: '6px 14px',
+                fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: 'white', opacity: 0.9,
+              }}>
+                <Zap size={10} />
+                EDUMICH
+                <span style={{ opacity: 0.5 }}>·</span>
+                Plataforma Educativa Digital
+              </div>
+            </div>
             <h1 className="font-serif font-bold" style={{ fontSize: 52, lineHeight: 1.1, marginBottom: 16, textAlign: 'center' }}>
               Prepa Abierta
             </h1>
@@ -113,8 +128,11 @@ export default function Login() {
             <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>
               Instituto de Educación Media Superior y Superior del Estado de Michoacán
             </div>
-            <div style={{ fontSize: 11, opacity: 0.65 }}>
+            <div style={{ fontSize: 11, opacity: 0.65, marginBottom: 8 }}>
               Una plataforma para acompañar tu camino al bachillerato.
+            </div>
+            <div style={{ fontSize: 10, opacity: 0.5, letterSpacing: '0.06em' }}>
+              Powered by <strong>EDUMICH</strong> · Plataforma Educativa Digital
             </div>
           </div>
         </div>
@@ -173,6 +191,15 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     className="gov-input pl-10"
                   />
+                </div>
+                <div className="flex justify-end mt-1.5">
+                  <a
+                    href="/recuperar-password"
+                    className="text-xs font-medium hover:underline"
+                    style={{ color: 'var(--color-guinda-700)' }}
+                  >
+                    ¿Olvidaste tu contraseña?
+                  </a>
                 </div>
               </div>
 

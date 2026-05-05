@@ -108,6 +108,27 @@ export const pagoEstadoEnum = pgEnum('pago_estado', [
 
 export const gestorEstadoEnum = pgEnum('gestor_estado', ['activo', 'inactivo']);
 
+export const anuncioPrioridadEnum = pgEnum('anuncio_prioridad', [
+  'informativo',
+  'importante',
+  'urgente',
+]);
+
+export const anuncioAudienciaEnum = pgEnum('anuncio_audiencia', [
+  'todos',
+  'alumnos',
+  'gestores',
+  'alumnos_municipio',
+  'alumnos_etapa',
+  'gestor_especifico',
+]);
+
+export const anuncioEstadoEnum = pgEnum('anuncio_estado', [
+  'borrador',
+  'publicado',
+  'archivado',
+]);
+
 // ─────────────────────────────────────────────────────────────────────────
 // Catálogos (entidades estables)
 // ─────────────────────────────────────────────────────────────────────────
@@ -118,6 +139,7 @@ export const municipios = pgTable(
     id: serial('id').primaryKey(),
     nombre: varchar('nombre', { length: 120 }).notNull(),
     estado: varchar('estado', { length: 80 }).notNull().default('Michoacán'),
+    activo: boolean('activo').notNull().default(true),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => ({
@@ -215,6 +237,15 @@ export const estudiantes = pgTable(
     gestorId: integer('gestor_id').references(() => users.id),
     emailVerificado: boolean('email_verificado').notNull().default(false),
     registroTipo: varchar('registro_tipo', { length: 20 }).default('gestor'),
+    folioPreregistro: varchar('folio_preregistro', { length: 30 }),
+    preregistroGeneradoEn: timestamp('preregistro_generado_en'),
+    preregistroVigenteHasta: date('preregistro_vigente_hasta'),
+    matriculaOficialDGB: varchar('matricula_oficial_dgb', { length: 30 }),
+    matriculaCapturadaEn: timestamp('matricula_capturada_en'),
+    matriculaCapturadaPor: integer('matricula_capturada_por').references(() => users.id),
+    genero: varchar('genero', { length: 20 }),
+    nacionalidad: varchar('nacionalidad', { length: 50 }).default('Mexicana'),
+    foto: varchar('foto', { length: 500 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -509,16 +540,60 @@ export const avisosLeidos = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// Anuncios (módulo CMS — admin crea, audiencia segmentada ve)
+// ─────────────────────────────────────────────────────────────────────────
+
+export const anuncios = pgTable('anuncios', {
+  id: serial('id').primaryKey(),
+  titulo: varchar('titulo', { length: 200 }).notNull(),
+  contenido: text('contenido').notNull(),
+  prioridad: anuncioPrioridadEnum('prioridad').notNull().default('informativo'),
+  audiencia: anuncioAudienciaEnum('audiencia').notNull().default('todos'),
+  // audiencia extra params (municipioId para alumnos_municipio, etapaClave para alumnos_etapa, gestorId para gestor_especifico)
+  audienciaParam: varchar('audiencia_param', { length: 120 }),
+  estado: anuncioEstadoEnum('estado').notNull().default('borrador'),
+  ctaTexto: varchar('cta_texto', { length: 80 }),
+  ctaUrl: varchar('cta_url', { length: 500 }),
+  publicadoEn: timestamp('publicado_en'),
+  activoHasta: timestamp('activo_hasta'),
+  creadoPorUserId: integer('creado_por_user_id').references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const anunciosVistos = pgTable(
+  'anuncios_vistos',
+  {
+    id: serial('id').primaryKey(),
+    anuncioId: integer('anuncio_id')
+      .notNull()
+      .references(() => anuncios.id, { onDelete: 'cascade' }),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    vistoEn: timestamp('visto_en').notNull().defaultNow(),
+  },
+  (t) => ({
+    anuncioUserIdx: uniqueIndex('anuncios_vistos_anuncio_user_idx').on(t.anuncioId, t.userId),
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Auditoría (esencial para gobierno)
 // ─────────────────────────────────────────────────────────────────────────
 
 export const auditLog = pgTable('audit_log', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').references(() => users.id),
-  accion: varchar('accion', { length: 80 }).notNull(), // 'crear_alumno', 'subir_documento', etc.
+  userNombre: varchar('user_nombre', { length: 200 }),
+  userRol: varchar('user_rol', { length: 30 }),
+  accion: varchar('accion', { length: 80 }).notNull(),
   entidad: varchar('entidad', { length: 60 }).notNull(),
   entidadId: integer('entidad_id'),
+  detalle: text('detalle'),
   metadata: jsonb('metadata'),
+  ip: varchar('ip', { length: 45 }),
+  userAgent: text('user_agent'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
@@ -878,6 +953,19 @@ export const pagosRelations = relations(pagos, ({ one }) => ({
   }),
 }));
 
+// ─────────────────────────────────────────────────────────────────────────
+// Password reset tokens
+// ─────────────────────────────────────────────────────────────────────────
+
+export const passwordResetTokens = pgTable('password_reset_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  tokenHash: varchar('token_hash', { length: 255 }).notNull().unique(),
+  expiraEn: timestamp('expira_en').notNull(),
+  usadoEn: timestamp('usado_en'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
 export const calificacionesRelations = relations(calificaciones, ({ one }) => ({
   estudiante: one(estudiantes, {
     fields: [calificaciones.estudianteId],
@@ -896,3 +984,226 @@ export const calificacionesRelations = relations(calificaciones, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const anunciosRelations = relations(anuncios, ({ one, many }) => ({
+  creadoPor: one(users, {
+    fields: [anuncios.creadoPorUserId],
+    references: [users.id],
+  }),
+  vistos: many(anunciosVistos),
+}));
+
+export const anunciosVistosRelations = relations(anunciosVistos, ({ one }) => ({
+  anuncio: one(anuncios, { fields: [anunciosVistos.anuncioId], references: [anuncios.id] }),
+  user: one(users, { fields: [anunciosVistos.userId], references: [users.id] }),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────
+// Reportes institucionales
+// ─────────────────────────────────────────────────────────────────────────
+
+export const reporteTipoEnum = pgEnum('reporte_tipo', [
+  'inscripciones',
+  'expedientes',
+  'financiero',
+  'academico',
+  'productividad_gestores',
+  'convocatorias',
+  'solicitudes',
+  'ejecutivo',
+]);
+
+export const reporteFormatoEnum = pgEnum('reporte_formato', ['excel', 'pdf']);
+
+export const reporteFrecuenciaEnum = pgEnum('reporte_frecuencia', [
+  'diaria',
+  'semanal',
+  'quincenal',
+  'mensual',
+]);
+
+export const reporteEstadoEnum = pgEnum('reporte_estado', [
+  'pendiente',
+  'generando',
+  'listo',
+  'error',
+]);
+
+export const reportesGenerados = pgTable('reportes_generados', {
+  id: serial('id').primaryKey(),
+  tipo: reporteTipoEnum('tipo').notNull(),
+  formato: reporteFormatoEnum('formato').notNull(),
+  nombre: varchar('nombre', { length: 200 }).notNull(),
+  filtros: jsonb('filtros'),
+  estado: reporteEstadoEnum('estado').notNull().default('pendiente'),
+  rutaArchivo: varchar('ruta_archivo', { length: 500 }),
+  nombreArchivo: varchar('nombre_archivo', { length: 240 }),
+  tamanoBytes: bigint('tamano_bytes', { mode: 'number' }),
+  totalRegistros: integer('total_registros'),
+  errorMensaje: text('error_mensaje'),
+  generadoPorUserId: integer('generado_por_user_id').references(() => users.id),
+  programadoId: integer('programado_id'),
+  generadoEn: timestamp('generado_en'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const reportesProgramados = pgTable('reportes_programados', {
+  id: serial('id').primaryKey(),
+  nombre: varchar('nombre', { length: 200 }).notNull(),
+  tipo: reporteTipoEnum('tipo').notNull(),
+  formato: reporteFormatoEnum('formato').notNull(),
+  frecuencia: reporteFrecuenciaEnum('frecuencia').notNull(),
+  filtros: jsonb('filtros'),
+  emailDestino: varchar('email_destino', { length: 255 }).notNull(),
+  activo: boolean('activo').notNull().default(true),
+  proximaEjecucion: timestamp('proxima_ejecucion').notNull(),
+  ultimaEjecucionEn: timestamp('ultima_ejecucion_en'),
+  creadoPorUserId: integer('creado_por_user_id').references(() => users.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const reportesGeneradosRelations = relations(reportesGenerados, ({ one }) => ({
+  generadoPor: one(users, {
+    fields: [reportesGenerados.generadoPorUserId],
+    references: [users.id],
+  }),
+}));
+
+export const reportesProgramadosRelations = relations(reportesProgramados, ({ one }) => ({
+  creadoPor: one(users, {
+    fields: [reportesProgramados.creadoPorUserId],
+    references: [users.id],
+  }),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────
+// Módulo de Configuración
+// ─────────────────────────────────────────────────────────────────────────
+
+export const datosInstitucionales = pgTable('datos_institucionales', {
+  id: serial('id').primaryKey(),
+  nombreOficial: varchar('nombre_oficial', { length: 200 }).notNull(),
+  nombreCorto: varchar('nombre_corto', { length: 50 }).notNull(),
+  direccion: text('direccion').notNull(),
+  telefonoGeneral: varchar('telefono_general', { length: 30 }),
+  correoSoporte: varchar('correo_soporte', { length: 200 }),
+  rfc: varchar('rfc', { length: 20 }),
+  sitioWeb: varchar('sitio_web', { length: 200 }),
+  actualizadoPor: integer('actualizado_por').references(() => users.id),
+  actualizadoEn: timestamp('actualizado_en').defaultNow(),
+});
+
+export const datosBancarios = pgTable('datos_bancarios', {
+  id: serial('id').primaryKey(),
+  banco: varchar('banco', { length: 100 }).notNull(),
+  titular: varchar('titular', { length: 200 }).notNull(),
+  clabe: varchar('clabe', { length: 20 }).notNull(),
+  numeroCuenta: varchar('numero_cuenta', { length: 30 }),
+  rfc: varchar('rfc', { length: 20 }),
+  conceptoPago: text('concepto_pago'),
+  activo: boolean('activo').notNull().default(true),
+  actualizadoPor: integer('actualizado_por').references(() => users.id),
+  actualizadoEn: timestamp('actualizado_en').defaultNow(),
+});
+
+export const conceptosPago = pgTable('conceptos_pago', {
+  id: serial('id').primaryKey(),
+  clave: varchar('clave', { length: 50 }).notNull().unique(),
+  nombre: varchar('nombre', { length: 100 }).notNull(),
+  descripcion: text('descripcion'),
+  monto: numeric('monto', { precision: 10, scale: 2 }).notNull(),
+  vigencia: integer('vigencia').notNull().default(2026),
+  activo: boolean('activo').notNull().default(true),
+  actualizadoEn: timestamp('actualizado_en').defaultNow(),
+});
+
+export const plantillasCorreo = pgTable('plantillas_correo', {
+  id: serial('id').primaryKey(),
+  clave: varchar('clave', { length: 50 }).notNull().unique(),
+  nombre: varchar('nombre', { length: 200 }).notNull(),
+  descripcion: text('descripcion'),
+  asunto: varchar('asunto', { length: 200 }).notNull(),
+  contenidoHtml: text('contenido_html').notNull(),
+  contenidoTexto: text('contenido_texto'),
+  variablesDisponibles: jsonb('variables_disponibles'),
+  activa: boolean('activa').notNull().default(true),
+  actualizadoPor: integer('actualizado_por').references(() => users.id),
+  actualizadoEn: timestamp('actualizado_en').defaultNow(),
+});
+
+export const integraciones = pgTable('integraciones', {
+  id: serial('id').primaryKey(),
+  clave: varchar('clave', { length: 50 }).notNull().unique(),
+  nombre: varchar('nombre', { length: 100 }).notNull(),
+  descripcion: text('descripcion'),
+  proveedor: varchar('proveedor', { length: 100 }),
+  conectada: boolean('conectada').notNull().default(false),
+  configuracion: jsonb('configuracion'),
+  ultimaPruebaEn: timestamp('ultima_prueba_en'),
+  ultimaPruebaExitosa: boolean('ultima_prueba_exitosa'),
+  actualizadoEn: timestamp('actualizado_en').defaultNow(),
+});
+
+export const preferenciasUsuario = pgTable('preferencias_usuario', {
+  userId: integer('user_id').references(() => users.id).primaryKey(),
+  notifEmail: boolean('notif_email').notNull().default(true),
+  notifNavegador: boolean('notif_navegador').notNull().default(false),
+  resumenDiario: boolean('resumen_diario').notNull().default(true),
+  modoOscuro: boolean('modo_oscuro').notNull().default(false),
+  idioma: varchar('idioma', { length: 5 }).notNull().default('es-MX'),
+  zonaHoraria: varchar('zona_horaria', { length: 50 }).notNull().default('America/Mexico_City'),
+  actualizadoEn: timestamp('actualizado_en').defaultNow(),
+});
+
+export const sesiones = pgTable('sesiones', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  tokenHash: varchar('token_hash', { length: 255 }).notNull(),
+  ip: varchar('ip', { length: 45 }),
+  userAgent: text('user_agent'),
+  navegador: varchar('navegador', { length: 50 }),
+  sistemaOperativo: varchar('sistema_operativo', { length: 50 }),
+  ubicacion: varchar('ubicacion', { length: 100 }),
+  creadaEn: timestamp('creada_en').defaultNow(),
+  ultimaActividadEn: timestamp('ultima_actividad_en').defaultNow(),
+  expiraEn: timestamp('expira_en').notNull(),
+});
+
+// ── Notificaciones ────────────────────────────────────────────────────────────
+
+export const notifTipoEnum = pgEnum('notif_tipo', [
+  'solicitud_nueva',
+  'documento_subido_revisar',
+  'pago_subido_verificar',
+  'alumno_sin_gestor',
+  'expediente_completo',
+  'reporte_enviado',
+  'integracion_fallida',
+  'alumno_asignado',
+  'mi_alumno_subio_documento',
+  'mi_alumno_subio_pago',
+  'mi_alumno_completo_expediente',
+  'documento_aprobado',
+  'documento_rechazado',
+  'pago_verificado',
+  'matricula_asignada',
+  'convocatoria_proxima',
+  'anuncio_dirigido',
+  'mensaje_admin',
+]);
+
+export const notifPrioridadEnum = pgEnum('notif_prioridad', ['baja', 'normal', 'alta', 'urgente']);
+
+export const notificaciones = pgTable('notificaciones', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  tipo: notifTipoEnum('tipo').notNull(),
+  prioridad: notifPrioridadEnum('prioridad').notNull().default('normal'),
+  titulo: varchar('titulo', { length: 120 }).notNull(),
+  cuerpo: text('cuerpo').notNull(),
+  enlace: varchar('enlace', { length: 255 }),
+  leida: boolean('leida').notNull().default(false),
+  creadaEn: timestamp('creada_en').defaultNow().notNull(),
+  leidaEn: timestamp('leida_en'),
+});

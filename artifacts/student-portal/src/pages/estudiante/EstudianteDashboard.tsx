@@ -12,9 +12,25 @@ import {
   CheckCircle2,
   Info,
   Upload,
+  Megaphone,
+  X,
+  FileText,
+  Award,
+  Download,
+  CalendarClock,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api, type DashboardEstudiante, type Aviso, type ContactosResponse } from '../../lib/api';
+
+interface AnuncioItem {
+  id: number;
+  titulo: string;
+  contenido: string;
+  prioridad: 'informativo' | 'importante' | 'urgente';
+  ctaTexto: string | null;
+  ctaUrl: string | null;
+  yaVisto: boolean;
+}
 
 function diasHasta(fechaStr: string | null): number | null {
   if (!fechaStr) return null;
@@ -84,6 +100,8 @@ export default function EstudianteDashboard() {
   const [avisos, setAvisos] = useState<Aviso[]>([]);
   const [contactos, setContactos] = useState<ContactosResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [anuncios, setAnuncios] = useState<AnuncioItem[]>([]);
+  const [closedAnuncioIds, setClosedAnuncioIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     Promise.all([
@@ -97,7 +115,19 @@ export default function EstudianteDashboard() {
         setContactos(c);
       })
       .finally(() => setLoading(false));
+
+    api
+      .get<{ anuncios: AnuncioItem[] }>('/anuncios/mios')
+      .then(r => setAnuncios(r.anuncios.filter(a => !a.yaVisto)))
+      .catch(console.error);
   }, []);
+
+  function cerrarAnuncio(id: number) {
+    setClosedAnuncioIds(prev => new Set(prev).add(id));
+    api.post(`/anuncios/${id}/cerrar`).catch(console.error);
+  }
+
+  const visibleAnuncios = anuncios.filter(a => !closedAnuncioIds.has(a.id));
 
   if (loading) {
     return (
@@ -126,9 +156,134 @@ export default function EstudianteDashboard() {
     data.kpis.documentosAprobados < 4 &&
     data.kpis.documentosPendientes + data.kpis.documentosAprobados < 4;
 
+  // Vigencia del pre-registro
+  const diasVigencia = diasHasta(data.preregistroVigenteHasta);
+  const mostrarBannerVigenciaRojo = data.folioPreregistro && !data.matriculaOficialDGB && diasVigencia !== null && diasVigencia <= 0;
+  const mostrarBannerVigenciaAmarillo = data.folioPreregistro && !data.matriculaOficialDGB && diasVigencia !== null && diasVigencia > 0 && diasVigencia <= 3;
+
   return (
     <EstudianteLayout>
       <div className="space-y-6">
+        {/* Banners de anuncios institucionales */}
+        {visibleAnuncios.map(a => {
+          const colorMap = {
+            urgente:    { bg: '#fff1f2', border: '#fecdd3', text: '#be123c', icon: '#f43f5e' },
+            importante: { bg: '#fffbeb', border: '#fde68a', text: '#b45309', icon: '#f59e0b' },
+            informativo:{ bg: '#eff6ff', border: '#bfdbfe', text: '#1d4ed8', icon: '#3b82f6' },
+          };
+          const c = colorMap[a.prioridad];
+          return (
+            <div key={a.id} className="rounded-md p-4 flex items-start gap-3" style={{ background: c.bg, border: `1px solid ${c.border}` }}>
+              <Megaphone size={16} style={{ color: c.icon, flexShrink: 0, marginTop: 2 }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div className="font-semibold text-sm" style={{ color: c.text, marginBottom: 2 }}>{a.titulo}</div>
+                <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>{a.contenido}</p>
+                {a.ctaTexto && a.ctaUrl && (
+                  <a href={a.ctaUrl} className="inline-block mt-2 text-xs font-semibold" style={{ color: c.text, textDecoration: 'underline' }}>
+                    {a.ctaTexto} →
+                  </a>
+                )}
+              </div>
+              <button onClick={() => cerrarAnuncio(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a8a29e', flexShrink: 0, padding: 2 }}>
+                <X size={13} />
+              </button>
+            </div>
+          );
+        })}
+
+        {/* Banner: ficha de pre-registro vencida */}
+        {mostrarBannerVigenciaRojo && (
+          <div
+            className="rounded-md p-4 flex items-start gap-3"
+            style={{ background: '#fff1f2', border: '1px solid #fca5a5' }}
+          >
+            <CalendarClock size={16} style={{ color: '#ef4444', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="font-semibold text-sm" style={{ color: '#b91c1c', marginBottom: 2 }}>
+                Tu ficha de pre-registro ha vencido
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>
+                Tu folio <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{data.folioPreregistro}</span> ya no es válido. Comunícate con tu gestor o con la administración para renovarlo.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Banner: ficha de pre-registro por vencer */}
+        {mostrarBannerVigenciaAmarillo && (
+          <div
+            className="rounded-md p-4 flex items-start gap-3"
+            style={{ background: '#fffbeb', border: '1px solid #fde68a' }}
+          >
+            <CalendarClock size={16} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 2 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="font-semibold text-sm" style={{ color: '#b45309', marginBottom: 2 }}>
+                Tu ficha de pre-registro vence pronto
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>
+                Tu folio <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{data.folioPreregistro}</span> vence en{' '}
+                <strong>{diasVigencia} {diasVigencia === 1 ? 'día' : 'días'}</strong>. Descárgala antes de que expire.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Fichas PDF */}
+        {(data.folioPreregistro || data.matriculaOficialDGB) && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+            {data.folioPreregistro && (
+              <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <FileText size={20} style={{ color: 'var(--color-guinda-700)' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 2 }}>FICHA DE PRE-REGISTRO</div>
+                  <div style={{ fontSize: 17, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-guinda-700)', letterSpacing: '0.03em' }}>
+                    {data.folioPreregistro}
+                  </div>
+                  {data.preregistroVigenteHasta && (
+                    <div style={{ fontSize: 11, color: diasVigencia !== null && diasVigencia <= 0 ? '#b91c1c' : diasVigencia !== null && diasVigencia <= 3 ? '#b45309' : '#78716c', marginTop: 2 }}>
+                      {diasVigencia !== null && diasVigencia <= 0
+                        ? 'Vencida'
+                        : `Vigente hasta ${new Date(data.preregistroVigenteHasta + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                    </div>
+                  )}
+                </div>
+                <a
+                  href="/api/alumno/ficha-preregistro"
+                  target="_blank"
+                  rel="noopener"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--color-guinda-700)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}
+                >
+                  <Download size={13} /> Descargar
+                </a>
+              </div>
+            )}
+            {data.matriculaOficialDGB && (
+              <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #86efac', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <Award size={20} style={{ color: '#16a34a' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#16a34a', marginBottom: 2 }}>MATRÍCULA OFICIAL DGB</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#15803d', letterSpacing: '0.05em' }}>
+                    {data.matriculaOficialDGB}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#4ade80', marginTop: 2 }}>Inscripción confirmada · Asignada por SEP-DGB</div>
+                </div>
+                <a
+                  href="/api/alumno/ficha-registro"
+                  target="_blank"
+                  rel="noopener"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}
+                >
+                  <Download size={13} /> Ficha oficial
+                </a>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Banner: completa tu expediente */}
         {mostrarBannerDocs && (
           <div

@@ -16,6 +16,7 @@ import { db } from '../db';
 import {
   users,
   estudiantes,
+  gestores,
   inscripciones,
   convocatorias,
   municipios,
@@ -26,6 +27,8 @@ import {
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
 import { sendVerificationCode } from '../services/email';
+import { tryAuditLog } from '../utils/audit';
+import { notificarATodosLosAdmins } from '../utils/notificar';
 
 const router = Router();
 
@@ -283,15 +286,17 @@ router.post('/auto-registro', async (req, res) => {
       });
     }
 
-    await tx.insert(auditLog).values({
-      userId: user.id,
-      accion: 'auto_registro',
-      entidad: 'users',
-      entidadId: user.id,
-      metadata: { email: data.email, registroTipo: 'auto_registro' },
-    });
-
     return user;
+  });
+
+  await tryAuditLog({
+    userId: result.id,
+    accion: 'auto_registro',
+    entidad: 'users',
+    entidadId: result.id,
+    detalle: `Auto-registro completado para ${data.email}`,
+    metadata: { email: data.email, registroTipo: 'auto_registro' },
+    req,
   });
 
   setSessionCookie(res, { userId: result.id, rol: 'estudiante' });
@@ -351,7 +356,154 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     estado: 'pendiente',
   });
 
+  notificarATodosLosAdmins({
+    tipo: 'solicitud_nueva',
+    prioridad: 'alta',
+    titulo: 'Nueva solicitud de cuenta',
+    cuerpo: `${data.nombreCompleto} solicitó una cuenta de acceso al sistema.`,
+    enlace: '/admin/solicitudes',
+  });
+
   res.json({ ok: true });
+});
+
+// ─── GET /publico/verificar/:folio ───────────────────────────────────────────
+router.get('/verificar/:folio', async (req, res) => {
+  const folio = req.params.folio?.replace(/[^a-zA-Z0-9-]/g, '');
+  if (!folio) { res.status(400).send('<h1>Folio inválido</h1>'); return; }
+
+  const [row] = await db
+    .select({
+      nombreCompleto: estudiantes.nombreCompleto,
+      folioPreregistro: estudiantes.folioPreregistro,
+      preregistroVigenteHasta: estudiantes.preregistroVigenteHasta,
+      preregistroGeneradoEn: estudiantes.preregistroGeneradoEn,
+      municipioNombre: municipios.nombre,
+      gestorNombre: gestores.nombreCompleto,
+    })
+    .from(estudiantes)
+    .leftJoin(municipios, eq(estudiantes.municipioId, municipios.id))
+    .leftJoin(gestores, eq(estudiantes.gestorId, gestores.userId))
+    .where(eq(estudiantes.folioPreregistro, folio))
+    .limit(1);
+
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+
+  if (!row) {
+    res.status(404).type('html').send(`<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><title>Folio no encontrado</title><style>body{font-family:system-ui,sans-serif;max-width:560px;margin:60px auto;padding:0 24px;color:#1a1a1a}</style></head><body><p style="color:#b91c1c;font-weight:700">Folio no encontrado</p><p>El código <code>${folio}</code> no corresponde a ningún pre-registro activo.</p></body></html>`);
+    return;
+  }
+
+  const vigenteHasta = row.preregistroVigenteHasta ? new Date(row.preregistroVigenteHasta + 'T00:00:00') : null;
+  const diasRestantes = vigenteHasta ? Math.ceil((vigenteHasta.getTime() - hoy.getTime()) / 86_400_000) : null;
+  const estado: 'vigente' | 'por_vencer' | 'vencido' =
+    diasRestantes === null ? 'vigente'
+    : diasRestantes <= 0   ? 'vencido'
+    : diasRestantes <= 3   ? 'por_vencer'
+    : 'vigente';
+
+  const estadoCfg = {
+    vigente:    { label: 'VIGENTE',    bg: '#d1fae5', color: '#166534', border: '#86efac' },
+    por_vencer: { label: 'POR VENCER', bg: '#fef9c3', color: '#854d0e', border: '#fde047' },
+    vencido:    { label: 'VENCIDO',    bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+  }[estado];
+
+  const fechaGen = row.preregistroGeneradoEn
+    ? new Date(row.preregistroGeneradoEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+  const fechaVig = vigenteHasta
+    ? vigenteHasta.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })
+    : '—';
+
+  const html = `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verificar Pre-registro — Prepa Abierta Michoacán</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f4;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+    .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:520px;width:100%;overflow:hidden}
+    .header{background:linear-gradient(135deg,#7c1d38 0%,#5C1428 100%);padding:28px 32px;color:white;text-align:center}
+    .header-logo{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:8px}
+    .header-title{font-size:20px;font-weight:800;letter-spacing:-.01em}
+    .header-sub{font-size:12px;opacity:.7;margin-top:4px}
+    .verified-badge{margin:28px auto 20px;width:72px;height:72px;background:#d1fae5;border-radius:50%;display:flex;align-items:center;justify-content:center}
+    .verified-label{text-align:center;font-size:16px;font-weight:700;color:#166534;margin-bottom:4px}
+    .verified-sub{text-align:center;font-size:12px;color:#78716c;margin-bottom:24px}
+    .body{padding:0 32px 32px}
+    .folio-box{background:#faf9f8;border:1px solid #e7e5e4;border-left:4px solid #7c1d38;border-radius:8px;padding:14px 18px;margin-bottom:20px}
+    .folio-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#78716c;margin-bottom:4px}
+    .folio-value{font-family:monospace;font-size:20px;font-weight:700;color:#7c1d38;letter-spacing:.04em}
+    .vigencia-pill{display:inline-block;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid ${estadoCfg.border};background:${estadoCfg.bg};color:${estadoCfg.color};margin-top:8px}
+    .row{display:flex;gap:8px;margin-bottom:12px}
+    .field{flex:1}
+    .field-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#a8a29e;margin-bottom:3px}
+    .field-value{font-size:14px;color:#1a1a1a;font-weight:500}
+    .divider{height:1px;background:#f0ede9;margin:20px 0}
+    .footer{text-align:center;font-size:11px;color:#a8a29e;padding-top:4px}
+    ${estado === 'vencido' ? '.card{opacity:.9}' : ''}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="header-logo">Gobierno del Estado de Michoacán</div>
+      <div class="header-title">EDUMICH · Sistema de Verificación de Documentos</div>
+      <div class="header-sub">Plataforma Educativa Digital · Prepa Abierta · IEMSyS Michoacán</div>
+    </div>
+    <div class="body">
+      <div class="verified-badge">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#166534" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="verified-label">Documento verificado</div>
+      <div class="verified-sub">Este folio de pre-registro existe en la base de datos oficial</div>
+
+      <div class="folio-box">
+        <div class="folio-label">Folio de pre-registro</div>
+        <div class="folio-value">${row.folioPreregistro}</div>
+        <div class="vigencia-pill">${estadoCfg.label}${diasRestantes !== null && diasRestantes > 0 ? ` · ${diasRestantes} día${diasRestantes !== 1 ? 's' : ''}` : ''}</div>
+      </div>
+
+      <div class="row">
+        <div class="field">
+          <div class="field-label">Nombre del aspirante</div>
+          <div class="field-value">${row.nombreCompleto}</div>
+        </div>
+      </div>
+      <div class="row">
+        ${row.municipioNombre ? `<div class="field"><div class="field-label">Municipio</div><div class="field-value">${row.municipioNombre}</div></div>` : ''}
+        ${row.gestorNombre ? `<div class="field"><div class="field-label">Gestor municipal</div><div class="field-value">${row.gestorNombre}</div></div>` : ''}
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="row">
+        <div class="field">
+          <div class="field-label">Generado el</div>
+          <div class="field-value">${fechaGen}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Vigente hasta</div>
+          <div class="field-value" style="color:${estadoCfg.color}">${fechaVig}</div>
+        </div>
+      </div>
+
+      <div class="footer">
+        EDUMICH &mdash; Plataforma Educativa Digital · Gobierno del Estado de Michoacán<br>
+        Este documento es válido únicamente como comprobante de pre-registro.
+      </div>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  res.type('html').send(html);
 });
 
 export default router;

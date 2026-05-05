@@ -17,6 +17,11 @@ import {
   X,
   CheckCircle2,
   Copy,
+  Loader2,
+  Award,
+  Edit2,
+  Download,
+  FileText,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -31,6 +36,23 @@ import DocumentoUploader from '../../components/DocumentoUploader';
 import PagoCard from '../../components/PagoCard';
 import SubirPagoModal from '../../components/SubirPagoModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
+
+interface AlumnoConMatricula {
+  userId: number;
+  nombreCompleto: string;
+  curp: string;
+  fechaNacimiento: string | null;
+  telefono: string | null;
+  direccion: string | null;
+  email: string;
+  createdAt: string;
+  passwordTemporal: boolean;
+  bienvenidaEnviadaEn: string | null;
+  folioPreregistro?: string | null;
+  preregistroVigenteHasta?: string | null;
+  matriculaOficialDGB?: string | null;
+  matriculaCapturadaEn?: string | null;
+}
 
 interface DocDef {
   tipo: TipoDocumento;
@@ -86,6 +108,55 @@ export default function AlumnoDetalle() {
   function showToast(msg: string, type: 'success' | 'error', detail?: string) {
     setToast({ msg, type, detail });
     setTimeout(() => setToast(null), 4000);
+  }
+
+  // Aprobar / rechazar documentos
+  const [modalAprobarDoc, setModalAprobarDoc] = useState<{ id: number; tipo: string; nombre: string } | null>(null);
+  const [modalRechazarDoc, setModalRechazarDoc] = useState<{ id: number; tipo: string; nombre: string } | null>(null);
+  const [docActionLoading, setDocActionLoading] = useState(false);
+  const [motivoRechazoGestor, setMotivoRechazoGestor] = useState('');
+
+  const [modalMatricula, setModalMatricula] = useState<{ matriculaActual: string | null } | null>(null);
+  const [matriculaInput, setMatriculaInput] = useState('');
+  const [matriculaConfirmado, setMatriculaConfirmado] = useState(false);
+  const [matriculaSaving, setMatriculaSaving] = useState(false);
+  const [matriculaError, setMatriculaError] = useState('');
+
+  useEffect(() => {
+    if (modalMatricula !== null) {
+      setMatriculaInput(modalMatricula.matriculaActual ?? '');
+      setMatriculaConfirmado(false);
+      setMatriculaError('');
+    }
+  }, [modalMatricula]);
+
+  async function handleAprobarDoc(docId: number) {
+    setDocActionLoading(true);
+    try {
+      await api.patch(`/gestor/expediente-documentos/${docId}/aprobar`, {});
+      showToast('Documento aprobado', 'success');
+      setModalAprobarDoc(null);
+      await reloadExpediente();
+    } catch (e) {
+      showToast((e as Error).message || 'Error al aprobar', 'error');
+    } finally {
+      setDocActionLoading(false);
+    }
+  }
+
+  async function handleRechazarDoc(docId: number, motivo: string) {
+    setDocActionLoading(true);
+    try {
+      await api.patch(`/gestor/expediente-documentos/${docId}/rechazar`, { motivoRechazo: motivo });
+      showToast('Documento rechazado', 'error');
+      setModalRechazarDoc(null);
+      setMotivoRechazoGestor('');
+      await reloadExpediente();
+    } catch (e) {
+      showToast((e as Error).message || 'Error al rechazar', 'error');
+    } finally {
+      setDocActionLoading(false);
+    }
   }
 
   // Close menu on outside click
@@ -188,13 +259,15 @@ export default function AlumnoDetalle() {
     );
   }
 
-  const { alumno, inscripciones } = data;
+  const { alumno: alumnoBase, inscripciones } = data;
+  const alumno = alumnoBase as AlumnoConMatricula;
   const inscripcionActiva = inscripciones[0];
   const docs = expediente?.documentos ?? {};
 
   const obligatorios = DOCUMENTOS_EXPEDIENTE.filter((d) => d.obligatorio);
   const opcionales = DOCUMENTOS_EXPEDIENTE.filter((d) => !d.obligatorio);
   const docsCount = Object.keys(docs).length;
+  const obligatoriosFaltantes = obligatorios.filter((d) => !docs[d.tipo]);
 
   const tabItems: { key: ActiveTab; label: string; icon: React.ReactNode; badge: string }[] = [
     {
@@ -347,6 +420,60 @@ export default function AlumnoDetalle() {
         </div>
       </div>
 
+      {/* Matrícula oficial DGB */}
+      {!alumno.matriculaOficialDGB ? (
+        <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Award size={18} style={{ color: 'var(--color-guinda-700)' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
+              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>Aún no se ha capturado la matrícula oficial asignada por la SEP-DGB.</p>
+            </div>
+          </div>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 14 }}>
+            Una vez que la SEP-DGB asigne la matrícula, captúrala aquí para generar la <strong>Ficha de Registro Oficial</strong>.
+          </div>
+          <button onClick={() => setModalMatricula({ matriculaActual: null })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: 'var(--color-guinda-700)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
+            <Plus size={13} /> Capturar matrícula oficial
+          </button>
+        </div>
+      ) : (
+        <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)', border: '1px solid #86efac', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Award size={18} style={{ color: '#16a34a' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
+              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+                Capturada el {alumno.matriculaCapturadaEn ? new Date(alumno.matriculaCapturadaEn).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'}) : '—'}
+              </p>
+            </div>
+          </div>
+          <div style={{ background: '#f8fafc', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>MATRÍCULA</div>
+              <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 22, fontWeight: 700, color: 'var(--color-guinda-700)', letterSpacing: '0.05em' }}>
+                {alumno.matriculaOficialDGB}
+              </div>
+            </div>
+            <button onClick={() => setModalMatricula({ matriculaActual: alumno.matriculaOficialDGB! })} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 12, color: '#44403c' }}>
+              <Edit2 size={12} /> Editar
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a href={`/api/gestor/alumnos/${id}/ficha-registro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+              <Download size={12} /> Ficha de registro PDF
+            </a>
+            <a href={`/api/gestor/alumnos/${id}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #e7e5e4', borderRadius: 8, fontSize: 12, color: '#44403c', textDecoration: 'none' }}>
+              <FileText size={12} /> Ficha de pre-registro
+            </a>
+          </div>
+        </div>
+      )}
+
       {/* Tab bar */}
       <div className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
         {tabItems.map(({ key, label, icon, badge }) => {
@@ -381,60 +508,78 @@ export default function AlumnoDetalle() {
       {/* TAB: Documentos */}
       {activeTab === 'docs' && (
         <>
+          {obligatoriosFaltantes.length > 0 && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 flex items-start gap-2">
+              <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <div className="text-sm font-semibold text-amber-900 mb-0.5">
+                  Faltan {obligatoriosFaltantes.length} documento{obligatoriosFaltantes.length > 1 ? 's' : ''} obligatorio{obligatoriosFaltantes.length > 1 ? 's' : ''}
+                </div>
+                <div className="text-xs text-amber-700">
+                  {obligatoriosFaltantes.map((d) => d.label).join(', ')}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 flex items-start gap-2 text-xs text-blue-900">
             <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
             El alumno tiene 4 documentos obligatorios y 2 opcionales. Tú puedes subir documentos por él si los trae físicamente, o él mismo desde su portal.
           </div>
 
-          <section className="mb-6">
-            <h3 className="text-sm font-semibold text-stone-700 uppercase tracking-widest mb-3">
-              Documentos obligatorios
-            </h3>
-            <div className="space-y-3">
-              {obligatorios.map((def) => (
-                <DocumentoUploader
-                  key={def.tipo}
-                  tipo={def.tipo}
-                  label={def.label}
-                  descripcion={def.descripcion}
-                  isRequired={true}
-                  doc={docs[def.tipo]}
-                  endpoints={{
-                    upload: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}`,
-                    preview: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}/preview`,
-                    descargar: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}/descargar`,
-                  }}
-                  acceptImages={def.acceptImages}
-                  onUploaded={reloadExpediente}
-                />
-              ))}
-            </div>
-          </section>
-
-          <section className="mb-6">
-            <h3 className="text-sm font-semibold text-stone-700 uppercase tracking-widest mb-3">
-              Documentos opcionales
-            </h3>
-            <div className="space-y-3">
-              {opcionales.map((def) => (
-                <DocumentoUploader
-                  key={def.tipo}
-                  tipo={def.tipo}
-                  label={def.label}
-                  descripcion={def.descripcion}
-                  isRequired={false}
-                  doc={docs[def.tipo]}
-                  endpoints={{
-                    upload: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}`,
-                    preview: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}/preview`,
-                    descargar: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}/descargar`,
-                  }}
-                  acceptImages={def.acceptImages}
-                  onUploaded={reloadExpediente}
-                />
-              ))}
-            </div>
-          </section>
+          {[
+            { title: 'Documentos obligatorios', defs: obligatorios, isRequired: true },
+            { title: 'Documentos opcionales',   defs: opcionales,   isRequired: false },
+          ].map(({ title, defs, isRequired }) => (
+            <section key={title} className="mb-6">
+              <h3 className="text-sm font-semibold text-stone-700 uppercase tracking-widest mb-3">
+                {title}
+              </h3>
+              <div className="space-y-3">
+                {defs.map((def) => {
+                  const doc = docs[def.tipo];
+                  return (
+                    <div key={def.tipo}>
+                      <DocumentoUploader
+                        tipo={def.tipo}
+                        label={def.label}
+                        descripcion={def.descripcion}
+                        isRequired={isRequired}
+                        doc={doc}
+                        endpoints={{
+                          upload: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}`,
+                          preview: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}/preview`,
+                          descargar: `/api/gestor/alumnos/${id}/expediente/documento/${def.tipo}/descargar`,
+                        }}
+                        acceptImages={def.acceptImages}
+                        onUploaded={reloadExpediente}
+                      />
+                      {doc && doc.estado === 'pendiente_revision' && (
+                        <div className="flex items-center gap-2 mt-1.5 pl-2">
+                          <span className="text-[11px] text-amber-700 font-semibold uppercase tracking-wide">
+                            Pendiente de aprobación
+                          </span>
+                          <button
+                            onClick={() => setModalAprobarDoc({ id: doc.id, tipo: def.tipo, nombre: doc.nombreOriginal })}
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg"
+                            style={{ color: '#2d7d46', border: '1px solid #86efac', background: '#f0fdf4' }}
+                          >
+                            <CheckCircle2 size={11} /> Aprobar
+                          </button>
+                          <button
+                            onClick={() => { setMotivoRechazoGestor(''); setModalRechazarDoc({ id: doc.id, tipo: def.tipo, nombre: doc.nombreOriginal }); }}
+                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg"
+                            style={{ color: '#b91c1c', border: '1px solid #fca5a5', background: 'white' }}
+                          >
+                            <AlertCircle size={11} /> Rechazar
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </>
       )}
 
@@ -613,6 +758,167 @@ export default function AlumnoDetalle() {
                   </button>
                 </>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: aprobar documento */}
+      {modalAprobarDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
+                <CheckCircle2 size={20} className="text-green-700" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-stone-900">¿Aprobar este documento?</h3>
+                <p className="text-xs text-stone-500">Se contabilizará como completo en el expediente.</p>
+              </div>
+            </div>
+            <div className="bg-stone-50 rounded-md p-3 mb-5">
+              <div className="text-sm font-semibold text-stone-800">{modalAprobarDoc.tipo}</div>
+              <div className="text-xs text-stone-500">{modalAprobarDoc.nombre}</div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setModalAprobarDoc(null)} className="gov-btn-secondary">Cancelar</button>
+              <button
+                onClick={() => handleAprobarDoc(modalAprobarDoc.id)}
+                disabled={docActionLoading}
+                className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+                style={{ background: '#2d7d46', border: 'none' }}
+              >
+                {docActionLoading ? <Loader2 size={13} className="animate-spin" /> : null}
+                Sí, aprobar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: rechazar documento */}
+      {modalRechazarDoc && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                <AlertCircle size={20} className="text-red-700" />
+              </div>
+              <div>
+                <h3 className="font-serif text-lg font-bold text-stone-900">Rechazar documento</h3>
+                <p className="text-xs text-stone-500">{modalRechazarDoc.tipo} · {modalRechazarDoc.nombre}</p>
+              </div>
+            </div>
+            <div className="mb-3">
+              <label className="gov-label">Motivo del rechazo <span className="text-red-600">*</span></label>
+              <textarea
+                value={motivoRechazoGestor}
+                onChange={(e) => setMotivoRechazoGestor(e.target.value)}
+                placeholder="El alumno verá esta razón para volver a subir el documento…"
+                rows={3}
+                className="gov-input resize-none"
+              />
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-4">
+              {['Documento ilegible', 'Documento incompleto', 'Tipo incorrecto', 'Documento vencido'].map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMotivoRechazoGestor(m)}
+                  className="text-[11px] px-2.5 py-1 border rounded-full"
+                  style={{
+                    border: motivoRechazoGestor === m ? '1px solid #b91c1c' : '1px solid #d6d3d1',
+                    background: motivoRechazoGestor === m ? '#fee2e2' : 'white',
+                    color: motivoRechazoGestor === m ? '#b91c1c' : '#44403c',
+                  }}
+                >
+                  {m}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setModalRechazarDoc(null)} className="gov-btn-secondary">Cancelar</button>
+              <button
+                onClick={() => motivoRechazoGestor.trim() && handleRechazarDoc(modalRechazarDoc.id, motivoRechazoGestor.trim())}
+                disabled={docActionLoading || !motivoRechazoGestor.trim()}
+                className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-60"
+                style={{ background: '#b91c1c', border: 'none' }}
+              >
+                {docActionLoading ? <Loader2 size={13} className="animate-spin" /> : null}
+                Rechazar documento
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalMatricula !== null && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}
+          onClick={e => { if (e.target === e.currentTarget) setModalMatricula(null); }}>
+          <div style={{ background: '#fff', borderRadius: 12, width: 520, maxWidth: '95vw', padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <div>
+                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>
+                  {modalMatricula.matriculaActual ? 'Editar matrícula oficial DGB' : 'Capturar matrícula oficial DGB'}
+                </h2>
+                <p style={{ fontSize: 12, color: '#78716c', marginTop: 4, marginBottom: 0 }}>
+                  Ingresa la matrícula que la SEP-DGB asignó a este alumno.
+                </p>
+              </div>
+              <button onClick={() => setModalMatricula(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c' }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ background: '#faf9f8', border: '1px solid #e7e5e4', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+              <div style={{ fontWeight: 700, fontSize: 14, color: '#2a2a2a' }}>{alumno.nombreCompleto}</div>
+              <div style={{ fontSize: 12, color: '#78716c' }}>CURP: {alumno.curp}</div>
+              {alumno.folioPreregistro && <div style={{ fontSize: 12, color: '#78716c' }}>Pre-registro: {alumno.folioPreregistro}</div>}
+            </div>
+
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#57534e', display: 'block', marginBottom: 6 }}>Matrícula oficial DGB *</label>
+              <input
+                type="text"
+                value={matriculaInput}
+                onChange={e => setMatriculaInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                placeholder="Ej. 26016000142X"
+                maxLength={20}
+                style={{ width: '100%', border: '1px solid #e7e5e4', borderRadius: 6, padding: '9px 12px', fontSize: 15, fontFamily: 'monospace', letterSpacing: '0.05em', background: '#faf9f8' }}
+              />
+              <div style={{ fontSize: 11, color: '#78716c', marginTop: 4 }}>Entre 8 y 20 caracteres alfanuméricos. Tal como la asignó la SEP-DGB.</div>
+            </div>
+
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#44403c', cursor: 'pointer', marginBottom: 16 }}>
+              <input type="checkbox" checked={matriculaConfirmado} onChange={e => setMatriculaConfirmado(e.target.checked)} style={{ marginTop: 2 }} />
+              <span>Confirmo que esta matrícula fue asignada oficialmente por la SEP-DGB y corresponde a este alumno.</span>
+            </label>
+
+            {matriculaError && <div style={{ color: '#be123c', fontSize: 12, padding: '8px 12px', background: '#fff1f2', borderRadius: 6, marginBottom: 12 }}>{matriculaError}</div>}
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button onClick={() => setModalMatricula(null)} style={{ padding: '9px 20px', border: '1px solid #e7e5e4', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button
+                disabled={matriculaSaving || matriculaInput.length < 8 || !matriculaConfirmado}
+                onClick={async () => {
+                  if (matriculaInput.length < 8 || matriculaInput.length > 20) { setMatriculaError('La matrícula debe tener entre 8 y 20 caracteres alfanuméricos'); return; }
+                  if (!matriculaConfirmado) { setMatriculaError('Debes confirmar que la matrícula es correcta'); return; }
+                  setMatriculaSaving(true);
+                  setMatriculaError('');
+                  try {
+                    await api.post(`/gestor/alumnos/${id}/matricula`, { matricula: matriculaInput });
+                    setModalMatricula(null);
+                    const updated = await api.get<AlumnoDetalleType>(`/gestor/alumnos/${id}`);
+                    setData(updated);
+                  } catch (ex: unknown) {
+                    setMatriculaError(ex instanceof Error ? ex.message : 'Error al guardar');
+                  } finally {
+                    setMatriculaSaving(false);
+                  }
+                }}
+                style={{ padding: '9px 20px', borderRadius: 8, background: 'var(--color-guinda-700)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: (matriculaInput.length < 8 || !matriculaConfirmado) ? 0.5 : 1 }}
+              >
+                {matriculaSaving ? 'Guardando...' : 'Guardar matrícula'}
+              </button>
             </div>
           </div>
         </div>

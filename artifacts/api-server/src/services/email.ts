@@ -257,8 +257,134 @@ function getBienvenidaEmailHTML(data: BienvenidaData): string {
               Morelia, Michoacán · Honestidad y Trabajo
             </p>
             <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">
-              © ${new Date().getFullYear()} Gobierno del Estado de Michoacán · Sistema de Gestión Prepa Abierta<br>
-              Este correo fue generado automáticamente. Por favor no respondas a este mensaje, no es monitoreado.
+              Este correo fue enviado desde <strong>EDUMICH</strong> · Plataforma Educativa Digital<br>
+              © ${new Date().getFullYear()} Gobierno del Estado de Michoacán · IEMSyS · Prepa Abierta<br>
+              Este mensaje fue generado automáticamente. Por favor no respondas.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+// ─── Recuperación de contraseña ───────────────────────────────────────────
+
+export interface RecuperarPasswordData {
+  nombre: string;
+  resetUrl: string;
+  token: string;
+}
+
+export async function sendRecuperarPassword(
+  email: string,
+  data: RecuperarPasswordData
+): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
+  if (EMAIL_MODE === 'dev') {
+    process.stderr.write(`\n📧 [DEV] Recuperación para ${email}\n   Token: ${data.token}\n   URL: ${data.resetUrl}\n\n`);
+    return { enviado: true, modo: 'dev' };
+  }
+
+  if (!resend) throw new Error('Resend no configurado');
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM!,
+    to: email,
+    subject: 'Recupera tu contraseña — Prepa Abierta Michoacán',
+    html: getRecuperarPasswordHTML(data),
+  });
+
+  return { enviado: true, modo: 'production' };
+}
+
+function getRecuperarPasswordHTML(data: RecuperarPasswordData): string {
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f4ec;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;padding:32px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0"
+        style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
+
+        <!-- Header guinda -->
+        <tr>
+          <td style="background:#7b1e3a;padding:24px 32px;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:56px;height:56px;text-align:center;vertical-align:middle;">
+                  <img src="https://prepaabierta.michoacan.gob.mx/logo-see-blanco-256.png" alt="SEE Michoacán" width="56" height="56" style="display:block;object-fit:contain;" />
+                </td>
+                <td style="padding-left:14px;">
+                  <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+                  <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Cuerpo -->
+        <tr>
+          <td style="padding:32px 32px 24px 32px;">
+            <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:12px;">
+              Recuperación de contraseña
+            </div>
+            <h1 style="color:#1c1917;font-size:22px;margin:0 0 14px 0;font-family:Georgia,serif;">
+              Crea una nueva contraseña
+            </h1>
+            <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 24px 0;">
+              Hola, <strong>${data.nombre}</strong>. Recibimos una solicitud para restablecer
+              la contraseña de tu cuenta en el sistema Prepa Abierta del IEMSyS.
+              Haz clic en el botón para crear una nueva contraseña.
+            </p>
+
+            <!-- Botón -->
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
+              <tr>
+                <td align="center">
+                  <a href="${data.resetUrl}"
+                    style="display:inline-block;background:#7b1e3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;">
+                    Crear nueva contraseña
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <!-- Link de respaldo -->
+            <p style="color:#78716c;font-size:12px;line-height:1.6;margin:0 0 20px 0;">
+              Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+              <span style="color:#7b1e3a;word-break:break-all;">${data.resetUrl}</span>
+            </p>
+
+            <!-- Advertencia -->
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="background:#fff7ed;border:1px solid #fed7aa;border-left:3px solid #c77700;border-radius:6px;padding:14px 16px;">
+                  <p style="color:#92400e;font-size:13px;line-height:1.6;margin:0;">
+                    ⏱ <strong>Este enlace expira en 60 minutos.</strong><br>
+                    Si no solicitaste este cambio, puedes ignorar este correo.
+                    Tu contraseña actual no será modificada.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
+            <p style="color:#78716c;font-size:11px;margin:0 0 4px 0;text-align:center;">
+              <strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong>
+            </p>
+            <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">
+              Este correo fue enviado desde <strong>EDUMICH</strong> · Plataforma Educativa Digital<br>
+              © ${new Date().getFullYear()} Gobierno del Estado de Michoacán · IEMSyS · Prepa Abierta<br>
+              Este mensaje fue generado automáticamente. Por favor no respondas.
             </p>
           </td>
         </tr>
@@ -322,9 +448,9 @@ function getVerificationEmailHTML(codigo: string): string {
         <!-- Footer -->
         <tr>
           <td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-            <p style="color:#78716c;font-size:11px;margin:0;text-align:center;">
-              © Gobierno del Estado de Michoacán · Instituto de Educación Media Superior y Superior<br>
-              Sistema de Gestión Prepa Abierta · v0.1
+            <p style="color:#78716c;font-size:11px;margin:0;text-align:center;line-height:1.5;">
+              Este correo fue enviado desde <strong>EDUMICH</strong> · Plataforma Educativa Digital<br>
+              Gobierno del Estado de Michoacán · IEMSyS · Prepa Abierta · edumich.michoacan.gob.mx
             </p>
           </td>
         </tr>

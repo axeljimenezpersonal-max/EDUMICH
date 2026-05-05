@@ -56,7 +56,7 @@ type DashboardData = {
     iniciales: string;
     municipio: string | null;
     gestorNombre: string | null;
-    estadoExpediente: 'completo' | 'pendiente' | 'rechazado' | 'sin_docs';
+    estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
     estadoTexto: string;
     creadoEn: string;
   }>;
@@ -571,10 +571,13 @@ function ActividadReciente({ actividad }: { actividad: DashboardData['actividadR
 // ── Alumnos recientes ──────────────────────────────────────────────────────────
 
 const estadoStyles: Record<string, { bg: string; color: string }> = {
-  completo:  { bg: '#d1fae5', color: '#2d7d46' },
-  pendiente: { bg: '#fef9c3', color: '#92400e' },
-  rechazado: { bg: '#fee2e2', color: '#b91c1c' },
-  sin_docs:  { bg: '#fef9c3', color: '#92400e' },
+  activo:              { bg: '#d1fae5', color: '#2d7d46' },
+  esperando_matricula: { bg: '#dbeafe', color: '#1d4ed8' },
+  pago_pendiente:      { bg: '#fff7ed', color: '#b45309' },
+  en_proceso:          { bg: '#fef9c3', color: '#92400e' },
+  rechazado:           { bg: '#fee2e2', color: '#b91c1c' },
+  sin_documentos:      { bg: '#f5f5f4', color: '#78716c' },
+  inactivo:            { bg: '#f5f5f4', color: '#78716c' },
 };
 
 function AlumnosRecientes({ alumnos, total }: { alumnos: DashboardData['alumnosRecientes']; total: number }) {
@@ -596,7 +599,7 @@ function AlumnosRecientes({ alumnos, total }: { alumnos: DashboardData['alumnosR
       ) : (
         <>
           {alumnos.map((alumno) => {
-            const estilo = estadoStyles[alumno.estadoExpediente] ?? estadoStyles.sin_docs;
+            const estilo = estadoStyles[alumno.estadoExpediente] ?? estadoStyles.sin_documentos;
             return (
               <a
                 key={alumno.id}

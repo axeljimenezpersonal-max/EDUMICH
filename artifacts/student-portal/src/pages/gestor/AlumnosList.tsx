@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { Search, Plus, Users, FileText, ChevronRight } from 'lucide-react';
+import { Search, Plus, Users, FileText, ChevronRight, X } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, type AlumnoListItem } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -14,9 +14,18 @@ import { StatusBadge } from '../../components/StatusBadge';
 export default function AlumnosList() {
   const [alumnos, setAlumnos] = useState<AlumnoListItem[] | null>(null);
   const [filtro, setFiltro] = useState('');
+  const [toast, setToast] = useState<{ msg: string; type: string } | null>(null);
 
   useEffect(() => {
     api.get<{ alumnos: AlumnoListItem[] }>('/gestor/alumnos').then((r) => setAlumnos(r.alumnos));
+    const raw = sessionStorage.getItem('gestor_toast');
+    if (raw) {
+      sessionStorage.removeItem('gestor_toast');
+      try {
+        setToast(JSON.parse(raw));
+        setTimeout(() => setToast(null), 5000);
+      } catch {}
+    }
   }, []);
 
   const filtered = (alumnos ?? []).filter((a) => {
@@ -27,6 +36,20 @@ export default function AlumnosList() {
 
   return (
     <GestorLayout>
+      {/* Toast de sesión */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 max-w-sm flex items-start gap-3 px-4 py-3 rounded-lg shadow-lg border text-sm ${
+          toast.type === 'warning'
+            ? 'bg-amber-50 border-amber-200 text-amber-900'
+            : 'bg-green-50 border-green-200 text-green-900'
+        }`}>
+          <span className="flex-1">{toast.msg}</span>
+          <button onClick={() => setToast(null)} className="flex-shrink-0 opacity-60 hover:opacity-100">
+            <X size={14} />
+          </button>
+        </div>
+      )}
+
       <div className="flex items-end justify-between gap-4 mb-6">
         <div>
           <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">
@@ -90,6 +113,7 @@ export default function AlumnosList() {
                 <tr
                   key={a.userId}
                   className="border-b border-stone-100 last:border-b-0 hover:bg-[var(--color-crema-50)] transition-colors"
+                  style={a.docsCount < 4 ? { borderLeft: '3px solid #f59e0b' } : undefined}
                 >
                   <td className="px-4 py-3">
                     <Link
@@ -112,10 +136,22 @@ export default function AlumnosList() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className="inline-flex items-center gap-1 text-stone-700">
-                      <FileText size={14} className="text-stone-400" />
-                      {a.docsCount}
-                    </span>
+                    {a.docsCount < 4 ? (
+                      <span className="inline-flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-stone-700">
+                          <FileText size={14} className="text-stone-400" />
+                          {a.docsCount}
+                        </span>
+                        <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
+                          Faltan {4 - a.docsCount}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-stone-700">
+                        <FileText size={14} className="text-stone-400" />
+                        {a.docsCount}
+                      </span>
+                    )}
                   </td>
                   <td className="px-2 py-3">
                     <Link

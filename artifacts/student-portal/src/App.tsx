@@ -27,6 +27,8 @@ import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
 import AutoRegistroExito from './pages/publico/AutoRegistroExito';
 import SolicitarCuenta from './pages/publico/SolicitarCuenta';
+import RecuperarPassword from './pages/RecuperarPassword';
+import ResetPassword from './pages/ResetPassword';
 import PagosPendientes from './pages/admin/PagosPendientes';
 import AlumnosCalificaciones from './pages/admin/AlumnosCalificaciones';
 import Solicitudes from './pages/admin/SolicitudesLista';
@@ -35,8 +37,13 @@ import AdminAlumnosLista from './pages/admin/AlumnosLista';
 import CapturaMasivaCalificaciones from './pages/admin/CapturaMasivaCalificaciones';
 import GestoresLista from './pages/admin/GestoresLista';
 import GestorDetalle from './pages/admin/GestorDetalle';
+import AdminAlumnoDetalle from './pages/admin/AdminAlumnoDetalle';
 import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
+import AnunciosLista from './pages/admin/AnunciosLista';
+import Reportes from './pages/admin/Reportes';
+import Configuracion from './pages/admin/Configuracion';
+import Notificaciones from './pages/Notificaciones';
 
 export default function App() {
   return (
@@ -67,21 +74,31 @@ export default function App() {
       <Route path="/registro/datos" component={AutoRegistroDatos} />
       <Route path="/registro/exito" component={AutoRegistroExito} />
       <Route path="/solicitar-cuenta" component={SolicitarCuenta} />
+      <Route path="/recuperar-password" component={RecuperarPassword} />
+      <Route path="/reset-password" component={ResetPassword} />
 
       {/* Admin */}
       <Route path="/admin/solicitudes" component={Solicitudes} />
       <Route path="/admin/pagos-pendientes" component={PagosPendientes} />
+      <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
       <Route path="/admin/alumnos" component={AdminAlumnosLista} />
       <Route path="/admin/captura-masiva-calificaciones" component={CapturaMasivaCalificaciones} />
       <Route path="/admin/gestores/:id" component={GestorDetalle} />
       <Route path="/admin/gestores" component={GestoresLista} />
       <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
       <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
+      <Route path="/admin/anuncios" component={AnunciosLista} />
+      <Route path="/admin/reportes" component={Reportes} />
+      <Route path="/admin/configuracion/:seccion" component={Configuracion} />
+      <Route path="/admin/configuracion"><Redirect to="/admin/configuracion/mi-cuenta" /></Route>
       {/* Redirects: old routes → new filtered views */}
       <Route path="/admin/documentos"><Redirect to="/admin/alumnos?filtro=docs_en_revision" /></Route>
       <Route path="/admin/pagos"><Redirect to="/admin/alumnos?filtro=pagos_pendientes" /></Route>
       <Route path="/admin/calificaciones"><Redirect to="/admin/alumnos?filtro=calif_pendientes" /></Route>
       <Route path="/admin" component={AdminInicio} />
+
+      {/* Notificaciones — accesible desde todos los perfiles */}
+      <Route path="/notificaciones" component={Notificaciones} />
 
       {/* Catch-all → login */}
       <Route>

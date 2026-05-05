@@ -20,6 +20,7 @@ import {
   users,
 } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
+import { tryAuditLog } from '../utils/audit';
 
 const router = Router();
 router.use(authRequired);
@@ -191,12 +192,14 @@ router.post(
       })
       .returning();
 
-    await db.insert(auditLog).values({
+    await tryAuditLog({
       userId: req.user!.userId,
       accion: 'subir_pago',
       entidad: 'pagos',
       entidadId: pago.id,
+      detalle: `Subió comprobante de pago: ${data.concepto} $${data.monto}`,
       metadata: { estudianteId, concepto: data.concepto, monto: data.monto },
+      req,
     });
 
     res.status(201).json({ ok: true, pago });

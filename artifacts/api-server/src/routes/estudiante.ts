@@ -42,6 +42,8 @@ import {
   examenesInscripciones,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
+import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import { tryAuditLog } from '../utils/audit';
 
 const QR_SECRET = process.env.QR_SECRET || 'prepa-qr-secret-dev';
 
@@ -128,6 +130,9 @@ router.get('/dashboard', async (req, res) => {
       curp: estudiantes.curp,
       municipioId: estudiantes.municipioId,
       gestorId: estudiantes.gestorId,
+      folioPreregistro: estudiantes.folioPreregistro,
+      preregistroVigenteHasta: estudiantes.preregistroVigenteHasta,
+      matriculaOficialDGB: estudiantes.matriculaOficialDGB,
     })
     .from(estudiantes)
     .where(eq(estudiantes.userId, userId));
@@ -242,6 +247,9 @@ router.get('/dashboard', async (req, res) => {
       email: user?.email ?? '',
       municipio: municipio?.nombre ?? '',
     },
+    folioPreregistro: est.folioPreregistro ?? null,
+    preregistroVigenteHasta: est.preregistroVigenteHasta ?? null,
+    matriculaOficialDGB: est.matriculaOficialDGB ?? null,
     inscripcionActiva: insc
       ? {
           id: insc.id,
@@ -388,12 +396,14 @@ router.post('/cambiar-password', async (req, res) => {
     .set({ passwordHash: newHash, passwordTemporal: false, updatedAt: new Date() })
     .where(eq(users.id, userId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId,
     accion: 'cambiar_password',
     entidad: 'users',
     entidadId: userId,
+    detalle: 'Cambió su contraseña',
     metadata: { passwordTemporal: false },
+    req,
   });
 
   res.json({ ok: true });
@@ -1295,12 +1305,14 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
     inscripcionesResult.push({ folio, moduloNombre, fecha: fechaExamen ?? '', hora: horario.hora });
   }
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId,
     accion: 'inscribir_examen',
     entidad: 'examenes_inscripciones',
     entidadId: userId,
+    detalle: `Se inscribió a ${modulosIds.length} examen(es) de la etapa ID ${etapaId}`,
     metadata: { etapaId, modulosIds, cantidad: modulosIds.length },
+    req,
   });
 
   res.json({ ok: true, inscripciones: inscripcionesResult });
@@ -1545,15 +1557,126 @@ router.post('/convocatoria/inscripcion/:id/cancelar', async (req, res) => {
     .set({ estado: 'cancelado' })
     .where(eq(examenesInscripciones.id, inscripcionId));
 
-  await db.insert(auditLog).values({
+  await tryAuditLog({
     userId,
     accion: 'cancelar_inscripcion_examen',
     entidad: 'examenes_inscripciones',
     entidadId: inscripcionId,
+    detalle: `Canceló inscripción a examen ID ${inscripcionId}`,
     metadata: {},
+    req,
   });
 
   res.json({ ok: true });
+});
+
+// ─── GET /estudiante/ficha-preregistro ───────────────────────────────────────
+router.get('/ficha-preregistro', async (req, res) => {
+  const userId = req.user!.userId;
+
+  let [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, userId));
+  if (!est) { res.status(404).json({ error: 'Datos de estudiante no encontrados' }); return; }
+
+  if (!est.folioPreregistro) {
+    const { generarFolioPreregistro, agregarDiasHabiles } = await import('../utils/folio');
+    const folio = await generarFolioPreregistro();
+    const ahora = new Date();
+    const vigencia = agregarDiasHabiles(ahora, 15);
+    await db.update(estudiantes).set({
+      folioPreregistro: folio,
+      preregistroGeneradoEn: ahora,
+      preregistroVigenteHasta: vigencia.toISOString().split('T')[0],
+    }).where(eq(estudiantes.userId, userId));
+    [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, userId));
+  }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+  const [gestorRow] = est.gestorId
+    ? await db.select({ nombreCompleto: gestores.nombreCompleto, emailPublico: gestores.emailPublico }).from(gestores).where(eq(gestores.userId, est.gestorId))
+    : [null];
+
+  const pdf = await generarFichaPreregistro({
+    folio: est.folioPreregistro!,
+    generadoEn: est.preregistroGeneradoEn ?? new Date(),
+    vigenteHasta: est.preregistroVigenteHasta ?? null,
+    nombreCompleto: est.nombreCompleto,
+    curp: est.curp ?? null,
+    fechaNacimiento: est.fechaNacimiento ?? null,
+    genero: (est as any).genero ?? null,
+    nacionalidad: (est as any).nacionalidad ?? 'Mexicana',
+    telefono: est.telefono ?? null,
+    email: userRow?.email ?? '',
+    municipio: municipio?.nombre ?? null,
+    gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
+    fotoPath: (est as any).foto ?? null,
+    qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
+  });
+
+  const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="ficha-preregistro-${safeFolio}.pdf"`);
+  res.send(pdf);
+});
+
+// ─── GET /estudiante/ficha-registro ──────────────────────────────────────────
+router.get('/ficha-registro', async (req, res) => {
+  const userId = req.user!.userId;
+
+  const [est] = await db
+    .select({
+      nombreCompleto: estudiantes.nombreCompleto,
+      curp: estudiantes.curp,
+      fechaNacimiento: estudiantes.fechaNacimiento,
+      telefono: estudiantes.telefono,
+      municipioId: estudiantes.municipioId,
+      gestorId: estudiantes.gestorId,
+      folioPreregistro: estudiantes.folioPreregistro,
+      matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      matriculaCapturadaEn: estudiantes.matriculaCapturadaEn,
+    })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, userId));
+
+  if (!est || !est.matriculaOficialDGB) {
+    res.status(400).json({ error: 'Aún no tienes matrícula oficial asignada.' });
+    return;
+  }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+  const [gestor] = est.gestorId
+    ? await db.select({ nombreCompleto: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, est.gestorId))
+    : [null];
+
+  const docsValidados = await db
+    .select({ tipo: expedienteDocumentos.tipo, revisadoEn: expedienteDocumentos.revisadoEn })
+    .from(expedienteDocumentos)
+    .where(and(eq(expedienteDocumentos.estudianteId, userId), eq(expedienteDocumentos.estado, 'aprobado')));
+
+  const pdf = await generarFichaRegistro({
+    matricula: est.matriculaOficialDGB,
+    folio: est.folioPreregistro ?? '—',
+    nombreCompleto: est.nombreCompleto,
+    curp: est.curp ?? null,
+    fechaNacimiento: est.fechaNacimiento ?? null,
+    telefono: est.telefono ?? null,
+    email: userRow?.email ?? '',
+    municipio: municipio?.nombre ?? null,
+    gestor: gestor ? { nombre: gestor.nombreCompleto } : null,
+    matriculaCapturadaEn: est.matriculaCapturadaEn ?? null,
+    documentosValidados: docsValidados.map(d => ({ tipo: d.tipo, validadoEn: d.revisadoEn ?? null })),
+    pagos: [],
+  });
+
+  const safeMat = est.matriculaOficialDGB.replace(/[^a-zA-Z0-9]/g, '');
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="ficha-registro-${safeMat}.pdf"`);
+  res.send(pdf);
 });
 
 export default router;

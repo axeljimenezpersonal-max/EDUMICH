@@ -21,7 +21,7 @@ type Alumno = {
   email: string;
   municipio: { id: number; nombre: string } | null;
   gestor: { id: number; nombreCompleto: string; iniciales: string } | null;
-  estadoExpediente: 'completo' | 'en_revision' | 'pendiente' | 'rechazado' | 'sin_docs';
+  estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
   docsAprobados: number;
   docsTotal: number;
   ultimaActividad: string | null;
@@ -50,20 +50,24 @@ const FILTRO_DESC: Record<string, string> = {
 };
 
 const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; color: string }> = {
-  completo:    { label: 'Completo',    dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
-  en_revision: { label: 'En revisión', dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
-  pendiente:   { label: 'Pendiente',   dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
-  rechazado:   { label: 'Rechazado',   dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
-  sin_docs:    { label: 'Sin docs',    dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  activo:              { label: 'Activo',                dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
+  esperando_matricula: { label: 'Esperando matrícula',   dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
+  pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
+  en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
+  rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
+  sin_documentos:      { label: 'Sin documentos',        dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  inactivo:            { label: 'Inactivo',              dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
 };
 
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos los estados' },
-  { value: 'completo', label: 'Completo' },
-  { value: 'en_revision', label: 'En revisión' },
-  { value: 'pendiente', label: 'Pendiente' },
-  { value: 'rechazado', label: 'Rechazado' },
-  { value: 'sin_docs', label: 'Sin docs' },
+  { value: 'activo', label: 'Activo' },
+  { value: 'esperando_matricula', label: 'Esperando matrícula' },
+  { value: 'pago_pendiente', label: 'Pago pendiente' },
+  { value: 'en_proceso', label: 'En proceso' },
+  { value: 'rechazado', label: 'Doc. rechazado' },
+  { value: 'sin_documentos', label: 'Sin documentos' },
+  { value: 'inactivo', label: 'Inactivo' },
 ];
 
 // ─── Debounce hook ────────────────────────────────────────────────────────
@@ -538,7 +542,7 @@ export default function AlumnosLista() {
                   alumno={alumno}
                   dropdownOpen={openDropdown === alumno.id}
                   onToggleDropdown={() => setOpenDropdown((prev) => prev === alumno.id ? null : alumno.id)}
-                  onViewDetail={() => setLocation(`/gestor/alumnos/${alumno.id}`)}
+                  onViewDetail={() => setLocation(`/admin/alumnos/${alumno.id}`)}
                   onAsignarGestor={() => { setModalAlumno(alumno); setOpenDropdown(null); }}
                 />
               ))}
@@ -599,7 +603,7 @@ function AlumnoRow({
   onViewDetail: () => void;
   onAsignarGestor: () => void;
 }) {
-  const est = ESTADO_CONFIG[alumno.estadoExpediente] ?? ESTADO_CONFIG.sin_docs;
+  const est = ESTADO_CONFIG[alumno.estadoExpediente] ?? ESTADO_CONFIG.sin_documentos;
   const docsWidth = alumno.docsTotal > 0 ? (alumno.docsAprobados / alumno.docsTotal) * 100 : 0;
 
   const fechaReg = new Date(alumno.creadoEn).toLocaleDateString('es-MX', {

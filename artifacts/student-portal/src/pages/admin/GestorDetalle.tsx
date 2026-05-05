@@ -44,7 +44,7 @@ type Alumno = {
   curp: string | null;
   email: string;
   municipio: { id: number; nombre: string } | null;
-  estadoExpediente: 'completo' | 'en_revision' | 'pendiente' | 'rechazado' | 'sin_docs';
+  estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
   docsAprobados: number;
   docsTotal: number;
   ultimaActividadTexto: string;
@@ -63,11 +63,13 @@ type GestorSimple = { id: number; nombreCompleto: string; iniciales: string; mun
 // ─── Color helpers ────────────────────────────────────────────────────────
 
 const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; color: string }> = {
-  completo:    { label: 'Completo',    dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
-  en_revision: { label: 'En revisión', dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
-  pendiente:   { label: 'Pendiente',   dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
-  rechazado:   { label: 'Rechazado',   dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
-  sin_docs:    { label: 'Sin docs',    dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  activo:              { label: 'Activo',                dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
+  esperando_matricula: { label: 'Esperando matrícula',   dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
+  pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
+  en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
+  rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
+  sin_documentos:      { label: 'Sin documentos',        dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  inactivo:            { label: 'Inactivo',              dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
 };
 
 function tasaColor(nivel: 'alta' | 'media' | 'baja') {
@@ -386,7 +388,7 @@ function MetricCard({
 // ─── Inline alumno row ────────────────────────────────────────────────────
 
 function AlumnoRow({ alumno, onNav }: { alumno: Alumno; onNav: () => void }) {
-  const estadoCfg = ESTADO_CONFIG[alumno.estadoExpediente] ?? ESTADO_CONFIG.sin_docs;
+  const estadoCfg = ESTADO_CONFIG[alumno.estadoExpediente] ?? ESTADO_CONFIG.sin_documentos;
   const pct = alumno.docsTotal > 0 ? Math.round((alumno.docsAprobados / alumno.docsTotal) * 100) : 0;
   const partes = alumno.nombreCompleto.split(' ');
   const iniciales = partes.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
@@ -595,16 +597,28 @@ export default function GestorDetalle() {
       </button>
 
       {/* ── HEADER CARD ─────────────────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden mb-6">
-        {/* Banner */}
+      <div className="bg-white border border-stone-200 rounded-xl mb-6">
+        {/* Banner — sin overflow-hidden para que el avatar sobresalga */}
         <div
-          className="h-28 relative"
           style={{
+            height: 100,
+            borderRadius: '12px 12px 0 0',
             background: inactivo
               ? 'linear-gradient(135deg, #78716c 0%, #44403c 100%)'
               : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #5C1428 100%)',
+            position: 'relative',
           }}
         >
+          {/* Overlay decorativo */}
+          <div
+            style={{
+              position: 'absolute',
+              inset: 0,
+              borderRadius: '12px 12px 0 0',
+              background: 'radial-gradient(circle at 80% 30%, rgba(255,255,255,0.18) 0%, transparent 50%)',
+              pointerEvents: 'none',
+            }}
+          />
           <span
             className="absolute top-3 right-4 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
             style={{ background: 'rgba(255,255,255,0.95)', color: inactivo ? '#78716c' : '#2d7d46' }}
@@ -617,126 +631,152 @@ export default function GestorDetalle() {
           </span>
         </div>
 
-        <div className="px-6 pb-6">
-          {/* Avatar overlapping banner */}
+        {/* Info grid: avatar | texto | acciones */}
+        <div
+          style={{
+            padding: '0 32px 24px',
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr auto',
+            gap: 24,
+            alignItems: 'flex-end',
+            position: 'relative',
+          }}
+        >
+          {/* Avatar — sobresale 60px hacia arriba del banner */}
           <div
-            className="w-[100px] h-[100px] rounded-full flex items-center justify-center text-3xl font-bold border-4 border-white -mt-[50px] mb-4"
             style={{
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               background: inactivo ? '#f5f5f4' : '#efe7d6',
               color: inactivo ? '#78716c' : 'var(--color-guinda-700)',
+              border: '5px solid white',
+              marginTop: -60,
               fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontWeight: 700,
+              fontSize: 36,
+              letterSpacing: '-0.02em',
+              flexShrink: 0,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+              position: 'relative',
+              zIndex: 2,
             }}
           >
             {gestor.iniciales}
           </div>
 
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div className="flex-1 min-w-0">
-              <h1
-                className="text-2xl font-bold tracking-tight mb-1"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}
-              >
-                {gestor.nombreCompleto}
-              </h1>
-              {gestor.titulo && (
-                <p className="text-sm mb-3" style={{ color: '#78716c' }}>{gestor.titulo}</p>
-              )}
-
-              {/* Pills row */}
-              <div className="flex items-center gap-2 flex-wrap">
-                {gestor.municipio && (
-                  <span
-                    className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                    style={{ background: '#f5f5f4', color: '#44403c' }}
-                  >
-                    <MapPin size={11} /> {gestor.municipio.nombre}
-                  </span>
-                )}
+          {/* Texto */}
+          <div style={{ paddingTop: 16 }}>
+            <div
+              className="text-[11px] font-semibold uppercase tracking-widest mb-1"
+              style={{ color: '#a8a29e' }}
+            >
+              GESTOR · ID-{gestor.id}
+            </div>
+            <h1
+              className="text-2xl font-bold tracking-tight mb-2"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}
+            >
+              {gestor.nombreCompleto}
+            </h1>
+            {gestor.titulo && (
+              <p className="text-sm mb-2" style={{ color: '#78716c' }}>{gestor.titulo}</p>
+            )}
+            {/* Pills */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {gestor.municipio && (
                 <span
                   className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                  style={{ background: '#f0f0ff', color: '#4338ca' }}
+                  style={{ background: '#f5f5f4', color: '#44403c' }}
                 >
-                  <Users size={11} /> Capacidad {gestor.metricas.totalAlumnos}/{gestor.capacidadMaxima}
+                  <MapPin size={11} /> {gestor.municipio.nombre}
                 </span>
-              </div>
-            </div>
-
-            {/* Action buttons */}
-            <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-              <button
-                onClick={() => setModal('editar')}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
-                style={{ color: '#44403c' }}
-              >
-                <Edit size={12} /> Editar
-              </button>
-              <button
-                onClick={handleResetPassword}
-                disabled={resettingPwd}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50"
-                style={{ color: '#44403c' }}
-              >
-                <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
-              </button>
-              {inactivo ? (
-                <button
-                  onClick={handleActivar}
-                  disabled={activating}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-50"
-                  style={{ background: '#2d7d46' }}
-                >
-                  <UserCheck size={12} /> {activating ? 'Activando...' : 'Reactivar'}
-                </button>
-              ) : (
-                <button
-                  onClick={() => setModal('desactivar')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
-                  style={{ background: '#b91c1c' }}
-                >
-                  <UserX size={12} /> Desactivar
-                </button>
               )}
-              <button
-                onClick={() => setLocation(`/admin/alumnos?gestorId=${gestor.id}`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
-                style={{ background: 'var(--color-guinda-700)' }}
+              <span
+                className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
+                style={{ background: '#f0f0ff', color: '#4338ca' }}
               >
-                <Users size={12} /> Ver alumnos
-              </button>
+                <Users size={11} /> Capacidad {gestor.metricas.totalAlumnos}/{gestor.capacidadMaxima}
+              </span>
             </div>
           </div>
 
-          {/* Meta row */}
-          <div
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 pt-5 border-t border-stone-100"
-          >
-            <div>
-              <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Correo</div>
-              <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-                <Mail size={12} style={{ color: '#78716c' }} />
-                <span className="truncate">{gestor.email}</span>
-              </div>
+          {/* Acciones */}
+          <div style={{ paddingTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+            <button
+              onClick={() => setModal('editar')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
+              style={{ color: '#44403c' }}
+            >
+              <Edit size={12} /> Editar
+            </button>
+            <button
+              onClick={handleResetPassword}
+              disabled={resettingPwd}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50"
+              style={{ color: '#44403c' }}
+            >
+              <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
+            </button>
+            {inactivo ? (
+              <button
+                onClick={handleActivar}
+                disabled={activating}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg disabled:opacity-50"
+                style={{ background: '#2d7d46' }}
+              >
+                <UserCheck size={12} /> {activating ? 'Activando...' : 'Reactivar'}
+              </button>
+            ) : (
+              <button
+                onClick={() => setModal('desactivar')}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
+                style={{ background: '#b91c1c' }}
+              >
+                <UserX size={12} /> Desactivar
+              </button>
+            )}
+            <button
+              onClick={() => setLocation(`/admin/alumnos?gestorId=${gestor.id}`)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg"
+              style={{ background: 'var(--color-guinda-700)' }}
+            >
+              <Users size={12} /> Ver alumnos
+            </button>
+          </div>
+        </div>
+
+        {/* Meta row */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-8 pb-6 pt-5 border-t border-stone-100">
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Correo</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
+              <Mail size={12} style={{ color: '#78716c' }} />
+              <span className="truncate">{gestor.email}</span>
             </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Teléfono</div>
-              <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-                <Phone size={12} style={{ color: '#78716c' }} />
-                {gestor.telefono ?? <span style={{ color: '#a8a29e' }}>No registrado</span>}
-              </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Teléfono</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
+              <Phone size={12} style={{ color: '#78716c' }} />
+              {gestor.telefono ?? <span style={{ color: '#a8a29e' }}>No registrado</span>}
             </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Nuevos este mes</div>
-              <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-                <Calendar size={12} style={{ color: '#78716c' }} />
-                {gestor.alumnosNuevosEsteMes} alumnos
-              </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Nuevos este mes</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
+              <Calendar size={12} style={{ color: '#78716c' }} />
+              {gestor.alumnosNuevosEsteMes} alumnos
             </div>
-            <div>
-              <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Último acceso</div>
-              <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-                <Clock size={12} style={{ color: '#78716c' }} />
-                {gestor.ultimaActividadTexto}
-              </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Último acceso</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
+              <Clock size={12} style={{ color: '#78716c' }} />
+              {gestor.ultimaActividadTexto}
             </div>
           </div>
         </div>

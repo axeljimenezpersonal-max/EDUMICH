@@ -5,12 +5,192 @@
  * Ubicación destino en Replit: artifacts/student-portal/src/components/InstitutionalHeader.tsx
  */
 
-import { LogOut, User } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { LogOut, User, Bell, ChevronRight } from 'lucide-react';
+import { api } from '../lib/api';
 
 interface Props {
   userName?: string;
   userRole?: string;
   onLogout?: () => void;
+}
+
+type Notif = {
+  id: number;
+  tipo: string;
+  prioridad: string;
+  titulo: string;
+  cuerpo: string;
+  enlace: string | null;
+  leida: boolean;
+  creadaEn: string;
+};
+
+const PRIORIDAD_COLOR: Record<string, string> = {
+  baja: '#a8a29e',
+  normal: '#2563eb',
+  alta: '#d97706',
+  urgente: '#dc2626',
+};
+
+function tiempoRelativo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'ahora';
+  if (m < 60) return `hace ${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `hace ${h}h`;
+  return `hace ${Math.floor(h / 24)}d`;
+}
+
+function HeaderNotifBell() {
+  const [noLeidas, setNoLeidas] = useState(0);
+  const [open, setOpen] = useState(false);
+  const [notifs, setNotifs] = useState<Notif[]>([]);
+  const ref = useRef<HTMLDivElement>(null);
+
+  const cargarContador = () => {
+    api.get<{ noLeidas: number }>('/notificaciones/contador')
+      .then(r => setNoLeidas(r.noLeidas))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    cargarContador();
+    const interval = setInterval(cargarContador, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (open) {
+      api.get<{ notificaciones: Notif[] }>('/notificaciones?limit=6')
+        .then(r => setNotifs(r.notificaciones))
+        .catch(() => {});
+    }
+  }, [open]);
+
+  useEffect(() => {
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  function marcarLeida(id: number) {
+    api.put(`/notificaciones/${id}/leer`, {}).catch(() => {});
+    setNotifs(prev => prev.map(n => n.id === id ? { ...n, leida: true } : n));
+    setNoLeidas(prev => Math.max(0, prev - 1));
+  }
+
+  return (
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button
+        onClick={() => setOpen(v => !v)}
+        className="p-2 rounded-md text-stone-500 hover:text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] transition-colors relative"
+        aria-label="Notificaciones"
+      >
+        <Bell size={18} />
+        {noLeidas > 0 && (
+          <span
+            style={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              minWidth: 16,
+              height: 16,
+              borderRadius: 8,
+              background: 'var(--color-guinda-700)',
+              color: 'white',
+              fontSize: 9,
+              fontWeight: 700,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '0 3px',
+              border: '2px solid white',
+            }}
+          >
+            {noLeidas > 99 ? '99+' : noLeidas}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            right: 0,
+            top: 'calc(100% + 8px)',
+            width: 320,
+            background: 'white',
+            border: '1px solid #e7e5e4',
+            borderRadius: 10,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+            zIndex: 200,
+            overflow: 'hidden',
+          }}
+        >
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#2a2a2a' }}>
+              Notificaciones {noLeidas > 0 && <span style={{ color: 'var(--color-guinda-700)' }}>({noLeidas})</span>}
+            </span>
+          </div>
+
+          <div style={{ maxHeight: 280, overflowY: 'auto' }}>
+            {notifs.length === 0 ? (
+              <div style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: 13 }}>
+                Sin notificaciones
+              </div>
+            ) : (
+              notifs.map(n => (
+                <div
+                  key={n.id}
+                  onClick={() => {
+                    if (!n.leida) marcarLeida(n.id);
+                    if (n.enlace) window.location.href = n.enlace;
+                  }}
+                  style={{
+                    display: 'flex',
+                    gap: 10,
+                    padding: '10px 14px',
+                    background: n.leida ? 'transparent' : '#fdf8f0',
+                    borderBottom: '1px solid #f5f5f4',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <div style={{ width: 3, borderRadius: 2, background: PRIORIDAD_COLOR[n.prioridad] ?? '#a8a29e', alignSelf: 'stretch', flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: '#2a2a2a', lineHeight: 1.3 }}>{n.titulo}</div>
+                    <div style={{ fontSize: 11, color: '#78716c', marginTop: 2, lineHeight: 1.4 }}>{n.cuerpo}</div>
+                    <div style={{ fontSize: 10, color: '#a8a29e', marginTop: 3 }}>{tiempoRelativo(n.creadaEn)}</div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          <a
+            href="/notificaciones"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 4,
+              padding: '10px 14px',
+              borderTop: '1px solid #f5f5f4',
+              fontSize: 12,
+              color: 'var(--color-guinda-700)',
+              textDecoration: 'none',
+              fontWeight: 600,
+            }}
+          >
+            Ver todas <ChevronRight size={12} />
+          </a>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function InstitutionalHeader({ userName, userRole, onLogout }: Props) {
@@ -57,8 +237,16 @@ export function InstitutionalHeader({ userName, userRole, onLogout }: Props) {
             <div className="font-serif text-lg font-bold text-[var(--color-piedra-900)]">
               Prepa Abierta
             </div>
-            <div className="text-xs text-stone-600">
+            <div className="text-xs text-stone-600" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               Sistema de Gestión · IEMSyS
+              <span style={{
+                display: 'inline-flex', alignItems: 'center',
+                background: '#f8e8ef', color: 'var(--color-guinda-700)',
+                border: '1px solid #e8c4d4', borderRadius: 4,
+                padding: '1px 5px', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
+              }}>
+                EDUMICH
+              </span>
             </div>
           </div>
         </div>
@@ -77,6 +265,7 @@ export function InstitutionalHeader({ userName, userRole, onLogout }: Props) {
             <div className="w-9 h-9 rounded-full bg-[var(--color-crema-200)] flex items-center justify-center text-[var(--color-guinda-700)]">
               <User size={18} />
             </div>
+            <HeaderNotifBell />
             {onLogout && (
               <button
                 onClick={onLogout}
