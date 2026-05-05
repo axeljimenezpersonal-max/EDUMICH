@@ -100,4 +100,78 @@ html, body {
   .gov-label {
     @apply block text-sm font-medium text-stone-700 mb-1;
   }
+
+  .brand-logo-img {
+    width: 56px;
+    height: 56px;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* ── Login layout ─────────────────────────────────────────── */
+
+  .login-left-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 580px;
+    margin: 0 auto;
+    flex: 1;
+    justify-content: center;
+    padding-bottom: 100px; /* espacio para el footer absoluto */
+  }
+
+  .login-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    align-self: flex-start;
+    margin-bottom: 28px;
+  }
+
+  .login-left-content h1 {
+    align-self: flex-start;
+    margin-bottom: 12px;
+  }
+
+  .login-left-content > p {
+    align-self: flex-start;
+    margin-bottom: 0;
+    max-width: 480px;
+  }
+
+  .login-illustration {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 20px auto 0;
+  }
+  .login-illustration img {
+    width: 100%;
+    max-width: 480px;
+    height: auto;
+    display: block;
+    opacity: 0.9;
+  }
+
+  .login-footer-institutional {
+    position: absolute;
+    bottom: 32px;
+    left: 64px;
+    right: 64px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  @media (max-width: 900px) {
+    .login-illustration { display: none; }
+    .login-footer-institutional {
+      position: static;
+      margin-top: 24px;
+      left: unset;
+      right: unset;
+    }
+  }
 }

@@ -27,9 +27,11 @@ export function AutoRegistroLayout({ children, paso }: Props) {
         {/* Header minificado */}
         <header className="border-b border-stone-200 bg-white">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-3">
-            <div className="w-9 h-9 rounded bg-[var(--color-guinda-700)] text-white flex items-center justify-center font-serif font-bold text-sm">
-              GM
-            </div>
+            <img
+              src="/logo-see-michoacan-256.png"
+              alt="Secretaría de Educación de Michoacán"
+              className="w-10 h-10 object-contain block flex-shrink-0"
+            />
             <div className="leading-tight">
               <div className="font-serif text-sm font-semibold text-stone-900">
                 Prepa Abierta · IEMSyS

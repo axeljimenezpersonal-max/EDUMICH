@@ -187,7 +187,7 @@ export default function ModuloDetalle() {
             className="flex items-center gap-2 text-sm px-4 py-2 rounded-md bg-stone-100 text-stone-400 cursor-not-allowed"
           >
             <Trophy size={15} />
-            Hacer quiz nuevo
+            Hacer evaluación nueva
           </button>
 
           {materiales.length > 0 && (
@@ -212,7 +212,7 @@ export default function ModuloDetalle() {
             {(
               [
                 { key: 'temario', label: 'Temario', Icon: BookOpen },
-                { key: 'quizzes', label: 'Quizzes', Icon: Trophy },
+                { key: 'quizzes', label: 'Evaluaciones', Icon: Trophy },
                 { key: 'areas', label: 'Áreas de oportunidad', Icon: Target },
               ] as const
             ).map(({ key, label, Icon }) => (
@@ -252,16 +252,16 @@ export default function ModuloDetalle() {
             <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
               <Trophy size={32} className="mx-auto mb-3 text-stone-300" />
               <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">
-                Sistema de quizzes
+                Sistema de evaluaciones
               </h3>
               <p className="text-stone-500 text-sm mb-6">
-                Próximamente: sistema de quizzes con banco de preguntas oficial para este módulo.
+                Próximamente: sistema de evaluaciones con banco de preguntas oficial para este módulo.
               </p>
               <button
                 disabled
                 className="gov-btn-primary opacity-40 cursor-not-allowed"
               >
-                Empezar quiz
+                Empezar evaluación
               </button>
             </div>
           )}
@@ -274,7 +274,7 @@ export default function ModuloDetalle() {
                 Áreas de oportunidad
               </h3>
               <p className="text-stone-500 text-sm max-w-sm mx-auto">
-                Aún no has hecho quizzes en este módulo. Cuando empieces a practicar, aquí verás
+                Aún no has hecho evaluaciones en este módulo. Cuando empieces a practicar, aquí verás
                 los temas en los que te conviene reforzar.
               </p>
             </div>

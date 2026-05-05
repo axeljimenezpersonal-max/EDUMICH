@@ -122,12 +122,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
           {/* Brand */}
           <div className="flex items-center gap-4">
-            <div
-              className="w-12 h-12 flex items-center justify-center text-white font-bold text-base rounded-sm"
-              style={{ background: 'var(--color-guinda-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-            >
-              GM
-            </div>
+            <img
+              src="/logo-see-michoacan-256.png"
+              alt="Secretaría de Educación de Michoacán"
+              className="brand-logo-img flex-shrink-0"
+            />
             <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.15 }}>
               <div className="text-sm font-semibold" style={{ color: 'var(--color-guinda-800)' }}>Gobierno de Michoacán</div>
               <div className="text-[9px] uppercase tracking-widest" style={{ color: '#78716c', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>

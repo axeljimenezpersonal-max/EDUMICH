@@ -31,9 +31,11 @@ export function InstitutionalHeader({ userName, userRole, onLogout }: Props) {
         <div className="flex items-center gap-5">
           {/* Logo izquierdo: escudo Gobierno de Michoacán */}
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-sm bg-[var(--color-guinda-700)] flex items-center justify-center text-white font-serif text-lg">
-              GM
-            </div>
+            <img
+              src="/logo-see-michoacan-256.png"
+              alt="Secretaría de Educación de Michoacán"
+              className="brand-logo-img flex-shrink-0"
+            />
             <div className="leading-tight">
               <div className="font-serif text-sm font-semibold text-[var(--color-guinda-800)]">
                 Gobierno de

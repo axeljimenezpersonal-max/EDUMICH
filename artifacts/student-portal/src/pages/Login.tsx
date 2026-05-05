@@ -53,9 +53,13 @@ export default function Login() {
       </div>
 
       {/* Cuerpo split */}
-      <div className="flex-1 flex flex-col md:flex-row">
+      <div className="flex-1 grid md:grid-cols-2">
+
         {/* Columna izquierda: branding */}
-        <div className="md:w-1/2 bg-[var(--color-guinda-700)] text-white p-10 md:p-16 flex flex-col justify-between relative overflow-hidden">
+        <div
+          className="bg-[var(--color-guinda-700)] text-white relative overflow-hidden"
+          style={{ display: 'flex', flexDirection: 'column', padding: '48px 60px' }}
+        >
           {/* Patrón decorativo sutil */}
           <div
             className="absolute inset-0 opacity-10 pointer-events-none"
@@ -64,62 +68,83 @@ export default function Login() {
                 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 40%)',
             }}
           />
-          <div className="relative">
-            <div className="flex items-center gap-3 mb-12">
-              <div className="w-14 h-14 rounded-sm bg-white text-[var(--color-guinda-700)] flex items-center justify-center font-serif text-xl font-bold">
-                GM
-              </div>
-              <div className="leading-tight">
-                <div className="font-serif text-base font-semibold">Gobierno de Michoacán</div>
-                <div className="text-[10px] tracking-widest opacity-80">
-                  HONESTIDAD Y TRABAJO
-                </div>
-              </div>
-            </div>
 
-            <h1 className="font-serif text-4xl md:text-5xl font-bold leading-tight mb-4">
+          {/* Brand — siempre arriba */}
+          <div className="relative" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 0 }}>
+            <img
+              src="/logo-see-blanco-256.png"
+              alt="Secretaría de Educación de Michoacán"
+              style={{ width: 48, height: 48, objectFit: 'contain', display: 'block', flexShrink: 0 }}
+            />
+            <div style={{ lineHeight: 1.25 }}>
+              <div className="font-serif" style={{ fontSize: 15, fontWeight: 600 }}>Gobierno de Michoacán</div>
+              <div style={{ fontSize: 9, letterSpacing: '0.14em', opacity: 0.75 }}>HONESTIDAD Y TRABAJO</div>
+            </div>
+          </div>
+
+          {/* Centro — crece para llenar espacio, centra su contenido */}
+          <div
+            className="relative"
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 32, paddingBottom: 32 }}
+          >
+            <h1 className="font-serif font-bold" style={{ fontSize: 52, lineHeight: 1.1, marginBottom: 16, textAlign: 'center' }}>
               Prepa Abierta
             </h1>
-            <p className="text-lg opacity-90 max-w-md leading-relaxed">
+            <p style={{ fontSize: 15, lineHeight: 1.55, opacity: 0.88, marginBottom: 28, textAlign: 'center' }}>
               Sistema de gestión institucional para la coordinación, gestores municipales y
               estudiantes del Plan Modular del Instituto de Educación Media Superior y Superior.
             </p>
+
+            {/* Ilustración centrada */}
+            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <img
+                src="/ilustracion-login.svg"
+                alt=""
+                style={{ width: '100%', maxWidth: 440, height: 'auto', opacity: 0.88, display: 'block' }}
+              />
+            </div>
           </div>
 
-          <div className="relative text-sm opacity-80 border-t border-white/20 pt-6 mt-12">
-            <div className="font-medium mb-1">
+          {/* Footer — siempre abajo */}
+          <div
+            className="relative"
+            style={{ borderTop: '1px solid rgba(255,255,255,0.15)', paddingTop: 18 }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 3 }}>
               Instituto de Educación Media Superior y Superior del Estado de Michoacán
             </div>
-            <div className="text-xs opacity-75">
+            <div style={{ fontSize: 11, opacity: 0.65 }}>
               Una plataforma para acompañar tu camino al bachillerato.
             </div>
           </div>
         </div>
 
         {/* Columna derecha: formulario */}
-        <div className="md:w-1/2 flex items-center justify-center p-8 md:p-16 bg-[var(--color-crema-100)]">
+        <div
+          className="flex items-center justify-center bg-[var(--color-crema-100)]"
+          style={{ padding: '40px 60px' }}
+        >
           <div className="w-full max-w-md">
-            <div className="flex items-center gap-2 text-[var(--color-guinda-700)] mb-2">
-              <GraduationCap size={20} />
+            <div className="flex items-center gap-2 text-[var(--color-guinda-700)] mb-1.5">
+              <GraduationCap size={18} />
               <span className="text-xs font-semibold uppercase tracking-widest">
                 Acceso al sistema
               </span>
             </div>
-            <h2 className="font-serif text-3xl font-bold text-stone-900 mb-1">Bienvenido</h2>
-            <p className="text-stone-600 mb-8">
+            <h2 className="font-serif font-bold text-stone-900 mb-1" style={{ fontSize: 28 }}>
+              Bienvenido
+            </h2>
+            <p className="text-sm text-stone-600 mb-5">
               Inicia sesión con tus credenciales institucionales.
             </p>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
                 <label className="gov-label" htmlFor="email">
                   Correo institucional
                 </label>
                 <div className="relative">
-                  <Mail
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-                  />
+                  <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
                     id="email"
                     type="email"
@@ -138,10 +163,7 @@ export default function Login() {
                   Contraseña
                 </label>
                 <div className="relative">
-                  <Lock
-                    size={16}
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400"
-                  />
+                  <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
                     id="password"
                     type="password"
@@ -164,29 +186,27 @@ export default function Login() {
                 type="submit"
                 disabled={loading}
                 className="gov-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-60"
+                style={{ paddingTop: 10, paddingBottom: 10 }}
               >
-                {loading ? <Loader2 className="animate-spin" size={18} /> : null}
+                {loading ? <Loader2 className="animate-spin" size={17} /> : null}
                 {loading ? 'Iniciando sesión...' : 'Entrar'}
               </button>
             </form>
 
             {/* Divisor */}
-            <div className="flex items-center gap-3 mt-6 mb-4">
+            <div className="flex items-center gap-3 mt-4 mb-3">
               <div className="flex-1 h-px bg-stone-200" />
               <span className="text-xs text-stone-400 whitespace-nowrap">¿No tienes cuenta?</span>
               <div className="flex-1 h-px bg-stone-200" />
             </div>
 
             {/* Opciones de registro */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <a
                 href="/solicitar-cuenta"
-                className="flex flex-col items-center gap-2 p-4 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group text-center"
+                className="flex flex-col items-center gap-1.5 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group text-center"
               >
-                <Edit3
-                  size={20}
-                  className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors"
-                />
+                <Edit3 size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors" />
                 <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
                   Solicitar cuenta
                 </div>
@@ -196,12 +216,9 @@ export default function Login() {
               </a>
               <a
                 href="/registro/email"
-                className="flex flex-col items-center gap-2 p-4 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group text-center"
+                className="flex flex-col items-center gap-1.5 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group text-center"
               >
-                <UserPlus
-                  size={20}
-                  className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors"
-                />
+                <UserPlus size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors" />
                 <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
                   Auto-registrarme
                 </div>
@@ -211,13 +228,14 @@ export default function Login() {
               </a>
             </div>
 
-            <div className="mt-6 text-xs text-stone-500 leading-relaxed">
+            <div className="mt-4" style={{ fontSize: 11, color: '#78716c', lineHeight: 1.4 }}>
               Al iniciar sesión aceptas el aviso de privacidad institucional. Tus datos personales
               son protegidos conforme a la Ley General de Protección de Datos Personales en
               Posesión de Sujetos Obligados (LGPDPPSO).
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );

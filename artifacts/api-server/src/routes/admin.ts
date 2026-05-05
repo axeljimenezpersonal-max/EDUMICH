@@ -504,7 +504,7 @@ router.get('/gestores', async (req, res) => {
       const pendientes = totalAlumnos - expedientesCompletos;
       const tasaExito = totalAlumnos > 0 ? Math.round((expedientesCompletos / totalAlumnos) * 100) : 0;
       const tasaExitoNivel: 'alta' | 'media' | 'baja' = tasaExito >= 70 ? 'alta' : tasaExito >= 50 ? 'media' : 'baja';
-      const ultimaActividad = r.ultimo_login ? (r.ultimo_login as Date) : null;
+      const ultimaActividad = r.ultimo_login ? new Date(r.ultimo_login as string | Date) : null;
       const sinReasignar = r.sin_reasignar != null ? Number(r.sin_reasignar) : null;
 
       return {
@@ -1573,7 +1573,7 @@ router.get('/alumnos', async (req, res) => {
       const palabras = r.nombre_completo.trim().split(/\s+/);
       const iniciales = palabras.slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
       const docsAprobados = Number(r.docs_aprobados ?? 0);
-      const ultimaActividad = r.ultima_actividad ? (r.ultima_actividad as Date) : null;
+      const ultimaActividad = r.ultima_actividad ? new Date(r.ultima_actividad as string | Date) : null;
 
       const gestorPartes = (r.gestor_nombre ?? '').trim().split(/\s+/);
       const gestorIniciales = gestorPartes.slice(0, 2).map((p: string) => p[0]?.toUpperCase() ?? '').join('');
@@ -1591,7 +1591,7 @@ router.get('/alumnos', async (req, res) => {
         docsTotal: 4,
         ultimaActividad: ultimaActividad ? ultimaActividad.toISOString() : null,
         ultimaActividadTexto: relativaActividad(ultimaActividad),
-        creadoEn: (r.created_at as Date).toISOString(),
+        creadoEn: new Date(r.created_at as string | Date).toISOString(),
       };
     });
 
@@ -1891,7 +1891,7 @@ router.get('/gestores/:gestorId', async (req, res) => {
     const pendientes = totalAlumnos - expedientesCompletos;
     const tasaExito = totalAlumnos > 0 ? Math.round((expedientesCompletos / totalAlumnos) * 100) : 0;
     const tasaExitoNivel: 'alta' | 'media' | 'baja' = tasaExito >= 70 ? 'alta' : tasaExito >= 50 ? 'media' : 'baja';
-    const ultimaActividad = r.ultimo_login ? (r.ultimo_login as Date) : null;
+    const ultimaActividad = r.ultimo_login ? new Date(r.ultimo_login as string | Date) : null;
     const sinReasignar = r.sin_reasignar != null ? Number(r.sin_reasignar) : null;
 
     res.json({
@@ -2380,7 +2380,7 @@ router.get('/solicitudes', async (req, res) => {
         disponibilidad: r.disponibilidad,
         estado: r.estado,
         procesadaPorUserId: r.procesada_por_user_id,
-        procesadaEn: r.procesada_en ? (r.procesada_en as Date).toISOString() : null,
+        procesadaEn: r.procesada_en ? new Date(r.procesada_en as string | Date).toISOString() : null,
         procesadaPor: r.procesada_por_nombre
           ? { nombreCorto: r.procesada_por_nombre.split(' ').slice(0, 2).join(' ') }
           : null,

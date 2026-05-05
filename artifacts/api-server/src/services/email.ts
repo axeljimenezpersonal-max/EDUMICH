@@ -118,8 +118,8 @@ function getBienvenidaEmailHTML(data: BienvenidaData): string {
           <td style="background:#7b1e3a;padding:24px 32px;">
             <table cellpadding="0" cellspacing="0">
               <tr>
-                <td style="background:#fff;border-radius:6px;width:46px;height:46px;text-align:center;vertical-align:middle;">
-                  <span style="color:#7b1e3a;font-size:18px;font-weight:bold;font-family:Georgia,serif;">GM</span>
+                <td style="width:56px;height:56px;text-align:center;vertical-align:middle;">
+                  <img src="https://prepaabierta.michoacan.gob.mx/logo-see-blanco-256.png" alt="SEE Michoacán" width="56" height="56" style="display:block;object-fit:contain;" />
                 </td>
                 <td style="padding-left:14px;">
                   <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
@@ -283,8 +283,8 @@ function getVerificationEmailHTML(codigo: string): string {
           <td style="background:#7b1e3a;padding:24px 32px;">
             <table cellpadding="0" cellspacing="0">
               <tr>
-                <td style="background:#fff;border-radius:4px;width:44px;height:44px;text-align:center;vertical-align:middle;">
-                  <span style="color:#7b1e3a;font-size:18px;font-weight:bold;">GM</span>
+                <td style="width:56px;height:56px;text-align:center;vertical-align:middle;">
+                  <img src="https://prepaabierta.michoacan.gob.mx/logo-see-blanco-256.png" alt="SEE Michoacán" width="56" height="56" style="display:block;object-fit:contain;" />
                 </td>
                 <td style="padding-left:12px;">
                   <div style="color:#fff;font-size:15px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>

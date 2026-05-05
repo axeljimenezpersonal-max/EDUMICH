@@ -27,6 +27,8 @@ import {
   sedes,
   convocatoriasEtapas,
   convocatoriasModulosHorarios,
+  expedienteDocumentos,
+  examenesInscripciones,
   pagos,
   calificaciones,
   solicitudesCuenta,
@@ -287,7 +289,7 @@ async function main() {
       curp: 'LORM950314MMCPJR08',
       fechaNacimiento: '1995-03-14',
       telefono: '443-555-0001',
-      municipioId: patzcuaro?.id ?? primerMun.id,
+      municipioId: patzcuaro.id,
       gestorId: gestorUser?.id ?? null,
       emailVerificado: true,
       registroTipo: 'gestor',
@@ -959,12 +961,414 @@ async function main() {
     console.log(`   ✓ Solicitudes ya existían: ${solCount[0].c} en BD\n`);
   }
 
+  // ── DEMO PRESENTACIÓN — datos realistas completos ─────────────────────────
+  console.log('🎯 Sembrando datos demo para presentación...');
+
+  const demoHash = await bcrypt.hash('demo1234', 10);
+
+  // Referencias base
+  const [dPat] = await db.select().from(municipios).where(eq(municipios.nombre, 'Pátzcuaro'));
+  const [dMor] = await db.select().from(municipios).where(eq(municipios.nombre, 'Morelia'));
+  const [dUru] = await db.select().from(municipios).where(eq(municipios.nombre, 'Uruapan'));
+  const [dZam] = await db.select().from(municipios).where(eq(municipios.nombre, 'Zamora'));
+  const [dAdmin] = await db.select().from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
+  const [etapa6A] = await db.select().from(convocatoriasEtapas).where(eq(convocatoriasEtapas.clave, '2606-A'));
+  const [etapa5B] = await db.select().from(convocatoriasEtapas).where(eq(convocatoriasEtapas.clave, '2605-B'));
+  const [sedePat] = await db.select().from(sedes).where(eq(sedes.municipioId, dPat?.id ?? 0));
+  const [sedeMor] = await db.select().from(sedes).where(eq(sedes.municipioId, dMor?.id ?? 0));
+  const [sedeUru] = await db.select().from(sedes).where(eq(sedes.municipioId, dUru?.id ?? 0));
+  const fallbackSede = sedeMor ?? sedePat ?? sedeUru;
+  const allMods = await db.select().from(modulos).orderBy(modulos.numero);
+  const gmod = (n: number) => allMods.find(m => m.numero === n)!;
+
+  const daysAgoDate = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
+  const hoursAgoDate = (h: number) => { const d = new Date(); d.setHours(d.getHours() - h); return d; };
+
+  // ── Helper: getOrCreate user ──────────────────────────────────────────────
+  async function demoUser(email: string, rol: 'gestor' | 'estudiante', passTemp: boolean, createdAt?: Date) {
+    const [ex] = await db.select().from(users).where(eq(users.email, email));
+    if (ex) return ex.id;
+    const vals: Parameters<typeof db.insert>[0] extends never ? never : {
+      email: string; passwordHash: string; rol: 'gestor'|'estudiante'; passwordTemporal: boolean; privacidadAceptadaEn?: Date; createdAt?: Date; updatedAt?: Date;
+    } = {
+      email, passwordHash: demoHash, rol, passwordTemporal: passTemp,
+      ...(passTemp ? {} : { privacidadAceptadaEn: new Date() }),
+      ...(createdAt ? { createdAt, updatedAt: createdAt } : {}),
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [u] = await db.insert(users).values(vals as any).returning();
+    return u.id;
+  }
+
+  // ── Helper: expediente doc ────────────────────────────────────────────────
+  async function expDoc(
+    estudianteId: number,
+    tipo: string,
+    estado: 'aprobado' | 'pendiente_revision' | 'rechazado',
+    subidoEn?: Date,
+    motivoRechazo?: string,
+  ) {
+    await db.insert(expedienteDocumentos).values({
+      estudianteId, tipo, estado,
+      motivoRechazo: motivoRechazo ?? null,
+      rutaArchivo: `/demo/docs/${estudianteId}/${tipo}.pdf`,
+      nombreOriginal: `${tipo}.pdf`,
+      tamanoBytes: 245000,
+      subidoPorUserId: dAdmin!.id,
+      subidoEn: subidoEn ?? new Date(),
+      revisadoPorUserId: estado !== 'pendiente_revision' ? dAdmin!.id : null,
+      revisadoEn: estado !== 'pendiente_revision' ? new Date() : null,
+    }).onConflictDoNothing();
+  }
+
+  // ── Helper: pago ──────────────────────────────────────────────────────────
+  async function demoPago(
+    estudianteId: number,
+    monto: string,
+    estado: 'pendiente' | 'verificado' | 'rechazado',
+    fechaPago: string,
+    detalle: string,
+  ) {
+    await db.insert(pagos).values({
+      estudianteId, concepto: 'derecho_examen', conceptoDetalle: detalle,
+      monto, moneda: 'MXN', fechaPago, metodoPago: 'spei',
+      referenciaBancaria: `SPEI-${Math.floor(Math.random() * 9000000000 + 1000000000)}`,
+      rutaComprobante: `/demo/pagos/${estudianteId}/${fechaPago}.pdf`,
+      estado,
+      subidoPorUserId: estudianteId,
+      ...(estado === 'verificado' ? { verificadoPorUserId: dAdmin!.id, verificadoEn: new Date() } : {}),
+    });
+  }
+
+  // ── Helper: examen inscripcion ────────────────────────────────────────────
+  async function demoInscripcion(
+    estudianteId: number,
+    etapaId: number,
+    moduloNum: number,
+    folio: string,
+    calificacion?: number,
+  ) {
+    const mod = gmod(moduloNum);
+    if (!mod || !etapaId || !fallbackSede) return;
+    const [horario] = await db.select().from(convocatoriasModulosHorarios)
+      .where(eq(convocatoriasModulosHorarios.etapaId, etapaId))
+      .limit(1);
+    if (!horario) return;
+    const sedeId = fallbackSede.id;
+    await db.insert(examenesInscripciones).values({
+      estudianteId, etapaId, moduloId: mod.id, horarioId: horario.id, sedeId,
+      folio, estado: calificacion !== undefined ? 'evaluado' : 'inscrito',
+      calificacion: calificacion ?? null,
+    }).onConflictDoNothing();
+  }
+
+  // ── Helper: calificacion ──────────────────────────────────────────────────
+  async function demoCalif(estudianteId: number, moduloNum: number, etapaClave: string, calificacion: number, fecha: string) {
+    const mod = gmod(moduloNum);
+    if (!mod) return;
+    await db.insert(calificaciones).values({
+      estudianteId, moduloId: mod.id, etapaClave, calificacion,
+      aprobado: calificacion >= 60, intento: 1,
+      fechaExamen: fecha, capturadoPorUserId: dAdmin!.id,
+    }).onConflictDoNothing();
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GESTORES (3)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const gRamirezId = await demoUser('m.ramirez@michoacan.gob.mx', 'gestor', true);
+  await db.insert(gestores).values({
+    userId: gRamirezId, nombreCompleto: 'María Elena Ramírez Soto',
+    telefono: '434-342-9876', emailPublico: 'm.ramirez@michoacan.gob.mx',
+    telefonoPublico: '434-342-9876', municipioId: dPat!.id,
+    capacidadMaxima: 50, estado: 'activo',
+  }).onConflictDoNothing();
+
+  const gGonzalezId = await demoUser('l.gonzalez@michoacan.gob.mx', 'gestor', true);
+  await db.insert(gestores).values({
+    userId: gGonzalezId, nombreCompleto: 'Luis Alberto González Ríos',
+    telefono: '443-152-1234', emailPublico: 'l.gonzalez@michoacan.gob.mx',
+    telefonoPublico: '443-152-1234', municipioId: dMor!.id,
+    capacidadMaxima: 60, estado: 'activo',
+  }).onConflictDoNothing();
+
+  const gHernandezId = await demoUser('j.hernandez@michoacan.gob.mx', 'gestor', true);
+  await db.insert(gestores).values({
+    userId: gHernandezId, nombreCompleto: 'Jaime Hernández Bautista',
+    telefono: '452-518-7890', emailPublico: 'j.hernandez@michoacan.gob.mx',
+    telefonoPublico: '452-518-7890', municipioId: dUru!.id,
+    capacidadMaxima: 45, estado: 'activo',
+  }).onConflictDoNothing();
+
+  console.log('   ✓ 3 gestores demo');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRUPO A — Pátzcuaro (gestor: Ramírez)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ALUMNO 1: Ana Cristina López Pérez — caso estrella
+  const anaId = await demoUser('ana.lopez@correo.com', 'estudiante', false);
+  await db.insert(estudiantes).values({
+    userId: anaId, nombreCompleto: 'Ana Cristina López Pérez',
+    curp: 'LOPA980916MMNPRR03', fechaNacimiento: '1998-09-16',
+    telefono: '434-100-2233', municipioId: dPat!.id,
+    gestorId: gRamirezId, emailVerificado: true, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(anaId, 'acta_nacimiento', 'aprobado');
+  await expDoc(anaId, 'curp', 'aprobado');
+  await expDoc(anaId, 'certificado_secundaria', 'aprobado');
+  await expDoc(anaId, 'ine', 'aprobado');
+  await demoPago(anaId, '850.00', 'verificado', '2026-05-01', 'Derecho examen 2606-A');
+  if (etapa6A) await demoInscripcion(anaId, etapa6A.id, 1, `FIC-ANA-2606A-M01`);
+  await demoCalif(anaId, 1, '2605-A', 92, '2026-05-10');
+  await demoCalif(anaId, 2, '2605-A', 85, '2026-05-10');
+  await demoCalif(anaId, 3, '2605-B', 87, '2026-05-24');
+
+  // ALUMNO 2: Jorge Ramírez Bedolla — en revisión
+  const jorgeId = await demoUser('j.ramirez.b@correo.com', 'estudiante', false);
+  await db.insert(estudiantes).values({
+    userId: jorgeId, nombreCompleto: 'Jorge Ramírez Bedolla',
+    curp: 'RABJ891015HMNMDR03', fechaNacimiento: '1989-10-15',
+    telefono: '434-200-3344', municipioId: dPat!.id,
+    gestorId: gRamirezId, emailVerificado: true, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(jorgeId, 'acta_nacimiento', 'aprobado');
+  await expDoc(jorgeId, 'curp', 'aprobado');
+  await expDoc(jorgeId, 'certificado_secundaria', 'pendiente_revision', hoursAgoDate(1));
+  await expDoc(jorgeId, 'ine', 'aprobado');
+  await demoPago(jorgeId, '850.00', 'pendiente', '2026-05-03', 'Derecho examen 2606-A');
+
+  // ALUMNO 3: Elena Cisneros Romero — incompleta
+  const elenaId = await demoUser('elena.cisneros@correo.com', 'estudiante', true);
+  await db.insert(estudiantes).values({
+    userId: elenaId, nombreCompleto: 'Elena Cisneros Romero',
+    curp: 'CIRE950721MMNSMR04', fechaNacimiento: '1995-07-21',
+    telefono: '434-300-4455', municipioId: dPat!.id,
+    gestorId: gRamirezId, emailVerificado: false, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(elenaId, 'acta_nacimiento', 'aprobado');
+  await expDoc(elenaId, 'curp', 'aprobado');
+
+  console.log('   ✓ Grupo A — 3 alumnos Pátzcuaro');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRUPO B — Morelia (gestor: González)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ALUMNO 4: Patricia Velázquez Núñez — egresada (21 módulos)
+  const patriciaId = await demoUser('p.velazquez@correo.com', 'estudiante', false);
+  await db.insert(estudiantes).values({
+    userId: patriciaId, nombreCompleto: 'Patricia Velázquez Núñez',
+    curp: 'VENP880412MMNLDR06', fechaNacimiento: '1988-04-12',
+    telefono: '443-500-6677', municipioId: dMor!.id,
+    gestorId: gGonzalezId, emailVerificado: true, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(patriciaId, 'acta_nacimiento', 'aprobado');
+  await expDoc(patriciaId, 'curp', 'aprobado');
+  await expDoc(patriciaId, 'certificado_secundaria', 'aprobado');
+  await expDoc(patriciaId, 'ine', 'aprobado');
+  const patriciaPagos = [
+    ['2024-05-10', '2404-A'], ['2024-09-14', '2407-B'],
+    ['2025-01-11', '2501-A'], ['2025-05-10', '2504-A'], ['2025-09-13', '2506-B'],
+  ];
+  for (const [fecha, detalle] of patriciaPagos) {
+    await demoPago(patriciaId, '850.00', 'verificado', fecha, `Derecho examen ${detalle}`);
+  }
+  // 21 módulos con calificaciones históricas
+  const patriciaScores = [85,87,90,88,86,84,89,91,87,85,88,92,83,86,89,85,87,90,88,84,87];
+  const etapasHistPat = ['2404-A','2404-A','2404-A','2404-A','2407-B','2407-B','2407-B','2407-B','2407-B','2501-A','2501-A','2501-A','2501-A','2504-A','2504-A','2504-A','2504-A','2506-B','2506-B','2506-B','2506-B'];
+  const fechasHistPat = ['2024-05-10','2024-05-10','2024-05-10','2024-05-10','2024-09-13','2024-09-13','2024-09-14','2024-09-14','2024-09-14','2025-01-11','2025-01-11','2025-01-11','2025-01-12','2025-05-10','2025-05-10','2025-05-10','2025-05-11','2025-09-13','2025-09-13','2025-09-13','2025-09-14'];
+  for (let i = 0; i < 21; i++) {
+    await demoCalif(patriciaId, i + 1, etapasHistPat[i], patriciaScores[i], fechasHistPat[i]);
+  }
+
+  // ALUMNO 5: Diego Ramírez Aguilar — inscrito etapa actual
+  const diegoId = await demoUser('diego.ramirez@correo.com', 'estudiante', false);
+  await db.insert(estudiantes).values({
+    userId: diegoId, nombreCompleto: 'Diego Ramírez Aguilar',
+    curp: 'RAAD970728HMNMGR02', fechaNacimiento: '1997-07-28',
+    telefono: '443-600-7788', municipioId: dMor!.id,
+    gestorId: gGonzalezId, emailVerificado: true, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(diegoId, 'acta_nacimiento', 'aprobado');
+  await expDoc(diegoId, 'curp', 'aprobado');
+  await expDoc(diegoId, 'certificado_secundaria', 'aprobado');
+  await expDoc(diegoId, 'ine', 'aprobado');
+  await demoPago(diegoId, '850.00', 'verificado', '2026-05-02', 'Derecho examen 2606-A');
+  if (etapa6A) await demoInscripcion(diegoId, etapa6A.id, 2, `FIC-DIEGO-2606A-M02`);
+
+  // ALUMNO 6: Sofía Mendoza Ríos — primer login (passwordTemporal)
+  const sofiaM = hoursAgoDate(2);
+  const sofiaMId = await demoUser('sofia.mendoza@correo.com', 'estudiante', true, sofiaM);
+  await db.insert(estudiantes).values({
+    userId: sofiaMId, nombreCompleto: 'Sofía Mendoza Ríos',
+    curp: 'MERS920622MMNDS04', fechaNacimiento: '1992-06-22',
+    telefono: '443-700-8899', municipioId: dMor!.id,
+    gestorId: gGonzalezId, emailVerificado: false, registroTipo: 'gestor',
+    createdAt: sofiaM,
+  }).onConflictDoNothing();
+  await expDoc(sofiaMId, 'acta_nacimiento', 'aprobado');
+
+  console.log('   ✓ Grupo B — 3 alumnos Morelia');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRUPO C — Uruapan (gestor: Hernández)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ALUMNO 7: Roberto Vargas Salinas — doc rechazado
+  const robertoId = await demoUser('r.vargas@correo.com', 'estudiante', false);
+  await db.insert(estudiantes).values({
+    userId: robertoId, nombreCompleto: 'Roberto Vargas Salinas',
+    curp: 'VASR940318HMNRLR07', fechaNacimiento: '1994-03-18',
+    telefono: '452-800-9900', municipioId: dUru!.id,
+    gestorId: gHernandezId, emailVerificado: true, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(robertoId, 'acta_nacimiento', 'aprobado');
+  await expDoc(robertoId, 'curp', 'aprobado');
+  await expDoc(robertoId, 'certificado_secundaria', 'rechazado', new Date(),
+    'Documento ilegible, favor de subir nueva versión escaneada con buena resolución');
+  await expDoc(robertoId, 'ine', 'aprobado');
+
+  // ALUMNO 8: María Guadalupe Torres Ríos — esperando próxima etapa
+  const maGuadId = await demoUser('m.torres@correo.com', 'estudiante', false);
+  await db.insert(estudiantes).values({
+    userId: maGuadId, nombreCompleto: 'María Guadalupe Torres Ríos',
+    curp: 'TORG911105MMNRRR05', fechaNacimiento: '1991-11-05',
+    telefono: '452-900-1010', municipioId: dUru!.id,
+    gestorId: gHernandezId, emailVerificado: true, registroTipo: 'gestor',
+  }).onConflictDoNothing();
+  await expDoc(maGuadId, 'acta_nacimiento', 'aprobado');
+  await expDoc(maGuadId, 'curp', 'aprobado');
+  await expDoc(maGuadId, 'certificado_secundaria', 'aprobado');
+  await expDoc(maGuadId, 'ine', 'aprobado');
+  await demoPago(maGuadId, '850.00', 'verificado', '2026-04-27', 'Derecho examen 2605-B');
+  if (etapa5B) await demoInscripcion(maGuadId, etapa5B.id, 1, `FIC-MAGUAD-2605B-M01`, 80);
+  await demoCalif(maGuadId, 1, '2605-B', 80, '2026-05-24');
+
+  console.log('   ✓ Grupo C — 2 alumnos Uruapan');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRUPO D — Sin gestor (auto-registrados)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  // ALUMNO 9: Carlos Hernández Soto — recién entrado
+  const carlosId = await demoUser('carlos.hernandez@correo.com', 'estudiante', false, daysAgoDate(3));
+  await db.insert(estudiantes).values({
+    userId: carlosId, nombreCompleto: 'Carlos Hernández Soto',
+    curp: 'HESC891204HMNRTR01', fechaNacimiento: '1989-12-04',
+    telefono: '351-100-2233', municipioId: dZam!.id,
+    gestorId: null, emailVerificado: true, registroTipo: 'auto',
+    createdAt: daysAgoDate(3),
+  }).onConflictDoNothing();
+
+  // ALUMNO 10: Axel Jiménez García — en proceso autodirigido
+  const axelId = await demoUser('axel.jimenez@correo.com', 'estudiante', false, daysAgoDate(7));
+  await db.insert(estudiantes).values({
+    userId: axelId, nombreCompleto: 'Axel Jiménez García',
+    curp: 'JIGA950315HMNMRX09', fechaNacimiento: '1995-03-15',
+    telefono: '443-152-9876', municipioId: dMor!.id,
+    gestorId: null, emailVerificado: true, registroTipo: 'auto',
+    createdAt: daysAgoDate(7),
+  }).onConflictDoNothing();
+  await expDoc(axelId, 'acta_nacimiento', 'aprobado');
+  await expDoc(axelId, 'curp', 'aprobado');
+  await expDoc(axelId, 'certificado_secundaria', 'pendiente_revision', daysAgoDate(5));
+  await expDoc(axelId, 'ine', 'pendiente_revision', daysAgoDate(4));
+
+  console.log('   ✓ Grupo D — 2 alumnos sin gestor');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // SOLICITUDES PENDIENTES (4 específicas para demo)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  const solDemoFolios = ['SOL-DEMO-01','SOL-DEMO-02','SOL-DEMO-03','SOL-DEMO-04'];
+  const [existSolDemo] = await db.select().from(solicitudesCuenta)
+    .where(eq(solicitudesCuenta.folio, 'SOL-DEMO-01'));
+
+  if (!existSolDemo) {
+    await db.insert(solicitudesCuenta).values([
+      {
+        folio: 'SOL-DEMO-01',
+        nombreCompleto: 'Juana Rodríguez Mendoza',
+        curp: 'ROMJ900512MMNDND09',
+        fechaNacimiento: '1990-05-12',
+        email: 'juana.rodriguez@correo.com',
+        telefono: '443-400-1122',
+        municipioId: dMor!.id,
+        justificacion: 'Tengo 35 años, dos hijos y trabajo en una tienda. Siempre quise terminar la prepa pero por la situación económica no pude seguir. Ahora que mis hijos están en la escuela quiero ponerles el ejemplo y poder buscar un mejor trabajo.',
+        modalidadPreferida: 'con_gestor',
+        estado: 'pendiente',
+        emailVerificado: true,
+        createdAt: daysAgoDate(12),
+      },
+      {
+        folio: 'SOL-DEMO-02',
+        nombreCompleto: 'Pedro Manuel Hernández Solís',
+        curp: 'HESP780123HMNRRD03',
+        fechaNacimiento: '1978-01-23',
+        email: 'pedro.hernandez@correo.com',
+        telefono: '434-400-3344',
+        municipioId: dPat!.id,
+        justificacion: 'Soy comerciante de 47 años, quiero terminar la prepa para cumplir un sueño que tengo desde joven y también para ayudar a mis hijos con la tarea.',
+        modalidadPreferida: 'con_gestor',
+        estado: 'pendiente',
+        emailVerificado: true,
+        createdAt: daysAgoDate(9),
+      },
+      {
+        folio: 'SOL-DEMO-03',
+        nombreCompleto: 'Luisa Fernanda Aguilar Pérez',
+        curp: 'AUPL920815MMNGRR05',
+        fechaNacimiento: '1992-08-15',
+        email: 'l.aguilar@correo.com',
+        telefono: '452-400-5566',
+        municipioId: dUru!.id,
+        justificacion: 'Trabajo como mesera y me gustaría seguir estudiando por las tardes.',
+        modalidadPreferida: 'auto_gestion',
+        estado: 'pendiente',
+        emailVerificado: true,
+        createdAt: daysAgoDate(6),
+      },
+      {
+        folio: 'SOL-DEMO-04',
+        nombreCompleto: 'Sofía Castañeda Reyes',
+        curp: 'CARS890716MMNSYR02',
+        fechaNacimiento: '1989-07-16',
+        email: 'sofia.castaneda@correo.com',
+        telefono: '443-400-7788',
+        municipioId: dMor!.id,
+        justificacion: 'Soy ama de casa de 36 años, quiero estudiar para ayudar a mis hijos con sus tareas y poder buscar trabajo formal.',
+        modalidadPreferida: 'con_gestor',
+        estado: 'pendiente',
+        emailVerificado: true,
+        createdAt: daysAgoDate(4),
+      },
+    ]).onConflictDoNothing();
+    console.log('   ✓ 4 solicitudes demo insertadas');
+  } else {
+    console.log('   ✓ Solicitudes demo ya existían');
+  }
+
+  console.log('\n✅ Datos demo para presentación listos.\n');
+
   console.log('');
   console.log('✅ Seed completado.\n');
   console.log('Credenciales de demo:');
-  console.log('  Admin:      admin@michoacan.gob.mx / demo1234');
-  console.log('  Gestor:     gestor.patzcuaro@michoacan.gob.mx / demo1234');
-  console.log('  Estudiante: alumna.demo@correo.mx / demo1234\n');
+  console.log('  Admin:       admin@michoacan.gob.mx / demo1234');
+  console.log('  Gestor 1:    m.ramirez@michoacan.gob.mx / demo1234  (Pátzcuaro)');
+  console.log('  Gestor 2:    l.gonzalez@michoacan.gob.mx / demo1234 (Morelia)');
+  console.log('  Gestor 3:    j.hernandez@michoacan.gob.mx / demo1234 (Uruapan)');
+  console.log('  Alumna ⭐:   ana.lopez@correo.com / demo1234       (caso estrella)');
+  console.log('  Alumno:      j.ramirez.b@correo.com / demo1234     (en revisión)');
+  console.log('  Alumna:      elena.cisneros@correo.com / demo1234  (incompleta)');
+  console.log('  Alumna:      p.velazquez@correo.com / demo1234     (21 módulos)');
+  console.log('  Alumno:      diego.ramirez@correo.com / demo1234   (inscrito activo)');
+  console.log('  Alumna 🔑:   sofia.mendoza@correo.com / demo1234   (primer login)');
+  console.log('  Alumno:      r.vargas@correo.com / demo1234        (doc rechazado)');
+  console.log('  Alumna:      m.torres@correo.com / demo1234        (espera etapa)');
+  console.log('  Alumno:      carlos.hernandez@correo.com / demo1234 (sin gestor)');
+  console.log('  Alumno:      axel.jimenez@correo.com / demo1234    (autodirigido)\n');
 
   await pool.end();
 }

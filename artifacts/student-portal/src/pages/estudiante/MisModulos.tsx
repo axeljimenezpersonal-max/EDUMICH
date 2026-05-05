@@ -132,7 +132,7 @@ export default function MisModulos() {
             </div>
             <div>
               <div className="text-3xl font-bold font-serif">{data.resumen.totalQuizzes}</div>
-              <div className="text-xs opacity-70 mt-0.5">Quizzes hechos</div>
+              <div className="text-xs opacity-70 mt-0.5">Evaluaciones hechas</div>
             </div>
             <div>
               <div className="text-3xl font-bold font-serif">
