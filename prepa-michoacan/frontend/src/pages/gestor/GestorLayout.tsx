@@ -1,0 +1,97 @@
+/**
+ * Layout del panel del gestor: header institucional + navegación lateral.
+ *
+ * Ubicación destino: artifacts/student-portal/src/pages/gestor/GestorLayout.tsx
+ */
+
+import { Link, useLocation } from 'wouter';
+import { useEffect, useState, type ReactNode } from 'react';
+import { LayoutDashboard, Users, FilePlus2, FileCheck2 } from 'lucide-react';
+import { api, type MeResponse } from '../../lib/api';
+import { InstitutionalHeader } from '../../components/InstitutionalHeader';
+
+const NAV = [
+  { to: '/gestor', icon: LayoutDashboard, label: 'Inicio' },
+  { to: '/gestor/alumnos', icon: Users, label: 'Mis alumnos' },
+  { to: '/gestor/alumnos/nuevo', icon: FilePlus2, label: 'Nuevo alumno' },
+  { to: '/gestor/documentos', icon: FileCheck2, label: 'Documentos' },
+];
+
+export function GestorLayout({ children }: { children: ReactNode }) {
+  const [, setLocation] = useLocation();
+  const [location] = useLocation();
+  const [me, setMe] = useState<MeResponse | null>(null);
+
+  useEffect(() => {
+    api
+      .get<MeResponse>('/auth/me')
+      .then((u) => {
+        if (u.rol !== 'gestor') {
+          setLocation('/login');
+        } else {
+          setMe(u);
+        }
+      })
+      .catch(() => setLocation('/login'));
+  }, [setLocation]);
+
+  async function handleLogout() {
+    await api.post('/auth/logout');
+    setLocation('/login');
+  }
+
+  return (
+    <div className="min-h-screen bg-[var(--color-crema-100)]">
+      <InstitutionalHeader
+        userName={me?.perfil?.nombreCompleto ?? me?.email}
+        userRole={me ? `Gestor · ${me.perfil?.municipio ?? ''}` : undefined}
+        onLogout={handleLogout}
+      />
+
+      <div className="max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6">
+        {/* Sidebar */}
+        <nav className="md:sticky md:top-6 self-start">
+          <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
+            <div className="px-4 py-3 bg-[var(--color-guinda-700)] text-white">
+              <div className="text-[10px] tracking-widest opacity-80">PANEL</div>
+              <div className="font-serif text-sm">Gestor Municipal</div>
+            </div>
+            <ul>
+              {NAV.map((item) => {
+                const active =
+                  item.to === '/gestor' ? location === '/gestor' : location.startsWith(item.to);
+                return (
+                  <li key={item.to}>
+                    <Link
+                      href={item.to}
+                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                        active
+                          ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
+                          : 'border-transparent text-stone-700 hover:bg-stone-50'
+                      }`}
+                    >
+                      <item.icon size={16} />
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </nav>
+
+        {/* Contenido */}
+        <main className="min-w-0">{children}</main>
+      </div>
+
+      <footer className="border-t border-stone-200 bg-white mt-12">
+        <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+          <div>
+            © Gobierno del Estado de Michoacán · Instituto de Educación Media Superior y Superior
+          </div>
+          <div className="opacity-80">Sistema de Gestión Prepa Abierta · v0.1 (demo)</div>
+        </div>
+      </footer>
+    </div>
+  );
+}

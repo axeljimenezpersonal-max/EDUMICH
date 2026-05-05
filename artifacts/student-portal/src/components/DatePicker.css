@@ -1,0 +1,241 @@
+/* ── DatePicker — paleta institucional Prepa Abierta Michoacán ── */
+
+.dp-input-wrap {
+  position: relative;
+}
+
+.dp-input {
+  width: 100%;
+  padding: 8px 36px 8px 12px;
+  border: 1px solid #d6d3d1;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--color-piedra-900, #2a2a2a);
+  cursor: pointer;
+  transition: border-color 0.1s, outline 0.1s;
+  line-height: 1.5;
+}
+.dp-input:focus,
+.dp-input.open {
+  outline: 2px solid var(--color-guinda-500, #c43759);
+  outline-offset: 1px;
+  border-color: var(--color-guinda-500, #c43759);
+}
+.dp-input.disabled {
+  background: #f5f5f4;
+  cursor: not-allowed;
+  color: #a8a29e;
+}
+.dp-input.placeholder {
+  color: #a8a29e;
+}
+
+.dp-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #78716c;
+  pointer-events: none;
+}
+
+/* ── Popover container ── */
+.dp-popover {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  background: white;
+  border: 1px solid #d6d3d1;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 12px;
+  min-width: 300px;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* ── DayPicker root ── */
+.rdp-root {
+  --rdp-accent-color: var(--color-guinda-700, #7b1e3a);
+  --rdp-accent-background-color: var(--color-guinda-700, #7b1e3a);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+}
+
+/* ── Month caption ── */
+.rdp-month_caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 2px 8px;
+}
+
+.rdp-dropdowns {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.rdp-dropdown_root {
+  position: relative;
+  display: inline-block;
+}
+
+.rdp-dropdown {
+  font-family: 'Plus Jakarta Sans', 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 3px 6px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-piedra-900, #2a2a2a);
+  appearance: none;
+  -webkit-appearance: none;
+  text-transform: capitalize;
+  letter-spacing: -0.01em;
+}
+.rdp-dropdown:hover {
+  background: var(--color-crema-100, #f8f4ec);
+  border-color: #d6d3d1;
+}
+.rdp-dropdown:focus {
+  outline: 2px solid var(--color-guinda-400, #dd5d7a);
+  outline-offset: 1px;
+}
+
+/* ── Navigation buttons ── */
+.rdp-nav {
+  display: flex;
+  gap: 4px;
+}
+.rdp-button_previous,
+.rdp-button_next {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #78716c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.1s, border-color 0.1s;
+}
+.rdp-button_previous:hover,
+.rdp-button_next:hover {
+  background: var(--color-crema-100, #f8f4ec);
+  border-color: #d6d3d1;
+}
+.rdp-button_previous:disabled,
+.rdp-button_next:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ── Week header ── */
+.rdp-weekdays {
+  display: flex;
+}
+.rdp-weekday {
+  width: 36px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: #a8a29e;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Days grid ── */
+.rdp-weeks {
+  display: flex;
+  flex-direction: column;
+}
+.rdp-week {
+  display: flex;
+}
+.rdp-day {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rdp-day_button {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  width: 34px;
+  height: 34px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-piedra-900, #2a2a2a);
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.rdp-day_button:hover {
+  background: var(--color-crema-100, #f8f4ec);
+  border-color: #e2d9d0;
+}
+
+/* Today */
+.rdp-today:not(.rdp-selected) .rdp-day_button {
+  border-color: var(--color-guinda-300, #ec96a9);
+  font-weight: 700;
+  color: var(--color-guinda-700, #7b1e3a);
+}
+
+/* Selected */
+.rdp-selected .rdp-day_button {
+  background: var(--color-guinda-700, #7b1e3a) !important;
+  color: white !important;
+  font-weight: 600;
+  border-color: var(--color-guinda-700, #7b1e3a);
+}
+.rdp-selected .rdp-day_button:hover {
+  background: var(--color-guinda-800, #5c1428) !important;
+  border-color: var(--color-guinda-800, #5c1428);
+}
+
+/* Outside month */
+.rdp-outside .rdp-day_button {
+  color: #d6d3d1;
+}
+
+/* Disabled */
+.rdp-disabled .rdp-day_button {
+  color: #d6d3d1;
+  cursor: not-allowed;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+/* Chevron icon inside nav */
+.rdp-chevron {
+  fill: #78716c;
+  width: 16px;
+  height: 16px;
+}
+
+/* Month grid */
+.rdp-month {
+  width: 100%;
+}
+.rdp-month_grid {
+  width: 100%;
+  border-collapse: collapse;
+}
