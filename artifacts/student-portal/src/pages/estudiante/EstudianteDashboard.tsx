@@ -9,6 +9,7 @@ import {
   Phone,
   Mail,
   AlertCircle,
+  AlertTriangle,
   CheckCircle2,
   Info,
   Upload,
@@ -158,6 +159,9 @@ export default function EstudianteDashboard() {
 
   // Vigencia del pre-registro
   const diasVigencia = diasHasta(data.preregistroVigenteHasta);
+
+  // Aviso de eliminación de cuenta
+  const aviso = data.avisoEliminacion;
   const mostrarBannerVigenciaRojo = data.folioPreregistro && !data.matriculaOficialDGB && diasVigencia !== null && diasVigencia <= 0;
   const mostrarBannerVigenciaAmarillo = data.folioPreregistro && !data.matriculaOficialDGB && diasVigencia !== null && diasVigencia > 0 && diasVigencia <= 3;
 
@@ -190,6 +194,33 @@ export default function EstudianteDashboard() {
             </div>
           );
         })}
+
+        {/* Banner: cuenta en riesgo de eliminación */}
+        {aviso && (
+          <div
+            className="rounded-md p-4 flex items-start gap-3"
+            style={{ background: '#fff1f2', border: '2px solid #fca5a5' }}
+          >
+            <AlertTriangle size={18} style={{ color: '#dc2626', flexShrink: 0, marginTop: 1 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div className="font-semibold text-sm" style={{ color: '#991b1b', marginBottom: 4 }}>
+                ⚠ Tu cuenta será eliminada en {aviso.diasRestantes} {aviso.diasRestantes === 1 ? 'día' : 'días'}
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: '#7f1d1d', marginBottom: 8 }}>
+                Llevas <strong>{aviso.diasInactivo} días</strong> sin subir documentos ni realizar pagos.
+                Para conservar tu cuenta debes subir al menos un documento antes de que venza el plazo.
+              </p>
+              <Link
+                href="/estudiante/expediente"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-md"
+                style={{ background: '#dc2626', color: 'white', textDecoration: 'none' }}
+              >
+                <Upload size={13} />
+                Subir documento ahora
+              </Link>
+            </div>
+          </div>
+        )}
 
         {/* Banner: ficha de pre-registro vencida */}
         {mostrarBannerVigenciaRojo && (

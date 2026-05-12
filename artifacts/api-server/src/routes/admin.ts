@@ -1527,6 +1527,12 @@ router.get('/alumnos', async (req, res) => {
     expediente_incompleto: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')) < 4`,
   };
 
+  const estadoCuentaParam = (req.query.estadoCuenta as string) || '';
+  const VALID_ESTADO_CUENTA = ['activa', 'aviso_enviado', 'soft_deleted'];
+  const estadoCuentaSnippet = VALID_ESTADO_CUENTA.includes(estadoCuentaParam)
+    ? sql`AND e.estado_cuenta = ${estadoCuentaParam}`
+    : sql`AND COALESCE(e.estado_cuenta, 'activa') != 'soft_deleted' AND COALESCE(e.estado_cuenta, 'activa') != 'hard_deleted'`;
+
   const VALID_ESTADO_EXP = ['activo', 'esperando_matricula', 'pago_pendiente', 'en_proceso', 'rechazado', 'sin_documentos', 'inactivo'];
   const estadoExpSnippets: Record<string, string> = {
     activo: `AND u.activo = true AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') AND (SELECT count(*) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado') >= 4 AND EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') AND e.matricula_oficial_dgb IS NOT NULL`,
@@ -1575,10 +1581,12 @@ router.get('/alumnos', async (req, res) => {
       docs_aprobados: number;
       docs_total: number;
       ultima_actividad: Date | null;
+      ultima_actividad_en: Date | null;
+      estado_cuenta: string | null;
       created_at: Date;
     };
 
-    const allSnippets = sql`${searchSnippet} ${presetSnippet} ${municipioSnippet} ${estadoSnippet} ${gestorSnippet} ${etapaSnippet}`;
+    const allSnippets = sql`${searchSnippet} ${presetSnippet} ${municipioSnippet} ${estadoSnippet} ${gestorSnippet} ${etapaSnippet} ${estadoCuentaSnippet}`;
 
     const [countResult, rowsResult, resumenResult] = await Promise.all([
       db.execute<{ total: string }>(sql`
@@ -1616,6 +1624,8 @@ router.get('/alumnos', async (req, res) => {
             (SELECT MAX(created_at) FROM examenes_inscripciones WHERE estudiante_id = e.user_id),
             e.updated_at
           ) AS ultima_actividad,
+          e.ultima_actividad_en,
+          COALESCE(e.estado_cuenta, 'activa') AS estado_cuenta,
           e.created_at
         FROM estudiantes e
         LEFT JOIN users u ON e.user_id = u.id
@@ -1660,6 +1670,13 @@ router.get('/alumnos', async (req, res) => {
       const gestorPartes = (r.gestor_nombre ?? '').trim().split(/\s+/);
       const gestorIniciales = gestorPartes.slice(0, 2).map((p: string) => p[0]?.toUpperCase() ?? '').join('');
 
+      const ultimaActividadEn = r.ultima_actividad_en
+        ? new Date(r.ultima_actividad_en as string | Date)
+        : null;
+      const diasSinActividad = ultimaActividadEn
+        ? Math.floor((Date.now() - ultimaActividadEn.getTime()) / 86400000)
+        : null;
+
       return {
         id: r.user_id,
         nombreCompleto: r.nombre_completo,
@@ -1669,10 +1686,13 @@ router.get('/alumnos', async (req, res) => {
         municipio: r.municipio_id ? { id: r.municipio_id, nombre: r.municipio_nombre ?? '' } : null,
         gestor: r.gestor_id ? { id: r.gestor_id, nombreCompleto: r.gestor_nombre ?? '', iniciales: gestorIniciales } : null,
         estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
+        estadoCuenta: (r.estado_cuenta ?? 'activa') as 'activa' | 'aviso_enviado' | 'soft_deleted' | 'hard_deleted',
         docsAprobados,
         docsTotal: Number(r.docs_total ?? 0),
         ultimaActividad: ultimaActividad ? ultimaActividad.toISOString() : null,
         ultimaActividadTexto: relativaActividad(ultimaActividad),
+        ultimaActividadEn: ultimaActividadEn ? ultimaActividadEn.toISOString() : null,
+        diasSinActividad,
         creadoEn: new Date(r.created_at as string | Date).toISOString(),
       };
     });

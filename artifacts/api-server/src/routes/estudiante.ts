@@ -133,6 +133,10 @@ router.get('/dashboard', async (req, res) => {
       folioPreregistro: estudiantes.folioPreregistro,
       preregistroVigenteHasta: estudiantes.preregistroVigenteHasta,
       matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      estadoCuenta: estudiantes.estadoCuenta,
+      avisoEliminacionEnviadoEn: estudiantes.avisoEliminacionEnviadoEn,
+      ultimaActividadEn: estudiantes.ultimaActividadEn,
+      createdAt: estudiantes.createdAt,
     })
     .from(estudiantes)
     .where(eq(estudiantes.userId, userId));
@@ -250,6 +254,18 @@ router.get('/dashboard', async (req, res) => {
     folioPreregistro: est.folioPreregistro ?? null,
     preregistroVigenteHasta: est.preregistroVigenteHasta ?? null,
     matriculaOficialDGB: est.matriculaOficialDGB ?? null,
+    avisoEliminacion: est.estadoCuenta === 'aviso_enviado'
+      ? {
+          estadoCuenta: est.estadoCuenta,
+          avisoEnviadoEn: est.avisoEliminacionEnviadoEn?.toISOString() ?? null,
+          diasRestantes: est.avisoEliminacionEnviadoEn
+            ? Math.max(0, 5 - Math.floor((Date.now() - new Date(est.avisoEliminacionEnviadoEn).getTime()) / 86400000))
+            : 0,
+          diasInactivo: Math.floor(
+            (Date.now() - new Date(est.ultimaActividadEn ?? est.createdAt).getTime()) / 86400000
+          ),
+        }
+      : null,
     inscripcionActiva: insc
       ? {
           id: insc.id,
@@ -784,6 +800,10 @@ router.post(
           updatedAt: new Date(),
         },
       });
+
+    // Registrar actividad para el sistema de depuración
+    const { registrarActividad } = await import('../services/depuracion');
+    await registrarActividad(userId);
 
     res.json({ ok: true, tipo, nombreOriginal: req.file.originalname });
   }

@@ -35,6 +35,13 @@ import { relations } from 'drizzle-orm';
 
 export const rolEnum = pgEnum('rol', ['admin', 'gestor', 'estudiante']);
 
+export const estadoCuentaEnum = pgEnum('estado_cuenta', [
+  'activa',
+  'aviso_enviado',
+  'soft_deleted',
+  'hard_deleted',
+]);
+
 export const avisosPrioridadEnum = pgEnum('avisos_prioridad', [
   'informativo',
   'importante',
@@ -246,6 +253,14 @@ export const estudiantes = pgTable(
     genero: varchar('genero', { length: 20 }),
     nacionalidad: varchar('nacionalidad', { length: 50 }).default('Mexicana'),
     foto: varchar('foto', { length: 500 }),
+    // ── Depuración automática de cuentas inactivas ──
+    ultimaActividadEn: timestamp('ultima_actividad_en'),
+    avisoEliminacionEnviadoEn: timestamp('aviso_eliminacion_enviado_en'),
+    estadoCuenta: estadoCuentaEnum('estado_cuenta').notNull().default('activa'),
+    softDeletedEn: timestamp('soft_deleted_en'),
+    softDeleteMotivo: varchar('soft_delete_motivo', { length: 200 }),
+    hardDeletedEn: timestamp('hard_deleted_en'),
+    protegidaContraEliminacion: boolean('protegida_contra_eliminacion').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },
@@ -1172,6 +1187,31 @@ export const sesiones = pgTable('sesiones', {
 
 // ── Notificaciones ────────────────────────────────────────────────────────────
 
+// ─────────────────────────────────────────────────────────────────────────
+// Auditoría de eliminaciones de cuentas (LGPDPPSO)
+// ─────────────────────────────────────────────────────────────────────────
+
+export const eliminacionesAuditoria = pgTable('eliminaciones_auditoria', {
+  id: serial('id').primaryKey(),
+  estudianteId: integer('estudiante_id'),
+  // Sin FK — el estudiante puede ya estar borrado
+  nombreCompleto: varchar('nombre_completo', { length: 200 }),
+  curp: varchar('curp', { length: 18 }),
+  email: varchar('email', { length: 200 }),
+  municipioNombre: varchar('municipio_nombre', { length: 100 }),
+  folioPreregistro: varchar('folio_preregistro', { length: 30 }),
+  tipo: varchar('tipo', { length: 20 }).notNull(),
+  // 'soft_delete' | 'hard_delete' | 'restauracion'
+  motivo: varchar('motivo', { length: 300 }).notNull(),
+  diasSinActividad: integer('dias_sin_actividad'),
+  documentosTenia: integer('documentos_tenia').default(0),
+  pagosTenia: integer('pagos_tenia').default(0),
+  teniaMatriculaDGB: boolean('tenia_matricula_dgb').default(false),
+  ejecutadoPorSistema: boolean('ejecutado_por_sistema').default(true),
+  ejecutadoPorUserId: integer('ejecutado_por_user_id'),
+  creadoEn: timestamp('creado_en').defaultNow(),
+});
+
 export const notifTipoEnum = pgEnum('notif_tipo', [
   'solicitud_nueva',
   'documento_subido_revisar',
@@ -1191,6 +1231,8 @@ export const notifTipoEnum = pgEnum('notif_tipo', [
   'convocatoria_proxima',
   'anuncio_dirigido',
   'mensaje_admin',
+  'cuenta_aviso_eliminacion',
+  'cuentas_eliminadas_lote',
 ]);
 
 export const notifPrioridadEnum = pgEnum('notif_prioridad', ['baja', 'normal', 'alta', 'urgente']);

@@ -2,7 +2,7 @@ import { useState, useRef, lazy, Suspense } from 'react';
 import { useParams, useLocation } from 'wouter';
 import {
   UserCircle, Shield, Building, FileText, CreditCard,
-  Calendar, MapPin, Mail, Share2, ClipboardList, Info,
+  Calendar, MapPin, Mail, Share2, ClipboardList, Info, Trash2,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { SaveBar } from '../../components/SaveBar';
@@ -22,6 +22,7 @@ const PlantillasCorreo = lazy(() => import('./config/PlantillasCorreo'));
 const Integraciones = lazy(() => import('./config/Integraciones'));
 const Bitacora = lazy(() => import('./config/Bitacora'));
 const AcercaDe = lazy(() => import('./config/AcercaDe'));
+const Depuracion = lazy(() => import('./config/Depuracion'));
 
 // ─────────────────────────────────────────────────────────────
 // Nav config
@@ -32,7 +33,7 @@ const GUINDA = '#6B0F3C';
 type Seccion =
   | 'mi-cuenta' | 'seguridad' | 'datos-institucionales'
   | 'documentos-requeridos' | 'pagos' | 'etapas-dgb'
-  | 'municipios' | 'plantillas-correo' | 'integraciones' | 'bitacora' | 'acerca-de';
+  | 'municipios' | 'plantillas-correo' | 'integraciones' | 'bitacora' | 'depuracion' | 'acerca-de';
 
 const NAV_GROUPS: {
   label: string;
@@ -61,6 +62,7 @@ const NAV_GROUPS: {
       { id: 'plantillas-correo', label: 'Plantillas de correo', icon: Mail },
       { id: 'integraciones', label: 'Integraciones', icon: Share2 },
       { id: 'bitacora', label: 'Bitácora', icon: ClipboardList },
+      { id: 'depuracion', label: 'Depuración de cuentas', icon: Trash2 },
       { id: 'acerca-de', label: 'Acerca de EDUMICH', icon: Info },
     ],
   },
@@ -204,6 +206,7 @@ function SectionRenderer({ seccion, onDirty, registerSave, registerDiscard }: Se
     case 'plantillas-correo':   return <PlantillasCorreo {...commonProps} />;
     case 'integraciones':       return <Integraciones {...commonProps} />;
     case 'bitacora':            return <Bitacora {...commonProps} />;
+    case 'depuracion':          return <Depuracion />;
     case 'acerca-de':           return <AcercaDe />;
     default:                    return <MiCuenta {...commonProps} />;
   }

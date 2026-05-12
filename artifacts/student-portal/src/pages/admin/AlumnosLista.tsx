@@ -22,10 +22,13 @@ type Alumno = {
   municipio: { id: number; nombre: string } | null;
   gestor: { id: number; nombreCompleto: string; iniciales: string } | null;
   estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
+  estadoCuenta: 'activa' | 'aviso_enviado' | 'soft_deleted' | 'hard_deleted';
   docsAprobados: number;
   docsTotal: number;
   ultimaActividad: string | null;
   ultimaActividadTexto: string;
+  ultimaActividadEn: string | null;
+  diasSinActividad: number | null;
   creadoEn: string;
 };
 
@@ -58,6 +61,24 @@ const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; co
   sin_documentos:      { label: 'Sin documentos',        dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
   inactivo:            { label: 'Inactivo',              dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
 };
+
+const ESTADO_CUENTA_OPTIONS = [
+  { value: '', label: 'Todas las cuentas' },
+  { value: 'activa', label: 'Solo activas' },
+  { value: 'aviso_enviado', label: 'En aviso (riesgo)' },
+  { value: 'soft_deleted', label: 'En soft delete' },
+];
+
+function actividadBadge(diasSinActividad: number | null, ultimaActividadEn: string | null) {
+  if (!ultimaActividadEn && diasSinActividad === null) {
+    return { label: 'Sin actividad', bg: '#e7e5e4', color: '#78716c' };
+  }
+  const dias = diasSinActividad ?? 0;
+  if (dias < 7) return { label: `Hace ${dias}d`, bg: '#d1fae5', color: '#065f46' };
+  if (dias < 20) return { label: `Hace ${dias}d`, bg: '#fef9c3', color: '#92400e' };
+  if (dias < 25) return { label: `Hace ${dias}d`, bg: '#fed7aa', color: '#c2410c' };
+  return { label: `Hace ${dias}d`, bg: '#fee2e2', color: '#991b1b' };
+}
 
 const ESTADO_OPTIONS = [
   { value: '', label: 'Todos los estados' },
@@ -238,6 +259,7 @@ export default function AlumnosLista() {
   const [searchInput, setSearchInput] = useState('');
   const [municipioId, setMunicipioId] = useState('');
   const [estadoExp, setEstadoExp] = useState('');
+  const [estadoCuenta, setEstadoCuenta] = useState('');
   const [gestorId, setGestorId] = useState('');
   const [etapaId, setEtapaId] = useState('');
   const debouncedSearch = useDebounce(searchInput, 300);
@@ -298,6 +320,7 @@ export default function AlumnosLista() {
       if (debouncedSearch) qp.set('search', debouncedSearch);
       if (municipioId) qp.set('municipioId', municipioId);
       if (estadoExp) qp.set('estadoExpediente', estadoExp);
+      if (estadoCuenta) qp.set('estadoCuenta', estadoCuenta);
       if (gestorId) qp.set('gestorId', gestorId);
       if (etapaId) qp.set('etapaId', etapaId);
       if (sortBy !== 'registro') qp.set('sortBy', sortBy);
@@ -309,10 +332,10 @@ export default function AlumnosLista() {
     } finally {
       setLoading(false);
     }
-  }, [filtroPreset, debouncedSearch, municipioId, estadoExp, gestorId, etapaId, sortBy, sortDir, page, limit]);
+  }, [filtroPreset, debouncedSearch, municipioId, estadoExp, estadoCuenta, gestorId, etapaId, sortBy, sortDir, page, limit]);
 
   // Reset page when filters change
-  useEffect(() => { setPage(1); }, [filtroPreset, debouncedSearch, municipioId, estadoExp, gestorId, etapaId, sortBy, sortDir, limit]);
+  useEffect(() => { setPage(1); }, [filtroPreset, debouncedSearch, municipioId, estadoExp, estadoCuenta, gestorId, etapaId, sortBy, sortDir, limit]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -329,12 +352,13 @@ export default function AlumnosLista() {
     setSearchInput('');
     setMunicipioId('');
     setEstadoExp('');
+    setEstadoCuenta('');
     setGestorId('');
     setEtapaId('');
     if (filtroPreset) setLocation('/admin/alumnos');
   }
 
-  const hasManualFilters = !!(searchInput || municipioId || estadoExp || gestorId || etapaId);
+  const hasManualFilters = !!(searchInput || municipioId || estadoExp || estadoCuenta || gestorId || etapaId);
   const hasAnyFilter = !!(filtroPreset || hasManualFilters);
 
   const municipioLabel = municipioId ? municipios.find((m) => m.id === Number(municipioId))?.nombre : '';
@@ -484,6 +508,15 @@ export default function AlumnosLista() {
           onChange={(e) => setEstadoExp(e.target.value)}
         >
           {ESTADO_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+
+        {/* Estado de cuenta */}
+        <select
+          className="px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
+          value={estadoCuenta}
+          onChange={(e) => setEstadoCuenta(e.target.value)}
+        >
+          {ESTADO_CUENTA_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
 
         {/* Gestor */}
@@ -692,9 +725,24 @@ function AlumnoRow({
         )}
       </div>
 
-      {/* Última actividad */}
-      <div className="text-[11px]" style={{ color: '#78716c' }}>
-        {alumno.ultimaActividadTexto}
+      {/* Última actividad (docs/pagos) */}
+      <div>
+        {(() => {
+          const badge = actividadBadge(alumno.diasSinActividad, alumno.ultimaActividadEn);
+          return (
+            <span style={{
+              background: badge.bg, color: badge.color,
+              padding: '2px 7px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+            }}>
+              {badge.label}
+            </span>
+          );
+        })()}
+        {alumno.estadoCuenta === 'aviso_enviado' && (
+          <div style={{ marginTop: 3, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>
+            ⚠ AVISO ENVIADO
+          </div>
+        )}
       </div>
 
       {/* Registro */}

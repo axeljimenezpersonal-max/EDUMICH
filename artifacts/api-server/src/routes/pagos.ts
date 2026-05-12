@@ -202,6 +202,10 @@ router.post(
       req,
     });
 
+    // Registrar actividad para el sistema de depuración
+    const { registrarActividad } = await import('../services/depuracion');
+    await registrarActividad(estudianteId);
+
     res.status(201).json({ ok: true, pago });
   }
 );

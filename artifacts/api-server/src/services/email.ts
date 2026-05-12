@@ -396,6 +396,192 @@ function getRecuperarPasswordHTML(data: RecuperarPasswordData): string {
 </html>`;
 }
 
+// ─── Aviso de eliminación de cuenta ──────────────────────────────────────
+
+export interface AvisoEliminacionData {
+  nombreCompleto: string;
+  fechaEliminacion: string;
+  gestor: { nombre: string; email: string } | null;
+}
+
+export async function sendAvisoEliminacion(
+  email: string,
+  data: AvisoEliminacionData
+): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
+  if (EMAIL_MODE === 'dev') {
+    console.log(`\n📧 [DEV MODE] Aviso de eliminación para ${email}:`);
+    console.log(`   Alumno: ${data.nombreCompleto}`);
+    console.log(`   Eliminación: ${data.fechaEliminacion}\n`);
+    return { enviado: true, modo: 'dev' };
+  }
+
+  if (!resend) throw new Error('Resend no configurado');
+
+  await resend.emails.send({
+    from: process.env.EMAIL_FROM!,
+    to: email,
+    subject: 'Tu cuenta de Prepa Abierta Michoacán será eliminada en 5 días',
+    html: getAvisoEliminacionHTML(data),
+  });
+
+  return { enviado: true, modo: 'production' };
+}
+
+function getAvisoEliminacionHTML(data: AvisoEliminacionData): string {
+  const gestorSection = data.gestor
+    ? `
+      <tr>
+        <td style="padding:0 32px 24px 32px;">
+          <table width="100%" cellpadding="0" cellspacing="0"
+            style="background:#fdf2f4;border:1px solid #e8c4cc;border-radius:8px;padding:20px;">
+            <tr><td>
+              <div style="font-size:10px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:8px;">
+                Gestor asignado
+              </div>
+              <div style="font-size:14px;font-weight:bold;color:#1c1917;margin-bottom:4px;">${data.gestor.nombre}</div>
+              <div style="font-size:13px;color:#44403c;">${data.gestor.email}</div>
+            </td></tr>
+          </table>
+        </td>
+      </tr>`
+    : `
+      <tr>
+        <td style="padding:0 32px 24px 32px;">
+          <div style="font-size:13px;color:#44403c;">
+            Para soporte: <strong>soporte.prepaabierta@michoacan.gob.mx</strong>
+          </div>
+        </td>
+      </tr>`;
+
+  return `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f8f4ec;font-family:Arial,Helvetica,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;padding:32px 0;">
+    <tr><td align="center">
+      <table width="580" cellpadding="0" cellspacing="0"
+        style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
+
+        <!-- Header guinda -->
+        <tr>
+          <td style="background:#7b1e3a;padding:24px 32px;">
+            <table cellpadding="0" cellspacing="0"><tr>
+              <td style="width:56px;height:56px;text-align:center;vertical-align:middle;">
+                <img src="https://prepaabierta.michoacan.gob.mx/logo-see-blanco-256.png" alt="SEE" width="56" height="56" style="display:block;object-fit:contain;" />
+              </td>
+              <td style="padding-left:14px;">
+                <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+                <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
+              </td>
+            </tr></table>
+          </td>
+        </tr>
+
+        <!-- Alerta -->
+        <tr>
+          <td style="padding:0 32px 0 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;">
+              <tr>
+                <td style="background:#fff1f2;border:1px solid #fca5a5;border-left:4px solid #dc2626;border-radius:8px;padding:16px 20px;">
+                  <div style="font-size:15px;font-weight:bold;color:#991b1b;margin-bottom:6px;">
+                    ⚠ Tu cuenta será eliminada el ${data.fechaEliminacion}
+                  </div>
+                  <div style="font-size:13px;color:#7f1d1d;line-height:1.6;">
+                    Han pasado más de 25 días sin que hayas subido documentos ni pagos.
+                    Si no la reactivas, todos tus datos serán eliminados permanentemente.
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Saludo -->
+        <tr>
+          <td style="padding:24px 32px 20px 32px;">
+            <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">
+              Hola, ${data.nombreCompleto}
+            </h1>
+            <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 16px 0;">
+              Detectamos que tu cuenta en el Sistema de Gestión de Prepa Abierta del
+              Gobierno de Michoacán lleva más de 25 días <strong>sin actividad</strong>.
+              Para cumplir con la Ley General de Protección de Datos Personales (LGPDPPSO),
+              eliminamos cuentas inactivas automáticamente.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Cómo evitarlo -->
+        <tr>
+          <td style="padding:0 32px 24px 32px;">
+            <table width="100%" cellpadding="0" cellspacing="0"
+              style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;">
+              <tr><td>
+                <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#166534;text-transform:uppercase;margin-bottom:12px;">
+                  ¿Cómo evitar la eliminación?
+                </div>
+                <p style="color:#14532d;font-size:14px;line-height:1.7;margin:0 0 12px 0;">
+                  Es muy fácil. Solo entra al portal y sube <strong>AL MENOS UNO</strong> de estos:
+                </p>
+                <ul style="color:#14532d;font-size:14px;line-height:1.9;margin:0;padding-left:20px;">
+                  <li>Un documento de tu expediente (CURP, acta, certificado, INE)</li>
+                  <li>Un comprobante de pago</li>
+                </ul>
+                <p style="color:#14532d;font-size:13px;margin:12px 0 0 0;font-style:italic;">
+                  Con eso tu cuenta se reactivará automáticamente.
+                </p>
+              </td></tr>
+            </table>
+          </td>
+        </tr>
+
+        <!-- Botón -->
+        <tr>
+          <td style="padding:0 32px 28px 32px;" align="center">
+            <a href="${process.env.PORTAL_URL ?? 'https://prepaabierta.michoacan.gob.mx'}/estudiante/expediente"
+              style="display:inline-block;background:#7b1e3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;">
+              Entrar al portal ahora →
+            </a>
+          </td>
+        </tr>
+
+        <!-- Si ya no quieres -->
+        <tr>
+          <td style="padding:0 32px 24px 32px;border-top:1px solid #f0e8e8;">
+            <div style="font-size:12px;font-weight:bold;letter-spacing:2px;color:#78716c;text-transform:uppercase;margin:20px 0 10px 0;">
+              Si ya no quieres estudiar
+            </div>
+            <p style="color:#78716c;font-size:13px;line-height:1.6;margin:0;">
+              No necesitas hacer nada. Tu cuenta se eliminará automáticamente
+              y todos tus datos personales serán removidos del sistema según la ley de protección de datos.
+            </p>
+          </td>
+        </tr>
+
+        <!-- Gestor -->
+        ${gestorSection}
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
+            <p style="color:#78716c;font-size:11px;margin:0 0 6px 0;text-align:center;">
+              <strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong>
+            </p>
+            <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">
+              Este correo fue enviado desde <strong>EDUMICH</strong> · Plataforma Educativa Digital<br>
+              © ${new Date().getFullYear()} Gobierno del Estado de Michoacán · IEMSyS · Prepa Abierta<br>
+              Este mensaje fue generado automáticamente. Por favor no respondas.
+            </p>
+          </td>
+        </tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
 function getVerificationEmailHTML(codigo: string): string {
   return `<!DOCTYPE html>
 <html lang="es">

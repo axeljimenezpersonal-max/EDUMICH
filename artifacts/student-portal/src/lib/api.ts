@@ -162,6 +162,12 @@ export interface DashboardEstudiante {
   folioPreregistro: string | null;
   preregistroVigenteHasta: string | null;
   matriculaOficialDGB: string | null;
+  avisoEliminacion: {
+    estadoCuenta: string;
+    avisoEnviadoEn: string | null;
+    diasRestantes: number;
+    diasInactivo: number;
+  } | null;
 }
 
 export interface Aviso {
