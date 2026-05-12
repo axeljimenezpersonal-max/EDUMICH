@@ -43,6 +43,7 @@ import {
   preferenciasUsuario,
   auditLog,
   notificaciones,
+  eliminacionesAuditoria,
 } from './schema';
 import { MUNICIPIOS_MICHOACAN } from './seed/municipios';
 import { MODULOS_PREPA_ABIERTA } from './seed/modulos';
@@ -1034,6 +1035,9 @@ async function main() {
   const [dMor] = await db.select().from(municipios).where(eq(municipios.nombre, 'Morelia'));
   const [dUru] = await db.select().from(municipios).where(eq(municipios.nombre, 'Uruapan'));
   const [dZam] = await db.select().from(municipios).where(eq(municipios.nombre, 'Zamora'));
+  const [dSah] = await db.select().from(municipios).where(eq(municipios.nombre, 'Sahuayo'));
+  const [dPied] = await db.select().from(municipios).where(eq(municipios.nombre, 'La Piedad'));
+  const [dHid] = await db.select().from(municipios).where(eq(municipios.nombre, 'Hidalgo'));
   const [dAdmin] = await db.select().from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
   const [etapa6A] = await db.select().from(convocatoriasEtapas).where(eq(convocatoriasEtapas.clave, '2606-A'));
   const [etapa5B] = await db.select().from(convocatoriasEtapas).where(eq(convocatoriasEtapas.clave, '2605-B'));
@@ -1390,6 +1394,87 @@ async function main() {
   await expDoc(axelId, 'ine', 'pendiente_revision', daysAgoDate(4));
 
   console.log('   ✓ Grupo D — 2 alumnos sin gestor');
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // GRUPO E — DEPURACIÓN (cuentas en riesgo + soft-deleted + auditoria)
+  // ─────────────────────────────────────────────────────────────────────────
+  console.log('🗑  Sembrando cuentas demo de depuración...');
+
+  const [existDepuracion] = await db.select({ c: sql<number>`count(*)` })
+    .from(users).where(eq(users.email, 'andres.soto@correo.com'))
+    .then(r => r);
+
+  if (Number(existDepuracion?.c ?? 0) === 0) {
+    // Andrés Soto Lima — aviso enviado, eliminación en ~4 días
+    const andresId = await demoUser('andres.soto@correo.com', 'estudiante', false, daysAgoDate(26));
+    await db.insert(estudiantes).values({
+      userId: andresId,
+      nombreCompleto: 'Andrés Soto Lima',
+      curp: 'SOLA990314HMNTML01',
+      fechaNacimiento: '1999-03-14',
+      telefono: '353-100-1234',
+      municipioId: dSah?.id ?? dMor!.id,
+      estadoCuenta: 'aviso_enviado',
+      ultimaActividadEn: null,
+      avisoEliminacionEnviadoEn: daysAgoDate(1),
+      createdAt: daysAgoDate(26),
+    }).onConflictDoNothing();
+
+    // Marta Jiménez Pérez — aviso enviado, eliminación en ~2 días
+    const martaId = await demoUser('marta.jimenez@correo.com', 'estudiante', false, daysAgoDate(28));
+    await db.insert(estudiantes).values({
+      userId: martaId,
+      nombreCompleto: 'Marta Jiménez Pérez',
+      curp: 'JIPM880521MMNNRR02',
+      fechaNacimiento: '1988-05-21',
+      telefono: '352-200-5678',
+      municipioId: dPied?.id ?? dMor!.id,
+      estadoCuenta: 'aviso_enviado',
+      ultimaActividadEn: null,
+      avisoEliminacionEnviadoEn: daysAgoDate(3),
+      createdAt: daysAgoDate(28),
+    }).onConflictDoNothing();
+
+    // Pedro Lara Méndez — soft-deleted hace 30 días (60 días sin actividad)
+    const pedroDepId = await demoUser('pedro.lara@correo.com', 'estudiante', false, daysAgoDate(60));
+    await db.insert(estudiantes).values({
+      userId: pedroDepId,
+      nombreCompleto: 'Pedro Lara Méndez',
+      curp: 'LAMP820709HMNNRD03',
+      fechaNacimiento: '1982-07-09',
+      telefono: '456-300-9012',
+      municipioId: dHid?.id ?? dMor!.id,
+      estadoCuenta: 'soft_deleted',
+      ultimaActividadEn: null,
+      softDeletedEn: daysAgoDate(30),
+      softDeleteMotivo: 'Inactividad de 30 días sin documentos ni pagos',
+      createdAt: daysAgoDate(60),
+    }).onConflictDoNothing();
+    // Deshabilitar su usuario
+    await db.update(users).set({ activo: false }).where(eq(users.id, pedroDepId));
+
+    // Auditoría: hard-delete ficticio de hace 95 días
+    await db.insert(eliminacionesAuditoria).values({
+      estudianteId: null,
+      nombreCompleto: 'Carmen Ruiz Contreras',
+      curp: 'RUCC791105MMNRND04',
+      email: 'carmen.ruiz@correo.com',
+      municipioNombre: dMor ? 'Morelia' : 'Michoacán',
+      folioPreregistro: null,
+      tipo: 'hard_delete',
+      motivo: 'Eliminación automática LGPDPPSO — 90 días en soft_deleted sin actividad',
+      diasSinActividad: 120,
+      documentosTenia: 0,
+      pagosTenia: 0,
+      teniaMatriculaDGB: false,
+      ejecutadoPorSistema: true,
+      creadoEn: daysAgoDate(95),
+    }).onConflictDoNothing();
+
+    console.log('   ✓ Grupo E — 3 cuentas depuración + 1 entrada auditoría');
+  } else {
+    console.log('   ✓ Grupo E — cuentas depuración ya existían');
+  }
 
   // ─────────────────────────────────────────────────────────────────────────
   // SOLICITUDES PENDIENTES (4 específicas para demo)
@@ -1838,7 +1923,10 @@ async function main() {
   console.log('  Alumno:      r.vargas@correo.com / demo1234        (doc rechazado)');
   console.log('  Alumna:      m.torres@correo.com / demo1234        (espera etapa)');
   console.log('  Alumno:      carlos.hernandez@correo.com / demo1234 (sin gestor)');
-  console.log('  Alumno:      axel.jimenez@correo.com / demo1234    (autodirigido)\n');
+  console.log('  Alumno:      axel.jimenez@correo.com / demo1234    (autodirigido)');
+  console.log('  Alumno ⚠:   andres.soto@correo.com / demo1234     (aviso eliminación — 4 días)');
+  console.log('  Alumna ⚠:   marta.jimenez@correo.com / demo1234   (aviso eliminación — 2 días)');
+  console.log('  Alumno 🗑:   pedro.lara@correo.com / demo1234      (soft-deleted)\n');
 
   await pool.end();
 }
