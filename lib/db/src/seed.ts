@@ -1056,7 +1056,11 @@ async function main() {
   // ── Helper: getOrCreate user ──────────────────────────────────────────────
   async function demoUser(email: string, rol: 'gestor' | 'estudiante', passTemp: boolean, createdAt?: Date) {
     const [ex] = await db.select().from(users).where(eq(users.email, email));
-    if (ex) return ex.id;
+    if (ex) {
+      // Siempre re-sincronizar contraseña a demo1234 para idempotencia
+      await db.update(users).set({ passwordHash: demoHash, activo: true }).where(eq(users.id, ex.id));
+      return ex.id;
+    }
     const vals: Parameters<typeof db.insert>[0] extends never ? never : {
       email: string; passwordHash: string; rol: 'gestor'|'estudiante'; passwordTemporal: boolean; privacidadAceptadaEn?: Date; createdAt?: Date; updatedAt?: Date;
     } = {
