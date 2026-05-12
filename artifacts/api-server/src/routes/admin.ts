@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { and, eq, sql, desc, gte, count, countDistinct, isNull } from 'drizzle-orm';
+import { and, eq, sql, desc, gte, count, countDistinct, isNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
@@ -30,9 +30,10 @@ import {
   convocatoriasEtapas,
   anuncios,
   anunciosVistos,
+  outbox,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
-import { sendBienvenidaCredenciales } from '../services/email';
+import { sendBienvenidaCredenciales, sendBienvenidaGestor } from '../services/email';
 import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
@@ -2253,14 +2254,18 @@ router.post('/gestores', async (req, res) => {
       return { user, gestor };
     });
 
+    const [munRow] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, data.municipioId));
+    const municipioNombre = munRow?.nombre ?? 'sin municipio';
+
     let emailEnviado = false;
     try {
-      const emailResult = await sendBienvenidaCredenciales(data.email, {
-        nombreAlumno: nombreCompleto,
+      const emailResult = await sendBienvenidaGestor(data.email, {
+        nombreGestor: nombreCompleto,
         email: data.email,
         passwordTemporal: tempPassword,
+        municipio: municipioNombre,
         portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
-      });
+      }, { triggeredBy: req.user!.userId, relatedUserId: newGestor.user.id });
       emailEnviado = emailResult.enviado;
       if (emailEnviado) {
         await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, newGestor.user.id));
@@ -3666,6 +3671,60 @@ router.get('/alumnos/:id/ficha-registro', async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="ficha-registro-${safeMat}.pdf"`);
   res.send(pdf);
+});
+
+// ─── GET /admin/outbox ────────────────────────────────────────────────────
+router.get('/outbox', async (req, res) => {
+  const {
+    evento,
+    estado,
+    q,
+    page = '1',
+    perPage = '25',
+  } = req.query as Record<string, string>;
+
+  const pageNum = Math.max(1, parseInt(page, 10));
+  const limit = Math.min(100, parseInt(perPage, 10));
+  const offset = (pageNum - 1) * limit;
+
+  const conditions: SQL[] = [];
+  if (evento) conditions.push(eq(outbox.evento, evento as any));
+  if (estado) conditions.push(eq(outbox.estado, estado as any));
+  if (q) conditions.push(
+    sql`(${outbox.toEmail} ILIKE ${'%' + q + '%'} OR ${outbox.toName} ILIKE ${'%' + q + '%'} OR ${outbox.subject} ILIKE ${'%' + q + '%'})`
+  );
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db.select({
+      id: outbox.id,
+      toEmail: outbox.toEmail,
+      toName: outbox.toName,
+      ccEmail: outbox.ccEmail,
+      fromEmail: outbox.fromEmail,
+      fromName: outbox.fromName,
+      subject: outbox.subject,
+      html: outbox.html,
+      evento: outbox.evento,
+      estado: outbox.estado,
+      errorMessage: outbox.errorMessage,
+      metadata: outbox.metadata,
+      createdAt: outbox.createdAt,
+      sentAt: outbox.sentAt,
+    })
+      .from(outbox)
+      .where(where)
+      .orderBy(desc(outbox.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db.select({ total: count() }).from(outbox).where(where),
+  ]);
+
+  res.json({
+    rows,
+    pagination: { page: pageNum, perPage: limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
+  });
 });
 
 export default router;

@@ -41,6 +41,7 @@ import AdminAlumnoDetalle from './pages/admin/AdminAlumnoDetalle';
 import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import AnunciosLista from './pages/admin/AnunciosLista';
+import CorreosEnviados from './pages/admin/CorreosEnviados';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
 import Notificaciones from './pages/Notificaciones';
@@ -88,6 +89,7 @@ export default function App() {
       <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
       <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
       <Route path="/admin/anuncios" component={AnunciosLista} />
+      <Route path="/admin/correos-enviados" component={CorreosEnviados} />
       <Route path="/admin/reportes" component={Reportes} />
       <Route path="/admin/configuracion/:seccion" component={Configuracion} />
       <Route path="/admin/configuracion"><Redirect to="/admin/configuracion/mi-cuenta" /></Route>

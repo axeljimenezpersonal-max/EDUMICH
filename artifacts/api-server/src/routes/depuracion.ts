@@ -30,7 +30,7 @@ router.use(authRequired, requireRol('admin'));
 
 // ── GET /admin/depuracion/stats ───────────────────────────────────────────
 router.get('/stats', async (_req, res) => {
-  const [result] = await db.execute<{
+  const raw1 = await db.execute<{
     activas: string;
     aviso_enviado: string;
     soft_deleted: string;
@@ -43,10 +43,12 @@ router.get('/stats', async (_req, res) => {
       count(*) FILTER (WHERE estado_cuenta = 'hard_deleted')::text AS hard_deleted
     FROM estudiantes
   `);
+  const result = raw1.rows[0];
 
-  const [histResult] = await db.execute<{ total: string }>(sql`
+  const rawHist = await db.execute<{ total: string }>(sql`
     SELECT count(*)::text AS total FROM eliminaciones_auditoria WHERE tipo = 'hard_delete'
   `);
+  const histResult = rawHist.rows[0];
 
   res.json({
     activas: Number(result?.activas ?? 0),
@@ -163,9 +165,10 @@ router.get('/historial', async (req, res) => {
     ? sql`AND tipo = ${tipo}`
     : sql``;
 
-  const [countResult] = await db.execute<{ total: string }>(sql`
+  const rawCount = await db.execute<{ total: string }>(sql`
     SELECT count(*)::text AS total FROM eliminaciones_auditoria WHERE 1=1 ${tipoSnippet}
   `);
+  const countResult = rawCount.rows[0];
 
   const rows = await db.execute<{
     id: number;

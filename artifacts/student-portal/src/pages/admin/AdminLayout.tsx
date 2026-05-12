@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
-  CheckCircle, XCircle, Star, ChevronRight,
+  CheckCircle, XCircle, Star, ChevronRight, Mail,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -330,6 +330,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const otrosItems = [
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
+    { href: '/admin/correos-enviados', icon: Mail,    label: 'Correos enviados' },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes' },
     { href: '/admin/configuracion', icon: Settings,   label: 'Configuración' },
   ];

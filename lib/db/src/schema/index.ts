@@ -1249,3 +1249,44 @@ export const notificaciones = pgTable('notificaciones', {
   creadaEn: timestamp('creada_en').defaultNow().notNull(),
   leidaEn: timestamp('leida_en'),
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Outbox de correos (modo demo + auditoría)
+// ─────────────────────────────────────────────────────────────────────────
+
+export const outboxEventoEnum = pgEnum('outbox_evento', [
+  'cuenta_creada_alumno',
+  'cuenta_creada_gestor',
+  'autoregistro_alumno',
+  'notificacion_admin_autoregistro',
+  'aviso_eliminacion_cuenta',
+  'recuperar_password',
+  'verificacion_email',
+]);
+
+export const outboxEstadoEnum = pgEnum('outbox_estado', [
+  'pendiente',
+  'enviado',
+  'fallido',
+  'demo_mode',
+]);
+
+export const outbox = pgTable('outbox', {
+  id: serial('id').primaryKey(),
+  toEmail: text('to_email').notNull(),
+  toName: text('to_name'),
+  ccEmail: text('cc_email'),
+  fromEmail: text('from_email').notNull(),
+  fromName: text('from_name').notNull().default('Prepa Abierta Michoacán'),
+  subject: text('subject').notNull(),
+  html: text('html').notNull(),
+  textPlain: text('text_plain'),
+  evento: outboxEventoEnum('evento').notNull(),
+  estado: outboxEstadoEnum('estado').notNull().default('pendiente'),
+  errorMessage: text('error_message'),
+  triggeredByUserId: integer('triggered_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  relatedUserId: integer('related_user_id').references(() => users.id, { onDelete: 'set null' }),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  sentAt: timestamp('sent_at'),
+});

@@ -26,7 +26,9 @@ import {
   modulos,
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
-import { sendVerificationCode } from '../services/email';
+import { sendVerificationCode, sendEmail } from '../services/email';
+import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
+import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 
@@ -363,6 +365,30 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     cuerpo: `${data.nombreCompleto} solicitó una cuenta de acceso al sistema.`,
     enlace: '/admin/solicitudes',
   });
+
+  // Correos outbox (sin bloquear la respuesta)
+  const [munRow] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, data.municipioId));
+  const municipioNombre = munRow?.nombre ?? 'Michoacán';
+  const portalUrl = process.env.PUBLIC_PORTAL_URL ?? 'https://edumich.up.railway.app';
+  const panelUrl = `${portalUrl}/admin/solicitudes`;
+
+  sendEmail({
+    to: data.email.toLowerCase(),
+    toName: data.nombreCompleto,
+    ...autoregistroConfirmacionTemplate({ nombreCompleto: data.nombreCompleto, municipio: municipioNombre, portalUrl }),
+    evento: 'autoregistro_alumno',
+    metadata: { municipio: municipioNombre },
+  }).catch(() => {});
+
+  const adminNotifEmail = process.env.ADMIN_NOTIFICATION_EMAIL ?? process.env.INSTITUTIONAL_CC_EMAIL;
+  if (adminNotifEmail) {
+    sendEmail({
+      to: adminNotifEmail,
+      ...notifAdminAutoregistroTemplate({ nombreAspirante: data.nombreCompleto, emailAspirante: data.email.toLowerCase(), municipio: municipioNombre, telefono: data.telefono, panelUrl }),
+      evento: 'notificacion_admin_autoregistro',
+      metadata: { aspirante: data.nombreCompleto, municipio: municipioNombre },
+    }).catch(() => {});
+  }
 
   res.json({ ok: true });
 });

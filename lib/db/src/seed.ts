@@ -44,6 +44,7 @@ import {
   auditLog,
   notificaciones,
   eliminacionesAuditoria,
+  outbox,
 } from './schema';
 import { MUNICIPIOS_MICHOACAN } from './seed/municipios';
 import { MODULOS_PREPA_ABIERTA } from './seed/modulos';
@@ -1906,6 +1907,113 @@ async function main() {
   }
 
   console.log('\n✅ Datos demo para presentación listos.\n');
+
+  // ─── Outbox demo ──────────────────────────────────────────────────────────
+  console.log('📧 Sembrando entradas de outbox demo...');
+  const outboxCount = await db.select({ c: sql<number>`count(*)` }).from(outbox);
+  if (Number(outboxCount[0].c) === 0) {
+    // Buscar IDs de usuarios demo para relacionar
+    const [anaUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, 'ana.lopez@correo.com'));
+    const [adminUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, 'admin@michoacan.gob.mx'));
+    const [gestorUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, 'm.ramirez@michoacan.gob.mx'));
+    const [robertoUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, 'r.vargas@correo.com'));
+    const [elenaUser] = await db.select({ id: users.id }).from(users).where(eq(users.email, 'elena.cisneros@correo.com'));
+
+    const PORTAL = process.env.PUBLIC_PORTAL_URL ?? 'https://edumich.up.railway.app';
+    const FROM_EMAIL = process.env.EMAIL_FROM ?? 'noreply@edumich.up.railway.app';
+
+    await db.insert(outbox).values([
+      {
+        toEmail: 'ana.lopez@correo.com',
+        toName: 'Ana López',
+        fromEmail: FROM_EMAIL,
+        fromName: 'Prepa Abierta Michoacán',
+        subject: '¡Bienvenida a Prepa Abierta Michoacán! Tus datos de acceso',
+        html: `<p>Bienvenida Ana, tus credenciales son: ana.lopez@correo.com / demo1234</p>`,
+        evento: 'cuenta_creada_alumno',
+        estado: 'demo_mode',
+        triggeredByUserId: gestorUser?.id ?? null,
+        relatedUserId: anaUser?.id ?? null,
+        metadata: { municipio: 'Pátzcuaro', gestor: 'M. Ramírez' },
+        createdAt: daysAgoDate(5),
+        sentAt: daysAgoDate(5),
+      },
+      {
+        toEmail: 'r.vargas@correo.com',
+        toName: 'Roberto Vargas Méndez',
+        fromEmail: FROM_EMAIL,
+        fromName: 'Prepa Abierta Michoacán',
+        subject: '¡Bienvenido a Prepa Abierta Michoacán! Tus datos de acceso',
+        html: `<p>Bienvenido Roberto, tus credenciales son: r.vargas@correo.com / demo1234</p>`,
+        evento: 'cuenta_creada_alumno',
+        estado: 'demo_mode',
+        triggeredByUserId: gestorUser?.id ?? null,
+        relatedUserId: robertoUser?.id ?? null,
+        metadata: { municipio: 'Uruapan' },
+        createdAt: daysAgoDate(3),
+        sentAt: daysAgoDate(3),
+      },
+      {
+        toEmail: 'elena.cisneros@correo.com',
+        toName: 'Elena Cisneros',
+        fromEmail: FROM_EMAIL,
+        fromName: 'Prepa Abierta Michoacán',
+        subject: '¡Bienvenida a Prepa Abierta Michoacán! Tus datos de acceso',
+        html: `<p>Bienvenida Elena, tus credenciales son: elena.cisneros@correo.com / demo1234</p>`,
+        evento: 'cuenta_creada_alumno',
+        estado: 'demo_mode',
+        triggeredByUserId: adminUser?.id ?? null,
+        relatedUserId: elenaUser?.id ?? null,
+        metadata: { municipio: 'Pátzcuaro', aprobadaVia: 'solicitud_cuenta' },
+        createdAt: daysAgoDate(8),
+        sentAt: daysAgoDate(8),
+      },
+      {
+        toEmail: 'm.ramirez@michoacan.gob.mx',
+        toName: 'Manuel Ramírez',
+        fromEmail: FROM_EMAIL,
+        fromName: 'Prepa Abierta Michoacán',
+        subject: 'Bienvenido al sistema de gestión — Prepa Abierta Michoacán',
+        html: `<p>Bienvenido Manuel, eres Gestor Municipal de Pátzcuaro.</p>`,
+        evento: 'cuenta_creada_gestor',
+        estado: 'demo_mode',
+        triggeredByUserId: adminUser?.id ?? null,
+        relatedUserId: gestorUser?.id ?? null,
+        metadata: { municipio: 'Pátzcuaro', titulo: 'Gestor Municipal' },
+        createdAt: daysAgoDate(14),
+        sentAt: daysAgoDate(14),
+      },
+      {
+        toEmail: 'admin@michoacan.gob.mx',
+        toName: 'Administración IEMSyS',
+        fromEmail: FROM_EMAIL,
+        fromName: 'Prepa Abierta Michoacán',
+        subject: 'Nueva solicitud de registro — Sofía Castañeda Reyes',
+        html: `<p>Nueva solicitud de cuenta de Sofía Castañeda Reyes, municipio Morelia.</p>`,
+        evento: 'notificacion_admin_autoregistro',
+        estado: 'demo_mode',
+        metadata: { aspirante: 'Sofía Castañeda Reyes', municipio: 'Morelia', folio: 'SOL-DEMO-04' },
+        createdAt: daysAgoDate(4),
+        sentAt: daysAgoDate(4),
+      },
+      {
+        toEmail: 'juana.rodriguez@correo.com',
+        toName: 'Juana Rodríguez Mendoza',
+        fromEmail: FROM_EMAIL,
+        fromName: 'Prepa Abierta Michoacán',
+        subject: 'Recibimos tu solicitud — Prepa Abierta Michoacán',
+        html: `<p>Hola Juana, recibimos tu solicitud de inscripción. Un gestor te contactará pronto.</p>`,
+        evento: 'autoregistro_alumno',
+        estado: 'demo_mode',
+        metadata: { municipio: 'Morelia', folio: 'SOL-DEMO-01' },
+        createdAt: daysAgoDate(12),
+        sentAt: daysAgoDate(12),
+      },
+    ]);
+    console.log('   ✓ 6 entradas de outbox demo insertadas');
+  } else {
+    console.log(`   ✓ Outbox ya tenía ${outboxCount[0].c} entradas`);
+  }
 
   console.log('');
   console.log('✅ Seed completado.\n');

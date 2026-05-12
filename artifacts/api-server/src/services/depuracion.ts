@@ -60,11 +60,12 @@ export async function evaluarProteccion(
   }
 
   // 2. Egresado (21+ módulos aprobados)
-  const [calResult] = await db.execute<{ total: string }>(sql`
+  const rawCal = await db.execute<{ total: string }>(sql`
     SELECT count(DISTINCT modulo_id)::text AS total
     FROM calificaciones
     WHERE estudiante_id = ${estudianteId} AND aprobado = true
   `);
+  const calResult = rawCal.rows[0];
   if (Number(calResult?.total ?? 0) >= 21) {
     motivos.push('Es egresado (21 módulos aprobados)');
   }
@@ -80,13 +81,14 @@ export async function evaluarProteccion(
   }
 
   // 4. Expediente completo (4/4 docs aprobados)
-  const [docsAprobadosResult] = await db.execute<{ total: string }>(sql`
+  const rawDocs = await db.execute<{ total: string }>(sql`
     SELECT count(DISTINCT tipo)::text AS total
     FROM expediente_documentos
     WHERE estudiante_id = ${estudianteId}
       AND estado = 'aprobado'
       AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')
   `);
+  const docsAprobadosResult = rawDocs.rows[0];
   if (Number(docsAprobadosResult?.total ?? 0) >= 4) {
     motivos.push('Expediente completo (4/4 aprobados)');
   }
