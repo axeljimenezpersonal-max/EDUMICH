@@ -22,6 +22,7 @@ import MiExpediente from './pages/estudiante/MiExpediente';
 import MiConvocatoria from './pages/estudiante/MiConvocatoria';
 import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import PaseExamen from './pages/estudiante/PaseExamen';
+import MiIdentificacion from './pages/estudiante/MiIdentificacion';
 import AutoRegistroEmail from './pages/publico/AutoRegistroEmail';
 import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
@@ -44,6 +45,7 @@ import AnunciosLista from './pages/admin/AnunciosLista';
 import CorreosEnviados from './pages/admin/CorreosEnviados';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
+import VerificacionPase from './pages/admin/VerificacionPase';
 import Notificaciones from './pages/Notificaciones';
 
 export default function App() {
@@ -68,6 +70,7 @@ export default function App() {
       <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
       <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
       <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
+      <Route path="/estudiante/identificacion" component={MiIdentificacion} />
 
       {/* Rutas públicas de registro */}
       <Route path="/registro/email" component={AutoRegistroEmail} />
@@ -90,6 +93,7 @@ export default function App() {
       <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
       <Route path="/admin/anuncios" component={AnunciosLista} />
       <Route path="/admin/correos-enviados" component={CorreosEnviados} />
+      <Route path="/admin/verificacion-pase" component={VerificacionPase} />
       <Route path="/admin/reportes" component={Reportes} />
       <Route path="/admin/configuracion/:seccion" component={Configuracion} />
       <Route path="/admin/configuracion"><Redirect to="/admin/configuracion/mi-cuenta" /></Route>

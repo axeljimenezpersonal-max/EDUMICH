@@ -155,6 +155,7 @@ export default function NuevoAlumno() {
 
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ curp?: string; email?: string }>({});
   const [exito, setExito] = useState<RegistroExito | null>(null);
   const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
 
@@ -228,7 +229,9 @@ export default function NuevoAlumno() {
     datos.nombreCompleto.trim().length > 0 &&
     datos.curp.length === 18 &&
     emailValido(datos.email) &&
-    conv !== null;
+    conv !== null &&
+    !fieldErrors.curp &&
+    !fieldErrors.email;
 
   // ── Step 2 counters ──────────────────────────────────────────────────
   const faltanCount = ([archivos.curp, archivos.acta, archivos.ine, archivos.domicilio] as (File | null)[]).filter(
@@ -240,11 +243,27 @@ export default function NuevoAlumno() {
       ? 'Mandar a validar'
       : `Faltan ${faltanCount} documento${faltanCount > 1 ? 's' : ''}`;
 
+  // ── Manejar errores de unicidad (409) ────────────────────────────────
+  function handleConflictError(err: unknown) {
+    const msg = (err as Error).message ?? '';
+    // La API devuelve { error, campo } en 409 — el cliente de api lanza el mensaje
+    if (msg.includes('correo') || msg.toLowerCase().includes('email')) {
+      setFieldErrors((prev) => ({ ...prev, email: msg }));
+      setPaso(1);
+    } else if (msg.includes('CURP') || msg.toLowerCase().includes('curp')) {
+      setFieldErrors((prev) => ({ ...prev, curp: msg }));
+      setPaso(1);
+    } else {
+      setSubmitError(msg);
+    }
+  }
+
   // ── Submit ───────────────────────────────────────────────────────────
   async function handleSubmit() {
     if (!conv || faltanCount > 0) return;
     setLoading(true);
     setSubmitError(null);
+    setFieldErrors({});
 
     const fd = new FormData();
     fd.append('nombreCompleto', datos.nombreCompleto.trim());
@@ -263,7 +282,7 @@ export default function NuevoAlumno() {
       const r = await api.post<RegistroExito>('/gestor/alumnos/registro-completo', fd);
       setExito(r);
     } catch (err) {
-      setSubmitError((err as Error).message);
+      handleConflictError(err);
     } finally {
       setLoading(false);
     }
@@ -275,6 +294,7 @@ export default function NuevoAlumno() {
     setMostrarModalSinDocs(false);
     setLoading(true);
     setSubmitError(null);
+    setFieldErrors({});
 
     const fd = new FormData();
     fd.append('nombreCompleto', datos.nombreCompleto.trim());
@@ -300,7 +320,7 @@ export default function NuevoAlumno() {
       );
       setLocation('/gestor/alumnos');
     } catch (err) {
-      setSubmitError((err as Error).message);
+      handleConflictError(err);
     } finally {
       setLoading(false);
     }
@@ -467,23 +487,31 @@ export default function NuevoAlumno() {
                 id="curp"
                 maxLength={18}
                 value={datos.curp}
-                onChange={(e) =>
-                  setDatos((d) => ({ ...d, curp: e.target.value.toUpperCase() }))
-                }
-                className="gov-input font-mono uppercase"
+                onChange={(e) => {
+                  setDatos((d) => ({ ...d, curp: e.target.value.toUpperCase() }));
+                  if (fieldErrors.curp) setFieldErrors((prev) => ({ ...prev, curp: undefined }));
+                }}
+                className={`gov-input font-mono uppercase ${fieldErrors.curp ? 'border-red-500 focus:ring-red-400' : ''}`}
                 placeholder="GOPA950315MMNNRN09"
               />
-              <div
-                className={`text-xs mt-1 ${
-                  datos.curp.length === 18
-                    ? 'text-green-600'
-                    : datos.curp.length > 0
-                    ? 'text-amber-600'
-                    : 'text-stone-500'
-                }`}
-              >
-                {datos.curp.length}/18 caracteres
-              </div>
+              {fieldErrors.curp ? (
+                <div className="flex items-center gap-1.5 text-xs text-red-700 mt-1">
+                  <AlertCircle size={12} className="flex-shrink-0" />
+                  {fieldErrors.curp}
+                </div>
+              ) : (
+                <div
+                  className={`text-xs mt-1 ${
+                    datos.curp.length === 18
+                      ? 'text-green-600'
+                      : datos.curp.length > 0
+                      ? 'text-amber-600'
+                      : 'text-stone-500'
+                  }`}
+                >
+                  {datos.curp.length}/18 caracteres
+                </div>
+              )}
               <CurpHelpLink />
             </div>
             <div>
@@ -508,10 +536,19 @@ export default function NuevoAlumno() {
                 id="email"
                 type="email"
                 value={datos.email}
-                onChange={(e) => setDatos((d) => ({ ...d, email: e.target.value }))}
-                className="gov-input"
+                onChange={(e) => {
+                  setDatos((d) => ({ ...d, email: e.target.value }));
+                  if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                }}
+                className={`gov-input ${fieldErrors.email ? 'border-red-500 focus:ring-red-400' : ''}`}
                 placeholder="alumno@correo.com"
               />
+              {fieldErrors.email && (
+                <div className="flex items-center gap-1.5 text-xs text-red-700 mt-1">
+                  <AlertCircle size={12} className="flex-shrink-0" />
+                  {fieldErrors.email}
+                </div>
+              )}
             </div>
             <div>
               <label className="gov-label" htmlFor="tel">
@@ -551,7 +588,11 @@ export default function NuevoAlumno() {
             </button>
             {!paso1Valid && datos.nombreCompleto.trim().length > 0 && (
               <span className="ml-3 text-xs text-stone-500">
-                {datos.curp.length < 18
+                {fieldErrors.curp
+                  ? 'Corrige el CURP antes de continuar'
+                  : fieldErrors.email
+                  ? 'Corrige el correo antes de continuar'
+                  : datos.curp.length < 18
                   ? 'Completa los 18 caracteres de la CURP'
                   : !emailValido(datos.email)
                   ? 'Ingresa un correo válido'

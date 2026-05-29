@@ -162,6 +162,7 @@ export interface DashboardEstudiante {
   folioPreregistro: string | null;
   preregistroVigenteHasta: string | null;
   matriculaOficialDGB: string | null;
+  licenciaDigital: string | null;
   avisoEliminacion: {
     estadoCuenta: string;
     avisoEnviadoEn: string | null;
@@ -200,6 +201,7 @@ export interface ModuloListItem {
 }
 
 export interface MisModulosResponse {
+  planAsignado: boolean;
   modulos: ModuloListItem[];
   resumen: {
     totalModulos: number;
@@ -208,6 +210,19 @@ export interface MisModulosResponse {
     totalQuizzes: number;
     promedioGlobal: number;
   };
+}
+
+export interface GestorPlanModularModulo {
+  id: number;
+  numero: number;
+  nombre: string;
+  nivel: number | null;
+  enPlan: boolean;
+}
+
+export interface GestorPlanModularResponse {
+  inscripcionId: number | null;
+  modulos: GestorPlanModularModulo[];
 }
 
 export interface TemaNode {

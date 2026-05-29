@@ -3,7 +3,7 @@ import { useLocation } from 'wouter';
 import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
-  CheckCircle, XCircle, Star, ChevronRight, Mail,
+  CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -328,6 +328,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const otrosItems = [
+    { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación de pase' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
     { href: '/admin/correos-enviados', icon: Mail,    label: 'Correos enviados' },

@@ -40,7 +40,10 @@ import {
   convocatoriasEtapas,
   convocatoriasModulosHorarios,
   examenesInscripciones,
+  inscripcionModulos,
 } from '@workspace/db/schema';
+import QRCode from 'qrcode';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
@@ -133,6 +136,7 @@ router.get('/dashboard', async (req, res) => {
       folioPreregistro: estudiantes.folioPreregistro,
       preregistroVigenteHasta: estudiantes.preregistroVigenteHasta,
       matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      licenciaDigital: estudiantes.licenciaDigital,
       estadoCuenta: estudiantes.estadoCuenta,
       avisoEliminacionEnviadoEn: estudiantes.avisoEliminacionEnviadoEn,
       ultimaActividadEn: estudiantes.ultimaActividadEn,
@@ -254,6 +258,7 @@ router.get('/dashboard', async (req, res) => {
     folioPreregistro: est.folioPreregistro ?? null,
     preregistroVigenteHasta: est.preregistroVigenteHasta ?? null,
     matriculaOficialDGB: est.matriculaOficialDGB ?? null,
+    licenciaDigital: est.licenciaDigital ?? null,
     avisoEliminacion: est.estadoCuenta === 'aviso_enviado'
       ? {
           estadoCuenta: est.estadoCuenta,
@@ -429,7 +434,25 @@ router.post('/cambiar-password', async (req, res) => {
 router.get('/modulos', async (req, res) => {
   const userId = req.user!.userId;
 
-  const rows = await db
+  // Check if the student has a plan assigned (via inscripcion_modulos)
+  const [insc] = await db
+    .select({ id: inscripciones.id })
+    .from(inscripciones)
+    .where(eq(inscripciones.estudianteId, userId))
+    .orderBy(desc(inscripciones.createdAt))
+    .limit(1);
+
+  const planAsignado: number[] = insc
+    ? (await db
+        .select({ moduloId: inscripcionModulos.moduloId })
+        .from(inscripcionModulos)
+        .where(eq(inscripcionModulos.inscripcionId, insc.id))
+      ).map((r) => r.moduloId)
+    : [];
+
+  const hasPlan = planAsignado.length > 0;
+
+  const query = db
     .select({
       id: modulos.id,
       numero: modulos.numero,
@@ -451,6 +474,10 @@ router.get('/modulos', async (req, res) => {
     )
     .orderBy(modulos.numero);
 
+  const rows = hasPlan
+    ? await query.where(inArray(modulos.id, planAsignado))
+    : await query;
+
   const aprobados = rows.filter((r) => r.estado === 'aprobado').length;
   const enCurso = rows.filter((r) => r.estado === 'en_curso').length;
   const totalQuizzes = rows.reduce((s, r) => s + (r.intentosQuiz ?? 0), 0);
@@ -461,6 +488,7 @@ router.get('/modulos', async (req, res) => {
       : 0;
 
   res.json({
+    planAsignado: hasPlan,
     modulos: rows.map((r) => ({
       id: r.id,
       numero: r.numero,
@@ -1697,6 +1725,157 @@ router.get('/ficha-registro', async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="ficha-registro-${safeMat}.pdf"`);
   res.send(pdf);
+});
+
+// ─── GET /estudiante/mi-identificacion ───────────────────────────────────
+router.get('/mi-identificacion', async (req, res) => {
+  const userId = req.user!.userId;
+
+  const [est] = await db
+    .select({
+      nombreCompleto: estudiantes.nombreCompleto,
+      curp: estudiantes.curp,
+      municipioId: estudiantes.municipioId,
+      matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      licenciaDigital: estudiantes.licenciaDigital,
+      licenciaEmitidaEn: estudiantes.licenciaEmitidaEn,
+      foto: estudiantes.foto,
+    })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, userId));
+
+  if (!est || !est.licenciaDigital) {
+    res.json({ tieneIdentificacion: false });
+    return;
+  }
+
+  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+
+  res.json({
+    tieneIdentificacion: true,
+    identificacion: {
+      nombreCompleto: est.nombreCompleto,
+      curp: est.curp ?? null,
+      email: userRow?.email ?? '',
+      municipio: municipio?.nombre ?? '',
+      matriculaOficialDGB: est.matriculaOficialDGB ?? null,
+      licenciaDigital: est.licenciaDigital,
+      licenciaEmitidaEn: est.licenciaEmitidaEn?.toISOString() ?? null,
+    },
+  });
+});
+
+// ─── GET /estudiante/mi-identificacion/descargar ──────────────────────────
+router.get('/mi-identificacion/descargar', async (req, res) => {
+  const userId = req.user!.userId;
+
+  const [est] = await db
+    .select({
+      nombreCompleto: estudiantes.nombreCompleto,
+      curp: estudiantes.curp,
+      municipioId: estudiantes.municipioId,
+      matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      licenciaDigital: estudiantes.licenciaDigital,
+      licenciaEmitidaEn: estudiantes.licenciaEmitidaEn,
+    })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, userId));
+
+  if (!est || !est.licenciaDigital) {
+    res.status(403).json({ error: 'Aún no tienes una identificación digital emitida' });
+    return;
+  }
+
+  const [municipio] = est.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+    : [null];
+
+  const qrPayload = firmarQrPayload({
+    licencia: est.licenciaDigital,
+    curp: est.curp ?? '',
+    nombre: est.nombreCompleto,
+    matricula: est.matriculaOficialDGB ?? '',
+  });
+  const qrDataUrl = await QRCode.toDataURL(qrPayload, { width: 200, margin: 2 });
+  const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
+  const qrBytes = Buffer.from(qrBase64, 'base64');
+
+  // Credencial: 85mm x 54mm => ~241 x 153 pts
+  const CARD_W = 241;
+  const CARD_H = 153;
+  const GUINDA = rgb(0.48, 0.12, 0.23);
+  const CREMA  = rgb(0.96, 0.93, 0.84);
+  const BLANCO = rgb(1, 1, 1);
+  const NEGRO  = rgb(0.1, 0.1, 0.1);
+  const GRIS   = rgb(0.46, 0.44, 0.42);
+
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([CARD_W, CARD_H]);
+  const bold    = await doc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+
+  // Fondo crema
+  page.drawRectangle({ x: 0, y: 0, width: CARD_W, height: CARD_H, color: CREMA });
+
+  // Franja guinda superior
+  page.drawRectangle({ x: 0, y: CARD_H - 28, width: CARD_W, height: 28, color: GUINDA });
+
+  // Barra lateral izquierda guinda
+  page.drawRectangle({ x: 0, y: 0, width: 5, height: CARD_H - 28, color: GUINDA });
+
+  // Encabezado en la franja
+  page.drawText('PREPA ABIERTA MICHOACÁN', { x: 9, y: CARD_H - 17, size: 7.5, font: bold, color: BLANCO });
+  page.drawText('IEMSyS · Identificación Digital', { x: 9, y: CARD_H - 25, size: 5.5, font: regular, color: BLANCO });
+
+  // QR code a la derecha
+  const QR_SIZE = 68;
+  const QR_X = CARD_W - QR_SIZE - 8;
+  const QR_Y = 8;
+  const qrImg = await doc.embedPng(qrBytes);
+  page.drawRectangle({ x: QR_X - 2, y: QR_Y - 2, width: QR_SIZE + 4, height: QR_SIZE + 4, color: BLANCO });
+  page.drawImage(qrImg, { x: QR_X, y: QR_Y, width: QR_SIZE, height: QR_SIZE });
+
+  // Datos del alumno
+  const LEFT = 12;
+  let cy = CARD_H - 38;
+  const lineGap = 17;
+
+  const rows: { label: string; value: string }[] = [
+    { label: 'NOMBRE', value: est.nombreCompleto },
+    { label: 'CURP', value: est.curp ?? '—' },
+    { label: 'MATRÍCULA', value: est.matriculaOficialDGB ?? '—' },
+    { label: 'MUNICIPIO', value: municipio?.nombre ?? '—' },
+    { label: 'LICENCIA', value: est.licenciaDigital },
+  ];
+
+  const contentMaxW = QR_X - LEFT - 8;
+  for (const { label, value } of rows) {
+    page.drawText(label, { x: LEFT, y: cy, size: 5.5, font: bold, color: GUINDA });
+    cy -= 8;
+    let v = value;
+    while (v.length > 3 && regular.widthOfTextAtSize(v, 7.5) > contentMaxW) {
+      v = v.slice(0, -1);
+    }
+    if (v !== value) v = v.slice(0, -1) + '…';
+    page.drawText(v, { x: LEFT, y: cy, size: 7.5, font: regular, color: NEGRO });
+    cy -= lineGap - 8;
+  }
+
+  // Fecha de emisión al pie
+  const emitidaEn = est.licenciaEmitidaEn
+    ? new Date(est.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' })
+    : '—';
+  page.drawText(`Emitida: ${emitidaEn}`, { x: LEFT, y: 6, size: 5, font: regular, color: GRIS });
+  page.drawText('edumich.michoacan.gob.mx', { x: CARD_W / 2 - 40, y: 6, size: 5, font: regular, color: GRIS });
+
+  const pdfBytes = await doc.save();
+
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'attachment; filename="identificacion-digital.pdf"');
+  res.send(Buffer.from(pdfBytes));
 });
 
 export default router;

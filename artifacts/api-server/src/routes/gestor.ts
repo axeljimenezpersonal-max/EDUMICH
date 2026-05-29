@@ -12,7 +12,7 @@
  */
 
 import { Router } from 'express';
-import { and, desc, eq, count, sql } from 'drizzle-orm';
+import { and, desc, eq, count, sql, inArray } from 'drizzle-orm';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -30,6 +30,8 @@ import {
   municipios,
   auditLog,
   expedienteDocumentos,
+  modulos,
+  inscripcionModulos,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
@@ -197,7 +199,7 @@ router.post('/alumnos', async (req, res) => {
 
   const [emailExists] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase()));
   if (emailExists) {
-    res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
+    res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico', campo: 'email' });
     return;
   }
 
@@ -206,7 +208,7 @@ router.post('/alumnos', async (req, res) => {
     .from(estudiantes)
     .where(eq(estudiantes.curp, data.curp.toUpperCase()));
   if (curpExists) {
-    res.status(409).json({ error: 'Ya existe un alumno con ese CURP' });
+    res.status(409).json({ error: 'Ya existe un alumno con ese CURP', campo: 'curp' });
     return;
   }
 
@@ -339,13 +341,23 @@ router.post(
     }
     const data = parse.data;
 
-    const [exists] = await db
+    const [curpExistsRC] = await db
       .select()
       .from(estudiantes)
       .where(eq(estudiantes.curp, data.curp.toUpperCase()));
-    if (exists) {
+    if (curpExistsRC) {
       for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
-      res.status(409).json({ error: 'Ya existe un alumno con ese CURP' });
+      res.status(409).json({ error: 'Ya existe un alumno con ese CURP', campo: 'curp' });
+      return;
+    }
+
+    const [emailExistsRC] = await db
+      .select()
+      .from(users)
+      .where(eq(users.email, data.email.toLowerCase()));
+    if (emailExistsRC) {
+      for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
+      res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico', campo: 'email' });
       return;
     }
 
@@ -1215,6 +1227,102 @@ router.get('/alumnos/:id/ficha-registro', async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `inline; filename="ficha-registro-${safeMat}.pdf"`);
   res.send(pdf);
+});
+
+// ─── GET /gestor/alumnos/:id/plan-modular ────────────────────────────────────
+// Devuelve los 21 módulos con flag `enPlan` indicando cuáles están asignados
+// a la inscripción más reciente del alumno.
+router.get('/alumnos/:id/plan-modular', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  // Verificar que el alumno pertenece a este gestor
+  const [alumno] = await db
+    .select({ gestorId: estudiantes.gestorId })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, alumnoId));
+  if (!alumno || alumno.gestorId !== gestorId) {
+    res.status(403).json({ error: 'Sin acceso' }); return;
+  }
+
+  // Inscripción más reciente
+  const [insc] = await db
+    .select({ id: inscripciones.id })
+    .from(inscripciones)
+    .where(eq(inscripciones.estudianteId, alumnoId))
+    .orderBy(desc(inscripciones.createdAt))
+    .limit(1);
+
+  // Módulos asignados en esa inscripción
+  const asignados = insc
+    ? await db
+        .select({ moduloId: inscripcionModulos.moduloId })
+        .from(inscripcionModulos)
+        .where(eq(inscripcionModulos.inscripcionId, insc.id))
+    : [];
+  const asignadosSet = new Set(asignados.map((a) => a.moduloId));
+
+  const todosModulos = await db
+    .select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre, nivel: modulos.nivel })
+    .from(modulos)
+    .orderBy(modulos.numero);
+
+  res.json({
+    inscripcionId: insc?.id ?? null,
+    modulos: todosModulos.map((m) => ({ ...m, enPlan: asignadosSet.has(m.id) })),
+  });
+});
+
+// ─── PUT /gestor/alumnos/:id/plan-modular ────────────────────────────────────
+// Reemplaza los módulos del plan modular del alumno en su inscripción activa.
+// Body: { moduloIds: number[] }
+router.put('/alumnos/:id/plan-modular', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parsed = z.object({ moduloIds: z.array(z.number().int().positive()) }).safeParse(req.body);
+  if (!parsed.success) { res.status(400).json({ error: 'moduloIds inválidos' }); return; }
+  const { moduloIds } = parsed.data;
+
+  // Verificar que el alumno pertenece a este gestor
+  const [alumno] = await db
+    .select({ gestorId: estudiantes.gestorId })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, alumnoId));
+  if (!alumno || alumno.gestorId !== gestorId) {
+    res.status(403).json({ error: 'Sin acceso' }); return;
+  }
+
+  // Inscripción más reciente
+  const [insc] = await db
+    .select({ id: inscripciones.id })
+    .from(inscripciones)
+    .where(eq(inscripciones.estudianteId, alumnoId))
+    .orderBy(desc(inscripciones.createdAt))
+    .limit(1);
+  if (!insc) { res.status(400).json({ error: 'El alumno no tiene inscripción activa' }); return; }
+
+  // Reemplazar: borrar existentes e insertar los nuevos
+  await db.delete(inscripcionModulos).where(eq(inscripcionModulos.inscripcionId, insc.id));
+
+  if (moduloIds.length > 0) {
+    await db.insert(inscripcionModulos).values(
+      moduloIds.map((moduloId) => ({ inscripcionId: insc.id, moduloId }))
+    );
+  }
+
+  await tryAuditLog({
+    userId: gestorId,
+    accion: 'actualizar_plan_modular',
+    entidad: 'inscripcion_modulos',
+    entidadId: insc.id,
+    detalle: `Gestor asignó ${moduloIds.length} módulos al alumno ${alumnoId}`,
+    req,
+  });
+
+  res.json({ ok: true, inscripcionId: insc.id, total: moduloIds.length });
 });
 
 export default router;

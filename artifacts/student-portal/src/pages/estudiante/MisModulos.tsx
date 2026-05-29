@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ChevronRight, Lock } from 'lucide-react';
+import { ChevronRight, Lock, BookOpen } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api, type MisModulosResponse, type ModuloListItem, type ProgresoEstado } from '../../lib/api';
 
@@ -95,9 +95,15 @@ export default function MisModulos() {
       .finally(() => setLoading(false));
   }, []);
 
-  const nivel1 = data?.modulos.filter((m) => m.nivel === 1) ?? [];
-  const nivel2 = data?.modulos.filter((m) => m.nivel === 2) ?? [];
-  const nivel3y4 = data?.modulos.filter((m) => (m.nivel ?? 0) >= 3) ?? [];
+  // Group by level
+  const byNivel = (nivel: number) => data?.modulos.filter((m) => m.nivel === nivel) ?? [];
+  const nivel1 = byNivel(1);
+  const nivel2 = byNivel(2);
+  const nivel3 = byNivel(3);
+  const nivel4 = byNivel(4);
+  const sinNivel = data?.modulos.filter((m) => !m.nivel) ?? [];
+
+  const planAsignado = data?.planAsignado ?? false;
 
   return (
     <EstudianteLayout>
@@ -107,13 +113,34 @@ export default function MisModulos() {
           MIS MÓDULOS
         </div>
         <h1 className="font-serif text-2xl font-bold text-stone-900">Plan Modular</h1>
-        <p className="text-stone-500 text-sm mt-1">
-          21 módulos organizados en 4 niveles de avance
-        </p>
+        {data && (
+          <p className="text-stone-500 text-sm mt-1">
+            {planAsignado
+              ? `${data.resumen.totalModulos} módulo${data.resumen.totalModulos !== 1 ? 's' : ''} asignado${data.resumen.totalModulos !== 1 ? 's' : ''} a tu plan`
+              : '21 módulos organizados en 4 niveles de avance'}
+          </p>
+        )}
       </div>
 
-      {/* Progress overview card */}
-      {data && (
+      {loading && (
+        <div className="text-center text-stone-400 py-16 text-sm">Cargando módulos...</div>
+      )}
+
+      {/* Sin plan asignado */}
+      {!loading && data && !planAsignado && (
+        <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center mb-8">
+          <BookOpen size={32} className="mx-auto mb-3 text-stone-300" />
+          <div className="text-sm font-semibold text-stone-600 mb-1">
+            Tu gestor aún no ha asignado tu plan modular
+          </div>
+          <div className="text-xs text-stone-400">
+            Cuando tu gestor defina qué módulos debes cursar, aparecerán aquí con tu progreso.
+          </div>
+        </div>
+      )}
+
+      {/* Progress overview card — solo si hay plan */}
+      {data && planAsignado && (
         <div className="rounded-lg overflow-hidden mb-8 bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white p-6">
           <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70 mb-4">
             Progreso global
@@ -144,57 +171,41 @@ export default function MisModulos() {
         </div>
       )}
 
-      {loading && (
-        <div className="text-center text-stone-400 py-16 text-sm">Cargando módulos...</div>
-      )}
-
-      {/* Nivel 1 */}
-      {nivel1.length > 0 && (
-        <section className="mb-8">
-          <h2 className="font-serif text-base font-bold text-stone-900 mb-3">
-            Nivel 1 —{' '}
-            <span className="font-normal text-stone-600">{NIVEL_LABELS[1]}</span>
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {nivel1.map((m) => (
-              <ModuloCard key={m.id} modulo={m} />
+      {/* Módulos agrupados por nivel */}
+      {planAsignado && (
+        <>
+          {[
+            { nivel: 1, items: nivel1 },
+            { nivel: 2, items: nivel2 },
+            { nivel: 3, items: nivel3 },
+            { nivel: 4, items: nivel4 },
+          ]
+            .filter(({ items }) => items.length > 0)
+            .map(({ nivel, items }) => (
+              <section key={nivel} className="mb-8">
+                <h2 className="font-serif text-base font-bold text-stone-900 mb-3">
+                  Nivel {nivel} —{' '}
+                  <span className="font-normal text-stone-600">{NIVEL_LABELS[nivel] ?? ''}</span>
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {items.map((m) => (
+                    <ModuloCard key={m.id} modulo={m} />
+                  ))}
+                </div>
+              </section>
             ))}
-          </div>
-        </section>
-      )}
 
-      {/* Nivel 2 */}
-      {nivel2.length > 0 && (
-        <section className="mb-8">
-          <h2 className="font-serif text-base font-bold text-stone-900 mb-3">
-            Nivel 2 —{' '}
-            <span className="font-normal text-stone-600">{NIVEL_LABELS[2]}</span>
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {nivel2.map((m) => (
-              <ModuloCard key={m.id} modulo={m} />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Niveles 3 y 4 — bloqueados */}
-      {nivel3y4.length > 0 && (
-        <section className="mb-8">
-          <h2 className="font-serif text-base font-bold text-stone-700 mb-3">
-            Niveles 3 y 4 —{' '}
-            <span className="font-normal text-stone-500">Métodos, contextos y especialidades</span>
-          </h2>
-          <div className="border-2 border-dashed border-stone-300 rounded-lg p-8 text-center">
-            <Lock size={22} className="mx-auto mb-2 text-stone-300" />
-            <div className="text-sm font-medium text-stone-500">
-              Disponibles cuando avances tu plan de estudios
-            </div>
-            <div className="text-xs text-stone-400 mt-1.5">
-              {nivel3y4.length} módulos · Niveles 3 (Métodos y contextos) y 4 (Especialidades)
-            </div>
-          </div>
-        </section>
+          {sinNivel.length > 0 && (
+            <section className="mb-8">
+              <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sinNivel.map((m) => (
+                  <ModuloCard key={m.id} modulo={m} />
+                ))}
+              </div>
+            </section>
+          )}
+        </>
       )}
     </EstudianteLayout>
   );

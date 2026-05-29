@@ -19,6 +19,7 @@ import {
   Award,
   Download,
   CalendarClock,
+  BadgeCheck,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api, type DashboardEstudiante, type Aviso, type ContactosResponse } from '../../lib/api';
@@ -260,7 +261,7 @@ export default function EstudianteDashboard() {
         )}
 
         {/* Fichas PDF */}
-        {(data.folioPreregistro || data.matriculaOficialDGB) && (
+        {(data.folioPreregistro || data.matriculaOficialDGB || data.licenciaDigital) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
             {data.folioPreregistro && (
               <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -310,6 +311,26 @@ export default function EstudianteDashboard() {
                 >
                   <Download size={13} /> Ficha oficial
                 </a>
+              </div>
+            )}
+            {data.licenciaDigital && (
+              <div style={{ background: 'linear-gradient(135deg, #7B1F3A 0%, #5C1428 100%)', border: '1px solid #9f2d4a', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <BadgeCheck size={20} style={{ color: '#fff' }} />
+                </div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.65)', marginBottom: 2 }}>IDENTIFICACIÓN DIGITAL</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#fff', letterSpacing: '0.04em' }}>
+                    {data.licenciaDigital}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>Emitida por IEMSyS · Prepa Abierta Michoacán</div>
+                </div>
+                <Link
+                  href="/estudiante/identificacion"
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0, border: '1px solid rgba(255,255,255,0.25)' }}
+                >
+                  Ver →
+                </Link>
               </div>
             )}
           </div>

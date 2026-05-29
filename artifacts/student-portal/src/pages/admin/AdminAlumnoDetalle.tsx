@@ -4,7 +4,7 @@ import {
   ChevronLeft, MapPin, Mail, Phone, Users, FileText, CreditCard,
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
-  Award, Plus, Edit2, Download, RefreshCw,
+  Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
@@ -33,6 +33,8 @@ type Alumno = {
   preregistroVigenteHasta?: string | null;
   matriculaOficialDGB?: string | null;
   matriculaCapturadaEn?: string | null;
+  licenciaDigital?: string | null;
+  licenciaEmitidaEn?: string | null;
 };
 
 type Documento = {
@@ -455,6 +457,8 @@ export default function AdminAlumnoDetalle() {
   const [matriculaSaving, setMatriculaSaving] = useState(false);
   const [matriculaError, setMatriculaError] = useState('');
   const [renovando, setRenovando] = useState(false);
+  const [emitiendo, setEmitiendo] = useState(false);
+  const [confirmarLicencia, setConfirmarLicencia] = useState(false);
 
   useEffect(() => {
     if (modalMatricula !== null) {
@@ -547,6 +551,21 @@ export default function AdminAlumnoDetalle() {
       showToast('Error al renovar pre-registro', false);
     } finally {
       setRenovando(false);
+    }
+  }
+
+  async function handleEmitirLicencia() {
+    setConfirmarLicencia(false);
+    setEmitiendo(true);
+    try {
+      await api.post(`/admin/alumnos/${alumnoId}/licencia`, {});
+      showToast('Licencia digital emitida correctamente', true);
+      const fresh = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
+      setData(fresh);
+    } catch (e) {
+      showToast((e as Error).message || 'Error al emitir la licencia', false);
+    } finally {
+      setEmitiendo(false);
     }
   }
 
@@ -853,6 +872,61 @@ export default function AdminAlumnoDetalle() {
         </div>
       )}
 
+      {/* ── LICENCIA DIGITAL ────────────────────────────────────── */}
+      {!alumno.licenciaDigital ? (
+        <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
+              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+                {!alumno.matriculaOficialDGB
+                  ? 'Se requiere matrícula oficial antes de emitir la licencia digital.'
+                  : 'Aún no se ha emitido la licencia digital para este alumno.'}
+              </p>
+            </div>
+          </div>
+          {alumno.matriculaOficialDGB && (
+            <button
+              onClick={() => setConfirmarLicencia(true)}
+              disabled={emitiendo}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
+            >
+              {emitiendo ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <BadgeCheck size={13} />}
+              {emitiendo ? 'Emitiendo...' : 'Emitir licencia digital'}
+            </button>
+          )}
+          {!alumno.matriculaOficialDGB && (
+            <div style={{ fontSize: 12, color: '#b45309', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 6, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <AlertTriangle size={12} style={{ flexShrink: 0 }} />
+              Asigna primero la matrícula oficial DGB.
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #fff 100%)', border: '1px solid #c4b5fd', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
+              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+                Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+              </p>
+            </div>
+          </div>
+          <div style={{ background: '#faf8ff', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>LICENCIA DIGITAL</div>
+            <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
+              {alumno.licenciaDigital}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── FOLIO PRE-REGISTRO ──────────────────────────────────── */}
       {alumno.folioPreregistro && (() => {
         const vig = vigenciaInfo(alumno.preregistroVigenteHasta);
@@ -1033,6 +1107,48 @@ export default function AdminAlumnoDetalle() {
                 style={{ padding: '9px 20px', borderRadius: 8, background: 'var(--color-guinda-700)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: (matriculaInput.length < 8 || !matriculaConfirmado) ? 0.5 : 1 }}
               >
                 {matriculaSaving ? 'Guardando...' : 'Guardar matrícula'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal: confirmar emisión de licencia */}
+      {confirmarLicencia && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: '#ede9fe' }}>
+                <BadgeCheck size={20} style={{ color: '#7c3aed' }} />
+              </div>
+              <div>
+                <h3 className="font-bold text-base" style={{ color: '#1a1a1a' }}>Emitir licencia digital</h3>
+                <p className="text-xs" style={{ color: '#78716c' }}>Esta acción genera un folio único e irreversible.</p>
+              </div>
+            </div>
+            <div className="rounded-xl p-3 mb-5" style={{ background: '#f5f5f4' }}>
+              <div className="text-sm font-semibold mb-0.5" style={{ color: '#1a1a1a' }}>{alumno.nombreCompleto}</div>
+              <div className="text-xs font-mono" style={{ color: '#78716c' }}>{alumno.curp}</div>
+              <div className="text-xs mt-1" style={{ color: '#78716c' }}>Matrícula: {alumno.matriculaOficialDGB}</div>
+            </div>
+            <div className="rounded-lg p-3 mb-5 text-xs" style={{ background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa' }}>
+              <strong>Importante:</strong> La licencia digital se genera automáticamente con un folio único del sistema. Una vez emitida no puede eliminarse, solo el administrador puede verla.
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setConfirmarLicencia(false)}
+                className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-xl"
+                style={{ color: '#44403c' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEmitirLicencia}
+                disabled={emitiendo}
+                className="px-4 py-2 text-sm font-semibold rounded-xl disabled:opacity-60 flex items-center gap-1.5"
+                style={{ background: '#7c3aed', color: 'white' }}
+              >
+                {emitiendo && <Loader2 size={13} className="animate-spin" />}
+                Sí, emitir licencia
               </button>
             </div>
           </div>

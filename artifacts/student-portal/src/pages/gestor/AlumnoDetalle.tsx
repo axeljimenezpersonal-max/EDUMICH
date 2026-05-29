@@ -19,9 +19,11 @@ import {
   Copy,
   Loader2,
   Award,
-  Edit2,
   Download,
   FileText,
+  Lock,
+  BookOpen,
+  Save,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -30,6 +32,7 @@ import {
   type GestorExpedienteResponse,
   type TipoDocumento,
   type PagosResponse,
+  type GestorPlanModularResponse,
 } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
@@ -52,6 +55,8 @@ interface AlumnoConMatricula {
   preregistroVigenteHasta?: string | null;
   matriculaOficialDGB?: string | null;
   matriculaCapturadaEn?: string | null;
+  licenciaDigital?: string | null;
+  licenciaEmitidaEn?: string | null;
 }
 
 interface DocDef {
@@ -71,7 +76,7 @@ const DOCUMENTOS_EXPEDIENTE: DocDef[] = [
   { tipo: 'comprobante_pago', label: 'Comprobante de pago', descripcion: 'Comprobante de pago de derechos de inscripción', obligatorio: false },
 ];
 
-type ActiveTab = 'docs' | 'pagos' | 'calificaciones';
+type ActiveTab = 'docs' | 'pagos' | 'calificaciones' | 'plan';
 
 interface ToastState {
   msg: string;
@@ -92,6 +97,12 @@ export default function AlumnoDetalle() {
   const [pagosData, setPagosData] = useState<PagosResponse | null>(null);
   const [pagosLoading, setPagosLoading] = useState(false);
   const [modalPago, setModalPago] = useState(false);
+
+  // Plan modular
+  const [planData, setPlanData] = useState<GestorPlanModularResponse | null>(null);
+  const [planLoading, setPlanLoading] = useState(false);
+  const [planSeleccion, setPlanSeleccion] = useState<Set<number>>(new Set());
+  const [planGuardando, setPlanGuardando] = useState(false);
 
   // Acciones menu
   const [menuOpen, setMenuOpen] = useState(false);
@@ -115,20 +126,6 @@ export default function AlumnoDetalle() {
   const [modalRechazarDoc, setModalRechazarDoc] = useState<{ id: number; tipo: string; nombre: string } | null>(null);
   const [docActionLoading, setDocActionLoading] = useState(false);
   const [motivoRechazoGestor, setMotivoRechazoGestor] = useState('');
-
-  const [modalMatricula, setModalMatricula] = useState<{ matriculaActual: string | null } | null>(null);
-  const [matriculaInput, setMatriculaInput] = useState('');
-  const [matriculaConfirmado, setMatriculaConfirmado] = useState(false);
-  const [matriculaSaving, setMatriculaSaving] = useState(false);
-  const [matriculaError, setMatriculaError] = useState('');
-
-  useEffect(() => {
-    if (modalMatricula !== null) {
-      setMatriculaInput(modalMatricula.matriculaActual ?? '');
-      setMatriculaConfirmado(false);
-      setMatriculaError('');
-    }
-  }, [modalMatricula]);
 
   async function handleAprobarDoc(docId: number) {
     setDocActionLoading(true);
@@ -206,6 +203,37 @@ export default function AlumnoDetalle() {
       .finally(() => setPagosLoading(false));
   }, [activeTab, id]);
 
+  useEffect(() => {
+    if (activeTab !== 'plan' || !id) return;
+    setPlanLoading(true);
+    api.get<GestorPlanModularResponse>(`/gestor/alumnos/${id}/plan-modular`)
+      .then((d) => {
+        setPlanData(d);
+        setPlanSeleccion(new Set(d.modulos.filter((m) => m.enPlan).map((m) => m.id)));
+      })
+      .catch(() => {})
+      .finally(() => setPlanLoading(false));
+  }, [activeTab, id]);
+
+  async function handleGuardarPlan() {
+    if (!id) return;
+    setPlanGuardando(true);
+    try {
+      await api.put(`/gestor/alumnos/${id}/plan-modular`, {
+        moduloIds: Array.from(planSeleccion),
+      });
+      showToast(`Plan guardado — ${planSeleccion.size} módulo${planSeleccion.size !== 1 ? 's' : ''} asignado${planSeleccion.size !== 1 ? 's' : ''}`, 'success');
+      // Reload plan data to sync enPlan flags
+      const d = await api.get<GestorPlanModularResponse>(`/gestor/alumnos/${id}/plan-modular`);
+      setPlanData(d);
+      setPlanSeleccion(new Set(d.modulos.filter((m) => m.enPlan).map((m) => m.id)));
+    } catch (e) {
+      showToast((e as Error).message || 'Error al guardar el plan', 'error');
+    } finally {
+      setPlanGuardando(false);
+    }
+  }
+
   async function handleReenviar() {
     if (!id) return;
     setReenviarLoading(true);
@@ -269,6 +297,10 @@ export default function AlumnoDetalle() {
   const docsCount = Object.keys(docs).length;
   const obligatoriosFaltantes = obligatorios.filter((d) => !docs[d.tipo]);
 
+  const planAsignadosCount = planData
+    ? planData.modulos.filter((m) => m.enPlan).length
+    : planSeleccion.size;
+
   const tabItems: { key: ActiveTab; label: string; icon: React.ReactNode; badge: string }[] = [
     {
       key: 'docs',
@@ -287,6 +319,12 @@ export default function AlumnoDetalle() {
       label: 'Calificaciones',
       icon: <GraduationCap size={15} />,
       badge: '—',
+    },
+    {
+      key: 'plan',
+      label: 'Plan Modular',
+      icon: <BookOpen size={15} />,
+      badge: planAsignadosCount > 0 ? String(planAsignadosCount) : '—',
     },
   ];
 
@@ -420,24 +458,22 @@ export default function AlumnoDetalle() {
         </div>
       </div>
 
-      {/* Matrícula oficial DGB */}
+      {/* Matrícula oficial DGB — solo lectura para el gestor */}
       {!alumno.matriculaOficialDGB ? (
         <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Award size={18} style={{ color: 'var(--color-guinda-700)' }} />
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Award size={18} style={{ color: '#a8a29e' }} />
             </div>
-            <div>
+            <div style={{ flex: 1 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>Aún no se ha capturado la matrícula oficial asignada por la SEP-DGB.</p>
+              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 8px' }}>Pendiente de asignación por la administración.</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#78716c', background: '#f5f5f4', border: '1px solid #e7e5e4', borderRadius: 6, padding: '7px 12px' }}>
+                <Lock size={11} style={{ flexShrink: 0 }} />
+                La matrícula la asigna exclusivamente la administración una vez validado el expediente completo.
+              </div>
             </div>
           </div>
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 14 }}>
-            Una vez que la SEP-DGB asigne la matrícula, captúrala aquí para generar la <strong>Ficha de Registro Oficial</strong>.
-          </div>
-          <button onClick={() => setModalMatricula({ matriculaActual: null })} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: 'var(--color-guinda-700)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}>
-            <Plus size={13} /> Capturar matrícula oficial
-          </button>
         </div>
       ) : (
         <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)', border: '1px solid #86efac', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
@@ -448,20 +484,15 @@ export default function AlumnoDetalle() {
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
               <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
-                Capturada el {alumno.matriculaCapturadaEn ? new Date(alumno.matriculaCapturadaEn).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'}) : '—'}
+                Asignada el {alumno.matriculaCapturadaEn ? new Date(alumno.matriculaCapturadaEn).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'}) : '—'}
               </p>
             </div>
           </div>
-          <div style={{ background: '#f8fafc', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-            <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>MATRÍCULA</div>
-              <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 22, fontWeight: 700, color: 'var(--color-guinda-700)', letterSpacing: '0.05em' }}>
-                {alumno.matriculaOficialDGB}
-              </div>
+          <div style={{ background: '#f8fafc', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px', marginBottom: 14 }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>MATRÍCULA</div>
+            <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 22, fontWeight: 700, color: 'var(--color-guinda-700)', letterSpacing: '0.05em' }}>
+              {alumno.matriculaOficialDGB}
             </div>
-            <button onClick={() => setModalMatricula({ matriculaActual: alumno.matriculaOficialDGB! })} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 12, color: '#44403c' }}>
-              <Edit2 size={12} /> Editar
-            </button>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <a href={`/api/gestor/alumnos/${id}/ficha-registro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
@@ -473,6 +504,29 @@ export default function AlumnoDetalle() {
           </div>
         </div>
       )}
+
+      {/* Licencia digital — solo lectura para el gestor */}
+      {alumno.licenciaDigital ? (
+        <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #fff 100%)', border: '1px solid #c4b5fd', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Award size={18} style={{ color: '#7c3aed' }} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
+              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+                Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+              </p>
+            </div>
+          </div>
+          <div style={{ background: '#faf8ff', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>LICENCIA DIGITAL</div>
+            <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
+              {alumno.licenciaDigital}
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {/* Tab bar */}
       <div className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
@@ -673,6 +727,137 @@ export default function AlumnoDetalle() {
         <CalificacionesTabContent estudianteId={id} readOnly={true} />
       )}
 
+      {/* TAB: Plan Modular */}
+      {activeTab === 'plan' && (
+        <>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-5 flex items-start gap-2 text-xs text-blue-900">
+            <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
+            Selecciona los módulos que debe cursar este alumno para acreditar. Solo estos módulos aparecerán en su portal.
+          </div>
+
+          {planLoading && (
+            <div className="text-center text-stone-400 py-16 text-sm">Cargando plan modular…</div>
+          )}
+
+          {!planLoading && planData && (() => {
+            const NIVEL_LABELS: Record<number, string> = {
+              1: 'Comunicación y bases',
+              2: 'Pensamiento matemático y textos',
+              3: 'Métodos y contextos',
+              4: 'Especialidades',
+            };
+            const niveles = [1, 2, 3, 4];
+            return (
+              <div className="space-y-6">
+                {niveles.map((nivel) => {
+                  const modulosNivel = planData.modulos.filter((m) => m.nivel === nivel);
+                  if (modulosNivel.length === 0) return null;
+                  return (
+                    <section key={nivel}>
+                      <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
+                        Nivel {nivel} — {NIVEL_LABELS[nivel]}
+                      </h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {modulosNivel.map((m) => {
+                          const checked = planSeleccion.has(m.id);
+                          return (
+                            <label
+                              key={m.id}
+                              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
+                                checked
+                                  ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                                  : 'border-stone-200 bg-white hover:bg-stone-50'
+                              }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={checked}
+                                onChange={() => {
+                                  setPlanSeleccion((prev) => {
+                                    const next = new Set(prev);
+                                    if (next.has(m.id)) next.delete(m.id);
+                                    else next.add(m.id);
+                                    return next;
+                                  });
+                                }}
+                                className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+                                  Módulo {m.numero}
+                                </div>
+                                <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+                              </div>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </section>
+                  );
+                })}
+
+                {/* Módulos sin nivel */}
+                {planData.modulos.filter((m) => !m.nivel).length > 0 && (
+                  <section>
+                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Otros módulos</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                      {planData.modulos.filter((m) => !m.nivel).map((m) => {
+                        const checked = planSeleccion.has(m.id);
+                        return (
+                          <label
+                            key={m.id}
+                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
+                              checked
+                                ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                                : 'border-stone-200 bg-white hover:bg-stone-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setPlanSeleccion((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(m.id)) next.delete(m.id);
+                                  else next.add(m.id);
+                                  return next;
+                                });
+                              }}
+                              className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+                                Módulo {m.numero}
+                              </div>
+                              <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                <div className="flex items-center justify-between pt-2 border-t border-stone-200">
+                  <div className="text-sm text-stone-500">
+                    <span className="font-bold text-stone-900">{planSeleccion.size}</span>{' '}
+                    módulo{planSeleccion.size !== 1 ? 's' : ''} seleccionado{planSeleccion.size !== 1 ? 's' : ''}
+                  </div>
+                  <button
+                    onClick={handleGuardarPlan}
+                    disabled={planGuardando}
+                    className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-60 transition-colors"
+                  >
+                    {planGuardando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+                    Guardar plan modular
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </>
+      )}
+
       {/* Modal: Reenviar credenciales */}
       {reenviarModal && (
         <div
@@ -851,78 +1036,6 @@ export default function AlumnoDetalle() {
         </div>
       )}
 
-      {modalMatricula !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}
-          onClick={e => { if (e.target === e.currentTarget) setModalMatricula(null); }}>
-          <div style={{ background: '#fff', borderRadius: 12, width: 520, maxWidth: '95vw', padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <div>
-                <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>
-                  {modalMatricula.matriculaActual ? 'Editar matrícula oficial DGB' : 'Capturar matrícula oficial DGB'}
-                </h2>
-                <p style={{ fontSize: 12, color: '#78716c', marginTop: 4, marginBottom: 0 }}>
-                  Ingresa la matrícula que la SEP-DGB asignó a este alumno.
-                </p>
-              </div>
-              <button onClick={() => setModalMatricula(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c' }}>
-                <X size={18} />
-              </button>
-            </div>
-
-            <div style={{ background: '#faf9f8', border: '1px solid #e7e5e4', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: '#2a2a2a' }}>{alumno.nombreCompleto}</div>
-              <div style={{ fontSize: 12, color: '#78716c' }}>CURP: {alumno.curp}</div>
-              {alumno.folioPreregistro && <div style={{ fontSize: 12, color: '#78716c' }}>Pre-registro: {alumno.folioPreregistro}</div>}
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#57534e', display: 'block', marginBottom: 6 }}>Matrícula oficial DGB *</label>
-              <input
-                type="text"
-                value={matriculaInput}
-                onChange={e => setMatriculaInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                placeholder="Ej. 26016000142X"
-                maxLength={20}
-                style={{ width: '100%', border: '1px solid #e7e5e4', borderRadius: 6, padding: '9px 12px', fontSize: 15, fontFamily: 'monospace', letterSpacing: '0.05em', background: '#faf9f8' }}
-              />
-              <div style={{ fontSize: 11, color: '#78716c', marginTop: 4 }}>Entre 8 y 20 caracteres alfanuméricos. Tal como la asignó la SEP-DGB.</div>
-            </div>
-
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#44403c', cursor: 'pointer', marginBottom: 16 }}>
-              <input type="checkbox" checked={matriculaConfirmado} onChange={e => setMatriculaConfirmado(e.target.checked)} style={{ marginTop: 2 }} />
-              <span>Confirmo que esta matrícula fue asignada oficialmente por la SEP-DGB y corresponde a este alumno.</span>
-            </label>
-
-            {matriculaError && <div style={{ color: '#be123c', fontSize: 12, padding: '8px 12px', background: '#fff1f2', borderRadius: 6, marginBottom: 12 }}>{matriculaError}</div>}
-
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModalMatricula(null)} style={{ padding: '9px 20px', border: '1px solid #e7e5e4', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
-              <button
-                disabled={matriculaSaving || matriculaInput.length < 8 || !matriculaConfirmado}
-                onClick={async () => {
-                  if (matriculaInput.length < 8 || matriculaInput.length > 20) { setMatriculaError('La matrícula debe tener entre 8 y 20 caracteres alfanuméricos'); return; }
-                  if (!matriculaConfirmado) { setMatriculaError('Debes confirmar que la matrícula es correcta'); return; }
-                  setMatriculaSaving(true);
-                  setMatriculaError('');
-                  try {
-                    await api.post(`/gestor/alumnos/${id}/matricula`, { matricula: matriculaInput });
-                    setModalMatricula(null);
-                    const updated = await api.get<AlumnoDetalleType>(`/gestor/alumnos/${id}`);
-                    setData(updated);
-                  } catch (ex: unknown) {
-                    setMatriculaError(ex instanceof Error ? ex.message : 'Error al guardar');
-                  } finally {
-                    setMatriculaSaving(false);
-                  }
-                }}
-                style={{ padding: '9px 20px', borderRadius: 8, background: 'var(--color-guinda-700)', color: 'white', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: (matriculaInput.length < 8 || !matriculaConfirmado) ? 0.5 : 1 }}
-              >
-                {matriculaSaving ? 'Guardando...' : 'Guardar matrícula'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </GestorLayout>
   );
 }

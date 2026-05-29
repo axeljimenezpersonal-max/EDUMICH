@@ -250,6 +250,10 @@ export const estudiantes = pgTable(
     matriculaOficialDGB: varchar('matricula_oficial_dgb', { length: 30 }),
     matriculaCapturadaEn: timestamp('matricula_capturada_en'),
     matriculaCapturadaPor: integer('matricula_capturada_por').references(() => users.id),
+    // ── Licencia digital ──
+    licenciaDigital: varchar('licencia_digital', { length: 40 }),
+    licenciaEmitidaEn: timestamp('licencia_emitida_en'),
+    licenciaEmitidaPor: integer('licencia_emitida_por').references(() => users.id),
     genero: varchar('genero', { length: 20 }),
     nacionalidad: varchar('nacionalidad', { length: 50 }).default('Mexicana'),
     foto: varchar('foto', { length: 500 }),

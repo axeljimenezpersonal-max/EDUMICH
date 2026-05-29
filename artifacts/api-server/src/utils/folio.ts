@@ -49,3 +49,20 @@ export async function generarFolioPreregistro(): Promise<string> {
   const siguiente = Number((row as any)?.siguiente ?? 1);
   return `${prefix}${String(siguiente).padStart(6, '0')}`;
 }
+
+export async function generarFolioLicencia(): Promise<string> {
+  const año = new Date().getFullYear();
+  const prefix = `LIC-${año}-MICH-`;
+
+  const result = await db.execute(sql`
+    SELECT COALESCE(MAX(
+      CAST(SUBSTRING(licencia_digital FROM '[0-9]+$') AS INTEGER)
+    ), 0) + 1 AS siguiente
+    FROM estudiantes
+    WHERE licencia_digital LIKE ${prefix + '%'}
+  `);
+
+  const row = result.rows[0];
+  const siguiente = Number((row as any)?.siguiente ?? 1);
+  return `${prefix}${String(siguiente).padStart(6, '0')}`;
+}

@@ -35,7 +35,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales, sendBienvenidaGestor } from '../services/email';
 import { generarPasswordTemporal } from '../utils/password';
-import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
+import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
@@ -1750,6 +1750,8 @@ router.get('/alumnos/:id', async (req, res) => {
       preregistro_vigente_hasta: string | null;
       matricula_oficial_dgb: string | null;
       matricula_capturada_en: Date | null;
+      licencia_digital: string | null;
+      licencia_emitida_en: Date | null;
     };
 
     type ExamenRow = {
@@ -1779,6 +1781,7 @@ router.get('/alumnos/:id', async (req, res) => {
           e.created_at,
           e.folio_preregistro, e.preregistro_vigente_hasta::text AS preregistro_vigente_hasta,
           e.matricula_oficial_dgb, e.matricula_capturada_en,
+          e.licencia_digital, e.licencia_emitida_en,
           CASE
             WHEN u.activo = false THEN 'inactivo'
             WHEN EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') THEN 'rechazado'
@@ -1841,6 +1844,8 @@ router.get('/alumnos/:id', async (req, res) => {
         preregistroVigenteHasta: r.preregistro_vigente_hasta ?? null,
         matriculaOficialDGB: r.matricula_oficial_dgb ?? null,
         matriculaCapturadaEn: r.matricula_capturada_en ? new Date(r.matricula_capturada_en as string | Date).toISOString() : null,
+        licenciaDigital: r.licencia_digital ?? null,
+        licenciaEmitidaEn: r.licencia_emitida_en ? new Date(r.licencia_emitida_en as string | Date).toISOString() : null,
       },
       documentos: docs.map((d) => ({
         id: d.id,
@@ -3545,6 +3550,50 @@ router.post('/alumnos/:id/matricula', async (req, res) => {
   });
 
   res.json({ ok: true, matricula });
+});
+
+// ─── POST /admin/alumnos/:id/licencia ────────────────────────────────────────
+router.post('/alumnos/:id/licencia', async (req, res) => {
+  const adminId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const [alumno] = await db
+    .select({ userId: estudiantes.userId, licenciaDigital: estudiantes.licenciaDigital, matriculaOficialDGB: estudiantes.matriculaOficialDGB })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, alumnoId));
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  if (!alumno.matriculaOficialDGB) {
+    res.status(422).json({ error: 'El alumno debe tener matrícula oficial asignada antes de emitir una licencia digital' });
+    return;
+  }
+
+  if (alumno.licenciaDigital) {
+    res.status(409).json({ error: 'El alumno ya tiene una licencia digital emitida', licencia: alumno.licenciaDigital });
+    return;
+  }
+
+  const licencia = await generarFolioLicencia();
+
+  await db.update(estudiantes).set({
+    licenciaDigital: licencia,
+    licenciaEmitidaEn: new Date(),
+    licenciaEmitidaPor: adminId,
+    updatedAt: new Date(),
+  }).where(eq(estudiantes.userId, alumnoId));
+
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'emitir_licencia',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Emitió licencia digital "${licencia}" para alumno ID ${alumnoId}`,
+    metadata: { licencia },
+    req,
+  });
+
+  res.status(201).json({ ok: true, licencia });
 });
 
 // ─── GET /admin/alumnos/:id/ficha-preregistro ────────────────────────────────
