@@ -12,7 +12,7 @@
  */
 
 import { Router } from 'express';
-import { and, desc, eq, count, sql, inArray } from 'drizzle-orm';
+import { and, desc, eq, count, sql, inArray, ne, lte, gte } from 'drizzle-orm';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -32,6 +32,10 @@ import {
   expedienteDocumentos,
   modulos,
   inscripcionModulos,
+  examenesInscripciones,
+  convocatoriasEtapas,
+  convocatoriasModulosHorarios,
+  sedes,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
@@ -44,6 +48,8 @@ import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 const router = Router();
 
 router.use(authRequired, requireRol('gestor'));
+
+const COSTO_EXAMEN_MXN = 150; // pesos por módulo
 
 // ─── Multer (shared by /registro-completo and /:id/documentos) ───────
 const STORAGE_DIR = process.env.STORAGE_DIR || '/tmp/prepa-storage';
@@ -1323,6 +1329,405 @@ router.put('/alumnos/:id/plan-modular', async (req, res) => {
   });
 
   res.json({ ok: true, inscripcionId: insc.id, total: moduloIds.length });
+});
+
+// ─── GET /gestor/alumnos/:id/convocatoria ────────────────────────────────────
+// Devuelve la etapa activa, módulos disponibles, inscripciones activas y sede.
+router.get('/alumnos/:id/convocatoria', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const alumno = await verificarAlumnoDelGestor(gestorId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  // 1. Find active etapa
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const [etapa] = await db
+    .select({
+      id: convocatoriasEtapas.id,
+      clave: convocatoriasEtapas.clave,
+      etapa: convocatoriasEtapas.etapa,
+      fase: convocatoriasEtapas.fase,
+      solicitudInicio: convocatoriasEtapas.solicitudInicio,
+      solicitudFin: convocatoriasEtapas.solicitudFin,
+      examenSabado: convocatoriasEtapas.examenSabado,
+      examenDomingo: convocatoriasEtapas.examenDomingo,
+      estado: convocatoriasEtapas.estado,
+    })
+    .from(convocatoriasEtapas)
+    .where(
+      sql`(${convocatoriasEtapas.estado} = 'inscripcion_abierta'
+        OR (${convocatoriasEtapas.solicitudInicio} <= ${hoy}
+            AND ${convocatoriasEtapas.solicitudFin} >= ${hoy}))`
+    )
+    .orderBy(desc(convocatoriasEtapas.id))
+    .limit(1);
+
+  if (!etapa) {
+    res.json({
+      etapa: null,
+      modulosDisponibles: [],
+      inscripcionesActivas: [],
+      sede: null,
+      costoExamen: COSTO_EXAMEN_MXN,
+    });
+    return;
+  }
+
+  // 2. Student's plan modular (most recent inscripcion)
+  const [insc] = await db
+    .select({ id: inscripciones.id })
+    .from(inscripciones)
+    .where(eq(inscripciones.estudianteId, alumnoId))
+    .orderBy(desc(inscripciones.createdAt))
+    .limit(1);
+
+  const planModuloIds: number[] = [];
+  if (insc) {
+    const planRows = await db
+      .select({ moduloId: inscripcionModulos.moduloId })
+      .from(inscripcionModulos)
+      .where(eq(inscripcionModulos.inscripcionId, insc.id));
+    planModuloIds.push(...planRows.map((r) => r.moduloId));
+  }
+
+  // 3. Available horarios for this etapa (modules in plan)
+  const horariosRows = planModuloIds.length > 0
+    ? await db
+        .select({
+          id: convocatoriasModulosHorarios.id,
+          moduloId: convocatoriasModulosHorarios.moduloId,
+          dia: convocatoriasModulosHorarios.dia,
+          hora: convocatoriasModulosHorarios.hora,
+        })
+        .from(convocatoriasModulosHorarios)
+        .where(
+          and(
+            eq(convocatoriasModulosHorarios.etapaId, etapa.id),
+            inArray(convocatoriasModulosHorarios.moduloId, planModuloIds)
+          )
+        )
+    : [];
+
+  const horariosByModuloId = new Map(horariosRows.map((h) => [h.moduloId, h]));
+
+  // 4. Existing active inscriptions for student + etapa
+  const inscripcionesActivas = await db
+    .select({
+      id: examenesInscripciones.id,
+      folio: examenesInscripciones.folio,
+      moduloId: examenesInscripciones.moduloId,
+      horarioId: examenesInscripciones.horarioId,
+      estado: examenesInscripciones.estado,
+      sedeId: examenesInscripciones.sedeId,
+    })
+    .from(examenesInscripciones)
+    .where(
+      and(
+        eq(examenesInscripciones.estudianteId, alumnoId),
+        eq(examenesInscripciones.etapaId, etapa.id),
+        ne(examenesInscripciones.estado, 'cancelado')
+      )
+    );
+
+  const inscritosModuloIds = new Set(inscripcionesActivas.map((i) => i.moduloId));
+
+  // 5. Enrich inscripcionesActivas with modulo info, horario info, sede
+  const allModuloIds = [
+    ...new Set([
+      ...planModuloIds,
+      ...inscripcionesActivas.map((i) => i.moduloId),
+    ]),
+  ];
+  const modulosRows = allModuloIds.length > 0
+    ? await db
+        .select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre })
+        .from(modulos)
+        .where(inArray(modulos.id, allModuloIds))
+    : [];
+  const modulosById = new Map(modulosRows.map((m) => [m.id, m]));
+
+  // Gather sedeIds for active inscriptions
+  const sedeIds = [...new Set(inscripcionesActivas.map((i) => i.sedeId))];
+  const sedesRows = sedeIds.length > 0
+    ? await db
+        .select({ id: sedes.id, nombre: sedes.nombre, direccion: sedes.direccion })
+        .from(sedes)
+        .where(inArray(sedes.id, sedeIds))
+    : [];
+  const sedesById = new Map(sedesRows.map((s) => [s.id, s]));
+
+  // All horario ids referenced
+  const horarioIds = [...new Set(inscripcionesActivas.map((i) => i.horarioId))];
+  const horariosEnriquecidos = horarioIds.length > 0
+    ? await db
+        .select({
+          id: convocatoriasModulosHorarios.id,
+          dia: convocatoriasModulosHorarios.dia,
+          hora: convocatoriasModulosHorarios.hora,
+        })
+        .from(convocatoriasModulosHorarios)
+        .where(inArray(convocatoriasModulosHorarios.id, horarioIds))
+    : [];
+  const horariosEnriquecidosById = new Map(horariosEnriquecidos.map((h) => [h.id, h]));
+
+  const inscripcionesActivasEnriquecidas = inscripcionesActivas.map((i) => {
+    const mod = modulosById.get(i.moduloId);
+    const hor = horariosEnriquecidosById.get(i.horarioId);
+    const sed = sedesById.get(i.sedeId);
+    const fechaExamen = hor?.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
+    return {
+      id: i.id,
+      folio: i.folio,
+      moduloId: i.moduloId,
+      moduloNumero: mod?.numero ?? null,
+      moduloNombre: mod?.nombre ?? null,
+      dia: hor?.dia ?? null,
+      hora: hor?.hora ?? null,
+      fechaExamen: fechaExamen ?? null,
+      estado: i.estado,
+      sede: sed ? { nombre: sed.nombre, direccion: sed.direccion } : null,
+    };
+  });
+
+  // 6. modulosDisponibles: all plan modules that have a horario in this etapa
+  const modulosDisponibles = horariosRows.map((h) => {
+    const mod = modulosById.get(h.moduloId);
+    return {
+      id: h.moduloId,
+      numero: mod?.numero ?? null,
+      nombre: mod?.nombre ?? null,
+      nivel: null as null, // not fetched here; available via plan-modular if needed
+      horarioId: h.id,
+      dia: h.dia,
+      hora: h.hora,
+      yaInscrito: inscritosModuloIds.has(h.moduloId),
+    };
+  });
+
+  // 7. Student's sede (from municipioId)
+  let sedeAlumno: { nombre: string; direccion: string; telefono: string | null } | null = null;
+  if (alumno.municipioId) {
+    const [sedeRow] = await db
+      .select({ nombre: sedes.nombre, direccion: sedes.direccion, telefono: sedes.telefono })
+      .from(sedes)
+      .where(eq(sedes.municipioId, alumno.municipioId))
+      .limit(1);
+    if (sedeRow) sedeAlumno = sedeRow;
+  }
+  if (!sedeAlumno) {
+    const [sedeRow] = await db
+      .select({ nombre: sedes.nombre, direccion: sedes.direccion, telefono: sedes.telefono })
+      .from(sedes)
+      .limit(1);
+    if (sedeRow) sedeAlumno = sedeRow;
+  }
+
+  res.json({
+    etapa,
+    modulosDisponibles,
+    inscripcionesActivas: inscripcionesActivasEnriquecidas,
+    sede: sedeAlumno,
+    costoExamen: COSTO_EXAMEN_MXN,
+  });
+});
+
+// ─── POST /gestor/alumnos/:id/inscribir-examen ───────────────────────────────
+// Body: { etapaId: number, modulosIds: number[] }
+const inscribirExamenSchema = z.object({
+  etapaId: z.number().int().positive(),
+  modulosIds: z.array(z.number().int().positive()).min(1),
+});
+
+router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = inscribirExamenSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Datos inválidos', detalle: parse.error.errors });
+    return;
+  }
+  const { etapaId, modulosIds } = parse.data;
+
+  // 1. Verify student belongs to gestor
+  const alumno = await verificarAlumnoDelGestor(gestorId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  // 2. Validate etapa exists (don't require inscripcion_abierta)
+  const [etapa] = await db
+    .select({
+      id: convocatoriasEtapas.id,
+      clave: convocatoriasEtapas.clave,
+      estado: convocatoriasEtapas.estado,
+      examenSabado: convocatoriasEtapas.examenSabado,
+      examenDomingo: convocatoriasEtapas.examenDomingo,
+    })
+    .from(convocatoriasEtapas)
+    .where(eq(convocatoriasEtapas.id, etapaId));
+  if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+
+  const periodoAbierto = etapa.estado === 'inscripcion_abierta';
+
+  // 3. Get horarios for requested modules in this etapa
+  const horariosRows = await db
+    .select({
+      id: convocatoriasModulosHorarios.id,
+      moduloId: convocatoriasModulosHorarios.moduloId,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+    })
+    .from(convocatoriasModulosHorarios)
+    .where(
+      and(
+        eq(convocatoriasModulosHorarios.etapaId, etapaId),
+        inArray(convocatoriasModulosHorarios.moduloId, modulosIds)
+      )
+    );
+  const horarioByModuloId = new Map(horariosRows.map((h) => [h.moduloId, h]));
+
+  // 4. Existing active inscriptions for student + etapa
+  const existingInsc = await db
+    .select({
+      moduloId: examenesInscripciones.moduloId,
+      horarioId: examenesInscripciones.horarioId,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+    })
+    .from(examenesInscripciones)
+    .innerJoin(
+      convocatoriasModulosHorarios,
+      eq(convocatoriasModulosHorarios.id, examenesInscripciones.horarioId)
+    )
+    .where(
+      and(
+        eq(examenesInscripciones.estudianteId, alumnoId),
+        eq(examenesInscripciones.etapaId, etapaId),
+        ne(examenesInscripciones.estado, 'cancelado')
+      )
+    );
+  const inscritosModuloIds = new Set(existingInsc.map((i) => i.moduloId));
+  // Existing horario slots: "dia-hora" for conflict check
+  const existingSlots = new Set(existingInsc.map((i) => `${i.dia}-${i.hora}`));
+
+  // 5. Get student's sede
+  let sedeId: number | null = null;
+  if (alumno.municipioId) {
+    const [sedeRow] = await db
+      .select({ id: sedes.id })
+      .from(sedes)
+      .where(eq(sedes.municipioId, alumno.municipioId))
+      .limit(1);
+    if (sedeRow) sedeId = sedeRow.id;
+  }
+  if (!sedeId) {
+    const [sedeRow] = await db
+      .select({ id: sedes.id })
+      .from(sedes)
+      .limit(1);
+    if (sedeRow) sedeId = sedeRow.id;
+  }
+  if (!sedeId) { res.status(500).json({ error: 'No hay sedes configuradas en el sistema' }); return; }
+
+  // 6. Get module names for response
+  const modulosRows = await db
+    .select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre })
+    .from(modulos)
+    .where(inArray(modulos.id, modulosIds));
+  const modulosById = new Map(modulosRows.map((m) => [m.id, m]));
+
+  // 7. Process each requested module
+  const sinHorario: number[] = [];
+  const conflicto: number[] = [];
+  const yaInscritos: number[] = [];
+  const aInscribir: Array<{
+    moduloId: number;
+    horarioId: number;
+    dia: string;
+    hora: string;
+    fechaExamen: string;
+    folio: string;
+  }> = [];
+
+  for (const moduloId of modulosIds) {
+    const horario = horarioByModuloId.get(moduloId);
+    if (!horario) {
+      sinHorario.push(moduloId);
+      continue;
+    }
+    if (inscritosModuloIds.has(moduloId)) {
+      yaInscritos.push(moduloId);
+      continue;
+    }
+    const slot = `${horario.dia}-${horario.hora}`;
+    if (existingSlots.has(slot)) {
+      conflicto.push(moduloId);
+      continue;
+    }
+    const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
+    const fechaExamen = horario.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
+    aInscribir.push({ moduloId, horarioId: horario.id, dia: horario.dia, hora: horario.hora, fechaExamen, folio });
+    // Track the new slot so subsequent modules in this request don't conflict
+    existingSlots.add(slot);
+    inscritosModuloIds.add(moduloId);
+  }
+
+  // 8. Insert
+  const inscritos: Array<{
+    folio: string;
+    moduloId: number;
+    moduloNombre: string | null;
+    dia: string;
+    hora: string;
+    fechaExamen: string;
+  }> = [];
+
+  for (const item of aInscribir) {
+    await db.insert(examenesInscripciones).values({
+      estudianteId: alumnoId,
+      etapaId: etapa.id,
+      moduloId: item.moduloId,
+      horarioId: item.horarioId,
+      sedeId,
+      folio: item.folio,
+      estado: 'inscrito',
+    });
+    const mod = modulosById.get(item.moduloId);
+    inscritos.push({
+      folio: item.folio,
+      moduloId: item.moduloId,
+      moduloNombre: mod?.nombre ?? null,
+      dia: item.dia,
+      hora: item.hora,
+      fechaExamen: item.fechaExamen,
+    });
+  }
+
+  // 9. Audit log
+  if (inscritos.length > 0) {
+    await tryAuditLog({
+      userId: gestorId,
+      accion: 'inscribir_examenes',
+      entidad: 'examenes_inscripciones',
+      entidadId: alumnoId,
+      detalle: `Gestor inscribió al alumno ${alumnoId} en ${inscritos.length} examen(es) — etapa ${etapa.clave}`,
+      metadata: { etapaId: etapa.id, inscritos: inscritos.map((i) => i.folio) },
+      req,
+    });
+  }
+
+  res.json({
+    ok: true,
+    inscritos,
+    sinHorario,
+    conflicto,
+    yaInscritos,
+    periodoAbierto,
+    ...(periodoAbierto ? {} : { advertencia: 'El período de inscripción no está abierto, pero el gestor puede inscribir manualmente.' }),
+  });
 });
 
 export default router;

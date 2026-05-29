@@ -516,3 +516,49 @@ export interface CalificacionesResponse {
     porcentajeAvance: number;
   };
 }
+
+// ── Convocatoria gestor ────────────────────────────────────────────────────
+
+export interface GestorConvocatoriaEtapa {
+  id: number;
+  clave: string;
+  etapa: string;
+  fase: string;
+  solicitudInicio: string;
+  solicitudFin: string;
+  examenSabado: string;
+  examenDomingo: string;
+  estado: string;
+}
+
+export interface GestorConvocatoriaModulo {
+  id: number;
+  numero: number;
+  nombre: string;
+  nivel: number | null;
+  horarioId: number;
+  dia: string;   // 'sabado' | 'domingo'
+  hora: string;  // '09:00' | '11:00'
+  yaInscrito: boolean;
+}
+
+export interface GestorConvocatoriaInscripcion {
+  id: number;
+  folio: string;
+  moduloId: number;
+  moduloNumero: number;
+  moduloNombre: string;
+  dia: string;
+  hora: string;
+  fechaExamen: string;
+  estado: string;
+  sede: { nombre: string; direccion: string };
+}
+
+export interface GestorConvocatoriaResponse {
+  etapa: GestorConvocatoriaEtapa | null;
+  modulosDisponibles: GestorConvocatoriaModulo[];
+  inscripcionesActivas: GestorConvocatoriaInscripcion[];
+  sede: { nombre: string; direccion: string; telefono: string | null } | null;
+  costoExamen: number;
+}

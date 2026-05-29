@@ -24,6 +24,9 @@ import {
   Lock,
   BookOpen,
   Save,
+  CalendarCheck,
+  Clock,
+  AlertTriangle,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -34,6 +37,7 @@ import {
   type PagosResponse,
   type GestorPlanModularResponse,
   type GestorPlanModularModulo,
+  type GestorConvocatoriaResponse,
 } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
@@ -77,7 +81,7 @@ const DOCUMENTOS_EXPEDIENTE: DocDef[] = [
   { tipo: 'comprobante_pago', label: 'Comprobante de pago', descripcion: 'Comprobante de pago de derechos de inscripción', obligatorio: false },
 ];
 
-type ActiveTab = 'docs' | 'pagos' | 'calificaciones' | 'plan';
+type ActiveTab = 'docs' | 'pagos' | 'calificaciones' | 'plan' | 'convocatoria';
 
 interface ToastState {
   msg: string;
@@ -104,6 +108,12 @@ export default function AlumnoDetalle() {
   const [planLoading, setPlanLoading] = useState(false);
   const [planSeleccion, setPlanSeleccion] = useState<Set<number>>(new Set());
   const [planGuardando, setPlanGuardando] = useState(false);
+
+  // Convocatoria
+  const [convData, setConvData] = useState<GestorConvocatoriaResponse | null>(null);
+  const [convLoading, setConvLoading] = useState(false);
+  const [convSeleccion, setConvSeleccion] = useState<Set<number>>(new Set());
+  const [convInscribiendo, setConvInscribiendo] = useState(false);
 
   // Acciones menu
   const [menuOpen, setMenuOpen] = useState(false);
@@ -216,6 +226,18 @@ export default function AlumnoDetalle() {
       .finally(() => setPlanLoading(false));
   }, [activeTab, id]);
 
+  useEffect(() => {
+    if (activeTab !== 'convocatoria' || !id) return;
+    setConvLoading(true);
+    api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`)
+      .then((d) => {
+        setConvData(d);
+        setConvSeleccion(new Set());
+      })
+      .catch(() => {})
+      .finally(() => setConvLoading(false));
+  }, [activeTab, id]);
+
   async function handleGuardarPlan() {
     if (!id) return;
     setPlanGuardando(true);
@@ -232,6 +254,25 @@ export default function AlumnoDetalle() {
       showToast((e as Error).message || 'Error al guardar el plan', 'error');
     } finally {
       setPlanGuardando(false);
+    }
+  }
+
+  async function handleInscribir() {
+    if (!id || !convData?.etapa || convSeleccion.size === 0) return;
+    setConvInscribiendo(true);
+    try {
+      await api.post(`/gestor/alumnos/${id}/inscribir-examen`, {
+        etapaId: convData.etapa.id,
+        modulosIds: Array.from(convSeleccion),
+      });
+      showToast(`${convSeleccion.size} módulo${convSeleccion.size !== 1 ? 's' : ''} inscrito${convSeleccion.size !== 1 ? 's' : ''} correctamente`, 'success');
+      setConvSeleccion(new Set());
+      const d = await api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`);
+      setConvData(d);
+    } catch (e) {
+      showToast((e as Error).message || 'Error al inscribir', 'error');
+    } finally {
+      setConvInscribiendo(false);
     }
   }
 
@@ -326,6 +367,14 @@ export default function AlumnoDetalle() {
       label: 'Plan Modular',
       icon: <BookOpen size={15} />,
       badge: planAsignadosCount > 0 ? String(planAsignadosCount) : '—',
+    },
+    {
+      key: 'convocatoria',
+      label: 'Convocatoria',
+      icon: <CalendarCheck size={15} />,
+      badge: convData?.inscripcionesActivas.length
+        ? String(convData.inscripcionesActivas.length)
+        : '—',
     },
   ];
 
@@ -752,6 +801,18 @@ export default function AlumnoDetalle() {
         </>
       )}
 
+      {/* TAB: Convocatoria */}
+      {activeTab === 'convocatoria' && (
+        <ConvocatoriaTab
+          data={convData}
+          loading={convLoading}
+          seleccion={convSeleccion}
+          setSeleccion={setConvSeleccion}
+          inscribiendo={convInscribiendo}
+          onInscribir={handleInscribir}
+        />
+      )}
+
       {/* Modal: Reenviar credenciales */}
       {reenviarModal && (
         <div
@@ -1054,6 +1115,284 @@ function PlanModularGrid({
           Guardar plan modular
         </button>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+
+function ConvocatoriaTab({
+  data,
+  loading,
+  seleccion,
+  setSeleccion,
+  inscribiendo,
+  onInscribir,
+}: {
+  data: GestorConvocatoriaResponse | null;
+  loading: boolean;
+  seleccion: Set<number>;
+  setSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
+  inscribiendo: boolean;
+  onInscribir: () => void;
+}) {
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-stone-400 gap-2 text-sm">
+        <Loader2 size={18} className="animate-spin" />
+        Cargando convocatoria…
+      </div>
+    );
+  }
+
+  if (!data?.etapa) {
+    return (
+      <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
+        <CalendarCheck size={36} className="mx-auto text-stone-300 mb-3" />
+        <div className="text-sm font-bold text-stone-500" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          No hay convocatoria activa en este momento
+        </div>
+        <div className="text-xs text-stone-400 mt-1">
+          Cuando se abra una convocatoria de examen aparecerá aquí.
+        </div>
+      </div>
+    );
+  }
+
+  const { etapa, modulosDisponibles, inscripcionesActivas, costoExamen } = data;
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
+  const HORA_LABEL: Record<string, string> = { '09:00': '9:00 AM', '11:00': '11:00 AM' };
+
+  function toggleModulo(id: number) {
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  const estadoBadge = (estado: string) => {
+    const map: Record<string, { bg: string; text: string; label: string }> = {
+      inscrito:        { bg: 'bg-blue-100',  text: 'text-blue-800',  label: 'Inscrito' },
+      pase_validado:   { bg: 'bg-green-100', text: 'text-green-800', label: 'Pase validado' },
+      cancelado:       { bg: 'bg-red-100',   text: 'text-red-800',   label: 'Cancelado' },
+    };
+    const s = map[estado] ?? { bg: 'bg-stone-100', text: 'text-stone-700', label: estado };
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${s.bg} ${s.text}`}>
+        {s.label}
+      </span>
+    );
+  };
+
+  const modulosPendientes = modulosDisponibles.filter((m) => !m.yaInscrito);
+  const modulosYaInscritos = modulosDisponibles.filter((m) => m.yaInscrito);
+
+  return (
+    <div className="space-y-5">
+      {/* Etapa header */}
+      <div className="bg-white border border-stone-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-bold mb-2">
+          <CalendarCheck size={13} />
+          Convocatoria activa
+        </div>
+        <h2 className="font-serif text-xl font-bold text-stone-900 mb-4">
+          {etapa.etapa} — Fase {etapa.fase}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="flex items-start gap-2">
+            <Calendar size={14} className="text-stone-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Período de solicitud</div>
+              <div className="text-stone-800">{fmtDate(etapa.solicitudInicio)} — {fmtDate(etapa.solicitudFin)}</div>
+            </div>
+          </div>
+          <div className="flex items-start gap-2">
+            <Clock size={14} className="text-stone-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Fechas de examen</div>
+              <div className="text-stone-800">
+                Sáb {fmtDate(etapa.examenSabado)} · Dom {fmtDate(etapa.examenDomingo)}
+              </div>
+            </div>
+          </div>
+          {data.sede && (
+            <div className="flex items-start gap-2 sm:col-span-2">
+              <MapPin size={14} className="text-stone-400 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Sede de examen</div>
+                <div className="text-stone-800">{data.sede.nombre}</div>
+                <div className="text-xs text-stone-500">{data.sede.direccion}</div>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Módulos disponibles para inscribir */}
+      {modulosDisponibles.length > 0 && (
+        <div className="bg-white border border-stone-200 rounded-xl p-5">
+          <h3 className="text-sm font-bold text-stone-900 mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Módulos disponibles
+          </h3>
+          <p className="text-xs text-stone-500 mb-4">
+            Selecciona los módulos que deseas inscribir a examen en esta convocatoria.
+          </p>
+
+          {modulosPendientes.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {modulosPendientes.map((m) => {
+                const checked = seleccion.has(m.id);
+                return (
+                  <label
+                    key={m.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
+                      checked
+                        ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                        : 'border-stone-200 bg-white hover:bg-stone-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => toggleModulo(m.id)}
+                      className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+                        Módulo {m.numero}
+                      </div>
+                      <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-[11px] font-semibold text-stone-600">{DIA_LABEL[m.dia] ?? m.dia}</div>
+                      <div className="text-[11px] text-stone-400">{HORA_LABEL[m.hora] ?? m.hora}</div>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+
+          {modulosYaInscritos.length > 0 && (
+            <div className="space-y-2 mb-4">
+              {modulosYaInscritos.map((m) => (
+                <div
+                  key={m.id}
+                  className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 bg-stone-50 opacity-70 select-none"
+                >
+                  <input
+                    type="checkbox"
+                    checked
+                    disabled
+                    className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[11px] font-bold text-stone-400">Módulo {m.numero}</div>
+                    <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
+                  </div>
+                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold uppercase tracking-wide shrink-0">
+                    ✓ Inscrito
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {modulosPendientes.length === 0 && modulosYaInscritos.length > 0 && (
+            <div className="text-xs text-stone-500 italic mb-4">
+              Todos los módulos disponibles ya están inscritos.
+            </div>
+          )}
+
+          <div className="flex items-center justify-between pt-3 border-t border-stone-200">
+            <div className="text-sm text-stone-500">
+              <span className="font-bold text-stone-900">{seleccion.size}</span>{' '}
+              módulo{seleccion.size !== 1 ? 's' : ''} seleccionado{seleccion.size !== 1 ? 's' : ''}
+            </div>
+            <button
+              onClick={onInscribir}
+              disabled={seleccion.size === 0 || inscribiendo}
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+            >
+              {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
+              Inscribir seleccionados
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Inscripciones activas */}
+      {inscripcionesActivas.length > 0 && (
+        <div className="bg-white border border-stone-200 rounded-xl p-5">
+          <h3 className="text-sm font-bold text-stone-900 mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            Inscripciones actuales
+          </h3>
+
+          <div className="space-y-3 mb-5">
+            {inscripcionesActivas.map((insc) => (
+              <div key={insc.id} className="border border-stone-200 rounded-lg p-4">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <code className="font-mono text-xs font-bold text-[var(--color-guinda-700)] bg-stone-100 px-1.5 py-0.5 rounded">
+                        {insc.folio}
+                      </code>
+                      {estadoBadge(insc.estado)}
+                    </div>
+                    <div className="text-sm font-semibold text-stone-800">
+                      Módulo {insc.moduloNumero} — {insc.moduloNombre}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1.5 text-xs text-stone-500">
+                      <span className="flex items-center gap-1">
+                        <Clock size={11} />
+                        {DIA_LABEL[insc.dia] ?? insc.dia} · {HORA_LABEL[insc.hora] ?? insc.hora}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Calendar size={11} />
+                        {fmtDate(insc.fechaExamen)}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1 mt-1 text-xs text-stone-500">
+                      <MapPin size={11} />
+                      {insc.sede.nombre}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Costo total */}
+          <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 mb-3">
+            <div className="flex items-center justify-between text-sm">
+              <div className="text-stone-600">
+                {inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen} MXN
+              </div>
+              <div className="font-bold text-stone-900 text-base">
+                ${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN
+              </div>
+            </div>
+          </div>
+
+          {/* Aviso de pago */}
+          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
+            <div>
+              El pago de{' '}
+              <strong>${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN</strong>
+              {' '}({inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen}) debe subirse en la pestaña{' '}
+              <strong>Pagos</strong> antes del{' '}
+              <strong>{fmtDate(etapa.solicitudFin)}</strong>.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
