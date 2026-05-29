@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react';
 import {
   CreditCard, Check, X, Search, RefreshCw, AlertCircle,
-  FileText, ExternalLink, ChevronLeft, ChevronRight,
+  FileText, ChevronLeft, ChevronRight,
   Building2, Smartphone, Landmark, User, UserCheck,
+  ZoomIn,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
@@ -64,7 +65,6 @@ const METODO_CONFIG: Record<string, { label: string; bg: string; color: string; 
   spei: { label: 'SPEI', bg: '#dbeafe', color: '#1d4ed8', icon: Landmark },
   banco_deposito: { label: 'Depósito banco', bg: '#dcfce7', color: '#15803d', icon: Building2 },
   tienda_conveniencia: { label: 'Tienda / Oxxo', bg: '#ffedd5', color: '#c2410c', icon: Smartphone },
-  efectivo: { label: 'Efectivo', bg: '#f0fdf4', color: '#166534', icon: CreditCard },
   otro: { label: 'Otro', bg: '#f5f5f4', color: '#78716c', icon: CreditCard },
 };
 
@@ -74,7 +74,7 @@ const ESTADO_CONFIG = {
   rechazado: { label: 'Rechazado', bg: '#fee2e2', color: '#991b1b', dot: '#ef4444' },
 };
 
-// ─── Debounce ─────────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────
 
 function useDebounce<T>(value: T, ms: number): T {
   const [dv, setDv] = useState(value);
@@ -85,8 +85,6 @@ function useDebounce<T>(value: T, ms: number): T {
   return dv;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
-
 function iniciales(nombre: string): string {
   return nombre.trim().split(/\s+/).slice(0, 2).map(p => p[0]?.toUpperCase() ?? '').join('');
 }
@@ -96,14 +94,11 @@ function fmtMonto(monto: string): string {
 }
 
 function fmtFecha(iso: string): string {
-  return new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: '2-digit' });
+  return new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
-function fmtBytes(bytes: number | null): string {
-  if (!bytes) return '';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+function fmtFechaCorta(iso: string): string {
+  return new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: '2-digit' });
 }
 
 // ─── StatCard ─────────────────────────────────────────────────────────────
@@ -114,7 +109,7 @@ function StatCard({ label, value, sub, active, onClick }: {
 }) {
   return (
     <div
-      className={`bg-white border rounded-xl px-5 py-4 flex-1 min-w-0 cursor-pointer transition-all ${active ? 'border-[var(--color-guinda-700)] shadow-sm' : 'border-stone-200 hover:border-stone-300'}`}
+      className={`bg-white border rounded-xl px-5 py-4 flex-1 min-w-0 transition-all ${onClick ? 'cursor-pointer' : ''} ${active ? 'border-[var(--color-guinda-700)] shadow-sm' : 'border-stone-200 hover:border-stone-300'}`}
       onClick={onClick}
     >
       <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: active ? 'var(--color-guinda-700)' : '#78716c' }}>
@@ -153,8 +148,8 @@ function RechazarModal({ pagoId, onClose, onSuccess }: {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'rgba(0,0,0,0.35)' }}
+      className="fixed inset-0 z-[60] flex items-center justify-center"
+      style={{ background: 'rgba(0,0,0,0.5)' }}
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
@@ -199,15 +194,17 @@ function RechazarModal({ pagoId, onClose, onSuccess }: {
   );
 }
 
-// ─── PagoRow ──────────────────────────────────────────────────────────────
+// ─── DetalleModal — comprobante + acciones ────────────────────────────────
 
-function PagoRow({
+function DetalleModal({
   pago,
+  onClose,
   onVerificar,
   onRechazar,
   actionId,
 }: {
   pago: PagoAdmin;
+  onClose: () => void;
   onVerificar: (id: number) => void;
   onRechazar: (id: number) => void;
   actionId: number | null;
@@ -216,11 +213,223 @@ function PagoRow({
   const MetodoIcon = metodo.icon;
   const estado = ESTADO_CONFIG[pago.estado];
   const ini = iniciales(pago.alumnoNombre);
+  const comprobanteUrl = `/api/pagos/${pago.id}/comprobante`;
 
   return (
     <div
-      className="grid items-center px-5 py-3.5 border-b border-stone-50 last:border-b-0 hover:bg-stone-50/50 transition-colors"
-      style={{ gridTemplateColumns: '44px 1fr 120px 130px 110px 90px 160px', gap: 12 }}
+      className="fixed inset-0 z-50 flex items-stretch justify-end"
+      style={{ background: 'rgba(0,0,0,0.45)' }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      {/* Side panel */}
+      <div
+        className="flex flex-col bg-white h-full overflow-hidden"
+        style={{ width: '100%', maxWidth: 900 }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between px-6 py-4 border-b border-stone-100 flex-shrink-0"
+          style={{ background: '#fafaf9' }}
+        >
+          <div className="flex items-center gap-3">
+            <div
+              className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
+              style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+            >
+              {ini}
+            </div>
+            <div>
+              <div className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+                {pago.alumnoNombre}
+              </div>
+              <div className="text-[11px]" style={{ color: '#78716c' }}>
+                {pago.alumnoCurp ?? '—'}
+                {pago.municipioNombre ? ` · ${pago.municipioNombre}` : ''}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 rounded-lg hover:bg-stone-100 transition-colors">
+            <X size={18} style={{ color: '#78716c' }} />
+          </button>
+        </div>
+
+        {/* Body: split — info left / PDF right */}
+        <div className="flex flex-1 min-h-0">
+
+          {/* Left: payment details + actions */}
+          <div className="flex flex-col w-72 flex-shrink-0 border-r border-stone-100 overflow-y-auto">
+            <div className="p-5 space-y-4">
+
+              {/* Estado */}
+              <div>
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded"
+                  style={{ background: estado.bg, color: estado.color }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: estado.dot }} />
+                  {estado.label}
+                </span>
+              </div>
+
+              {/* Concepto */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Concepto</div>
+                <div className="text-sm font-semibold" style={{ color: '#2a2a2a' }}>
+                  {CONCEPTO_LABELS[pago.concepto] ?? pago.concepto}
+                </div>
+                {pago.conceptoDetalle && (
+                  <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>{pago.conceptoDetalle}</div>
+                )}
+              </div>
+
+              {/* Monto */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Monto</div>
+                <div className="text-2xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+                  {fmtMonto(pago.monto)}
+                </div>
+                <div className="text-[10px]" style={{ color: '#a8a29e' }}>{pago.moneda}</div>
+              </div>
+
+              {/* Método */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#78716c' }}>Método de pago</div>
+                <span
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
+                  style={{ background: metodo.bg, color: metodo.color }}
+                >
+                  <MetodoIcon size={12} /> {metodo.label}
+                </span>
+              </div>
+
+              {/* Fecha */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Fecha de pago</div>
+                <div className="text-sm" style={{ color: '#2a2a2a' }}>{fmtFecha(pago.fechaPago)}</div>
+              </div>
+
+              {/* Referencia */}
+              {pago.referenciaBancaria && (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Referencia</div>
+                  <div className="text-xs font-mono bg-stone-50 px-2 py-1.5 rounded" style={{ color: '#44403c' }}>
+                    {pago.referenciaBancaria}
+                  </div>
+                </div>
+              )}
+
+              {/* Notas */}
+              {pago.notas && (
+                <div>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Notas</div>
+                  <div className="text-xs bg-stone-50 px-2 py-1.5 rounded" style={{ color: '#44403c' }}>
+                    {pago.notas}
+                  </div>
+                </div>
+              )}
+
+              {/* Quién subió */}
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Subido por</div>
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: '#44403c' }}>
+                  {pago.subidoPorAlumno ? (
+                    <><User size={12} style={{ color: '#78716c' }} /> El propio alumno</>
+                  ) : (
+                    <><UserCheck size={12} style={{ color: '#1d4ed8' }} /> {pago.gestorNombre ?? 'Gestor'}</>
+                  )}
+                </div>
+              </div>
+
+              {/* Motivo rechazo si aplica */}
+              {pago.estado === 'rechazado' && pago.motivoRechazo && (
+                <div className="rounded-lg p-3" style={{ background: '#fee2e2' }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#991b1b' }}>Motivo de rechazo</div>
+                  <div className="text-xs" style={{ color: '#7f1d1d' }}>{pago.motivoRechazo}</div>
+                </div>
+              )}
+            </div>
+
+            {/* Action buttons — pinned to bottom */}
+            {pago.estado === 'pendiente' && (
+              <div className="mt-auto p-5 border-t border-stone-100 space-y-2">
+                <button
+                  onClick={() => onVerificar(pago.id)}
+                  disabled={actionId === pago.id}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold text-white rounded-xl disabled:opacity-50 transition-opacity"
+                  style={{ background: '#059669' }}
+                >
+                  <Check size={16} /> Verificar pago
+                </button>
+                <button
+                  onClick={() => onRechazar(pago.id)}
+                  disabled={actionId === pago.id}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-bold rounded-xl border disabled:opacity-50 transition-opacity"
+                  style={{ background: '#fee2e2', color: '#b91c1c', borderColor: '#fca5a5' }}
+                >
+                  <X size={16} /> Rechazar
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Right: PDF viewer */}
+          <div className="flex-1 flex flex-col bg-stone-100 min-w-0">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-200 bg-white flex-shrink-0">
+              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#44403c' }}>
+                <FileText size={14} style={{ color: '#78716c' }} />
+                {pago.nombreComprobante ?? 'comprobante.pdf'}
+              </div>
+              <a
+                href={comprobanteUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
+                style={{ color: '#44403c' }}
+              >
+                <ZoomIn size={12} /> Abrir en nueva pestaña
+              </a>
+            </div>
+            {pago.nombreComprobante ? (
+              <iframe
+                src={comprobanteUrl}
+                title="Comprobante de pago"
+                className="flex-1 w-full border-0"
+                style={{ minHeight: 0 }}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center">
+                <div className="text-center">
+                  <FileText size={40} style={{ color: '#d6d3d1', margin: '0 auto 12px' }} />
+                  <p className="text-sm font-semibold" style={{ color: '#44403c' }}>Sin comprobante adjunto</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── PagoRow ──────────────────────────────────────────────────────────────
+
+function PagoRow({
+  pago,
+  onClick,
+}: {
+  pago: PagoAdmin;
+  onClick: () => void;
+}) {
+  const metodo = METODO_CONFIG[pago.metodoPago] ?? METODO_CONFIG.otro;
+  const MetodoIcon = metodo.icon;
+  const estado = ESTADO_CONFIG[pago.estado];
+  const ini = iniciales(pago.alumnoNombre);
+
+  return (
+    <div
+      className="grid items-center px-5 py-3.5 border-b border-stone-50 last:border-b-0 hover:bg-stone-50 transition-colors cursor-pointer"
+      style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12 }}
+      onClick={onClick}
     >
       {/* Avatar */}
       <div
@@ -239,7 +448,6 @@ function PagoRow({
           {CONCEPTO_LABELS[pago.concepto] ?? pago.concepto}
           {pago.conceptoDetalle ? ` · ${pago.conceptoDetalle}` : ''}
         </div>
-        {/* Quién subió */}
         <div className="flex items-center gap-1 mt-0.5">
           {pago.subidoPorAlumno ? (
             <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#78716c' }}>
@@ -268,7 +476,7 @@ function PagoRow({
 
       {/* Monto */}
       <div className="text-right">
-        <div className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <div className="text-sm font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
           {fmtMonto(pago.monto)}
         </div>
         <div className="text-[10px]" style={{ color: '#a8a29e' }}>{pago.moneda}</div>
@@ -276,70 +484,23 @@ function PagoRow({
 
       {/* Fecha */}
       <div className="text-[11px]" style={{ color: '#78716c' }}>
-        <div>{fmtFecha(pago.fechaPago)}</div>
-        {pago.referenciaBancaria && (
-          <div className="font-mono text-[10px] mt-0.5 truncate" style={{ color: '#a8a29e' }}>
-            Ref: {pago.referenciaBancaria}
-          </div>
-        )}
+        {fmtFechaCorta(pago.fechaPago)}
       </div>
 
       {/* Estado */}
       <div>
         <span
-          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded"
+          className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded"
           style={{ background: estado.bg, color: estado.color }}
         >
           <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: estado.dot }} />
           {estado.label}
         </span>
-        {pago.estado === 'rechazado' && pago.motivoRechazo && (
-          <div className="text-[10px] mt-1 line-clamp-1" style={{ color: '#ef4444' }} title={pago.motivoRechazo}>
-            {pago.motivoRechazo}
-          </div>
-        )}
       </div>
 
-      {/* Acciones */}
-      <div className="flex items-center gap-1.5 justify-end" onClick={(e) => e.stopPropagation()}>
-        {/* Ver comprobante */}
-        {pago.nombreComprobante && (
-          <a
-            href={`/api/pagos/${pago.id}/comprobante`}
-            target="_blank"
-            rel="noreferrer"
-            title={`Ver PDF · ${fmtBytes(pago.tamanoBytes)}`}
-            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold border border-stone-200 bg-white rounded-lg hover:bg-stone-50 transition-colors"
-            style={{ color: '#44403c' }}
-          >
-            <FileText size={12} /> PDF
-            <ExternalLink size={10} style={{ color: '#a8a29e' }} />
-          </a>
-        )}
-
-        {/* Verificar / Rechazar (solo pendientes) */}
-        {pago.estado === 'pendiente' && (
-          <>
-            <button
-              onClick={() => onVerificar(pago.id)}
-              disabled={actionId === pago.id}
-              title="Verificar pago"
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold text-white rounded-lg disabled:opacity-50 transition-opacity"
-              style={{ background: '#059669' }}
-            >
-              <Check size={12} /> Verificar
-            </button>
-            <button
-              onClick={() => onRechazar(pago.id)}
-              disabled={actionId === pago.id}
-              title="Rechazar pago"
-              className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold rounded-lg border border-red-200 disabled:opacity-50 transition-opacity"
-              style={{ background: '#fee2e2', color: '#b91c1c' }}
-            >
-              <X size={12} /> Rechazar
-            </button>
-          </>
-        )}
+      {/* Arrow */}
+      <div className="flex items-center justify-center opacity-40">
+        <ChevronRight size={14} style={{ color: '#78716c' }} />
       </div>
     </div>
   );
@@ -356,6 +517,7 @@ export default function PagosAdmin() {
   const debouncedSearch = useDebounce(searchInput, 300);
 
   const [actionId, setActionId] = useState<number | null>(null);
+  const [detallePago, setDetallePago] = useState<PagoAdmin | null>(null);
   const [rechazarModal, setRechazarModal] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -378,7 +540,6 @@ export default function PagosAdmin() {
   useEffect(() => { setPage(1); }, [estadoFiltro, debouncedSearch]);
   useEffect(() => { load(); }, [load]);
 
-  // Auto-dismiss toast
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -391,6 +552,7 @@ export default function PagosAdmin() {
     try {
       await api.post(`/admin/pagos/${pagoId}/verificar`, { aprobado: true });
       setToast({ msg: 'Pago verificado correctamente', ok: true });
+      setDetallePago(null);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Error al verificar');
@@ -401,6 +563,7 @@ export default function PagosAdmin() {
 
   async function handleRechazarSuccess() {
     setRechazarModal(null);
+    setDetallePago(null);
     setToast({ msg: 'Comprobante rechazado', ok: false });
     await load();
   }
@@ -423,7 +586,18 @@ export default function PagosAdmin() {
         </div>
       )}
 
-      {/* Rechazo modal */}
+      {/* Detalle modal (side panel with PDF) */}
+      {detallePago && (
+        <DetalleModal
+          pago={detallePago}
+          onClose={() => setDetallePago(null)}
+          onVerificar={handleVerificar}
+          onRechazar={(id) => setRechazarModal(id)}
+          actionId={actionId}
+        />
+      )}
+
+      {/* Rechazo modal (shown on top of detalle) */}
       {rechazarModal && (
         <RechazarModal
           pagoId={rechazarModal}
@@ -477,7 +651,6 @@ export default function PagosAdmin() {
             label="Monto verificado"
             value={`$${resumen.montoVerificado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`}
             sub="Total aprobado MXN"
-            active={false}
           />
           <StatCard
             label="Rechazados"
@@ -498,7 +671,6 @@ export default function PagosAdmin() {
 
       {/* Filter bar */}
       <div className="flex items-center gap-2 mb-4">
-        {/* Tabs */}
         <div className="flex items-center gap-1 bg-stone-100 rounded-lg p-1">
           {(['', 'pendiente', 'verificado', 'rechazado'] as const).map((v) => (
             <button
@@ -516,7 +688,6 @@ export default function PagosAdmin() {
           ))}
         </div>
 
-        {/* Search */}
         <div className="relative ml-auto">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
           <input
@@ -557,12 +728,11 @@ export default function PagosAdmin() {
         </div>
       ) : (
         <>
-          {/* Table card */}
           <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-            {/* Header */}
+            {/* Table header */}
             <div
               className="grid px-5 py-3 border-b border-stone-100"
-              style={{ gridTemplateColumns: '44px 1fr 120px 130px 110px 90px 160px', gap: 12, background: '#fafaf9' }}
+              style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12, background: '#fafaf9' }}
             >
               <div />
               <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Alumno</div>
@@ -570,16 +740,14 @@ export default function PagosAdmin() {
               <div className="text-[11px] font-semibold uppercase tracking-wide text-right" style={{ color: '#78716c' }}>Monto</div>
               <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Fecha</div>
               <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Estado</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-right" style={{ color: '#78716c' }}>Acciones</div>
+              <div />
             </div>
 
             {data.pagos.map((pago) => (
               <PagoRow
                 key={pago.id}
                 pago={pago}
-                onVerificar={handleVerificar}
-                onRechazar={(id) => setRechazarModal(id)}
-                actionId={actionId}
+                onClick={() => setDetallePago(pago)}
               />
             ))}
           </div>

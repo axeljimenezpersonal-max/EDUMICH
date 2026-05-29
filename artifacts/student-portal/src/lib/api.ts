@@ -418,7 +418,6 @@ export type PagoMetodo =
   | 'spei'
   | 'banco_deposito'
   | 'tienda_conveniencia'
-  | 'efectivo'
   | 'otro';
 
 export type PagoEstado = 'pendiente' | 'verificado' | 'rechazado';

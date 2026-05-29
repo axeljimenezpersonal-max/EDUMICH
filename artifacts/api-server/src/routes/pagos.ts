@@ -140,7 +140,6 @@ const subirPagoSchema = z.object({
     'spei',
     'banco_deposito',
     'tienda_conveniencia',
-    'efectivo',
     'otro',
   ]),
   referenciaBancaria: z.string().max(100).optional(),

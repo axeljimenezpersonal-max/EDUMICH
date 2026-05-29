@@ -13,7 +13,6 @@ const METODO_LABELS: Record<string, string> = {
   spei: 'Transferencia (SPEI)',
   banco_deposito: 'Banco – depósito',
   tienda_conveniencia: 'Tienda de conveniencia',
-  efectivo: 'Efectivo',
   otro: 'Otro',
 };
 
