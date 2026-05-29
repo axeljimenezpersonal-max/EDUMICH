@@ -189,14 +189,19 @@ export default function AlumnoDetalle() {
   async function load() {
     if (!id) return;
     try {
-      const [alumnoData, expData, configData] = await Promise.all([
+      const [alumnoData, expData, configData, convocatoriaData] = await Promise.all([
         api.get<AlumnoDetalleType>(`/gestor/alumnos/${id}`),
         api.get<GestorExpedienteResponse>(`/gestor/alumnos/${id}/expediente`),
         api.get<GestorConfigPagoResponse>(`/gestor/config-pago`),
+        // Carga la convocatoria eagerly para que las badges de los tabs
+        // muestren los conteos correctos desde el primer render.
+        // Si falla (sin convocatoria activa), devuelve null sin romper la página.
+        api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`).catch(() => null),
       ]);
       setData(alumnoData);
       setExpediente(expData);
       setConfigPago(configData);
+      setConvData(convocatoriaData);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -340,24 +345,35 @@ export default function AlumnoDetalle() {
   const inscripcionesCount = convData?.inscripcionesActivas.length ?? 0;
   const modulosDisponiblesCount = convData?.modulosDisponibles.filter((m) => !m.yaInscrito).length ?? 0;
 
-  const tabItems: { key: ActiveTab; label: string; icon: React.ReactNode; badge: string }[] = [
+  // convLoading puede ser true solo si el lazy-effect se disparó (fallback).
+  // En carga normal, convData ya viene populado junto con el resto de la página.
+  const convBadgeLoading = convLoading && convData === null;
+
+  const tabItems: {
+    key: ActiveTab;
+    label: string;
+    icon: React.ReactNode;
+    badge: string;
+    badgeVariant?: 'default' | 'warn';
+  }[] = [
     {
       key: 'docs',
       label: 'Documentos',
       icon: <FolderOpen size={15} />,
       badge: `${docsCount}/6`,
+      badgeVariant: docsCount < 4 ? 'warn' : 'default', // 4 obligatorios
     },
     {
       key: 'plan',
       label: 'Convocatoria',
       icon: <CalendarCheck size={15} />,
-      badge: modulosDisponiblesCount > 0 ? String(modulosDisponiblesCount) : '—',
+      badge: convBadgeLoading ? '…' : (modulosDisponiblesCount > 0 ? String(modulosDisponiblesCount) : '—'),
     },
     {
       key: 'convocatoria',
       label: 'Inscripción',
       icon: <Receipt size={15} />,
-      badge: inscripcionesCount > 0 ? String(inscripcionesCount) : '—',
+      badge: convBadgeLoading ? '…' : (inscripcionesCount > 0 ? String(inscripcionesCount) : '—'),
     },
     {
       key: 'calificaciones',
@@ -482,8 +498,9 @@ export default function AlumnoDetalle() {
 
       {/* ── Tab bar ── */}
       <div className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
-        {tabItems.map(({ key, label, icon, badge }) => {
+        {tabItems.map(({ key, label, icon, badge, badgeVariant }) => {
           const active = activeTab === key;
+          const isWarn = !active && badgeVariant === 'warn';
           return (
             <button
               key={key}
@@ -498,7 +515,11 @@ export default function AlumnoDetalle() {
               {label}
               <span
                 className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  active ? 'bg-white/20 text-white' : 'bg-[var(--color-crema-100)] text-stone-700'
+                  active
+                    ? 'bg-white/20 text-white'
+                    : isWarn
+                      ? 'bg-amber-100 text-amber-700'
+                      : 'bg-[var(--color-crema-100)] text-stone-700'
                 }`}
               >
                 {badge}
