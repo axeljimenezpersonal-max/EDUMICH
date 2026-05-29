@@ -532,43 +532,6 @@ export default function AlumnoDetalle() {
       {/* ══════════════ TAB: Documentos ══════════════ */}
       {activeTab === 'docs' && (
         <>
-          {/* Acceso del alumno */}
-          {alumno.passwordTemporal ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
-              <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
-                <Send size={16} className="text-amber-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-amber-900">Credenciales de acceso pendientes</div>
-                <div className="text-xs text-amber-700 mt-0.5">
-                  {bienvenidaFecha
-                    ? `Enviadas el ${bienvenidaFecha}, pero el alumno aún no ha iniciado sesión.`
-                    : 'El alumno aún no ha recibido sus credenciales de acceso.'}
-                  {' '}Tanto tú como él pueden subir documentos desde sus respectivos portales.
-                </div>
-              </div>
-              <button
-                onClick={() => setReenviarModal(true)}
-                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors"
-              >
-                <Send size={12} />
-                {bienvenidaFecha ? 'Reenviar' : 'Enviar acceso'}
-              </button>
-            </div>
-          ) : (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 flex items-center gap-3">
-              <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
-                <UserCheck size={16} className="text-emerald-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-emerald-900">El alumno tiene acceso activo</div>
-                <div className="text-xs text-emerald-700 mt-0.5">
-                  Ya inició sesión y puede subir documentos directamente desde su portal.
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* Matrícula oficial DGB */}
           {!alumno.matriculaOficialDGB ? (
             <div className="bg-white border border-stone-200 rounded-xl p-4 mb-4 flex items-start gap-3">
@@ -646,6 +609,43 @@ export default function AlumnoDetalle() {
                 <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">LICENCIA DIGITAL</div>
                 <div className="font-mono text-lg font-bold text-violet-700 tracking-wide">
                   {alumno.licenciaDigital}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Acceso del alumno — va después de matrícula y licencia */}
+          {alumno.passwordTemporal ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                <Send size={16} className="text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-amber-900">Credenciales de acceso pendientes</div>
+                <div className="text-xs text-amber-700 mt-0.5">
+                  {bienvenidaFecha
+                    ? `Enviadas el ${bienvenidaFecha}, pero el alumno aún no ha iniciado sesión.`
+                    : 'El alumno aún no ha recibido sus credenciales de acceso.'}
+                  {' '}Tanto tú como él pueden subir documentos desde sus respectivos portales.
+                </div>
+              </div>
+              <button
+                onClick={() => setReenviarModal(true)}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+              >
+                <Send size={12} />
+                {bienvenidaFecha ? 'Reenviar' : 'Enviar acceso'}
+              </button>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                <UserCheck size={16} className="text-emerald-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-emerald-900">El alumno tiene acceso activo</div>
+                <div className="text-xs text-emerald-700 mt-0.5">
+                  Ya inició sesión y puede subir documentos directamente desde su portal.
                 </div>
               </div>
             </div>
