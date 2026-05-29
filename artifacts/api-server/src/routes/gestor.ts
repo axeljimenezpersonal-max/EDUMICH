@@ -36,6 +36,7 @@ import {
   convocatoriasEtapas,
   convocatoriasModulosHorarios,
   sedes,
+  pagos,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
@@ -1525,12 +1526,27 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     if (sedeRow) sedeAlumno = sedeRow;
   }
 
+  // 8. Most recent derecho_examen pago for this student
+  const [pagoDerechos] = await db
+    .select({
+      id: pagos.id,
+      estado: pagos.estado,
+      monto: pagos.monto,
+      fechaPago: pagos.fechaPago,
+      createdAt: pagos.createdAt,
+    })
+    .from(pagos)
+    .where(and(eq(pagos.estudianteId, alumnoId), eq(pagos.concepto, 'derecho_examen')))
+    .orderBy(desc(pagos.createdAt))
+    .limit(1);
+
   res.json({
     etapa,
     modulosDisponibles,
     inscripcionesActivas: inscripcionesActivasEnriquecidas,
     sede: sedeAlumno,
     costoExamen: COSTO_EXAMEN_MXN,
+    pagoDerechos: pagoDerechos ?? null,
   });
 });
 

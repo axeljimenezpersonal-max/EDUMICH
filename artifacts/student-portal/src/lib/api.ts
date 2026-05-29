@@ -555,10 +555,19 @@ export interface GestorConvocatoriaInscripcion {
   sede: { nombre: string; direccion: string };
 }
 
+export interface GestorConvocatoriaPago {
+  id: number;
+  estado: string;
+  monto: string;
+  fechaPago: string;
+  createdAt: string;
+}
+
 export interface GestorConvocatoriaResponse {
   etapa: GestorConvocatoriaEtapa | null;
   modulosDisponibles: GestorConvocatoriaModulo[];
   inscripcionesActivas: GestorConvocatoriaInscripcion[];
   sede: { nombre: string; direccion: string; telefono: string | null } | null;
   costoExamen: number;
+  pagoDerechos: GestorConvocatoriaPago | null;
 }

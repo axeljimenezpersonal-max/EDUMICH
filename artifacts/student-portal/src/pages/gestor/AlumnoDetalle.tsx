@@ -8,9 +8,7 @@ import {
   Mail,
   AlertCircle,
   FolderOpen,
-  CreditCard,
   GraduationCap,
-  Plus,
   Info,
   MoreVertical,
   Send,
@@ -27,6 +25,8 @@ import {
   CalendarCheck,
   Clock,
   AlertTriangle,
+  UploadCloud,
+  Receipt,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -34,15 +34,13 @@ import {
   type AlumnoDetalle as AlumnoDetalleType,
   type GestorExpedienteResponse,
   type TipoDocumento,
-  type PagosResponse,
   type GestorPlanModularResponse,
   type GestorPlanModularModulo,
   type GestorConvocatoriaResponse,
+  type GestorConvocatoriaPago,
 } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
-import PagoCard from '../../components/PagoCard';
-import SubirPagoModal from '../../components/SubirPagoModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 
 interface AlumnoConMatricula {
@@ -81,7 +79,7 @@ const DOCUMENTOS_EXPEDIENTE: DocDef[] = [
   { tipo: 'comprobante_pago', label: 'Comprobante de pago', descripcion: 'Comprobante de pago de derechos de inscripción', obligatorio: false },
 ];
 
-type ActiveTab = 'docs' | 'pagos' | 'calificaciones' | 'plan' | 'convocatoria';
+type ActiveTab = 'docs' | 'plan' | 'convocatoria' | 'calificaciones';
 
 interface ToastState {
   msg: string;
@@ -99,9 +97,6 @@ export default function AlumnoDetalle() {
   const [error, setError] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('docs');
-  const [pagosData, setPagosData] = useState<PagosResponse | null>(null);
-  const [pagosLoading, setPagosLoading] = useState(false);
-  const [modalPago, setModalPago] = useState(false);
 
   // Plan modular
   const [planData, setPlanData] = useState<GestorPlanModularResponse | null>(null);
@@ -114,6 +109,12 @@ export default function AlumnoDetalle() {
   const [convLoading, setConvLoading] = useState(false);
   const [convSeleccion, setConvSeleccion] = useState<Set<number>>(new Set());
   const [convInscribiendo, setConvInscribiendo] = useState(false);
+
+  // Pago de derechos (dentro de convocatoria)
+  const [pagoFile, setPagoFile] = useState<File | null>(null);
+  const [pagoFecha, setPagoFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [pagoMetodo, setPagoMetodo] = useState('efectivo');
+  const [pagoSubiendo, setPagoSubiendo] = useState(false);
 
   // Acciones menu
   const [menuOpen, setMenuOpen] = useState(false);
@@ -206,15 +207,6 @@ export default function AlumnoDetalle() {
   }, [id]);
 
   useEffect(() => {
-    if (activeTab !== 'pagos' || !id) return;
-    setPagosLoading(true);
-    api.get<PagosResponse>(`/pagos/estudiantes/${id}`)
-      .then(setPagosData)
-      .catch(() => {})
-      .finally(() => setPagosLoading(false));
-  }, [activeTab, id]);
-
-  useEffect(() => {
     if (activeTab !== 'plan' || !id) return;
     setPlanLoading(true);
     api.get<GestorPlanModularResponse>(`/gestor/alumnos/${id}/plan-modular`)
@@ -273,6 +265,31 @@ export default function AlumnoDetalle() {
       showToast((e as Error).message || 'Error al inscribir', 'error');
     } finally {
       setConvInscribiendo(false);
+    }
+  }
+
+  async function handleSubirPago() {
+    if (!id || !pagoFile || !convData?.inscripcionesActivas.length) return;
+    setPagoSubiendo(true);
+    try {
+      const total = convData.inscripcionesActivas.length * convData.costoExamen;
+      const folios = convData.inscripcionesActivas.map((i) => i.folio).join(', ');
+      const form = new FormData();
+      form.append('comprobante', pagoFile);
+      form.append('concepto', 'derecho_examen');
+      form.append('conceptoDetalle', `Folios: ${folios}`);
+      form.append('monto', String(total));
+      form.append('fechaPago', pagoFecha);
+      form.append('metodoPago', pagoMetodo);
+      await api.post(`/pagos/estudiantes/${id}`, form);
+      showToast('Comprobante de pago subido correctamente', 'success');
+      setPagoFile(null);
+      const d = await api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`);
+      setConvData(d);
+    } catch (e) {
+      showToast((e as Error).message || 'Error al subir comprobante', 'error');
+    } finally {
+      setPagoSubiendo(false);
     }
   }
 
@@ -351,20 +368,8 @@ export default function AlumnoDetalle() {
       badge: `${docsCount}/6`,
     },
     {
-      key: 'pagos',
-      label: 'Pagos',
-      icon: <CreditCard size={15} />,
-      badge: pagosData !== null ? String(pagosData.pagos.length) : '—',
-    },
-    {
-      key: 'calificaciones',
-      label: 'Calificaciones',
-      icon: <GraduationCap size={15} />,
-      badge: '—',
-    },
-    {
       key: 'plan',
-      label: 'Plan Modular',
+      label: 'Plan de estudios',
       icon: <BookOpen size={15} />,
       badge: planAsignadosCount > 0 ? String(planAsignadosCount) : '—',
     },
@@ -375,6 +380,12 @@ export default function AlumnoDetalle() {
       badge: convData?.inscripcionesActivas.length
         ? String(convData.inscripcionesActivas.length)
         : '—',
+    },
+    {
+      key: 'calificaciones',
+      label: 'Calificaciones',
+      icon: <GraduationCap size={15} />,
+      badge: '—',
     },
   ];
 
@@ -687,90 +698,7 @@ export default function AlumnoDetalle() {
         </>
       )}
 
-      {/* TAB: Pagos */}
-      {activeTab === 'pagos' && (
-        <>
-          {pagosLoading ? (
-            <div className="text-center text-stone-400 py-16 text-sm">Cargando pagos…</div>
-          ) : pagosData ? (
-            <>
-              <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 mb-5 grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">
-                    Total pagado y verificado
-                  </div>
-                  <div
-                    className="text-4xl font-bold leading-none"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  >
-                    ${pagosData.resumen.totalPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                  </div>
-                </div>
-                <div className="h-14 w-px bg-white/20" />
-                <div className="text-center">
-                  <div className="text-4xl font-bold leading-none" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    {pagosData.resumen.verificados}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Verificados</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-4xl font-bold leading-none" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    {pagosData.resumen.pendientes}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Pendientes</div>
-                </div>
-              </div>
 
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-sm font-bold text-stone-900" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                  Historial de pagos
-                </h3>
-                <button
-                  onClick={() => setModalPago(true)}
-                  className="bg-[var(--color-guinda-700)] text-white text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-[var(--color-guinda-800)] transition-colors"
-                >
-                  <Plus size={12} />
-                  Subir comprobante de pago
-                </button>
-              </div>
-
-              {pagosData.pagos.length === 0 ? (
-                <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
-                  <CreditCard size={36} className="mx-auto text-stone-300 mb-3" />
-                  <div className="text-sm font-bold text-stone-500" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                    Sin pagos registrados
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pagosData.pagos.map((pago) => (
-                    <PagoCard
-                      key={pago.id}
-                      pago={pago}
-                      onVerComprobante={(p) => window.open(`/api/pagos/${p.id}/comprobante`, '_blank')}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : null}
-
-          {id !== null && (
-            <SubirPagoModal
-              open={modalPago}
-              onClose={() => setModalPago(false)}
-              estudianteId={id}
-              onSuccess={() => {
-                setPagosLoading(true);
-                api.get<PagosResponse>(`/pagos/estudiantes/${id}`)
-                  .then(setPagosData)
-                  .catch(() => {})
-                  .finally(() => setPagosLoading(false));
-              }}
-            />
-          )}
-        </>
-      )}
 
       {/* TAB: Calificaciones */}
       {activeTab === 'calificaciones' && id !== null && (
@@ -810,6 +738,14 @@ export default function AlumnoDetalle() {
           setSeleccion={setConvSeleccion}
           inscribiendo={convInscribiendo}
           onInscribir={handleInscribir}
+          pagoFile={pagoFile}
+          setPagoFile={setPagoFile}
+          pagoFecha={pagoFecha}
+          setPagoFecha={setPagoFecha}
+          pagoMetodo={pagoMetodo}
+          setPagoMetodo={setPagoMetodo}
+          pagoSubiendo={pagoSubiendo}
+          onSubirPago={handleSubirPago}
         />
       )}
 
@@ -1128,6 +1064,14 @@ function ConvocatoriaTab({
   setSeleccion,
   inscribiendo,
   onInscribir,
+  pagoFile,
+  setPagoFile,
+  pagoFecha,
+  setPagoFecha,
+  pagoMetodo,
+  setPagoMetodo,
+  pagoSubiendo,
+  onSubirPago,
 }: {
   data: GestorConvocatoriaResponse | null;
   loading: boolean;
@@ -1135,6 +1079,14 @@ function ConvocatoriaTab({
   setSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
   inscribiendo: boolean;
   onInscribir: () => void;
+  pagoFile: File | null;
+  setPagoFile: (f: File | null) => void;
+  pagoFecha: string;
+  setPagoFecha: (v: string) => void;
+  pagoMetodo: string;
+  setPagoMetodo: (v: string) => void;
+  pagoSubiendo: boolean;
+  onSubirPago: () => void;
 }) {
   if (loading) {
     return (
@@ -1380,16 +1332,106 @@ function ConvocatoriaTab({
             </div>
           </div>
 
-          {/* Aviso de pago */}
-          <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-            <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
-            <div>
-              El pago de{' '}
-              <strong>${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN</strong>
-              {' '}({inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen}) debe subirse en la pestaña{' '}
-              <strong>Pagos</strong> antes del{' '}
-              <strong>{fmtDate(etapa.solicitudFin)}</strong>.
-            </div>
+          {/* Pago de derechos */}
+          <div className="mt-5 pt-5 border-t border-stone-200">
+            <h4 className="text-sm font-bold text-stone-900 mb-3 flex items-center gap-2">
+              <Receipt size={15} className="text-[var(--color-guinda-700)]" />
+              Pago de derechos de examen
+            </h4>
+
+            {data.pagoDerechos ? (
+              <div className={`rounded-lg border p-4 flex items-start gap-3 ${
+                data.pagoDerechos.estado === 'verificado'
+                  ? 'bg-green-50 border-green-200'
+                  : data.pagoDerechos.estado === 'rechazado'
+                  ? 'bg-red-50 border-red-200'
+                  : 'bg-amber-50 border-amber-200'
+              }`}>
+                {data.pagoDerechos.estado === 'verificado'
+                  ? <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
+                  : data.pagoDerechos.estado === 'rechazado'
+                  ? <AlertCircle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                  : <Clock size={16} className="text-amber-500 shrink-0 mt-0.5" />
+                }
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-stone-800">
+                    Comprobante subido — {data.pagoDerechos.estado === 'verificado' ? 'Verificado' : data.pagoDerechos.estado === 'rechazado' ? 'Rechazado' : 'Pendiente de verificación'}
+                  </div>
+                  <div className="text-xs text-stone-500 mt-0.5">
+                    ${Number(data.pagoDerechos.monto).toLocaleString('es-MX')} MXN · {fmtDate(data.pagoDerechos.fechaPago)}
+                  </div>
+                  {data.pagoDerechos.estado === 'rechazado' && (
+                    <p className="text-xs text-red-700 mt-1">El administrador rechazó este comprobante. Sube uno nuevo.</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-4">
+                <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
+                <div>
+                  Debes subir el comprobante de pago de{' '}
+                  <strong>${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN</strong>
+                  {' '}antes del <strong>{fmtDate(etapa.solicitudFin)}</strong> para confirmar la inscripción.
+                </div>
+              </div>
+            )}
+
+            {(!data.pagoDerechos || data.pagoDerechos.estado === 'rechazado') && (
+              <div className="mt-3 space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha de pago</label>
+                    <input
+                      type="date"
+                      value={pagoFecha}
+                      onChange={(e) => setPagoFecha(e.target.value)}
+                      className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">Método de pago</label>
+                    <select
+                      value={pagoMetodo}
+                      onChange={(e) => setPagoMetodo(e.target.value)}
+                      className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                    >
+                      <option value="efectivo">Efectivo</option>
+                      <option value="spei">SPEI / Transferencia</option>
+                      <option value="banco_deposito">Depósito bancario</option>
+                      <option value="tienda_conveniencia">Tienda de conveniencia</option>
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1">Comprobante de pago (PDF)</label>
+                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
+                    pagoFile ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-stone-400 bg-white'
+                  }`}>
+                    <UploadCloud size={20} className={pagoFile ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
+                    <div className="flex-1 min-w-0">
+                      {pagoFile
+                        ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{pagoFile.name}</span>
+                        : <span className="text-sm text-stone-500">Seleccionar PDF del comprobante</span>
+                      }
+                    </div>
+                    <input
+                      type="file"
+                      accept="application/pdf"
+                      className="hidden"
+                      onChange={(e) => setPagoFile(e.target.files?.[0] ?? null)}
+                    />
+                  </label>
+                </div>
+                <button
+                  onClick={onSubirPago}
+                  disabled={!pagoFile || pagoSubiendo}
+                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+                >
+                  {pagoSubiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
+                  {pagoSubiendo ? 'Subiendo…' : `Subir comprobante — $${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN`}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
