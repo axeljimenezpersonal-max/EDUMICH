@@ -970,18 +970,42 @@ function PlanDeEstudiosTab({
 
   return (
     <div className="space-y-5">
-      {/* Convocatoria banner */}
-      <div
-        className="rounded-xl p-4 flex items-start gap-3"
-        style={{ background: 'var(--color-crema-50, #fdf8f0)', border: '1px solid var(--color-crema-200, #e8d5b7)' }}
-      >
-        <CalendarCheck size={16} className="text-[var(--color-guinda-700)] mt-0.5 shrink-0" />
-        <div>
-          <div className="text-sm font-bold text-stone-900">{etapa.etapa} — Fase {etapa.fase}</div>
-          <div className="text-xs text-stone-600 mt-0.5">
-            Inscripciones hasta el <strong>{fmtDate(etapa.solicitudFin)}</strong> ·
-            Examen: Sáb {fmtDate(etapa.examenSabado)} y Dom {fmtDate(etapa.examenDomingo)}
+      {/* Convocatoria activa — card principal */}
+      <div className="bg-white border border-stone-200 rounded-xl p-5">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-bold mb-2">
+          <CalendarCheck size={13} />
+          Convocatoria activa
+        </div>
+        <h2 className="font-serif text-xl font-bold text-stone-900 mb-4">
+          {etapa.etapa} — Fase {etapa.fase}
+        </h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div className="flex items-start gap-2">
+            <Calendar size={14} className="text-stone-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Período de inscripción</div>
+              <div className="text-stone-800">{fmtDate(etapa.solicitudInicio)} — {fmtDate(etapa.solicitudFin)}</div>
+            </div>
           </div>
+          <div className="flex items-start gap-2">
+            <Clock size={14} className="text-stone-400 mt-0.5 shrink-0" />
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Fechas de examen</div>
+              <div className="text-stone-800">
+                Sáb {fmtDate(etapa.examenSabado)} · Dom {fmtDate(etapa.examenDomingo)}
+              </div>
+            </div>
+          </div>
+          {data.sede && (
+            <div className="flex items-start gap-2 sm:col-span-2">
+              <MapPin size={14} className="text-stone-400 mt-0.5 shrink-0" />
+              <div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Sede de examen</div>
+                <div className="text-stone-800">{data.sede.nombre}</div>
+                <div className="text-xs text-stone-500">{data.sede.direccion}</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
