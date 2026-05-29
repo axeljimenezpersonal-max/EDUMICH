@@ -63,7 +63,7 @@ const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; co
 };
 
 const ESTADO_CUENTA_OPTIONS = [
-  { value: '', label: 'Todas las cuentas' },
+  { value: '', label: 'Cuenta' },
   { value: 'activa', label: 'Solo activas' },
   { value: 'aviso_enviado', label: 'En aviso (riesgo)' },
   { value: 'soft_deleted', label: 'En soft delete' },
@@ -81,7 +81,7 @@ function actividadBadge(diasSinActividad: number | null, ultimaActividadEn: stri
 }
 
 const ESTADO_OPTIONS = [
-  { value: '', label: 'Todos los estados' },
+  { value: '', label: 'Estado' },
   { value: 'activo', label: 'Activo' },
   { value: 'esperando_matricula', label: 'Esperando matrícula' },
   { value: 'pago_pendiente', label: 'Pago pendiente' },
@@ -473,14 +473,14 @@ export default function AlumnosLista() {
       )}
 
       {/* Filter bar */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
+      <div className="flex items-center gap-1.5 mb-4 overflow-x-auto">
         {/* Search */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
           <input
-            className="pl-8 pr-8 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 w-52"
+            className="pl-8 pr-8 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 w-44"
             style={{ background: '#f8f4ec' }}
-            placeholder="Buscar nombre, CURP…"
+            placeholder="Nombre, CURP…"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
           />
@@ -493,7 +493,8 @@ export default function AlumnosLista() {
 
         {/* Municipio */}
         <select
-          className="px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
+          className="px-2.5 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white flex-shrink-0"
+          style={{ maxWidth: 130 }}
           value={municipioId}
           onChange={(e) => setMunicipioId(e.target.value)}
         >
@@ -503,7 +504,8 @@ export default function AlumnosLista() {
 
         {/* Estado expediente */}
         <select
-          className="px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
+          className="px-2.5 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white flex-shrink-0"
+          style={{ maxWidth: 130 }}
           value={estadoExp}
           onChange={(e) => setEstadoExp(e.target.value)}
         >
@@ -512,7 +514,8 @@ export default function AlumnosLista() {
 
         {/* Estado de cuenta */}
         <select
-          className="px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
+          className="px-2.5 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white flex-shrink-0"
+          style={{ maxWidth: 120 }}
           value={estadoCuenta}
           onChange={(e) => setEstadoCuenta(e.target.value)}
         >
@@ -521,7 +524,8 @@ export default function AlumnosLista() {
 
         {/* Gestor */}
         <select
-          className="px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
+          className="px-2.5 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white flex-shrink-0"
+          style={{ maxWidth: 130 }}
           value={gestorId}
           onChange={(e) => setGestorId(e.target.value)}
         >
@@ -533,7 +537,8 @@ export default function AlumnosLista() {
         {/* Etapa */}
         {etapas.length > 0 && (
           <select
-            className="px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
+            className="px-2.5 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white flex-shrink-0"
+            style={{ maxWidth: 150 }}
             value={etapaId}
             onChange={(e) => setEtapaId(e.target.value)}
           >
