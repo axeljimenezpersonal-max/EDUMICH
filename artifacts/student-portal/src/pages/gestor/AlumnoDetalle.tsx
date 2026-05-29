@@ -27,6 +27,9 @@ import {
   UploadCloud,
   Receipt,
   UserCheck,
+  Building2,
+  Store,
+  Banknote,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -82,6 +85,26 @@ const NIVEL_LABELS: Record<number, string> = {
   2: 'Pensamiento matemático y textos',
   3: 'Métodos y contextos',
   4: 'Especialidades',
+};
+
+// ── Datos bancarios institucionales ────────────────────────────────────────
+// TODO: actualizar con los datos reales de la institución
+const INFO_PAGO = {
+  spei: {
+    clabe: '021690040000000000',   // ← reemplazar con CLABE real
+    banco: 'Banorte',
+    beneficiario: 'IEMSyS — Prepa Abierta Michoacán',
+  },
+  banco_deposito: {
+    numeroCuenta: '0040000000',    // ← reemplazar con cuenta real
+    banco: 'Banorte',
+    beneficiario: 'IEMSyS — Prepa Abierta Michoacán',
+  },
+  tienda_conveniencia: {
+    convenio: '00000',             // ← reemplazar con convenio CIE real
+    empresa: 'IEMSyS / Prepa Abierta Michoacán',
+    establecimientos: 'OXXO · 7-Eleven · Farmacias del Ahorro · Círculo K',
+  },
 };
 
 type ActiveTab = 'docs' | 'plan' | 'convocatoria' | 'calificaciones';
@@ -339,14 +362,14 @@ export default function AlumnoDetalle() {
     },
     {
       key: 'plan',
-      label: 'Plan de estudios',
-      icon: <BookOpen size={15} />,
+      label: 'Convocatoria',
+      icon: <CalendarCheck size={15} />,
       badge: modulosDisponiblesCount > 0 ? String(modulosDisponiblesCount) : '—',
     },
     {
       key: 'convocatoria',
-      label: 'Convocatoria',
-      icon: <CalendarCheck size={15} />,
+      label: 'Inscripción',
+      icon: <Receipt size={15} />,
       badge: inscripcionesCount > 0 ? String(inscripcionesCount) : '—',
     },
     {
@@ -712,6 +735,7 @@ export default function AlumnoDetalle() {
         <ConvocatoriaTab
           data={convData}
           loading={convLoading}
+          curp={alumno.curp}
           pagoFile={pagoFile}
           setPagoFile={setPagoFile}
           pagoFecha={pagoFecha}
@@ -1146,13 +1170,14 @@ function PlanDeEstudiosTab({
 }
 
 // ─────────────────────────────────────────────────────────────────
-// Sub-component: Convocatoria tab
-// Shows active inscriptions + payment
+// Sub-component: Inscripción tab
+// Shows active inscriptions + step-by-step payment ficha
 // ─────────────────────────────────────────────────────────────────
 
 function ConvocatoriaTab({
   data,
   loading,
+  curp,
   pagoFile,
   setPagoFile,
   pagoFecha,
@@ -1164,6 +1189,7 @@ function ConvocatoriaTab({
 }: {
   data: GestorConvocatoriaResponse | null;
   loading: boolean;
+  curp: string;
   pagoFile: File | null;
   setPagoFile: (f: File | null) => void;
   pagoFecha: string;
@@ -1177,7 +1203,7 @@ function ConvocatoriaTab({
     return (
       <div className="flex items-center justify-center py-16 text-stone-400 gap-2 text-sm">
         <Loader2 size={18} className="animate-spin" />
-        Cargando convocatoria…
+        Cargando…
       </div>
     );
   }
@@ -1185,10 +1211,10 @@ function ConvocatoriaTab({
   if (!data?.inscripcionesActivas.length) {
     return (
       <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
-        <CalendarCheck size={36} className="mx-auto text-stone-300 mb-3" />
+        <Receipt size={36} className="mx-auto text-stone-300 mb-3" />
         <div className="text-sm font-bold text-stone-500">Sin inscripciones activas</div>
         <div className="text-xs text-stone-400 mt-2 max-w-xs mx-auto">
-          Ve a la pestaña <strong>Plan de estudios</strong> para seleccionar e inscribir módulos a la convocatoria actual.
+          Ve a la pestaña <strong>Convocatoria</strong> para seleccionar e inscribir módulos.
         </div>
       </div>
     );
@@ -1201,6 +1227,7 @@ function ConvocatoriaTab({
 
   const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
   const HORA_LABEL: Record<string, string> = { '09:00': '9:00 AM', '11:00': '11:00 AM' };
+  const total = inscripcionesActivas.length * costoExamen;
 
   const estadoBadge = (estado: string) => {
     const map: Record<string, { bg: string; text: string; label: string }> = {
@@ -1216,17 +1243,26 @@ function ConvocatoriaTab({
     );
   };
 
-  const total = inscripcionesActivas.length * costoExamen;
+  function copyText(text: string) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  const metodoPicker = [
+    { value: 'spei',               icon: <Banknote size={18} />,  label: 'SPEI / Transferencia' },
+    { value: 'banco_deposito',     icon: <Building2 size={18} />, label: 'Depósito bancario' },
+    { value: 'tienda_conveniencia',icon: <Store size={18} />,     label: 'Tienda de conveniencia' },
+  ];
+
+  const showPaymentForm = !data.pagoDerechos || data.pagoDerechos.estado === 'rechazado';
 
   return (
     <div className="space-y-5">
-      {/* Inscriptions list */}
+
+      {/* ── Inscripciones activas ── */}
       <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
-          <h3 className="text-sm font-bold text-stone-900">
-            Inscripciones activas
-          </h3>
-          <span className="text-xs text-stone-500 font-semibold">
+          <h3 className="text-sm font-bold text-stone-900">Inscripciones activas</h3>
+          <span className="text-xs font-semibold text-stone-500">
             {inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''}
           </span>
         </div>
@@ -1246,18 +1282,9 @@ function ConvocatoriaTab({
                     Módulo {insc.moduloNumero} — {insc.moduloNombre}
                   </div>
                   <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-stone-500">
-                    <span className="flex items-center gap-1">
-                      <Clock size={11} />
-                      {DIA_LABEL[insc.dia] ?? insc.dia} · {HORA_LABEL[insc.hora] ?? insc.hora}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <Calendar size={11} />
-                      {fmtDate(insc.fechaExamen)}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MapPin size={11} />
-                      {insc.sede.nombre}
-                    </span>
+                    <span className="flex items-center gap-1"><Clock size={11} />{DIA_LABEL[insc.dia] ?? insc.dia} · {HORA_LABEL[insc.hora] ?? insc.hora}</span>
+                    <span className="flex items-center gap-1"><Calendar size={11} />{fmtDate(insc.fechaExamen)}</span>
+                    <span className="flex items-center gap-1"><MapPin size={11} />{insc.sede.nombre}</span>
                   </div>
                 </div>
                 <div className="text-sm font-bold text-stone-700 shrink-0">
@@ -1268,7 +1295,6 @@ function ConvocatoriaTab({
           ))}
         </div>
 
-        {/* Total */}
         <div className="px-5 py-3 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
           <div className="text-sm text-stone-600">
             {inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen} MXN
@@ -1279,121 +1305,234 @@ function ConvocatoriaTab({
         </div>
       </div>
 
-      {/* Payment section */}
+      {/* ── Pago de derechos ── */}
       <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
           <Receipt size={15} className="text-[var(--color-guinda-700)]" />
           <h3 className="text-sm font-bold text-stone-900">Pago de derechos de examen</h3>
         </div>
 
-        <div className="p-5 space-y-4">
-          {/* Payment status */}
-          {data.pagoDerechos ? (
+        <div className="p-5 space-y-6">
+
+          {/* Status si ya hay pago */}
+          {data.pagoDerechos && (
             <div className={`rounded-xl border p-4 flex items-start gap-3 ${
-              data.pagoDerechos.estado === 'verificado'
-                ? 'bg-green-50 border-green-200'
-                : data.pagoDerechos.estado === 'rechazado'
-                ? 'bg-red-50 border-red-200'
-                : 'bg-amber-50 border-amber-200'
+              data.pagoDerechos.estado === 'verificado'   ? 'bg-green-50 border-green-200' :
+              data.pagoDerechos.estado === 'rechazado'    ? 'bg-red-50 border-red-200'     :
+                                                            'bg-amber-50 border-amber-200'
             }`}>
-              {data.pagoDerechos.estado === 'verificado'
-                ? <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" />
-                : data.pagoDerechos.estado === 'rechazado'
-                ? <AlertCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
-                : <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />
-              }
+              {data.pagoDerechos.estado === 'verificado'  ? <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" /> :
+               data.pagoDerechos.estado === 'rechazado'   ? <AlertCircle  size={18} className="text-red-600 shrink-0 mt-0.5" />   :
+                                                            <Clock        size={18} className="text-amber-500 shrink-0 mt-0.5" />}
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-stone-800">
-                  {data.pagoDerechos.estado === 'verificado'
-                    ? 'Pago verificado ✓'
-                    : data.pagoDerechos.estado === 'rechazado'
-                    ? 'Comprobante rechazado'
-                    : 'Comprobante enviado — en revisión'}
+                  {data.pagoDerechos.estado === 'verificado' ? 'Pago verificado ✓' :
+                   data.pagoDerechos.estado === 'rechazado'  ? 'Comprobante rechazado' :
+                                                               'Comprobante enviado — en revisión'}
                 </div>
                 <div className="text-xs text-stone-500 mt-0.5">
                   ${Number(data.pagoDerechos.monto).toLocaleString('es-MX')} MXN · {fmtDate(data.pagoDerechos.fechaPago)}
                 </div>
                 {data.pagoDerechos.estado === 'rechazado' && (
                   <p className="text-xs text-red-700 mt-1.5">
-                    El administrador rechazó este comprobante. Sube uno nuevo para confirmar la inscripción.
+                    El administrador rechazó este comprobante. Sube uno nuevo para confirmar.
                   </p>
                 )}
               </div>
             </div>
-          ) : (
-            etapa && (
-              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
-                <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-500" />
-                <div>
-                  Sube el comprobante de pago de{' '}
-                  <strong>${total.toLocaleString('es-MX')} MXN</strong>
-                  {' '}antes del <strong>{fmtDate(etapa.solicitudFin)}</strong> para confirmar la inscripción.
-                </div>
-              </div>
-            )
           )}
 
-          {/* Upload form — shown when no payment or rejected */}
-          {(!data.pagoDerechos || data.pagoDerechos.estado === 'rechazado') && (
-            <div className="space-y-3 pt-1">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha de pago</label>
-                  <input
-                    type="date"
-                    value={pagoFecha}
-                    onChange={(e) => setPagoFecha(e.target.value)}
-                    className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Método de pago</label>
-                  <select
-                    value={pagoMetodo}
-                    onChange={(e) => setPagoMetodo(e.target.value)}
-                    className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                  >
-                    <option value="spei">SPEI / Transferencia</option>
-                    <option value="banco_deposito">Depósito bancario</option>
-                    <option value="tienda_conveniencia">Tienda de conveniencia</option>
-                  </select>
-                </div>
-              </div>
-
+          {/* Flujo de pago paso a paso */}
+          {showPaymentForm && (
+            <>
+              {/* PASO 1 — método */}
               <div>
-                <label className="block text-xs font-semibold text-stone-600 mb-1">Comprobante (PDF)</label>
-                <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
-                  pagoFile
-                    ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                    : 'border-stone-300 hover:border-stone-400 bg-white'
-                }`}>
-                  <UploadCloud size={20} className={pagoFile ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
-                  <div className="flex-1 min-w-0">
-                    {pagoFile
-                      ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{pagoFile.name}</span>
-                      : <span className="text-sm text-stone-500">Seleccionar PDF del comprobante</span>
-                    }
-                  </div>
-                  <input
-                    type="file"
-                    accept="application/pdf"
-                    className="hidden"
-                    onChange={(e) => setPagoFile(e.target.files?.[0] ?? null)}
-                  />
-                </label>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                  <span className="text-sm font-bold text-stone-800">Selecciona cómo vas a pagar</span>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {metodoPicker.map((m) => {
+                    const active = pagoMetodo === m.value;
+                    return (
+                      <button
+                        key={m.value}
+                        onClick={() => setPagoMetodo(m.value)}
+                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all text-center ${
+                          active
+                            ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] text-[var(--color-guinda-700)]'
+                            : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:bg-stone-50'
+                        }`}
+                      >
+                        <span className={active ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}>
+                          {m.icon}
+                        </span>
+                        <span className="text-[11px] font-semibold leading-tight">{m.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <button
-                onClick={onSubirPago}
-                disabled={!pagoFile || pagoSubiendo}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-              >
-                {pagoSubiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
-                {pagoSubiendo ? 'Subiendo…' : `Subir comprobante — $${total.toLocaleString('es-MX')} MXN`}
-              </button>
-            </div>
+              {/* PASO 2 — ficha de pago */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                  <span className="text-sm font-bold text-stone-800">Realiza el pago con estos datos</span>
+                </div>
+
+                {pagoMetodo === 'spei' && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 bg-blue-600 flex items-center gap-2">
+                      <Banknote size={14} className="text-white" />
+                      <span className="text-xs font-bold text-white uppercase tracking-widest">SPEI / Transferencia bancaria</span>
+                    </div>
+                    <div className="p-4 space-y-2.5">
+                      <FichaRow label="CLABE interbancaria" value={INFO_PAGO.spei.clabe}     copy onCopy={() => copyText(INFO_PAGO.spei.clabe)} />
+                      <FichaRow label="Banco"               value={INFO_PAGO.spei.banco} />
+                      <FichaRow label="Beneficiario"        value={INFO_PAGO.spei.beneficiario} />
+                      <FichaRow label="Referencia"          value={curp}                        copy onCopy={() => copyText(curp)} />
+                      <FichaRow label="Monto exacto"        value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                      <FichaRow label="Concepto"            value="Derecho de examen — Prepa Abierta Michoacán" />
+                    </div>
+                    <div className="px-4 py-2.5 bg-blue-100 border-t border-blue-200 text-[11px] text-blue-700">
+                      💡 Usa el número de referencia exacto para que la institución identifique tu pago.
+                    </div>
+                  </div>
+                )}
+
+                {pagoMetodo === 'banco_deposito' && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 bg-emerald-600 flex items-center gap-2">
+                      <Building2 size={14} className="text-white" />
+                      <span className="text-xs font-bold text-white uppercase tracking-widest">Depósito bancario en ventanilla</span>
+                    </div>
+                    <div className="p-4 space-y-2.5">
+                      <FichaRow label="Banco"          value={INFO_PAGO.banco_deposito.banco} />
+                      <FichaRow label="Número de cuenta" value={INFO_PAGO.banco_deposito.numeroCuenta} copy onCopy={() => copyText(INFO_PAGO.banco_deposito.numeroCuenta)} />
+                      <FichaRow label="A nombre de"    value={INFO_PAGO.banco_deposito.beneficiario} />
+                      <FichaRow label="Referencia"     value={curp} copy onCopy={() => copyText(curp)} />
+                      <FichaRow label="Monto exacto"   value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                    </div>
+                    <div className="px-4 py-2.5 bg-emerald-100 border-t border-emerald-200 text-[11px] text-emerald-700">
+                      💡 Acude a cualquier sucursal del banco e indica el número de cuenta y la referencia.
+                    </div>
+                  </div>
+                )}
+
+                {pagoMetodo === 'tienda_conveniencia' && (
+                  <div className="bg-orange-50 border border-orange-200 rounded-xl overflow-hidden">
+                    <div className="px-4 py-2.5 bg-orange-500 flex items-center gap-2">
+                      <Store size={14} className="text-white" />
+                      <span className="text-xs font-bold text-white uppercase tracking-widest">Pago en tienda de conveniencia</span>
+                    </div>
+                    <div className="p-4 space-y-2.5">
+                      <FichaRow label="Servicio / empresa" value={INFO_PAGO.tienda_conveniencia.empresa} />
+                      <FichaRow label="Número de convenio" value={INFO_PAGO.tienda_conveniencia.convenio} copy onCopy={() => copyText(INFO_PAGO.tienda_conveniencia.convenio)} />
+                      <FichaRow label="Referencia"         value={curp} copy onCopy={() => copyText(curp)} />
+                      <FichaRow label="Monto exacto"       value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                      <FichaRow label="Establecimientos"   value={INFO_PAGO.tienda_conveniencia.establecimientos} />
+                    </div>
+                    <div className="px-4 py-2.5 bg-orange-100 border-t border-orange-200 text-[11px] text-orange-700">
+                      💡 Ve a la caja de cualquier tienda, indica que quieres pagar a <strong>Prepa Abierta Michoacán</strong>, proporciona el número de convenio y la referencia (tu CURP).
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* PASO 3 — subir comprobante */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                  <span className="text-sm font-bold text-stone-800">Sube el comprobante de pago</span>
+                </div>
+
+                {etapa && (
+                  <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-800 mb-3">
+                    <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
+                    Sube el comprobante antes del <strong>{fmtDate(etapa.solicitudFin)}</strong> para confirmar tu inscripción.
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha en que realizaste el pago</label>
+                    <input
+                      type="date"
+                      value={pagoFecha}
+                      onChange={(e) => setPagoFecha(e.target.value)}
+                      className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-600 mb-1">Comprobante (PDF o imagen)</label>
+                    <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
+                      pagoFile
+                        ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                        : 'border-stone-300 hover:border-stone-400 bg-white'
+                    }`}>
+                      <UploadCloud size={20} className={pagoFile ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
+                      <div className="flex-1 min-w-0">
+                        {pagoFile
+                          ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{pagoFile.name}</span>
+                          : <span className="text-sm text-stone-500">Seleccionar archivo del comprobante</span>
+                        }
+                      </div>
+                      <input
+                        type="file"
+                        accept="application/pdf,image/*"
+                        className="hidden"
+                        onChange={(e) => setPagoFile(e.target.files?.[0] ?? null)}
+                      />
+                    </label>
+                  </div>
+
+                  <button
+                    onClick={onSubirPago}
+                    disabled={!pagoFile || pagoSubiendo}
+                    className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+                  >
+                    {pagoSubiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
+                    {pagoSubiendo ? 'Enviando…' : `Enviar comprobante — $${total.toLocaleString('es-MX')} MXN`}
+                  </button>
+                </div>
+              </div>
+            </>
           )}
+
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Helper: fila de datos de la ficha de pago
+function FichaRow({
+  label, value, copy: canCopy, onCopy, highlight,
+}: {
+  label: string;
+  value: string;
+  copy?: boolean;
+  onCopy?: () => void;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-stone-500 shrink-0 w-36">{label}</span>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+        <span className={`text-sm font-mono font-bold truncate ${highlight ? 'text-[var(--color-guinda-700)]' : 'text-stone-800'}`}>
+          {value}
+        </span>
+        {canCopy && onCopy && (
+          <button
+            onClick={onCopy}
+            className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors shrink-0"
+            title="Copiar"
+          >
+            <Copy size={12} />
+          </button>
+        )}
       </div>
     </div>
   );
