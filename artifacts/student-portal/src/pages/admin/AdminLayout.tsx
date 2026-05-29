@@ -255,15 +255,12 @@ function NotifBell() {
   );
 }
 
-function SidebarBadge({ count, muted = false }: { count: number; muted?: boolean }) {
+function SidebarBadge({ count }: { count: number; muted?: boolean }) {
   if (count === 0) return null;
   return (
     <span
       className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-      style={{
-        background: muted ? '#d6d3d1' : 'var(--color-guinda-700)',
-        color: muted ? '#44403c' : 'white',
-      }}
+      style={{ background: 'var(--color-guinda-700)', color: 'white' }}
     >
       {count}
     </span>
