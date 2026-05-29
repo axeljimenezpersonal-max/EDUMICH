@@ -179,6 +179,68 @@ export default function AdminInicio() {
             </div>
           )}
 
+          {/* KPIs generales — Vista general del sistema */}
+          <div className="mb-8">
+            <div
+              className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
+              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+            >
+              <div
+                className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center"
+                style={{ background: '#fbe6ea', color: 'var(--color-guinda-700)' }}
+              >
+                <BarChart2 size={14} />
+              </div>
+              Vista general del sistema
+            </div>
+
+            <div className="grid grid-cols-4 gap-3.5">
+              <KpiCard
+                icon={<Users size={18} />}
+                num={data?.kpisGenerales.alumnosActivos.total ?? 0}
+                label="Alumnos activos"
+                delta={`+${data?.kpisGenerales.alumnosActivos.deltaSemana ?? 0}`}
+                deltaUp
+                sub={<><strong style={{ color: '#2a2a2a' }}>+{data?.kpisGenerales.alumnosActivos.deltaSemana ?? 0}</strong> esta semana</>}
+              />
+              <KpiCard
+                icon={<UserCheck size={18} />}
+                num={data?.kpisGenerales.gestoresActivos.total ?? 0}
+                label="Gestores municipales"
+                delta="="
+                deltaFlat
+                sub={<><strong style={{ color: '#2a2a2a' }}>{data?.kpisGenerales.gestoresActivos.municipiosCubiertos ?? 0}</strong> municipios cubiertos</>}
+              />
+              <KpiCard
+                icon={<FileCheck size={18} />}
+                numEl={
+                  <span>
+                    {data?.kpisGenerales.expedientesCompletos.completos ?? 0}
+                    <small style={{ fontSize: 16, color: '#78716c', fontWeight: 500 }}>
+                      /{data?.kpisGenerales.expedientesCompletos.total ?? 0}
+                    </small>
+                  </span>
+                }
+                label="Expedientes completos"
+                delta={`+${data?.kpisGenerales.expedientesCompletos.deltaSemana ?? 0}`}
+                deltaUp
+                sub={
+                  data?.kpisGenerales.expedientesCompletos.total
+                    ? <><strong style={{ color: '#2a2a2a' }}>{Math.round((data.kpisGenerales.expedientesCompletos.completos / data.kpisGenerales.expedientesCompletos.total) * 100)}%</strong> del total</>
+                    : <>0% del total</>
+                }
+              />
+              <KpiCard
+                icon={<GraduationCap size={18} />}
+                num={data?.kpisGenerales.egresados.total ?? 0}
+                label="Egresados este año"
+                delta={`+${data?.kpisGenerales.egresados.deltaMes ?? 0}`}
+                deltaUp
+                sub={<><strong style={{ color: '#2a2a2a' }}>21/21</strong> módulos aprobados</>}
+              />
+            </div>
+          </div>
+
           {/* Tareas pendientes */}
           <div className="mb-8">
             <div
@@ -229,68 +291,6 @@ export default function AdminInicio() {
                 label="Calificaciones por capturar"
                 cta="Capturar ahora"
                 onClick={() => setLocation('/admin/alumnos?filtro=calif_pendientes')}
-              />
-            </div>
-          </div>
-
-          {/* KPIs generales */}
-          <div>
-            <div
-              className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
-            >
-              <div
-                className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center"
-                style={{ background: '#fbe6ea', color: 'var(--color-guinda-700)' }}
-              >
-                <BarChart2 size={14} />
-              </div>
-              Vista general del sistema
-            </div>
-
-            <div className="grid grid-cols-4 gap-3.5 mb-8">
-              <KpiCard
-                icon={<Users size={18} />}
-                num={data?.kpisGenerales.alumnosActivos.total ?? 0}
-                label="Alumnos activos"
-                delta={`+${data?.kpisGenerales.alumnosActivos.deltaSemana ?? 0}`}
-                deltaUp
-                sub={<><strong style={{ color: '#2a2a2a' }}>+{data?.kpisGenerales.alumnosActivos.deltaSemana ?? 0}</strong> esta semana</>}
-              />
-              <KpiCard
-                icon={<UserCheck size={18} />}
-                num={data?.kpisGenerales.gestoresActivos.total ?? 0}
-                label="Gestores municipales"
-                delta="="
-                deltaFlat
-                sub={<><strong style={{ color: '#2a2a2a' }}>{data?.kpisGenerales.gestoresActivos.municipiosCubiertos ?? 0}</strong> municipios cubiertos</>}
-              />
-              <KpiCard
-                icon={<FileCheck size={18} />}
-                numEl={
-                  <span>
-                    {data?.kpisGenerales.expedientesCompletos.completos ?? 0}
-                    <small style={{ fontSize: 16, color: '#78716c', fontWeight: 500 }}>
-                      /{data?.kpisGenerales.expedientesCompletos.total ?? 0}
-                    </small>
-                  </span>
-                }
-                label="Expedientes completos"
-                delta={`+${data?.kpisGenerales.expedientesCompletos.deltaSemana ?? 0}`}
-                deltaUp
-                sub={
-                  data?.kpisGenerales.expedientesCompletos.total
-                    ? <><strong style={{ color: '#2a2a2a' }}>{Math.round((data.kpisGenerales.expedientesCompletos.completos / data.kpisGenerales.expedientesCompletos.total) * 100)}%</strong> del total</>
-                    : <>0% del total</>
-                }
-              />
-              <KpiCard
-                icon={<GraduationCap size={18} />}
-                num={data?.kpisGenerales.egresados.total ?? 0}
-                label="Egresados este año"
-                delta={`+${data?.kpisGenerales.egresados.deltaMes ?? 0}`}
-                deltaUp
-                sub={<><strong style={{ color: '#2a2a2a' }}>21/21</strong> módulos aprobados</>}
               />
             </div>
           </div>
@@ -477,7 +477,7 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
         <div className="flex items-center justify-center h-36 text-sm" style={{ color: '#78716c' }}>Sin datos de etapas este año</div>
       ) : (
         <>
-          <div className="flex items-end gap-3.5 border-b border-stone-200" style={{ height: 220, paddingBottom: 8, paddingTop: 24 }}>
+          <div className="flex items-end gap-3.5 border-b border-stone-200" style={{ height: 150, paddingBottom: 8, paddingTop: 20 }}>
             {etapas.map((etapa) => {
               const heightPct = Math.max(5, Math.round((etapa.inscritos / maxVal) * 85));
               const opacity = etapa.futura ? 0.45 : 1;
@@ -544,7 +544,7 @@ function ActividadReciente({ actividad }: { actividad: DashboardData['actividadR
         <div className="text-sm text-center py-8" style={{ color: '#78716c' }}>Sin actividad reciente</div>
       ) : (
         <ul className="list-none">
-          {actividad.map((item) => (
+          {actividad.slice(0, 5).map((item) => (
             <li key={item.id} className="flex items-start gap-3 py-2.5 border-b border-stone-50 last:border-b-0">
               <ActivityIcon tipo={item.tipo} />
               <div className="flex-1 min-w-0">
