@@ -14,6 +14,7 @@ type SidebarSnapshot = {
   totalAlumnos: number;
   totalGestores: number;
   solicitudesPendientes: number;
+  pagosPendientes: number;
 };
 
 type Notif = {
@@ -278,6 +279,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     totalAlumnos: 0,
     totalGestores: 0,
     solicitudesPendientes: 0,
+    pagosPendientes: 0,
   });
 
   useEffect(() => {
@@ -296,6 +298,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           totalAlumnos: r?.kpisGenerales?.alumnosActivos?.total ?? prev.totalAlumnos,
           totalGestores: r?.kpisGenerales?.gestoresActivos?.total ?? prev.totalGestores,
           solicitudesPendientes: r?.tareasPendientes?.solicitudesCuenta ?? prev.solicitudesPendientes,
+          pagosPendientes: r?.tareasPendientes?.pagosPorVerificar ?? prev.pagosPendientes,
         }));
       })
       .catch(() => {});
@@ -324,6 +327,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const personasItems = [
     { href: '/admin/alumnos',    icon: Users,    label: 'Alumnos',    badge: sidebar.totalAlumnos,    muted: true },
     { href: '/admin/gestores',   icon: UserCheck, label: 'Gestores',  badge: sidebar.totalGestores,   muted: true },
+    { href: '/admin/pagos',      icon: CreditCard, label: 'Pagos',   badge: sidebar.pagosPendientes, muted: false },
     { href: '/admin/solicitudes', icon: Inbox,   label: 'Solicitudes', badge: sidebar.solicitudesPendientes, muted: false },
   ];
 

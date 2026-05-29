@@ -217,6 +217,101 @@ router.get('/pagos/pendientes', async (_req, res) => {
   res.json({ pagos: rows });
 });
 
+// ─── GET /admin/pagos ─────────────────────────────────────────────────────
+// Lista completa con datos enriquecidos: alumno, gestor, municipio, quién subió
+router.get('/pagos', async (req, res) => {
+  const estadoFiltro = (req.query.estado as string) || '';
+  const search = (req.query.search as string) || '';
+  const page = Math.max(1, parseInt(req.query.page as string) || 1);
+  const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
+  const offset = (page - 1) * limit;
+
+  // Alias para la tabla gestores usada en el join
+  const gestoresAlias = gestores;
+  const subidoPorUsers = users;
+  const municipiosAlias = municipios;
+
+  const where: SQL[] = [];
+  if (estadoFiltro && ['pendiente', 'verificado', 'rechazado'].includes(estadoFiltro)) {
+    where.push(eq(pagos.estado, estadoFiltro as 'pendiente' | 'verificado' | 'rechazado'));
+  }
+  if (search) {
+    where.push(sql`(${estudiantes.nombreCompleto} ILIKE ${'%' + search + '%'} OR ${estudiantes.curp} ILIKE ${'%' + search + '%'})`);
+  }
+
+  const whereClause = where.length > 0 ? and(...where) : undefined;
+
+  const rows = await db
+    .select({
+      id: pagos.id,
+      estudianteId: pagos.estudianteId,
+      alumnoNombre: estudiantes.nombreCompleto,
+      alumnoCurp: estudiantes.curp,
+      municipioNombre: municipiosAlias.nombre,
+      gestorNombre: gestoresAlias.nombreCompleto,
+      subidoPorUserId: pagos.subidoPorUserId,
+      subidoPorEmail: subidoPorUsers.email,
+      concepto: pagos.concepto,
+      conceptoDetalle: pagos.conceptoDetalle,
+      monto: pagos.monto,
+      moneda: pagos.moneda,
+      fechaPago: pagos.fechaPago,
+      metodoPago: pagos.metodoPago,
+      referenciaBancaria: pagos.referenciaBancaria,
+      notas: pagos.notas,
+      nombreComprobante: pagos.nombreComprobante,
+      tamanoBytes: pagos.tamanoBytes,
+      estado: pagos.estado,
+      motivoRechazo: pagos.motivoRechazo,
+      verificadoEn: pagos.verificadoEn,
+      createdAt: pagos.createdAt,
+    })
+    .from(pagos)
+    .innerJoin(estudiantes, eq(pagos.estudianteId, estudiantes.userId))
+    .leftJoin(municipiosAlias, eq(estudiantes.municipioId, municipiosAlias.id))
+    .leftJoin(gestoresAlias, eq(estudiantes.gestorId, gestoresAlias.userId))
+    .leftJoin(subidoPorUsers, eq(pagos.subidoPorUserId, subidoPorUsers.id))
+    .where(whereClause)
+    .orderBy(desc(pagos.createdAt))
+    .limit(limit)
+    .offset(offset);
+
+  // Determinar si fue subido por el propio alumno o por un gestor/admin
+  const enriched = rows.map((r) => ({
+    ...r,
+    subidoPorAlumno: r.subidoPorUserId === r.estudianteId,
+  }));
+
+  // Resumen global (sin filtro de página)
+  const [resumenRaw] = await db
+    .select({
+      pendientes: sql<number>`count(*) filter (where ${pagos.estado} = 'pendiente')`,
+      verificados: sql<number>`count(*) filter (where ${pagos.estado} = 'verificado')`,
+      rechazados: sql<number>`count(*) filter (where ${pagos.estado} = 'rechazado')`,
+      montoVerificado: sql<string>`coalesce(sum(${pagos.monto}) filter (where ${pagos.estado} = 'verificado'), 0)`,
+    })
+    .from(pagos);
+
+  const [{ totalFiltrado }] = await db
+    .select({ totalFiltrado: count() })
+    .from(pagos)
+    .innerJoin(estudiantes, eq(pagos.estudianteId, estudiantes.userId))
+    .where(whereClause);
+
+  res.json({
+    pagos: enriched,
+    total: Number(totalFiltrado),
+    page,
+    totalPages: Math.ceil(Number(totalFiltrado) / limit),
+    resumen: {
+      pendientes: Number(resumenRaw.pendientes),
+      verificados: Number(resumenRaw.verificados),
+      rechazados: Number(resumenRaw.rechazados),
+      montoVerificado: parseFloat(resumenRaw.montoVerificado),
+    },
+  });
+});
+
 // ─── POST /admin/estudiantes/:estudianteId/calificaciones ─────────────────
 const crearCalifSchema = z.object({
   moduloId: z.number().int().positive(),

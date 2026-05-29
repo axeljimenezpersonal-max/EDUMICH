@@ -31,6 +31,7 @@ import SolicitarCuenta from './pages/publico/SolicitarCuenta';
 import RecuperarPassword from './pages/RecuperarPassword';
 import ResetPassword from './pages/ResetPassword';
 import PagosPendientes from './pages/admin/PagosPendientes';
+import PagosAdmin from './pages/admin/PagosAdmin';
 import AlumnosCalificaciones from './pages/admin/AlumnosCalificaciones';
 import Solicitudes from './pages/admin/SolicitudesLista';
 import AdminInicio from './pages/admin/AdminInicio';
@@ -83,6 +84,7 @@ export default function App() {
 
       {/* Admin */}
       <Route path="/admin/solicitudes" component={Solicitudes} />
+      <Route path="/admin/pagos" component={PagosAdmin} />
       <Route path="/admin/pagos-pendientes" component={PagosPendientes} />
       <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
       <Route path="/admin/alumnos" component={AdminAlumnosLista} />

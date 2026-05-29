@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useLocation } from 'wouter';
 import {
-  UserCheck, MapPin, Mail, Users, TrendingUp, Clock, AlertTriangle,
+  UserCheck, MapPin, Mail, Users, AlertTriangle,
   Plus, Search, X, RefreshCw, UserPlus, Eye, MoreHorizontal, UserX,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
@@ -478,23 +478,16 @@ function DropItem({ onClick, icon, label }: { onClick: () => void; icon: React.R
 
 // ─── Stats mini card ──────────────────────────────────────────────────────
 
-function StatCard({ icon, num, label, variant }: { icon: React.ReactNode; num: number | string; label: string; variant?: 'default' | 'success' | 'info' | 'warning' }) {
-  const colors = {
-    default: { bg: 'var(--color-guinda-100)', color: 'var(--color-guinda-700)' },
-    success: { bg: '#d1fae5', color: '#2d7d46' },
-    info: { bg: '#dbeafe', color: '#1e40af' },
-    warning: { bg: '#fef9c3', color: '#c77700' },
-  };
-  const c = colors[variant ?? 'default'];
+function StatCard({ num, label, sub }: { num: number | string; label: string; sub?: string }) {
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: c.bg, color: c.color }}>{icon}</div>
-      <div>
-        <div className="text-[18px] font-bold leading-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a', letterSpacing: '-0.02em' }}>
-          {typeof num === 'number' ? num.toLocaleString('es-MX') : num}
-        </div>
-        <div className="text-[11px] font-medium uppercase tracking-wide mt-0.5" style={{ color: '#78716c' }}>{label}</div>
+    <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex-1 min-w-0">
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#78716c' }}>
+        {label}
       </div>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        {typeof num === 'number' ? num.toLocaleString('es-MX') : num}
+      </div>
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>{sub}</div>}
     </div>
   );
 }
@@ -627,11 +620,11 @@ export default function GestoresLista() {
 
       {/* Stats */}
       {resumen && (
-        <div className="flex flex-wrap gap-3 mb-5">
-          <StatCard icon={<UserCheck size={14} />} num={resumen.totalActivos} label="Total activos" />
-          <StatCard icon={<TrendingUp size={14} />} num={`${resumen.tasaExitoPromedio}%`} label="Tasa de éxito promedio" variant="success" />
-          <StatCard icon={<Users size={14} />} num={resumen.alumnosPorGestor} label="Alumnos por gestor" variant="info" />
-          <StatCard icon={<Clock size={14} />} num={resumen.inactivos} label="Inactivos" variant="warning" />
+        <div className="flex gap-3 mb-5 flex-wrap">
+          <StatCard num={resumen.totalActivos} label="Total activos" />
+          <StatCard num={`${resumen.tasaExitoPromedio}%`} label="Tasa de éxito" sub="Promedio general" />
+          <StatCard num={resumen.alumnosPorGestor} label="Alumnos por gestor" sub="Promedio activos" />
+          <StatCard num={resumen.inactivos} label="Inactivos" />
         </div>
       )}
 
