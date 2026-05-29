@@ -7,8 +7,8 @@ import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
   { to: '/estudiante/expediente', label: 'Mi expediente', icon: FolderOpen },
-  { to: '/estudiante/modulos', label: 'Mis módulos', icon: BookOpen },
   { to: '/estudiante/convocatoria', label: 'Mi convocatoria', icon: Calendar },
+  { to: '/estudiante/modulos', label: 'Mis módulos', icon: BookOpen },
   { to: '/estudiante/identificacion', label: 'Mi identificación', icon: BadgeCheck },
 ];
 

@@ -41,6 +41,8 @@ import {
   convocatoriasModulosHorarios,
   examenesInscripciones,
   inscripcionModulos,
+  datosBancarios,
+  conceptosPago,
 } from '@workspace/db/schema';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -1876,6 +1878,42 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', 'attachment; filename="identificacion-digital.pdf"');
   res.send(Buffer.from(pdfBytes));
+});
+
+// ─── GET /estudiante/config-pago ─────────────────────────────────────────
+// Devuelve datos bancarios activos y costo del examen para el flujo de pago
+// del estudiante (mismo origen que gestor/config-pago).
+router.get('/config-pago', async (_req, res) => {
+  try {
+    const [concepto] = await db
+      .select({ monto: conceptosPago.monto })
+      .from(conceptosPago)
+      .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
+      .limit(1);
+    const costoExamen = concepto ? parseFloat(String(concepto.monto)) : 150;
+
+    const [banco] = await db
+      .select()
+      .from(datosBancarios)
+      .where(eq(datosBancarios.activo, true))
+      .limit(1);
+
+    res.json({
+      costoExamen,
+      datosBancarios: banco
+        ? {
+            banco: banco.banco,
+            titular: banco.titular,
+            clabe: banco.clabe,
+            numeroCuenta: banco.numeroCuenta ?? null,
+            rfc: banco.rfc ?? null,
+            convenio: banco.convenio ?? null,
+          }
+        : null,
+    });
+  } catch {
+    res.status(500).json({ error: 'Error al obtener configuración de pago' });
+  }
 });
 
 export default router;

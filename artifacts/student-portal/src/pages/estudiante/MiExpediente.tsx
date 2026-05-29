@@ -1,5 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Pencil, AlertCircle, FileText, CreditCard, GraduationCap, Plus } from 'lucide-react';
+import {
+  Pencil, AlertCircle, FileText, CreditCard, GraduationCap,
+  Copy, CheckCircle2, UploadCloud, Loader2, Banknote, Building2,
+  Store, Download, Clock, Calendar, MapPin,
+} from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import {
   api,
@@ -7,10 +11,11 @@ import {
   type TipoDocumento,
   type PagosResponse,
   type MeResponse,
+  type ConvocatoriaResponse,
+  type GestorConfigPagoResponse,
 } from '../../lib/api';
 import DocumentoUploader from '../../components/DocumentoUploader';
 import PagoCard from '../../components/PagoCard';
-import SubirPagoModal from '../../components/SubirPagoModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 
 // ─── Definición de documentos ─────────────────────────────────────────────
@@ -159,6 +164,37 @@ function DatosPersonalesSection({
   );
 }
 
+// ─── FichaRow helper ─────────────────────────────────────────────────────
+function FichaRow({
+  label, value, copy: canCopy, onCopy, highlight,
+}: {
+  label: string;
+  value: string;
+  copy?: boolean;
+  onCopy?: () => void;
+  highlight?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <span className="text-xs text-stone-500 shrink-0 w-36">{label}</span>
+      <div className="flex items-center gap-1.5 flex-1 min-w-0 justify-end">
+        <span className={`text-sm font-mono font-bold truncate ${highlight ? 'text-[var(--color-guinda-700)]' : 'text-stone-800'}`}>
+          {value}
+        </span>
+        {canCopy && onCopy && (
+          <button
+            onClick={onCopy}
+            className="p-1 rounded hover:bg-stone-200 text-stone-400 hover:text-stone-700 transition-colors shrink-0"
+            title="Copiar"
+          >
+            <Copy size={12} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 type ActiveTab = 'docs' | 'pagos' | 'calificaciones';
 
 // ─── Página principal ─────────────────────────────────────────────────────
@@ -168,9 +204,25 @@ export default function MiExpediente() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('docs');
   const [meId, setMeId] = useState<number | null>(null);
+
+  // Pagos
   const [pagosData, setPagosData] = useState<PagosResponse | null>(null);
   const [pagosLoading, setPagosLoading] = useState(false);
-  const [modalPago, setModalPago] = useState(false);
+  const [configPago, setConfigPago] = useState<GestorConfigPagoResponse | null>(null);
+  const [convData, setConvData] = useState<ConvocatoriaResponse | null>(null);
+
+  // Flujo de pago
+  const [pagoMetodo, setPagoMetodo] = useState('spei');
+  const [pagoFile, setPagoFile] = useState<File | null>(null);
+  const [pagoFecha, setPagoFecha] = useState(() => new Date().toISOString().slice(0, 10));
+  const [pagoSubiendo, setPagoSubiendo] = useState(false);
+
+  // Toast
+  const [toast, setToast] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  function showToast(msg: string, type: 'success' | 'error') {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 4000);
+  }
 
   async function reload() {
     try {
@@ -180,34 +232,62 @@ export default function MiExpediente() {
   }
 
   useEffect(() => {
-    api
-      .get<ExpedienteResponse>('/estudiante/expediente')
-      .then(setData)
-      .catch(() => {})
-      .finally(() => setLoading(false));
-
+    api.get<ExpedienteResponse>('/estudiante/expediente').then(setData).catch(() => {}).finally(() => setLoading(false));
     api.get<MeResponse>('/auth/me').then((me) => setMeId(me.id)).catch(() => {});
   }, []);
 
   useEffect(() => {
     if (activeTab !== 'pagos' || !meId) return;
     setPagosLoading(true);
-    api.get<PagosResponse>(`/pagos/estudiantes/${meId}`)
-      .then(setPagosData)
+    Promise.all([
+      api.get<PagosResponse>(`/pagos/estudiantes/${meId}`),
+      api.get<GestorConfigPagoResponse>('/estudiante/config-pago').catch(() => null),
+      api.get<ConvocatoriaResponse>('/estudiante/convocatoria').catch(() => null),
+    ])
+      .then(([pagos, config, conv]) => {
+        setPagosData(pagos);
+        setConfigPago(config);
+        setConvData(conv);
+      })
       .catch(() => {})
       .finally(() => setPagosLoading(false));
   }, [activeTab, meId]);
 
+  async function handleSubirPago() {
+    if (!meId || !pagoFile || !convData || !configPago) return;
+    const activos = convData.misExamenes.filter(
+      (e) => !['cancelado', 'reprobado', 'no_presento'].includes(e.estado)
+    );
+    const total = activos.length * configPago.costoExamen;
+
+    setPagoSubiendo(true);
+    try {
+      const form = new FormData();
+      form.append('comprobante', pagoFile);
+      form.append('concepto', 'derecho_examen');
+      form.append('monto', String(total));
+      form.append('fechaPago', pagoFecha);
+      form.append('metodoPago', pagoMetodo);
+      await api.post(`/pagos/estudiantes/${meId}`, form);
+      showToast('Comprobante enviado — en revisión', 'success');
+      setPagoFile(null);
+      // Reload payments
+      setPagosLoading(true);
+      const fresh = await api.get<PagosResponse>(`/pagos/estudiantes/${meId}`);
+      setPagosData(fresh);
+    } catch (e) {
+      showToast((e as Error).message || 'Error al enviar comprobante', 'error');
+    } finally {
+      setPagoSubiendo(false);
+      setPagosLoading(false);
+    }
+  }
+
   const obligatorios = DOCUMENTOS.filter((d) => d.obligatorio);
   const opcionales = DOCUMENTOS.filter((d) => !d.obligatorio);
-
   const totalObligatorios = obligatorios.length;
-  const aprobados = data
-    ? obligatorios.filter((d) => data.documentos[d.tipo]?.estado === 'aprobado').length
-    : 0;
-  const subidos = data
-    ? obligatorios.filter((d) => !!data.documentos[d.tipo]).length
-    : 0;
+  const aprobados = data ? obligatorios.filter((d) => data.documentos[d.tipo]?.estado === 'aprobado').length : 0;
+  const subidos = data ? obligatorios.filter((d) => !!data.documentos[d.tipo]).length : 0;
 
   const tabItems: { key: ActiveTab; label: string; icon: React.ReactNode; badge: string }[] = [
     {
@@ -232,6 +312,16 @@ export default function MiExpediente() {
 
   return (
     <EstudianteLayout>
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm ${
+          toast.type === 'success' ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-800'
+        }`}>
+          {toast.type === 'success' ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
+          {toast.msg}
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
@@ -256,15 +346,12 @@ export default function MiExpediente() {
                   ? 'bg-[var(--color-guinda-700)] text-white'
                   : 'text-stone-500 hover:bg-[var(--color-crema-50)] hover:text-stone-900'
               }`}
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
               {icon}
               {label}
               <span
                 className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  active
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[var(--color-crema-100)] text-stone-700'
+                  active ? 'bg-white/20 text-white' : 'bg-[var(--color-crema-100)] text-stone-700'
                 }`}
               >
                 {badge}
@@ -274,10 +361,9 @@ export default function MiExpediente() {
         })}
       </div>
 
-      {/* TAB: Mis documentos */}
+      {/* ════ TAB: Mis documentos ════ */}
       {activeTab === 'docs' && (
         <>
-          {/* Barra de progreso */}
           {data && (
             <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-lg p-5 mb-6">
               <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70 mb-3">
@@ -304,29 +390,19 @@ export default function MiExpediente() {
             </div>
           )}
 
-          {loading && (
-            <div className="text-center text-stone-400 py-16 text-sm">Cargando expediente…</div>
-          )}
+          {loading && <div className="text-center text-stone-400 py-16 text-sm">Cargando expediente…</div>}
 
           {data && (
             <>
-              {/* Datos personales */}
               <DatosPersonalesSection
                 datos={data.datosPersonales}
                 onSaved={(updated) =>
-                  setData((prev) =>
-                    prev
-                      ? { ...prev, datosPersonales: { ...prev.datosPersonales, ...updated } }
-                      : prev
-                  )
+                  setData((prev) => prev ? { ...prev, datosPersonales: { ...prev.datosPersonales, ...updated } } : prev)
                 }
               />
 
-              {/* Documentos obligatorios */}
               <section className="mb-6">
-                <h2 className="font-serif text-base font-bold text-stone-900 mb-3">
-                  Documentos obligatorios
-                </h2>
+                <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Documentos obligatorios</h2>
                 <div className="space-y-3">
                   {obligatorios.map((def) => (
                     <DocumentoUploader
@@ -348,11 +424,8 @@ export default function MiExpediente() {
                 </div>
               </section>
 
-              {/* Documentos opcionales */}
               <section className="mb-6">
-                <h2 className="font-serif text-base font-bold text-stone-900 mb-1">
-                  Documentos opcionales
-                </h2>
+                <h2 className="font-serif text-base font-bold text-stone-900 mb-1">Documentos opcionales</h2>
                 <p className="text-xs text-stone-500 mb-3">
                   No son obligatorios, pero pueden agilizar tu proceso de inscripción.
                 </p>
@@ -381,111 +454,393 @@ export default function MiExpediente() {
         </>
       )}
 
-      {/* TAB: Mis pagos */}
+      {/* ════ TAB: Mis pagos ════ */}
       {activeTab === 'pagos' && (
-        <>
-          {pagosLoading ? (
-            <div className="text-center text-stone-400 py-16 text-sm">Cargando pagos…</div>
-          ) : pagosData ? (
-            <>
-              {/* Summary card */}
-              <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 mb-5 grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center">
-                <div>
-                  <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">
-                    Total pagado y verificado
-                  </div>
-                  <div
-                    className="text-4xl font-bold leading-none"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  >
-                    ${pagosData.resumen.totalPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-                  </div>
-                </div>
-                <div className="h-14 w-px bg-white/20" />
-                <div className="text-center">
-                  <div
-                    className="text-4xl font-bold leading-none"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  >
-                    {pagosData.resumen.verificados}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Verificados</div>
-                </div>
-                <div className="text-center">
-                  <div
-                    className="text-4xl font-bold leading-none"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  >
-                    {pagosData.resumen.pendientes}
-                  </div>
-                  <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Pendientes</div>
-                </div>
-              </div>
-
-              {/* Section title + button */}
-              <div className="flex items-center justify-between mb-4">
-                <h3
-                  className="text-sm font-bold text-stone-900"
-                  style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                >
-                  Historial de pagos
-                </h3>
-                <button
-                  onClick={() => setModalPago(true)}
-                  className="bg-[var(--color-guinda-700)] text-white text-xs px-3 py-2 rounded-lg flex items-center gap-1.5 hover:bg-[var(--color-guinda-800)] transition-colors"
-                >
-                  <Plus size={12} />
-                  Subir comprobante de pago
-                </button>
-              </div>
-
-              {pagosData.pagos.length === 0 ? (
-                <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
-                  <CreditCard size={36} className="mx-auto text-stone-300 mb-3" />
-                  <div
-                    className="text-sm font-bold text-stone-500"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
-                  >
-                    Sin pagos registrados
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {pagosData.pagos.map((pago) => (
-                    <PagoCard
-                      key={pago.id}
-                      pago={pago}
-                      onVerComprobante={(p) => window.open(`/api/pagos/${p.id}/comprobante`, '_blank')}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>
-          )}
-
-          {meId !== null && (
-            <SubirPagoModal
-              open={modalPago}
-              onClose={() => setModalPago(false)}
-              estudianteId={meId}
-              onSuccess={() => {
-                setPagosLoading(true);
-                api.get<PagosResponse>(`/pagos/estudiantes/${meId}`)
-                  .then(setPagosData)
-                  .catch(() => {})
-                  .finally(() => setPagosLoading(false));
-              }}
-            />
-          )}
-        </>
+        <PagosTab
+          pagosLoading={pagosLoading}
+          pagosData={pagosData}
+          configPago={configPago}
+          convData={convData}
+          curp={data?.datosPersonales.curp ?? ''}
+          meId={meId}
+          pagoMetodo={pagoMetodo}
+          setPagoMetodo={setPagoMetodo}
+          pagoFile={pagoFile}
+          setPagoFile={setPagoFile}
+          pagoFecha={pagoFecha}
+          setPagoFecha={setPagoFecha}
+          pagoSubiendo={pagoSubiendo}
+          onSubirPago={handleSubirPago}
+        />
       )}
 
-      {/* TAB: Mis calificaciones */}
+      {/* ════ TAB: Mis calificaciones ════ */}
       {activeTab === 'calificaciones' && meId !== null && (
         <CalificacionesTabContent estudianteId={meId} readOnly={true} />
       )}
     </EstudianteLayout>
+  );
+}
+
+// ─── Sub-component: PagosTab ──────────────────────────────────────────────
+
+function PagosTab({
+  pagosLoading,
+  pagosData,
+  configPago,
+  convData,
+  curp,
+  meId,
+  pagoMetodo,
+  setPagoMetodo,
+  pagoFile,
+  setPagoFile,
+  pagoFecha,
+  setPagoFecha,
+  pagoSubiendo,
+  onSubirPago,
+}: {
+  pagosLoading: boolean;
+  pagosData: PagosResponse | null;
+  configPago: GestorConfigPagoResponse | null;
+  convData: ConvocatoriaResponse | null;
+  curp: string;
+  meId: number | null;
+  pagoMetodo: string;
+  setPagoMetodo: (v: string) => void;
+  pagoFile: File | null;
+  setPagoFile: (f: File | null) => void;
+  pagoFecha: string;
+  setPagoFecha: (v: string) => void;
+  pagoSubiendo: boolean;
+  onSubirPago: () => void;
+}) {
+  if (pagosLoading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-stone-400 gap-2 text-sm">
+        <Loader2 size={18} className="animate-spin" /> Cargando…
+      </div>
+    );
+  }
+
+  // Inscripciones activas (que necesitan pago)
+  const inscripcionesActivas = convData?.misExamenes.filter(
+    (e) => !['cancelado', 'reprobado', 'no_presento'].includes(e.estado)
+  ) ?? [];
+
+  const costoExamen = configPago?.costoExamen ?? 150;
+  const total = inscripcionesActivas.length * costoExamen;
+  const db = configPago?.datosBancarios ?? null;
+
+  // Pago vigente (no rechazado)
+  const pagoVigente = pagosData?.pagos.find(
+    (p) => p.concepto === 'derecho_examen' && p.estado !== 'rechazado'
+  ) ?? null;
+
+  const showPaymentForm = inscripcionesActivas.length > 0 && !pagoVigente;
+  const showPaymentStatus = inscripcionesActivas.length > 0 && !!pagoVigente;
+
+  function copyText(text: string) {
+    navigator.clipboard.writeText(text).catch(() => {});
+  }
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
+
+  const metodoPicker = [
+    { value: 'spei',                icon: <Banknote size={18} />,  label: 'SPEI / Transferencia' },
+    { value: 'banco_deposito',      icon: <Building2 size={18} />, label: 'Depósito bancario' },
+    { value: 'tienda_conveniencia', icon: <Store size={18} />,     label: 'Tienda de conveniencia' },
+  ];
+
+  return (
+    <div className="space-y-5">
+
+      {/* ── Resumen general ── */}
+      {pagosData && (
+        <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center">
+          <div>
+            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Total pagado y verificado</div>
+            <div className="text-4xl font-bold leading-none">
+              ${pagosData.resumen.totalPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="h-14 w-px bg-white/20" />
+          <div className="text-center">
+            <div className="text-4xl font-bold">{pagosData.resumen.verificados}</div>
+            <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Verificados</div>
+          </div>
+          <div className="text-center">
+            <div className="text-4xl font-bold">{pagosData.resumen.pendientes}</div>
+            <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Pendientes</div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Sin inscripciones activas ── */}
+      {inscripcionesActivas.length === 0 && (
+        <div className="bg-stone-50 border border-stone-200 rounded-xl p-8 text-center">
+          <CreditCard size={32} className="mx-auto text-stone-300 mb-3" />
+          <div className="text-sm font-semibold text-stone-500">Sin inscripciones activas</div>
+          <div className="text-xs text-stone-400 mt-1 max-w-xs mx-auto">
+            Ve a <strong>Mi convocatoria</strong> para inscribirte a módulos; cuando tengas inscripciones activas verás aquí la ficha de pago.
+          </div>
+        </div>
+      )}
+
+      {/* ── Estado de pago vigente ── */}
+      {showPaymentStatus && pagoVigente && (
+        <div className={`rounded-xl border p-4 flex items-start gap-3 ${
+          pagoVigente.estado === 'verificado'  ? 'bg-green-50 border-green-200'  :
+          pagoVigente.estado === 'rechazado'   ? 'bg-red-50 border-red-200'      :
+                                                 'bg-amber-50 border-amber-200'
+        }`}>
+          {pagoVigente.estado === 'verificado'
+            ? <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" />
+            : pagoVigente.estado === 'rechazado'
+              ? <AlertCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
+              : <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />}
+          <div>
+            <div className="text-sm font-bold text-stone-800">
+              {pagoVigente.estado === 'verificado' ? 'Pago verificado ✓' :
+               pagoVigente.estado === 'rechazado'  ? 'Comprobante rechazado' :
+                                                     'Comprobante enviado — en revisión'}
+            </div>
+            <div className="text-xs text-stone-500 mt-0.5">
+              ${Number(pagoVigente.monto).toLocaleString('es-MX')} MXN · {fmtDate(pagoVigente.fechaPago)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Flujo de pago 3 pasos ── */}
+      {showPaymentForm && (
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
+            <CreditCard size={15} className="text-[var(--color-guinda-700)]" />
+            <h3 className="text-sm font-bold text-stone-900">Pago de derechos de examen</h3>
+          </div>
+
+          <div className="p-5 space-y-6">
+
+            {/* Tus módulos inscritos */}
+            <div className="bg-stone-50 border border-stone-200 rounded-xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+                <span className="text-sm font-bold text-stone-800">Módulos inscritos</span>
+                <span className="text-xs text-stone-500">{inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''}</span>
+              </div>
+              <div className="divide-y divide-stone-100">
+                {inscripcionesActivas.map((insc) => (
+                  <div key={insc.id} className="px-4 py-3 flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-semibold text-stone-800">
+                        Módulo {insc.modulo.numero} — {insc.modulo.nombre}
+                      </div>
+                      <div className="flex flex-wrap gap-3 mt-1 text-xs text-stone-500">
+                        <span className="flex items-center gap-1">
+                          <Clock size={11} />{DIA_LABEL[insc.dia] ?? insc.dia} · {insc.hora}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Calendar size={11} />{fmtDate(insc.fechaExamen)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <MapPin size={11} />{insc.sede.nombre}
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-stone-700 shrink-0">${costoExamen.toLocaleString('es-MX')} MXN</span>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-3 bg-stone-100 border-t border-stone-200 flex justify-between items-center">
+                <span className="text-sm text-stone-600">{inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen} MXN</span>
+                <span className="text-base font-bold text-stone-900">Total: ${total.toLocaleString('es-MX')} MXN</span>
+              </div>
+            </div>
+
+            {/* PASO 1 — método */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                <span className="text-sm font-bold text-stone-800">Selecciona cómo vas a pagar</span>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {metodoPicker.map((m) => {
+                  const active = pagoMetodo === m.value;
+                  return (
+                    <button
+                      key={m.value}
+                      onClick={() => setPagoMetodo(m.value)}
+                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all text-center ${
+                        active
+                          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] text-[var(--color-guinda-700)]'
+                          : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:bg-stone-50'
+                      }`}
+                    >
+                      <span className={active ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}>{m.icon}</span>
+                      <span className="text-[11px] font-semibold leading-tight">{m.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* PASO 2 — ficha */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                <span className="text-sm font-bold text-stone-800">Realiza el pago con estos datos</span>
+              </div>
+
+              {pagoMetodo === 'spei' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-2.5 bg-blue-600 flex items-center gap-2">
+                    <Banknote size={14} className="text-white" />
+                    <span className="text-xs font-bold text-white uppercase tracking-widest">SPEI / Transferencia bancaria</span>
+                  </div>
+                  <div className="p-4 space-y-2.5">
+                    <FichaRow label="CLABE interbancaria" value={db?.clabe ?? '— no configurado —'} copy={!!db?.clabe} onCopy={() => copyText(db!.clabe)} />
+                    <FichaRow label="Banco"               value={db?.banco ?? '—'} />
+                    <FichaRow label="Beneficiario"        value={db?.titular ?? '—'} />
+                    <FichaRow label="Referencia"          value={curp || '— ingresa tu CURP —'} copy={!!curp} onCopy={() => copyText(curp)} />
+                    <FichaRow label="Monto exacto"        value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                    <FichaRow label="Concepto"            value="Derecho de examen — Prepa Abierta Michoacán" />
+                  </div>
+                  <div className="px-4 py-2.5 bg-blue-100 border-t border-blue-200 flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-blue-700">💡 Usa tu CURP como referencia exacta.</span>
+                    {meId && (
+                      <a href={`/api/gestor/alumnos/${meId}/ficha-pago?metodo=spei`} target="_blank" rel="noopener"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-[11px] font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                        <Download size={11} /> Ficha PDF
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {pagoMetodo === 'banco_deposito' && (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-2.5 bg-emerald-600 flex items-center gap-2">
+                    <Building2 size={14} className="text-white" />
+                    <span className="text-xs font-bold text-white uppercase tracking-widest">Depósito bancario en ventanilla</span>
+                  </div>
+                  <div className="p-4 space-y-2.5">
+                    <FichaRow label="Banco"              value={db?.banco ?? '—'} />
+                    {db?.numeroCuenta && <FichaRow label="Número de cuenta" value={db.numeroCuenta} copy onCopy={() => copyText(db!.numeroCuenta!)} />}
+                    <FichaRow label="CLABE"              value={db?.clabe ?? '— no configurado —'} copy={!!db?.clabe} onCopy={() => copyText(db!.clabe)} />
+                    <FichaRow label="A nombre de"        value={db?.titular ?? '—'} />
+                    <FichaRow label="Referencia"         value={curp || '— ingresa tu CURP —'} copy={!!curp} onCopy={() => copyText(curp)} />
+                    <FichaRow label="Monto exacto"       value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                  </div>
+                  <div className="px-4 py-2.5 bg-emerald-100 border-t border-emerald-200 flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-emerald-700">💡 Acude a cualquier sucursal del banco e indica número de cuenta y referencia.</span>
+                    {meId && (
+                      <a href={`/api/gestor/alumnos/${meId}/ficha-pago?metodo=banco_deposito`} target="_blank" rel="noopener"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[11px] font-semibold rounded-lg hover:bg-emerald-700 transition-colors">
+                        <Download size={11} /> Ficha PDF
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {pagoMetodo === 'tienda_conveniencia' && (
+                <div className="bg-orange-50 border border-orange-200 rounded-xl overflow-hidden">
+                  <div className="px-4 py-2.5 bg-orange-500 flex items-center gap-2">
+                    <Store size={14} className="text-white" />
+                    <span className="text-xs font-bold text-white uppercase tracking-widest">Pago en tienda de conveniencia</span>
+                  </div>
+                  <div className="p-4 space-y-2.5">
+                    <FichaRow label="Servicio / empresa"  value={db?.titular ?? '—'} />
+                    {db?.convenio && <FichaRow label="Número de convenio" value={db.convenio} copy onCopy={() => copyText(db!.convenio!)} />}
+                    <FichaRow label="Referencia"          value={curp || '— ingresa tu CURP —'} copy={!!curp} onCopy={() => copyText(curp)} />
+                    <FichaRow label="Monto exacto"        value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                    <FichaRow label="Establecimientos"    value="OXXO · 7-Eleven · Farmacias del Ahorro · Círculo K" />
+                  </div>
+                  <div className="px-4 py-2.5 bg-orange-100 border-t border-orange-200 flex items-center justify-between gap-3">
+                    <span className="text-[11px] text-orange-700">💡 Indica el número de convenio y tu CURP como referencia en la caja.</span>
+                    {meId && (
+                      <a href={`/api/gestor/alumnos/${meId}/ficha-pago?metodo=tienda_conveniencia`} target="_blank" rel="noopener"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-500 text-white text-[11px] font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+                        <Download size={11} /> Ficha PDF
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* PASO 3 — subir comprobante */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                <span className="text-sm font-bold text-stone-800">Sube tu comprobante de pago</span>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha en que realizaste el pago</label>
+                  <input
+                    type="date"
+                    value={pagoFecha}
+                    onChange={(e) => setPagoFecha(e.target.value)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1">Comprobante (PDF o imagen)</label>
+                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
+                    pagoFile
+                      ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                      : 'border-stone-300 hover:border-stone-400 bg-white'
+                  }`}>
+                    <UploadCloud size={20} className={pagoFile ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
+                    <div className="flex-1 min-w-0">
+                      {pagoFile
+                        ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{pagoFile.name}</span>
+                        : <span className="text-sm text-stone-500">Seleccionar archivo</span>}
+                    </div>
+                    <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setPagoFile(e.target.files?.[0] ?? null)} />
+                  </label>
+                </div>
+                <button
+                  onClick={onSubirPago}
+                  disabled={!pagoFile || pagoSubiendo}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+                >
+                  {pagoSubiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
+                  {pagoSubiendo ? 'Enviando…' : `Enviar comprobante — $${total.toLocaleString('es-MX')} MXN`}
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      )}
+
+      {/* ── Historial de pagos ── */}
+      {pagosData && pagosData.pagos.length > 0 && (
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-stone-100">
+            <h3 className="text-sm font-bold text-stone-900">Historial de pagos</h3>
+          </div>
+          <div className="divide-y divide-stone-100">
+            {pagosData.pagos.map((pago) => (
+              <PagoCard
+                key={pago.id}
+                pago={pago}
+                onVerComprobante={(p) => window.open(`/api/pagos/${p.id}/comprobante`, '_blank')}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pagosData && pagosData.pagos.length === 0 && inscripcionesActivas.length === 0 && (
+        <div className="text-center text-stone-400 py-8 text-sm">Sin pagos registrados.</div>
+      )}
+
+    </div>
   );
 }
