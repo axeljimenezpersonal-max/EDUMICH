@@ -21,12 +21,12 @@ import {
   FileText,
   Lock,
   BookOpen,
-  Save,
   CalendarCheck,
   Clock,
   AlertTriangle,
   UploadCloud,
   Receipt,
+  UserCheck,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -34,8 +34,6 @@ import {
   type AlumnoDetalle as AlumnoDetalleType,
   type GestorExpedienteResponse,
   type TipoDocumento,
-  type GestorPlanModularResponse,
-  type GestorPlanModularModulo,
   type GestorConvocatoriaResponse,
   type GestorConvocatoriaPago,
 } from '../../lib/api';
@@ -79,6 +77,13 @@ const DOCUMENTOS_EXPEDIENTE: DocDef[] = [
   { tipo: 'comprobante_pago', label: 'Comprobante de pago', descripcion: 'Comprobante de pago de derechos de inscripción', obligatorio: false },
 ];
 
+const NIVEL_LABELS: Record<number, string> = {
+  1: 'Comunicación y bases',
+  2: 'Pensamiento matemático y textos',
+  3: 'Métodos y contextos',
+  4: 'Especialidades',
+};
+
 type ActiveTab = 'docs' | 'plan' | 'convocatoria' | 'calificaciones';
 
 interface ToastState {
@@ -98,13 +103,7 @@ export default function AlumnoDetalle() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>('docs');
 
-  // Plan modular
-  const [planData, setPlanData] = useState<GestorPlanModularResponse | null>(null);
-  const [planLoading, setPlanLoading] = useState(false);
-  const [planSeleccion, setPlanSeleccion] = useState<Set<number>>(new Set());
-  const [planGuardando, setPlanGuardando] = useState(false);
-
-  // Convocatoria
+  // Convocatoria + plan de estudios (shared state)
   const [convData, setConvData] = useState<GestorConvocatoriaResponse | null>(null);
   const [convLoading, setConvLoading] = useState(false);
   const [convSeleccion, setConvSeleccion] = useState<Set<number>>(new Set());
@@ -201,25 +200,23 @@ export default function AlumnoDetalle() {
     } catch {}
   }
 
+  async function reloadConvocatoria() {
+    if (!id) return;
+    try {
+      const d = await api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`);
+      setConvData(d);
+    } catch {}
+  }
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
+  // Load convocatoria when Plan or Convocatoria tab is first opened
   useEffect(() => {
-    if (activeTab !== 'plan' || !id) return;
-    setPlanLoading(true);
-    api.get<GestorPlanModularResponse>(`/gestor/alumnos/${id}/plan-modular`)
-      .then((d) => {
-        setPlanData(d);
-        setPlanSeleccion(new Set(d.modulos.filter((m) => m.enPlan).map((m) => m.id)));
-      })
-      .catch(() => {})
-      .finally(() => setPlanLoading(false));
-  }, [activeTab, id]);
-
-  useEffect(() => {
-    if (activeTab !== 'convocatoria' || !id) return;
+    if ((activeTab !== 'plan' && activeTab !== 'convocatoria') || !id) return;
+    if (convData !== null) return; // already loaded
     setConvLoading(true);
     api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`)
       .then((d) => {
@@ -228,26 +225,7 @@ export default function AlumnoDetalle() {
       })
       .catch(() => {})
       .finally(() => setConvLoading(false));
-  }, [activeTab, id]);
-
-  async function handleGuardarPlan() {
-    if (!id) return;
-    setPlanGuardando(true);
-    try {
-      await api.put(`/gestor/alumnos/${id}/plan-modular`, {
-        moduloIds: Array.from(planSeleccion),
-      });
-      showToast(`Plan guardado — ${planSeleccion.size} módulo${planSeleccion.size !== 1 ? 's' : ''} asignado${planSeleccion.size !== 1 ? 's' : ''}`, 'success');
-      // Reload plan data to sync enPlan flags
-      const d = await api.get<GestorPlanModularResponse>(`/gestor/alumnos/${id}/plan-modular`);
-      setPlanData(d);
-      setPlanSeleccion(new Set(d.modulos.filter((m) => m.enPlan).map((m) => m.id)));
-    } catch (e) {
-      showToast((e as Error).message || 'Error al guardar el plan', 'error');
-    } finally {
-      setPlanGuardando(false);
-    }
-  }
+  }, [activeTab, id, convData]);
 
   async function handleInscribir() {
     if (!id || !convData?.etapa || convSeleccion.size === 0) return;
@@ -259,8 +237,7 @@ export default function AlumnoDetalle() {
       });
       showToast(`${convSeleccion.size} módulo${convSeleccion.size !== 1 ? 's' : ''} inscrito${convSeleccion.size !== 1 ? 's' : ''} correctamente`, 'success');
       setConvSeleccion(new Set());
-      const d = await api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`);
-      setConvData(d);
+      await reloadConvocatoria();
     } catch (e) {
       showToast((e as Error).message || 'Error al inscribir', 'error');
     } finally {
@@ -284,8 +261,7 @@ export default function AlumnoDetalle() {
       await api.post(`/pagos/estudiantes/${id}`, form);
       showToast('Comprobante de pago subido correctamente', 'success');
       setPagoFile(null);
-      const d = await api.get<GestorConvocatoriaResponse>(`/gestor/alumnos/${id}/convocatoria`);
-      setConvData(d);
+      await reloadConvocatoria();
     } catch (e) {
       showToast((e as Error).message || 'Error al subir comprobante', 'error');
     } finally {
@@ -303,10 +279,8 @@ export default function AlumnoDetalle() {
         modoEmail: 'dev' | 'production';
         credencialTemporal?: string;
       }>(`/gestor/alumnos/${id}/reenviar-credenciales`);
-
       setReenviarResult(r.credencialTemporal ? { credencial: r.credencialTemporal } : {});
       showToast('Credenciales enviadas correctamente', 'success');
-      // Reload to update badge
       load();
     } catch (e) {
       const msg = (e as Error).message;
@@ -325,10 +299,7 @@ export default function AlumnoDetalle() {
             <AlertCircle size={18} />
             <div>{error}</div>
           </div>
-          <button
-            onClick={() => setLocation('/gestor/alumnos')}
-            className="gov-btn-secondary mt-4"
-          >
+          <button onClick={() => setLocation('/gestor/alumnos')} className="gov-btn-secondary mt-4">
             Volver
           </button>
         </div>
@@ -356,9 +327,8 @@ export default function AlumnoDetalle() {
   const docsCount = Object.keys(docs).length;
   const obligatoriosFaltantes = obligatorios.filter((d) => !docs[d.tipo]);
 
-  const planAsignadosCount = planData
-    ? planData.modulos.filter((m) => m.enPlan).length
-    : planSeleccion.size;
+  const inscripcionesCount = convData?.inscripcionesActivas.length ?? 0;
+  const modulosDisponiblesCount = convData?.modulosDisponibles.filter((m) => !m.yaInscrito).length ?? 0;
 
   const tabItems: { key: ActiveTab; label: string; icon: React.ReactNode; badge: string }[] = [
     {
@@ -371,15 +341,13 @@ export default function AlumnoDetalle() {
       key: 'plan',
       label: 'Plan de estudios',
       icon: <BookOpen size={15} />,
-      badge: planAsignadosCount > 0 ? String(planAsignadosCount) : '—',
+      badge: modulosDisponiblesCount > 0 ? String(modulosDisponiblesCount) : '—',
     },
     {
       key: 'convocatoria',
       label: 'Convocatoria',
       icon: <CalendarCheck size={15} />,
-      badge: convData?.inscripcionesActivas.length
-        ? String(convData.inscripcionesActivas.length)
-        : '—',
+      badge: inscripcionesCount > 0 ? String(inscripcionesCount) : '—',
     },
     {
       key: 'calificaciones',
@@ -406,7 +374,9 @@ export default function AlumnoDetalle() {
               : 'bg-red-50 border border-red-200 text-red-800'
           }`}
         >
-          {toast.type === 'success' ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" /> : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
+          {toast.type === 'success'
+            ? <CheckCircle2 size={16} className="mt-0.5 shrink-0" />
+            : <AlertCircle size={16} className="mt-0.5 shrink-0" />}
           <div>
             <div className="font-semibold">{toast.msg}</div>
             {toast.detail && <div className="text-xs opacity-75 mt-0.5">{toast.detail}</div>}
@@ -425,42 +395,43 @@ export default function AlumnoDetalle() {
         Volver a mis alumnos
       </Link>
 
-      {/* Cabecera */}
-      <div className="bg-white border border-stone-200 rounded-md p-6 mb-6">
+      {/* ── Cabecera ── */}
+      <div className="bg-white border border-stone-200 rounded-xl p-6 mb-4">
         <div className="flex items-start justify-between gap-6 flex-wrap">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">
+            <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">
               Alumno
             </div>
             <h1 className="font-serif text-3xl font-bold text-stone-900 mb-1">
               {alumno.nombreCompleto}
             </h1>
-            <div className="font-mono text-sm text-stone-600 mb-2">{alumno.curp}</div>
-            {/* Primer ingreso badge */}
-            {alumno.passwordTemporal && (
-              <div className="inline-flex items-center gap-1.5" title={bienvenidaFecha ? `Credenciales enviadas el ${bienvenidaFecha}` : 'Credenciales aún no enviadas'}>
-                <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-semibold border border-amber-200">
-                  <Send size={10} />
-                  PRIMER INGRESO PENDIENTE
-                </span>
-                {bienvenidaFecha && (
-                  <span className="text-[10px] text-stone-400">Enviado el {bienvenidaFecha}</span>
-                )}
-              </div>
-            )}
+            <div className="font-mono text-sm text-stone-500 mb-3">{alumno.curp}</div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 text-sm">
+              <DataRow icon={Mail} label="Correo" value={alumno.email} />
+              <DataRow icon={Phone} label="Teléfono" value={alumno.telefono ?? '—'} />
+              <DataRow
+                icon={Calendar}
+                label="Fecha de nacimiento"
+                value={
+                  alumno.fechaNacimiento
+                    ? new Date(alumno.fechaNacimiento).toLocaleDateString('es-MX', {
+                        day: 'numeric', month: 'long', year: 'numeric',
+                      })
+                    : '—'
+                }
+              />
+              <DataRow icon={MapPin} label="Dirección" value={alumno.direccion ?? '—'} />
+            </div>
           </div>
 
           <div className="flex items-start gap-3">
-            {/* Inscripción estado */}
             {inscripcionActiva && (
               <div className="text-right">
                 <div className="text-xs uppercase tracking-widest text-stone-500 font-semibold mb-1">
-                  Estado de inscripción
+                  Inscripción
                 </div>
                 <StatusBadge estado={inscripcionActiva.estado} />
-                <div className="text-xs text-stone-500 mt-1">
-                  {inscripcionActiva.convocatoria}
-                </div>
+                <div className="text-xs text-stone-500 mt-1">{inscripcionActiva.convocatoria}</div>
               </div>
             )}
 
@@ -474,7 +445,7 @@ export default function AlumnoDetalle() {
                 <MoreVertical size={16} />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-56 bg-white border border-stone-200 rounded-lg shadow-lg z-20 py-1 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-60 bg-white border border-stone-200 rounded-xl shadow-lg z-20 py-1 overflow-hidden">
                   {alumno.passwordTemporal ? (
                     <button
                       onClick={() => { setMenuOpen(false); setReenviarModal(true); }}
@@ -488,7 +459,7 @@ export default function AlumnoDetalle() {
                       <Send size={14} className="shrink-0" />
                       <span>
                         Reenviar credenciales
-                        <div className="text-[10px] leading-tight">El alumno ya cambió su contraseña</div>
+                        <div className="text-[10px] leading-tight">El alumno ya inició sesión</div>
                       </span>
                     </div>
                   )}
@@ -497,99 +468,9 @@ export default function AlumnoDetalle() {
             </div>
           </div>
         </div>
-
-        {/* Datos personales */}
-        <div className="mt-6 pt-6 border-t border-stone-200 grid grid-cols-1 md:grid-cols-2 gap-y-3 gap-x-8 text-sm">
-          <DataRow icon={Mail} label="Correo" value={alumno.email} />
-          <DataRow icon={Phone} label="Teléfono" value={alumno.telefono ?? '—'} />
-          <DataRow
-            icon={Calendar}
-            label="Fecha de nacimiento"
-            value={
-              alumno.fechaNacimiento
-                ? new Date(alumno.fechaNacimiento).toLocaleDateString('es-MX', {
-                    day: 'numeric',
-                    month: 'long',
-                    year: 'numeric',
-                  })
-                : '—'
-            }
-          />
-          <DataRow icon={MapPin} label="Dirección" value={alumno.direccion ?? '—'} />
-        </div>
       </div>
 
-      {/* Matrícula oficial DGB — solo lectura para el gestor */}
-      {!alumno.matriculaOficialDGB ? (
-        <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Award size={18} style={{ color: '#a8a29e' }} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 8px' }}>Pendiente de asignación por la administración.</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#78716c', background: '#f5f5f4', border: '1px solid #e7e5e4', borderRadius: 6, padding: '7px 12px' }}>
-                <Lock size={11} style={{ flexShrink: 0 }} />
-                La matrícula la asigna exclusivamente la administración una vez validado el expediente completo.
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #fff 100%)', border: '1px solid #86efac', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Award size={18} style={{ color: '#16a34a' }} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
-                Asignada el {alumno.matriculaCapturadaEn ? new Date(alumno.matriculaCapturadaEn).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'}) : '—'}
-              </p>
-            </div>
-          </div>
-          <div style={{ background: '#f8fafc', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px', marginBottom: 14 }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>MATRÍCULA</div>
-            <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 22, fontWeight: 700, color: 'var(--color-guinda-700)', letterSpacing: '0.05em' }}>
-              {alumno.matriculaOficialDGB}
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href={`/api/gestor/alumnos/${id}/ficha-registro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-              <Download size={12} /> Ficha de registro PDF
-            </a>
-            <a href={`/api/gestor/alumnos/${id}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #e7e5e4', borderRadius: 8, fontSize: 12, color: '#44403c', textDecoration: 'none' }}>
-              <FileText size={12} /> Ficha de pre-registro
-            </a>
-          </div>
-        </div>
-      )}
-
-      {/* Licencia digital — solo lectura para el gestor */}
-      {alumno.licenciaDigital ? (
-        <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #fff 100%)', border: '1px solid #c4b5fd', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <Award size={18} style={{ color: '#7c3aed' }} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
-                Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-              </p>
-            </div>
-          </div>
-          <div style={{ background: '#faf8ff', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>LICENCIA DIGITAL</div>
-            <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
-              {alumno.licenciaDigital}
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {/* Tab bar */}
+      {/* ── Tab bar ── */}
       <div className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
         {tabItems.map(({ key, label, icon, badge }) => {
           const active = activeTab === key;
@@ -602,15 +483,12 @@ export default function AlumnoDetalle() {
                   ? 'bg-[var(--color-guinda-700)] text-white'
                   : 'text-stone-500 hover:bg-[var(--color-crema-50)] hover:text-stone-900'
               }`}
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
             >
               {icon}
               {label}
               <span
                 className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
-                  active
-                    ? 'bg-white/20 text-white'
-                    : 'bg-[var(--color-crema-100)] text-stone-700'
+                  active ? 'bg-white/20 text-white' : 'bg-[var(--color-crema-100)] text-stone-700'
                 }`}
               >
                 {badge}
@@ -620,15 +498,135 @@ export default function AlumnoDetalle() {
         })}
       </div>
 
-      {/* TAB: Documentos */}
+      {/* ══════════════ TAB: Documentos ══════════════ */}
       {activeTab === 'docs' && (
         <>
+          {/* Acceso del alumno */}
+          {alumno.passwordTemporal ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
+                <Send size={16} className="text-amber-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-amber-900">Credenciales de acceso pendientes</div>
+                <div className="text-xs text-amber-700 mt-0.5">
+                  {bienvenidaFecha
+                    ? `Enviadas el ${bienvenidaFecha}, pero el alumno aún no ha iniciado sesión.`
+                    : 'El alumno aún no ha recibido sus credenciales de acceso.'}
+                  {' '}Tanto tú como él pueden subir documentos desde sus respectivos portales.
+                </div>
+              </div>
+              <button
+                onClick={() => setReenviarModal(true)}
+                className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700 transition-colors"
+              >
+                <Send size={12} />
+                {bienvenidaFecha ? 'Reenviar' : 'Enviar acceso'}
+              </button>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 flex items-center gap-3">
+              <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                <UserCheck size={16} className="text-emerald-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-emerald-900">El alumno tiene acceso activo</div>
+                <div className="text-xs text-emerald-700 mt-0.5">
+                  Ya inició sesión y puede subir documentos directamente desde su portal.
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Matrícula oficial DGB */}
+          {!alumno.matriculaOficialDGB ? (
+            <div className="bg-white border border-stone-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+              <div className="w-9 h-9 rounded-lg bg-stone-100 flex items-center justify-center shrink-0">
+                <Award size={16} className="text-stone-400" />
+              </div>
+              <div className="flex-1">
+                <div className="text-sm font-bold text-stone-800">Matrícula oficial DGB</div>
+                <div className="text-xs text-stone-500 mt-0.5">Pendiente de asignación por la administración.</div>
+                <div className="mt-2 flex items-center gap-1.5 text-[11px] text-stone-500 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
+                  <Lock size={10} className="shrink-0" />
+                  Se asigna una vez que el expediente completo sea validado.
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-gradient-to-br from-emerald-50 to-white border border-emerald-200 rounded-xl p-4 mb-4">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+                  <Award size={16} className="text-emerald-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-stone-800">Matrícula oficial DGB</div>
+                  <div className="text-xs text-stone-500 mt-0.5">
+                    Asignada el {alumno.matriculaCapturadaEn
+                      ? new Date(alumno.matriculaCapturadaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white border border-stone-200 rounded-lg px-4 py-3 mb-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">MATRÍCULA</div>
+                <div className="font-mono text-xl font-bold text-[var(--color-guinda-700)] tracking-wide">
+                  {alumno.matriculaOficialDGB}
+                </div>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                <a
+                  href={`/api/gestor/alumnos/${id}/ficha-registro`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                >
+                  <Download size={12} /> Ficha de registro PDF
+                </a>
+                <a
+                  href={`/api/gestor/alumnos/${id}/ficha-preregistro`}
+                  target="_blank"
+                  rel="noopener"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-stone-200 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50 transition-colors"
+                >
+                  <FileText size={12} /> Ficha de pre-registro
+                </a>
+              </div>
+            </div>
+          )}
+
+          {/* Licencia digital */}
+          {alumno.licenciaDigital && (
+            <div className="bg-gradient-to-br from-violet-50 to-white border border-violet-200 rounded-xl p-4 mb-4">
+              <div className="flex items-start gap-3 mb-3">
+                <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
+                  <Award size={16} className="text-violet-600" />
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-stone-800">Licencia digital</div>
+                  <div className="text-xs text-stone-500 mt-0.5">
+                    Emitida el {alumno.licenciaEmitidaEn
+                      ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
+                      : '—'}
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white border border-stone-200 rounded-lg px-4 py-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">LICENCIA DIGITAL</div>
+                <div className="font-mono text-lg font-bold text-violet-700 tracking-wide">
+                  {alumno.licenciaDigital}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Documentos */}
           {obligatoriosFaltantes.length > 0 && (
-            <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 mb-4 flex items-start gap-2">
+            <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 mb-4 flex items-start gap-2">
               <AlertCircle size={14} className="text-amber-500 shrink-0 mt-0.5" />
               <div>
                 <div className="text-sm font-semibold text-amber-900 mb-0.5">
-                  Faltan {obligatoriosFaltantes.length} documento{obligatoriosFaltantes.length > 1 ? 's' : ''} obligatorio{obligatoriosFaltantes.length > 1 ? 's' : ''}
+                  {obligatoriosFaltantes.length} documento{obligatoriosFaltantes.length > 1 ? 's' : ''} obligatorio{obligatoriosFaltantes.length > 1 ? 's' : ''} faltante{obligatoriosFaltantes.length > 1 ? 's' : ''}
                 </div>
                 <div className="text-xs text-amber-700">
                   {obligatoriosFaltantes.map((d) => d.label).join(', ')}
@@ -636,19 +634,18 @@ export default function AlumnoDetalle() {
               </div>
             </div>
           )}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 flex items-start gap-2 text-xs text-blue-900">
+
+          <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-5 flex items-start gap-2 text-xs text-blue-900">
             <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
-            El alumno tiene 4 documentos obligatorios y 2 opcionales. Tú puedes subir documentos por él si los trae físicamente, o él mismo desde su portal.
+            Tú y el alumno comparten el mismo expediente. Si el alumno trae documentos físicamente, los puedes subir tú; él también puede subirlos desde su portal.
           </div>
 
           {[
             { title: 'Documentos obligatorios', defs: obligatorios, isRequired: true },
-            { title: 'Documentos opcionales',   defs: opcionales,   isRequired: false },
+            { title: 'Documentos opcionales', defs: opcionales, isRequired: false },
           ].map(({ title, defs, isRequired }) => (
             <section key={title} className="mb-6">
-              <h3 className="text-sm font-semibold text-stone-700 uppercase tracking-widest mb-3">
-                {title}
-              </h3>
+              <h3 className="text-sm font-semibold text-stone-700 uppercase tracking-widest mb-3">{title}</h3>
               <div className="space-y-3">
                 {defs.map((def) => {
                   const doc = docs[def.tipo];
@@ -698,46 +695,23 @@ export default function AlumnoDetalle() {
         </>
       )}
 
-
-
-      {/* TAB: Calificaciones */}
-      {activeTab === 'calificaciones' && id !== null && (
-        <CalificacionesTabContent estudianteId={id} readOnly={true} />
-      )}
-
-      {/* TAB: Plan Modular */}
+      {/* ══════════════ TAB: Plan de estudios ══════════════ */}
       {activeTab === 'plan' && (
-        <>
-          <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-5 flex items-start gap-2 text-xs text-blue-900">
-            <Info size={14} className="text-blue-500 shrink-0 mt-0.5" />
-            Selecciona los módulos que debe cursar este alumno para acreditar. Solo estos módulos aparecerán en su portal.
-          </div>
-
-          {planLoading && (
-            <div className="text-center text-stone-400 py-16 text-sm">Cargando plan modular…</div>
-          )}
-
-          {!planLoading && planData && (
-            <PlanModularGrid
-              modulos={planData.modulos}
-              planSeleccion={planSeleccion}
-              setPlanSeleccion={setPlanSeleccion}
-              planGuardando={planGuardando}
-              onGuardar={handleGuardarPlan}
-            />
-          )}
-        </>
-      )}
-
-      {/* TAB: Convocatoria */}
-      {activeTab === 'convocatoria' && (
-        <ConvocatoriaTab
+        <PlanDeEstudiosTab
           data={convData}
           loading={convLoading}
           seleccion={convSeleccion}
           setSeleccion={setConvSeleccion}
           inscribiendo={convInscribiendo}
           onInscribir={handleInscribir}
+        />
+      )}
+
+      {/* ══════════════ TAB: Convocatoria ══════════════ */}
+      {activeTab === 'convocatoria' && (
+        <ConvocatoriaTab
+          data={convData}
+          loading={convLoading}
           pagoFile={pagoFile}
           setPagoFile={setPagoFile}
           pagoFecha={pagoFecha}
@@ -749,7 +723,12 @@ export default function AlumnoDetalle() {
         />
       )}
 
-      {/* Modal: Reenviar credenciales */}
+      {/* ══════════════ TAB: Calificaciones ══════════════ */}
+      {activeTab === 'calificaciones' && id !== null && (
+        <CalificacionesTabContent estudianteId={id} readOnly={true} />
+      )}
+
+      {/* ── Modal: Reenviar credenciales ── */}
       {reenviarModal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
@@ -759,23 +738,19 @@ export default function AlumnoDetalle() {
             className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
-              <div className="font-semibold text-stone-900" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-                Reenviar credenciales por correo
-              </div>
+              <div className="font-semibold text-stone-900">Reenviar credenciales por correo</div>
               {!reenviarLoading && (
                 <button onClick={() => { setReenviarModal(false); setReenviarResult(null); }} className="p-1 rounded hover:bg-stone-100 text-stone-500">
                   <X size={18} />
                 </button>
               )}
             </div>
-
             <div className="p-5">
               {reenviarResult === null ? (
                 <>
                   <p className="text-sm text-stone-700 mb-1">
-                    ¿Reenviar correo de credenciales a <strong>{alumno.email}</strong>?
+                    ¿Enviar credenciales de acceso a <strong>{alumno.email}</strong>?
                   </p>
                   <p className="text-xs text-stone-500 mb-5">
                     Se generará una nueva contraseña temporal y se enviará al correo del alumno. La contraseña anterior quedará invalidada.
@@ -794,7 +769,7 @@ export default function AlumnoDetalle() {
                       className="px-4 py-2 text-sm bg-[var(--color-guinda-700)] text-white rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 flex items-center gap-1.5"
                     >
                       <Send size={13} />
-                      {reenviarLoading ? 'Enviando…' : 'Reenviar'}
+                      {reenviarLoading ? 'Enviando…' : 'Enviar'}
                     </button>
                   </div>
                 </>
@@ -807,7 +782,7 @@ export default function AlumnoDetalle() {
                   {reenviarResult.credencial && (
                     <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                       <div className="text-xs font-semibold text-amber-800 uppercase tracking-wider mb-1">
-                        Modo dev — contraseña temporal generada:
+                        Modo dev — contraseña temporal:
                       </div>
                       <div className="flex items-center gap-2">
                         <code className="font-mono text-lg font-bold text-[var(--color-guinda-700)] tracking-widest">
@@ -839,7 +814,7 @@ export default function AlumnoDetalle() {
         </div>
       )}
 
-      {/* Modal: aprobar documento */}
+      {/* ── Modal: aprobar documento ── */}
       {modalAprobarDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
@@ -872,7 +847,7 @@ export default function AlumnoDetalle() {
         </div>
       )}
 
-      {/* Modal: rechazar documento */}
+      {/* ── Modal: rechazar documento ── */}
       {modalRechazarDoc && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
@@ -926,70 +901,64 @@ export default function AlumnoDetalle() {
           </div>
         </div>
       )}
-
     </GestorLayout>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Sub-component: Plan de estudios tab
+// Uses convocatoria modules displayed in a nivel grid for inscription
+// ─────────────────────────────────────────────────────────────────
 
-const NIVEL_LABELS: Record<number, string> = {
-  1: 'Comunicación y bases',
-  2: 'Pensamiento matemático y textos',
-  3: 'Métodos y contextos',
-  4: 'Especialidades',
-};
-
-function ModuloCheckbox({
-  m,
-  checked,
-  onChange,
+function PlanDeEstudiosTab({
+  data,
+  loading,
+  seleccion,
+  setSeleccion,
+  inscribiendo,
+  onInscribir,
 }: {
-  m: GestorPlanModularModulo;
-  checked: boolean;
-  onChange: () => void;
+  data: GestorConvocatoriaResponse | null;
+  loading: boolean;
+  seleccion: Set<number>;
+  setSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
+  inscribiendo: boolean;
+  onInscribir: () => void;
 }) {
-  return (
-    <label
-      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
-        checked
-          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-          : 'border-stone-200 bg-white hover:bg-stone-50'
-      }`}
-    >
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
-      />
-      <div className="min-w-0">
-        <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
-          Módulo {m.numero}
-        </div>
-        <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-16 text-stone-400 gap-2 text-sm">
+        <Loader2 size={18} className="animate-spin" />
+        Cargando módulos…
       </div>
-    </label>
-  );
-}
+    );
+  }
 
-function PlanModularGrid({
-  modulos,
-  planSeleccion,
-  setPlanSeleccion,
-  planGuardando,
-  onGuardar,
-}: {
-  modulos: GestorPlanModularModulo[];
-  planSeleccion: Set<number>;
-  setPlanSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
-  planGuardando: boolean;
-  onGuardar: () => void;
-}) {
-  const niveles = [1, 2, 3, 4];
+  if (!data?.etapa) {
+    return (
+      <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
+        <CalendarCheck size={36} className="mx-auto text-stone-300 mb-3" />
+        <div className="text-sm font-bold text-stone-500">No hay convocatoria activa</div>
+        <div className="text-xs text-stone-400 mt-1 max-w-xs mx-auto">
+          Cuando se abra una convocatoria, aquí aparecerán los módulos disponibles para inscribir a examen.
+        </div>
+      </div>
+    );
+  }
 
-  function toggleModulo(id: number) {
-    setPlanSeleccion((prev) => {
+  const { etapa, modulosDisponibles, costoExamen } = data;
+
+  const fmtDate = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+
+  const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
+  const HORA_LABEL: Record<string, string> = { '09:00': '9:00 AM', '11:00': '11:00 AM' };
+
+  const pendientes = modulosDisponibles.filter((m) => !m.yaInscrito);
+  const inscritos = modulosDisponibles.filter((m) => m.yaInscrito);
+
+  function toggle(id: number) {
+    setSeleccion((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
@@ -997,73 +966,169 @@ function PlanModularGrid({
     });
   }
 
+  const niveles = [1, 2, 3, 4];
+
   return (
-    <div className="space-y-6">
-      {niveles.map((nivel) => {
-        const modulosNivel = modulos.filter((m) => m.nivel === nivel);
-        if (modulosNivel.length === 0) return null;
-        return (
-          <section key={nivel}>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
-              Nivel {nivel} — {NIVEL_LABELS[nivel]}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-              {modulosNivel.map((m) => (
-                <ModuloCheckbox
-                  key={m.id}
-                  m={m}
-                  checked={planSeleccion.has(m.id)}
-                  onChange={() => toggleModulo(m.id)}
-                />
-              ))}
-            </div>
-          </section>
-        );
-      })}
-
-      {modulos.filter((m) => !m.nivel).length > 0 && (
-        <section>
-          <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Otros módulos</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-            {modulos.filter((m) => !m.nivel).map((m) => (
-              <ModuloCheckbox
-                key={m.id}
-                m={m}
-                checked={planSeleccion.has(m.id)}
-                onChange={() => toggleModulo(m.id)}
-              />
-            ))}
+    <div className="space-y-5">
+      {/* Convocatoria banner */}
+      <div
+        className="rounded-xl p-4 flex items-start gap-3"
+        style={{ background: 'var(--color-crema-50, #fdf8f0)', border: '1px solid var(--color-crema-200, #e8d5b7)' }}
+      >
+        <CalendarCheck size={16} className="text-[var(--color-guinda-700)] mt-0.5 shrink-0" />
+        <div>
+          <div className="text-sm font-bold text-stone-900">{etapa.etapa} — Fase {etapa.fase}</div>
+          <div className="text-xs text-stone-600 mt-0.5">
+            Inscripciones hasta el <strong>{fmtDate(etapa.solicitudFin)}</strong> ·
+            Examen: Sáb {fmtDate(etapa.examenSabado)} y Dom {fmtDate(etapa.examenDomingo)}
           </div>
-        </section>
-      )}
-
-      <div className="flex items-center justify-between pt-2 border-t border-stone-200">
-        <div className="text-sm text-stone-500">
-          <span className="font-bold text-stone-900">{planSeleccion.size}</span>{' '}
-          módulo{planSeleccion.size !== 1 ? 's' : ''} seleccionado{planSeleccion.size !== 1 ? 's' : ''}
         </div>
-        <button
-          onClick={onGuardar}
-          disabled={planGuardando}
-          className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-60 transition-colors"
-        >
-          {planGuardando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-          Guardar plan modular
-        </button>
       </div>
+
+      {modulosDisponibles.length === 0 ? (
+        <div className="text-center py-10 text-stone-400 text-sm border-2 border-dashed border-stone-200 rounded-xl">
+          No hay módulos disponibles para inscribir en esta convocatoria.
+        </div>
+      ) : (
+        <>
+          {/* Modules by nivel */}
+          {niveles.map((nivel) => {
+            const pend = pendientes.filter((m) => m.nivel === nivel);
+            const insc = inscritos.filter((m) => m.nivel === nivel);
+            if (pend.length === 0 && insc.length === 0) return null;
+            return (
+              <section key={nivel}>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
+                  Nivel {nivel} — {NIVEL_LABELS[nivel]}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {insc.map((m) => (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 bg-stone-50 select-none"
+                    >
+                      <input type="checkbox" checked disabled className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-bold text-stone-400">Módulo {m.numero}</div>
+                        <div className="text-xs text-stone-600 leading-snug truncate">{m.nombre}</div>
+                        <div className="text-[10px] text-stone-400 mt-0.5">
+                          {DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}
+                        </div>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">
+                        ✓ Inscrito
+                      </span>
+                    </div>
+                  ))}
+                  {pend.map((m) => {
+                    const checked = seleccion.has(m.id);
+                    return (
+                      <label
+                        key={m.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
+                          checked
+                            ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                            : 'border-stone-200 bg-white hover:bg-stone-50'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggle(m.id)}
+                          className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+                            Módulo {m.numero}
+                          </div>
+                          <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+                          <div className="text-[10px] text-stone-400 mt-0.5">
+                            {DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}
+                          </div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
+
+          {/* Modules without nivel */}
+          {(() => {
+            const pend = pendientes.filter((m) => !m.nivel);
+            const insc = inscritos.filter((m) => !m.nivel);
+            if (pend.length === 0 && insc.length === 0) return null;
+            return (
+              <section>
+                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Otros módulos</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                  {insc.map((m) => (
+                    <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 bg-stone-50 select-none">
+                      <input type="checkbox" checked disabled className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]" />
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-bold text-stone-400">Módulo {m.numero}</div>
+                        <div className="text-xs text-stone-600 leading-snug truncate">{m.nombre}</div>
+                        <div className="text-[10px] text-stone-400 mt-0.5">{DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}</div>
+                      </div>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">✓ Inscrito</span>
+                    </div>
+                  ))}
+                  {pend.map((m) => {
+                    const checked = seleccion.has(m.id);
+                    return (
+                      <label
+                        key={m.id}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${checked ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 bg-white hover:bg-stone-50'}`}
+                      >
+                        <input type="checkbox" checked={checked} onChange={() => toggle(m.id)} className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]" />
+                        <div className="min-w-0 flex-1">
+                          <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>Módulo {m.numero}</div>
+                          <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+                          <div className="text-[10px] text-stone-400 mt-0.5">{DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}</div>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })()}
+
+          {/* Footer: count + inscribe button */}
+          <div className="flex items-center justify-between pt-4 border-t border-stone-200">
+            <div className="text-sm text-stone-500">
+              <span className="font-bold text-stone-900">{seleccion.size}</span>{' '}
+              módulo{seleccion.size !== 1 ? 's' : ''} seleccionado{seleccion.size !== 1 ? 's' : ''}
+              {seleccion.size > 0 && (
+                <span className="ml-2 text-stone-400 text-xs">
+                  — ${(seleccion.size * costoExamen).toLocaleString('es-MX')} MXN
+                </span>
+              )}
+            </div>
+            <button
+              onClick={onInscribir}
+              disabled={seleccion.size === 0 || inscribiendo}
+              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+            >
+              {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
+              Inscribir seleccionados
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────
+// Sub-component: Convocatoria tab
+// Shows active inscriptions + payment
+// ─────────────────────────────────────────────────────────────────
 
 function ConvocatoriaTab({
   data,
   loading,
-  seleccion,
-  setSeleccion,
-  inscribiendo,
-  onInscribir,
   pagoFile,
   setPagoFile,
   pagoFecha,
@@ -1075,10 +1140,6 @@ function ConvocatoriaTab({
 }: {
   data: GestorConvocatoriaResponse | null;
   loading: boolean;
-  seleccion: Set<number>;
-  setSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
-  inscribiendo: boolean;
-  onInscribir: () => void;
   pagoFile: File | null;
   setPagoFile: (f: File | null) => void;
   pagoFecha: string;
@@ -1097,21 +1158,19 @@ function ConvocatoriaTab({
     );
   }
 
-  if (!data?.etapa) {
+  if (!data?.inscripcionesActivas.length) {
     return (
       <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
         <CalendarCheck size={36} className="mx-auto text-stone-300 mb-3" />
-        <div className="text-sm font-bold text-stone-500" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-          No hay convocatoria activa en este momento
-        </div>
-        <div className="text-xs text-stone-400 mt-1">
-          Cuando se abra una convocatoria de examen aparecerá aquí.
+        <div className="text-sm font-bold text-stone-500">Sin inscripciones activas</div>
+        <div className="text-xs text-stone-400 mt-2 max-w-xs mx-auto">
+          Ve a la pestaña <strong>Plan de estudios</strong> para seleccionar e inscribir módulos a la convocatoria actual.
         </div>
       </div>
     );
   }
 
-  const { etapa, modulosDisponibles, inscripcionesActivas, costoExamen } = data;
+  const { inscripcionesActivas, costoExamen, etapa } = data;
 
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -1119,20 +1178,11 @@ function ConvocatoriaTab({
   const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
   const HORA_LABEL: Record<string, string> = { '09:00': '9:00 AM', '11:00': '11:00 AM' };
 
-  function toggleModulo(id: number) {
-    setSeleccion((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
   const estadoBadge = (estado: string) => {
     const map: Record<string, { bg: string; text: string; label: string }> = {
-      inscrito:        { bg: 'bg-blue-100',  text: 'text-blue-800',  label: 'Inscrito' },
-      pase_validado:   { bg: 'bg-green-100', text: 'text-green-800', label: 'Pase validado' },
-      cancelado:       { bg: 'bg-red-100',   text: 'text-red-800',   label: 'Cancelado' },
+      inscrito:      { bg: 'bg-blue-100',  text: 'text-blue-800',  label: 'Inscrito' },
+      pase_validado: { bg: 'bg-green-100', text: 'text-green-800', label: 'Pase validado' },
+      cancelado:     { bg: 'bg-red-100',   text: 'text-red-800',   label: 'Cancelado' },
     };
     const s = map[estado] ?? { bg: 'bg-stone-100', text: 'text-stone-700', label: estado };
     return (
@@ -1142,299 +1192,186 @@ function ConvocatoriaTab({
     );
   };
 
-  const modulosPendientes = modulosDisponibles.filter((m) => !m.yaInscrito);
-  const modulosYaInscritos = modulosDisponibles.filter((m) => m.yaInscrito);
+  const total = inscripcionesActivas.length * costoExamen;
 
   return (
     <div className="space-y-5">
-      {/* Etapa header */}
-      <div className="bg-white border border-stone-200 rounded-xl p-5">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-bold mb-2">
-          <CalendarCheck size={13} />
-          Convocatoria activa
+      {/* Inscriptions list */}
+      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-stone-900">
+            Inscripciones activas
+          </h3>
+          <span className="text-xs text-stone-500 font-semibold">
+            {inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''}
+          </span>
         </div>
-        <h2 className="font-serif text-xl font-bold text-stone-900 mb-4">
-          {etapa.etapa} — Fase {etapa.fase}
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <div className="flex items-start gap-2">
-            <Calendar size={14} className="text-stone-400 mt-0.5 shrink-0" />
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Período de solicitud</div>
-              <div className="text-stone-800">{fmtDate(etapa.solicitudInicio)} — {fmtDate(etapa.solicitudFin)}</div>
-            </div>
-          </div>
-          <div className="flex items-start gap-2">
-            <Clock size={14} className="text-stone-400 mt-0.5 shrink-0" />
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Fechas de examen</div>
-              <div className="text-stone-800">
-                Sáb {fmtDate(etapa.examenSabado)} · Dom {fmtDate(etapa.examenDomingo)}
+
+        <div className="divide-y divide-stone-100">
+          {inscripcionesActivas.map((insc) => (
+            <div key={insc.id} className="px-5 py-4">
+              <div className="flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <code className="font-mono text-xs font-bold text-[var(--color-guinda-700)] bg-stone-100 px-1.5 py-0.5 rounded">
+                      {insc.folio}
+                    </code>
+                    {estadoBadge(insc.estado)}
+                  </div>
+                  <div className="text-sm font-semibold text-stone-800">
+                    Módulo {insc.moduloNumero} — {insc.moduloNombre}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 mt-1.5 text-xs text-stone-500">
+                    <span className="flex items-center gap-1">
+                      <Clock size={11} />
+                      {DIA_LABEL[insc.dia] ?? insc.dia} · {HORA_LABEL[insc.hora] ?? insc.hora}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <Calendar size={11} />
+                      {fmtDate(insc.fechaExamen)}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MapPin size={11} />
+                      {insc.sede.nombre}
+                    </span>
+                  </div>
+                </div>
+                <div className="text-sm font-bold text-stone-700 shrink-0">
+                  ${costoExamen.toLocaleString('es-MX')} MXN
+                </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        {/* Total */}
+        <div className="px-5 py-3 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
+          <div className="text-sm text-stone-600">
+            {inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen} MXN
           </div>
-          {data.sede && (
-            <div className="flex items-start gap-2 sm:col-span-2">
-              <MapPin size={14} className="text-stone-400 mt-0.5 shrink-0" />
+          <div className="text-base font-bold text-stone-900">
+            Total: ${total.toLocaleString('es-MX')} MXN
+          </div>
+        </div>
+      </div>
+
+      {/* Payment section */}
+      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
+          <Receipt size={15} className="text-[var(--color-guinda-700)]" />
+          <h3 className="text-sm font-bold text-stone-900">Pago de derechos de examen</h3>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Payment status */}
+          {data.pagoDerechos ? (
+            <div className={`rounded-xl border p-4 flex items-start gap-3 ${
+              data.pagoDerechos.estado === 'verificado'
+                ? 'bg-green-50 border-green-200'
+                : data.pagoDerechos.estado === 'rechazado'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-amber-50 border-amber-200'
+            }`}>
+              {data.pagoDerechos.estado === 'verificado'
+                ? <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" />
+                : data.pagoDerechos.estado === 'rechazado'
+                ? <AlertCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
+                : <Clock size={18} className="text-amber-500 shrink-0 mt-0.5" />
+              }
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-bold text-stone-800">
+                  {data.pagoDerechos.estado === 'verificado'
+                    ? 'Pago verificado ✓'
+                    : data.pagoDerechos.estado === 'rechazado'
+                    ? 'Comprobante rechazado'
+                    : 'Comprobante enviado — en revisión'}
+                </div>
+                <div className="text-xs text-stone-500 mt-0.5">
+                  ${Number(data.pagoDerechos.monto).toLocaleString('es-MX')} MXN · {fmtDate(data.pagoDerechos.fechaPago)}
+                </div>
+                {data.pagoDerechos.estado === 'rechazado' && (
+                  <p className="text-xs text-red-700 mt-1.5">
+                    El administrador rechazó este comprobante. Sube uno nuevo para confirmar la inscripción.
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            etapa && (
+              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
+                <AlertTriangle size={15} className="shrink-0 mt-0.5 text-amber-500" />
+                <div>
+                  Sube el comprobante de pago de{' '}
+                  <strong>${total.toLocaleString('es-MX')} MXN</strong>
+                  {' '}antes del <strong>{fmtDate(etapa.solicitudFin)}</strong> para confirmar la inscripción.
+                </div>
+              </div>
+            )
+          )}
+
+          {/* Upload form — shown when no payment or rejected */}
+          {(!data.pagoDerechos || data.pagoDerechos.estado === 'rechazado') && (
+            <div className="space-y-3 pt-1">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha de pago</label>
+                  <input
+                    type="date"
+                    value={pagoFecha}
+                    onChange={(e) => setPagoFecha(e.target.value)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1">Método de pago</label>
+                  <select
+                    value={pagoMetodo}
+                    onChange={(e) => setPagoMetodo(e.target.value)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                  >
+                    <option value="efectivo">Efectivo</option>
+                    <option value="spei">SPEI / Transferencia</option>
+                    <option value="banco_deposito">Depósito bancario</option>
+                    <option value="tienda_conveniencia">Tienda de conveniencia</option>
+                  </select>
+                </div>
+              </div>
+
               <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Sede de examen</div>
-                <div className="text-stone-800">{data.sede.nombre}</div>
-                <div className="text-xs text-stone-500">{data.sede.direccion}</div>
+                <label className="block text-xs font-semibold text-stone-600 mb-1">Comprobante (PDF)</label>
+                <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
+                  pagoFile
+                    ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                    : 'border-stone-300 hover:border-stone-400 bg-white'
+                }`}>
+                  <UploadCloud size={20} className={pagoFile ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
+                  <div className="flex-1 min-w-0">
+                    {pagoFile
+                      ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{pagoFile.name}</span>
+                      : <span className="text-sm text-stone-500">Seleccionar PDF del comprobante</span>
+                    }
+                  </div>
+                  <input
+                    type="file"
+                    accept="application/pdf"
+                    className="hidden"
+                    onChange={(e) => setPagoFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
               </div>
+
+              <button
+                onClick={onSubirPago}
+                disabled={!pagoFile || pagoSubiendo}
+                className="w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+              >
+                {pagoSubiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
+                {pagoSubiendo ? 'Subiendo…' : `Subir comprobante — $${total.toLocaleString('es-MX')} MXN`}
+              </button>
             </div>
           )}
         </div>
       </div>
-
-      {/* Módulos disponibles para inscribir */}
-      {modulosDisponibles.length > 0 && (
-        <div className="bg-white border border-stone-200 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-stone-900 mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Módulos disponibles
-          </h3>
-          <p className="text-xs text-stone-500 mb-4">
-            Selecciona los módulos que deseas inscribir a examen en esta convocatoria.
-          </p>
-
-          {modulosPendientes.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {modulosPendientes.map((m) => {
-                const checked = seleccion.has(m.id);
-                return (
-                  <label
-                    key={m.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
-                      checked
-                        ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                        : 'border-stone-200 bg-white hover:bg-stone-50'
-                    }`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={checked}
-                      onChange={() => toggleModulo(m.id)}
-                      className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
-                        Módulo {m.numero}
-                      </div>
-                      <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <div className="text-[11px] font-semibold text-stone-600">{DIA_LABEL[m.dia] ?? m.dia}</div>
-                      <div className="text-[11px] text-stone-400">{HORA_LABEL[m.hora] ?? m.hora}</div>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
-          )}
-
-          {modulosYaInscritos.length > 0 && (
-            <div className="space-y-2 mb-4">
-              {modulosYaInscritos.map((m) => (
-                <div
-                  key={m.id}
-                  className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 bg-stone-50 opacity-70 select-none"
-                >
-                  <input
-                    type="checkbox"
-                    checked
-                    disabled
-                    className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-bold text-stone-400">Módulo {m.numero}</div>
-                    <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
-                  </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 font-bold uppercase tracking-wide shrink-0">
-                    ✓ Inscrito
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {modulosPendientes.length === 0 && modulosYaInscritos.length > 0 && (
-            <div className="text-xs text-stone-500 italic mb-4">
-              Todos los módulos disponibles ya están inscritos.
-            </div>
-          )}
-
-          <div className="flex items-center justify-between pt-3 border-t border-stone-200">
-            <div className="text-sm text-stone-500">
-              <span className="font-bold text-stone-900">{seleccion.size}</span>{' '}
-              módulo{seleccion.size !== 1 ? 's' : ''} seleccionado{seleccion.size !== 1 ? 's' : ''}
-            </div>
-            <button
-              onClick={onInscribir}
-              disabled={seleccion.size === 0 || inscribiendo}
-              className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-            >
-              {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <CalendarCheck size={14} />}
-              Inscribir seleccionados
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Inscripciones activas */}
-      {inscripcionesActivas.length > 0 && (
-        <div className="bg-white border border-stone-200 rounded-xl p-5">
-          <h3 className="text-sm font-bold text-stone-900 mb-4" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Inscripciones actuales
-          </h3>
-
-          <div className="space-y-3 mb-5">
-            {inscripcionesActivas.map((insc) => (
-              <div key={insc.id} className="border border-stone-200 rounded-lg p-4">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <code className="font-mono text-xs font-bold text-[var(--color-guinda-700)] bg-stone-100 px-1.5 py-0.5 rounded">
-                        {insc.folio}
-                      </code>
-                      {estadoBadge(insc.estado)}
-                    </div>
-                    <div className="text-sm font-semibold text-stone-800">
-                      Módulo {insc.moduloNumero} — {insc.moduloNombre}
-                    </div>
-                    <div className="flex items-center gap-3 mt-1.5 text-xs text-stone-500">
-                      <span className="flex items-center gap-1">
-                        <Clock size={11} />
-                        {DIA_LABEL[insc.dia] ?? insc.dia} · {HORA_LABEL[insc.hora] ?? insc.hora}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <Calendar size={11} />
-                        {fmtDate(insc.fechaExamen)}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 mt-1 text-xs text-stone-500">
-                      <MapPin size={11} />
-                      {insc.sede.nombre}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Costo total */}
-          <div className="bg-stone-50 border border-stone-200 rounded-lg p-4 mb-3">
-            <div className="flex items-center justify-between text-sm">
-              <div className="text-stone-600">
-                {inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''} × ${costoExamen} MXN
-              </div>
-              <div className="font-bold text-stone-900 text-base">
-                ${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN
-              </div>
-            </div>
-          </div>
-
-          {/* Pago de derechos */}
-          <div className="mt-5 pt-5 border-t border-stone-200">
-            <h4 className="text-sm font-bold text-stone-900 mb-3 flex items-center gap-2">
-              <Receipt size={15} className="text-[var(--color-guinda-700)]" />
-              Pago de derechos de examen
-            </h4>
-
-            {data.pagoDerechos ? (
-              <div className={`rounded-lg border p-4 flex items-start gap-3 ${
-                data.pagoDerechos.estado === 'verificado'
-                  ? 'bg-green-50 border-green-200'
-                  : data.pagoDerechos.estado === 'rechazado'
-                  ? 'bg-red-50 border-red-200'
-                  : 'bg-amber-50 border-amber-200'
-              }`}>
-                {data.pagoDerechos.estado === 'verificado'
-                  ? <CheckCircle2 size={16} className="text-green-600 shrink-0 mt-0.5" />
-                  : data.pagoDerechos.estado === 'rechazado'
-                  ? <AlertCircle size={16} className="text-red-600 shrink-0 mt-0.5" />
-                  : <Clock size={16} className="text-amber-500 shrink-0 mt-0.5" />
-                }
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-stone-800">
-                    Comprobante subido — {data.pagoDerechos.estado === 'verificado' ? 'Verificado' : data.pagoDerechos.estado === 'rechazado' ? 'Rechazado' : 'Pendiente de verificación'}
-                  </div>
-                  <div className="text-xs text-stone-500 mt-0.5">
-                    ${Number(data.pagoDerechos.monto).toLocaleString('es-MX')} MXN · {fmtDate(data.pagoDerechos.fechaPago)}
-                  </div>
-                  {data.pagoDerechos.estado === 'rechazado' && (
-                    <p className="text-xs text-red-700 mt-1">El administrador rechazó este comprobante. Sube uno nuevo.</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800 mb-4">
-                <AlertTriangle size={13} className="shrink-0 mt-0.5 text-amber-500" />
-                <div>
-                  Debes subir el comprobante de pago de{' '}
-                  <strong>${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN</strong>
-                  {' '}antes del <strong>{fmtDate(etapa.solicitudFin)}</strong> para confirmar la inscripción.
-                </div>
-              </div>
-            )}
-
-            {(!data.pagoDerechos || data.pagoDerechos.estado === 'rechazado') && (
-              <div className="mt-3 space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha de pago</label>
-                    <input
-                      type="date"
-                      value={pagoFecha}
-                      onChange={(e) => setPagoFecha(e.target.value)}
-                      className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 mb-1">Método de pago</label>
-                    <select
-                      value={pagoMetodo}
-                      onChange={(e) => setPagoMetodo(e.target.value)}
-                      className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                    >
-                      <option value="efectivo">Efectivo</option>
-                      <option value="spei">SPEI / Transferencia</option>
-                      <option value="banco_deposito">Depósito bancario</option>
-                      <option value="tienda_conveniencia">Tienda de conveniencia</option>
-                    </select>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-stone-600 mb-1">Comprobante de pago (PDF)</label>
-                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
-                    pagoFile ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-stone-400 bg-white'
-                  }`}>
-                    <UploadCloud size={20} className={pagoFile ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
-                    <div className="flex-1 min-w-0">
-                      {pagoFile
-                        ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{pagoFile.name}</span>
-                        : <span className="text-sm text-stone-500">Seleccionar PDF del comprobante</span>
-                      }
-                    </div>
-                    <input
-                      type="file"
-                      accept="application/pdf"
-                      className="hidden"
-                      onChange={(e) => setPagoFile(e.target.files?.[0] ?? null)}
-                    />
-                  </label>
-                </div>
-                <button
-                  onClick={onSubirPago}
-                  disabled={!pagoFile || pagoSubiendo}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-                >
-                  {pagoSubiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
-                  {pagoSubiendo ? 'Subiendo…' : `Subir comprobante — $${(inscripcionesActivas.length * costoExamen).toLocaleString('es-MX')} MXN`}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
