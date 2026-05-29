@@ -112,7 +112,7 @@ export default function AlumnoDetalle() {
   // Pago de derechos (dentro de convocatoria)
   const [pagoFile, setPagoFile] = useState<File | null>(null);
   const [pagoFecha, setPagoFecha] = useState(() => new Date().toISOString().slice(0, 10));
-  const [pagoMetodo, setPagoMetodo] = useState('efectivo');
+  const [pagoMetodo, setPagoMetodo] = useState('spei');
   const [pagoSubiendo, setPagoSubiendo] = useState(false);
 
   // Acciones menu
@@ -1329,7 +1329,6 @@ function ConvocatoriaTab({
                     onChange={(e) => setPagoMetodo(e.target.value)}
                     className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
                   >
-                    <option value="efectivo">Efectivo</option>
                     <option value="spei">SPEI / Transferencia</option>
                     <option value="banco_deposito">Depósito bancario</option>
                     <option value="tienda_conveniencia">Tienda de conveniencia</option>

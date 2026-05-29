@@ -1377,40 +1377,17 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     return;
   }
 
-  // 2. Student's plan modular (most recent inscripcion)
-  const [insc] = await db
-    .select({ id: inscripciones.id })
-    .from(inscripciones)
-    .where(eq(inscripciones.estudianteId, alumnoId))
-    .orderBy(desc(inscripciones.createdAt))
-    .limit(1);
-
-  const planModuloIds: number[] = [];
-  if (insc) {
-    const planRows = await db
-      .select({ moduloId: inscripcionModulos.moduloId })
-      .from(inscripcionModulos)
-      .where(eq(inscripcionModulos.inscripcionId, insc.id));
-    planModuloIds.push(...planRows.map((r) => r.moduloId));
-  }
-
-  // 3. Available horarios for this etapa (modules in plan)
-  const horariosRows = planModuloIds.length > 0
-    ? await db
-        .select({
-          id: convocatoriasModulosHorarios.id,
-          moduloId: convocatoriasModulosHorarios.moduloId,
-          dia: convocatoriasModulosHorarios.dia,
-          hora: convocatoriasModulosHorarios.hora,
-        })
-        .from(convocatoriasModulosHorarios)
-        .where(
-          and(
-            eq(convocatoriasModulosHorarios.etapaId, etapa.id),
-            inArray(convocatoriasModulosHorarios.moduloId, planModuloIds)
-          )
-        )
-    : [];
+  // 2. All horarios for this etapa — show every module the convocatoria offers,
+  //    regardless of the student's plan assignment.
+  const horariosRows = await db
+    .select({
+      id: convocatoriasModulosHorarios.id,
+      moduloId: convocatoriasModulosHorarios.moduloId,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+    })
+    .from(convocatoriasModulosHorarios)
+    .where(eq(convocatoriasModulosHorarios.etapaId, etapa.id));
 
   const horariosByModuloId = new Map(horariosRows.map((h) => [h.moduloId, h]));
 
@@ -1438,13 +1415,13 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
   // 5. Enrich inscripcionesActivas with modulo info, horario info, sede
   const allModuloIds = [
     ...new Set([
-      ...planModuloIds,
+      ...horariosRows.map((h) => h.moduloId),
       ...inscripcionesActivas.map((i) => i.moduloId),
     ]),
   ];
   const modulosRows = allModuloIds.length > 0
     ? await db
-        .select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre })
+        .select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre, nivel: modulos.nivel })
         .from(modulos)
         .where(inArray(modulos.id, allModuloIds))
     : [];
@@ -1493,14 +1470,14 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     };
   });
 
-  // 6. modulosDisponibles: all plan modules that have a horario in this etapa
+  // 6. modulosDisponibles: all modules that have a horario in this etapa
   const modulosDisponibles = horariosRows.map((h) => {
     const mod = modulosById.get(h.moduloId);
     return {
       id: h.moduloId,
       numero: mod?.numero ?? null,
       nombre: mod?.nombre ?? null,
-      nivel: null as null, // not fetched here; available via plan-modular if needed
+      nivel: mod?.nivel ?? null,
       horarioId: h.id,
       dia: h.dia,
       hora: h.hora,

@@ -13,7 +13,6 @@ const METODOS = [
   { value: 'spei', label: 'Transferencia (SPEI)' },
   { value: 'banco_deposito', label: 'Banco – depósito' },
   { value: 'tienda_conveniencia', label: 'Tienda de conveniencia' },
-  { value: 'efectivo', label: 'Efectivo' },
   { value: 'otro', label: 'Otro' },
 ];
 
