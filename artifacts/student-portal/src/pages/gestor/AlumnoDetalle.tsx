@@ -33,6 +33,7 @@ import {
   type TipoDocumento,
   type PagosResponse,
   type GestorPlanModularResponse,
+  type GestorPlanModularModulo,
 } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
@@ -739,122 +740,15 @@ export default function AlumnoDetalle() {
             <div className="text-center text-stone-400 py-16 text-sm">Cargando plan modular…</div>
           )}
 
-          {!planLoading && planData && (() => {
-            const NIVEL_LABELS: Record<number, string> = {
-              1: 'Comunicación y bases',
-              2: 'Pensamiento matemático y textos',
-              3: 'Métodos y contextos',
-              4: 'Especialidades',
-            };
-            const niveles = [1, 2, 3, 4];
-            return (
-              <div className="space-y-6">
-                {niveles.map((nivel) => {
-                  const modulosNivel = planData.modulos.filter((m) => m.nivel === nivel);
-                  if (modulosNivel.length === 0) return null;
-                  return (
-                    <section key={nivel}>
-                      <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
-                        Nivel {nivel} — {NIVEL_LABELS[nivel]}
-                      </h3>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {modulosNivel.map((m) => {
-                          const checked = planSeleccion.has(m.id);
-                          return (
-                            <label
-                              key={m.id}
-                              className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
-                                checked
-                                  ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                                  : 'border-stone-200 bg-white hover:bg-stone-50'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={checked}
-                                onChange={() => {
-                                  setPlanSeleccion((prev) => {
-                                    const next = new Set(prev);
-                                    if (next.has(m.id)) next.delete(m.id);
-                                    else next.add(m.id);
-                                    return next;
-                                  });
-                                }}
-                                className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
-                              />
-                              <div className="min-w-0">
-                                <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
-                                  Módulo {m.numero}
-                                </div>
-                                <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </section>
-                  );
-                })}
-
-                {/* Módulos sin nivel */}
-                {planData.modulos.filter((m) => !m.nivel).length > 0 && (
-                  <section>
-                    <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Otros módulos</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                      {planData.modulos.filter((m) => !m.nivel).map((m) => {
-                        const checked = planSeleccion.has(m.id);
-                        return (
-                          <label
-                            key={m.id}
-                            className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
-                              checked
-                                ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                                : 'border-stone-200 bg-white hover:bg-stone-50'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={checked}
-                              onChange={() => {
-                                setPlanSeleccion((prev) => {
-                                  const next = new Set(prev);
-                                  if (next.has(m.id)) next.delete(m.id);
-                                  else next.add(m.id);
-                                  return next;
-                                });
-                              }}
-                              className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
-                            />
-                            <div className="min-w-0">
-                              <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
-                                Módulo {m.numero}
-                              </div>
-                              <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
-                            </div>
-                          </label>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-
-                <div className="flex items-center justify-between pt-2 border-t border-stone-200">
-                  <div className="text-sm text-stone-500">
-                    <span className="font-bold text-stone-900">{planSeleccion.size}</span>{' '}
-                    módulo{planSeleccion.size !== 1 ? 's' : ''} seleccionado{planSeleccion.size !== 1 ? 's' : ''}
-                  </div>
-                  <button
-                    onClick={handleGuardarPlan}
-                    disabled={planGuardando}
-                    className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-60 transition-colors"
-                  >
-                    {planGuardando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                    Guardar plan modular
-                  </button>
-                </div>
-              </div>
-            );
-          })()}
+          {!planLoading && planData && (
+            <PlanModularGrid
+              modulos={planData.modulos}
+              planSeleccion={planSeleccion}
+              setPlanSeleccion={setPlanSeleccion}
+              planGuardando={planGuardando}
+              onGuardar={handleGuardarPlan}
+            />
+          )}
         </>
       )}
 
@@ -1037,6 +931,130 @@ export default function AlumnoDetalle() {
       )}
 
     </GestorLayout>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+
+const NIVEL_LABELS: Record<number, string> = {
+  1: 'Comunicación y bases',
+  2: 'Pensamiento matemático y textos',
+  3: 'Métodos y contextos',
+  4: 'Especialidades',
+};
+
+function ModuloCheckbox({
+  m,
+  checked,
+  onChange,
+}: {
+  m: GestorPlanModularModulo;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label
+      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
+        checked
+          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+          : 'border-stone-200 bg-white hover:bg-stone-50'
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={onChange}
+        className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
+      />
+      <div className="min-w-0">
+        <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+          Módulo {m.numero}
+        </div>
+        <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+      </div>
+    </label>
+  );
+}
+
+function PlanModularGrid({
+  modulos,
+  planSeleccion,
+  setPlanSeleccion,
+  planGuardando,
+  onGuardar,
+}: {
+  modulos: GestorPlanModularModulo[];
+  planSeleccion: Set<number>;
+  setPlanSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
+  planGuardando: boolean;
+  onGuardar: () => void;
+}) {
+  const niveles = [1, 2, 3, 4];
+
+  function toggleModulo(id: number) {
+    setPlanSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  return (
+    <div className="space-y-6">
+      {niveles.map((nivel) => {
+        const modulosNivel = modulos.filter((m) => m.nivel === nivel);
+        if (modulosNivel.length === 0) return null;
+        return (
+          <section key={nivel}>
+            <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
+              Nivel {nivel} — {NIVEL_LABELS[nivel]}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+              {modulosNivel.map((m) => (
+                <ModuloCheckbox
+                  key={m.id}
+                  m={m}
+                  checked={planSeleccion.has(m.id)}
+                  onChange={() => toggleModulo(m.id)}
+                />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {modulos.filter((m) => !m.nivel).length > 0 && (
+        <section>
+          <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Otros módulos</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+            {modulos.filter((m) => !m.nivel).map((m) => (
+              <ModuloCheckbox
+                key={m.id}
+                m={m}
+                checked={planSeleccion.has(m.id)}
+                onChange={() => toggleModulo(m.id)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      <div className="flex items-center justify-between pt-2 border-t border-stone-200">
+        <div className="text-sm text-stone-500">
+          <span className="font-bold text-stone-900">{planSeleccion.size}</span>{' '}
+          módulo{planSeleccion.size !== 1 ? 's' : ''} seleccionado{planSeleccion.size !== 1 ? 's' : ''}
+        </div>
+        <button
+          onClick={onGuardar}
+          disabled={planGuardando}
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-60 transition-colors"
+        >
+          {planGuardando ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
+          Guardar plan modular
+        </button>
+      </div>
+    </div>
   );
 }
 
