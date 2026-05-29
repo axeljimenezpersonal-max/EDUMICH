@@ -88,9 +88,9 @@ router.get('/datos-bancarios', async (_req, res) => {
 
 router.put('/datos-bancarios', async (req, res) => {
   const u = reqUser(req);
-  const { banco, titular, clabe, numeroCuenta, rfc, conceptoPago } = req.body;
+  const { banco, titular, clabe, numeroCuenta, rfc, conceptoPago, convenio } = req.body;
 
-  if (!clabe || !/^\d{18}$/.test(clabe)) { res.status(400).json({ error: 'CLABE debe tener exactamente 18 dígitos' }); return;
+  if (!clabe || !/^\d{18}$/.test(clabe)) {
     res.status(400).json({ error: 'CLABE debe tener exactamente 18 dígitos' }); return;
   }
 
@@ -100,11 +100,11 @@ router.put('/datos-bancarios', async (req, res) => {
   let result;
   if (existing.length === 0) {
     [result] = await db.insert(datosBancarios)
-      .values({ banco, titular, clabe, numeroCuenta, rfc, conceptoPago, actualizadoPor: u.id, actualizadoEn: ahora })
+      .values({ banco, titular, clabe, numeroCuenta, rfc, conceptoPago, convenio: convenio ?? null, actualizadoPor: u.id, actualizadoEn: ahora })
       .returning();
   } else {
     [result] = await db.update(datosBancarios)
-      .set({ banco, titular, clabe, numeroCuenta, rfc, conceptoPago, actualizadoPor: u.id, actualizadoEn: ahora })
+      .set({ banco, titular, clabe, numeroCuenta, rfc, conceptoPago, convenio: convenio ?? null, actualizadoPor: u.id, actualizadoEn: ahora })
       .where(eq(datosBancarios.id, existing[0].id))
       .returning();
   }

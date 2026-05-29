@@ -39,6 +39,7 @@ import {
   type TipoDocumento,
   type GestorConvocatoriaResponse,
   type GestorConvocatoriaPago,
+  type GestorConfigPagoResponse,
 } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
@@ -87,25 +88,6 @@ const NIVEL_LABELS: Record<number, string> = {
   4: 'Especialidades',
 };
 
-// ── Datos bancarios institucionales ────────────────────────────────────────
-// TODO: actualizar con los datos reales de la institución
-const INFO_PAGO = {
-  spei: {
-    clabe: '021690040000000000',   // ← reemplazar con CLABE real
-    banco: 'Banorte',
-    beneficiario: 'IEMSyS — Prepa Abierta Michoacán',
-  },
-  banco_deposito: {
-    numeroCuenta: '0040000000',    // ← reemplazar con cuenta real
-    banco: 'Banorte',
-    beneficiario: 'IEMSyS — Prepa Abierta Michoacán',
-  },
-  tienda_conveniencia: {
-    convenio: '00000',             // ← reemplazar con convenio CIE real
-    empresa: 'IEMSyS / Prepa Abierta Michoacán',
-    establecimientos: 'OXXO · 7-Eleven · Farmacias del Ahorro · Círculo K',
-  },
-};
 
 type ActiveTab = 'docs' | 'plan' | 'convocatoria' | 'calificaciones';
 
@@ -131,6 +113,9 @@ export default function AlumnoDetalle() {
   const [convLoading, setConvLoading] = useState(false);
   const [convSeleccion, setConvSeleccion] = useState<Set<number>>(new Set());
   const [convInscribiendo, setConvInscribiendo] = useState(false);
+
+  // Configuración de pagos (datos bancarios + costo desde DB)
+  const [configPago, setConfigPago] = useState<GestorConfigPagoResponse | null>(null);
 
   // Pago de derechos (dentro de convocatoria)
   const [pagoFile, setPagoFile] = useState<File | null>(null);
@@ -204,12 +189,14 @@ export default function AlumnoDetalle() {
   async function load() {
     if (!id) return;
     try {
-      const [alumnoData, expData] = await Promise.all([
+      const [alumnoData, expData, configData] = await Promise.all([
         api.get<AlumnoDetalleType>(`/gestor/alumnos/${id}`),
         api.get<GestorExpedienteResponse>(`/gestor/alumnos/${id}/expediente`),
+        api.get<GestorConfigPagoResponse>(`/gestor/config-pago`),
       ]);
       setData(alumnoData);
       setExpediente(expData);
+      setConfigPago(configData);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -736,6 +723,8 @@ export default function AlumnoDetalle() {
           data={convData}
           loading={convLoading}
           curp={alumno.curp}
+          alumnoId={id!}
+          configPago={configPago}
           pagoFile={pagoFile}
           setPagoFile={setPagoFile}
           pagoFecha={pagoFecha}
@@ -994,39 +983,39 @@ function PlanDeEstudiosTab({
 
   return (
     <div className="space-y-5">
-      {/* Convocatoria activa — card principal */}
-      <div className="bg-white border border-stone-200 rounded-xl p-5">
-        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-bold mb-2">
+      {/* Convocatoria activa — card principal (guinda) */}
+      <div className="bg-[var(--color-guinda-700)] rounded-xl p-5 text-white">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/70 font-bold mb-2">
           <CalendarCheck size={13} />
           Convocatoria activa
         </div>
-        <h2 className="font-serif text-xl font-bold text-stone-900 mb-4">
+        <h2 className="font-serif text-xl font-bold text-white mb-4">
           {etapa.etapa} — Fase {etapa.fase}
         </h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="flex items-start gap-2">
-            <Calendar size={14} className="text-stone-400 mt-0.5 shrink-0" />
+            <Calendar size={14} className="text-white/60 mt-0.5 shrink-0" />
             <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Período de inscripción</div>
-              <div className="text-stone-800">{fmtDate(etapa.solicitudInicio)} — {fmtDate(etapa.solicitudFin)}</div>
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/60">Período de inscripción</div>
+              <div className="text-white">{fmtDate(etapa.solicitudInicio)} — {fmtDate(etapa.solicitudFin)}</div>
             </div>
           </div>
           <div className="flex items-start gap-2">
-            <Clock size={14} className="text-stone-400 mt-0.5 shrink-0" />
+            <Clock size={14} className="text-white/60 mt-0.5 shrink-0" />
             <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Fechas de examen</div>
-              <div className="text-stone-800">
+              <div className="text-xs font-semibold uppercase tracking-widest text-white/60">Fechas de examen</div>
+              <div className="text-white">
                 Sáb {fmtDate(etapa.examenSabado)} · Dom {fmtDate(etapa.examenDomingo)}
               </div>
             </div>
           </div>
           {data.sede && (
             <div className="flex items-start gap-2 sm:col-span-2">
-              <MapPin size={14} className="text-stone-400 mt-0.5 shrink-0" />
+              <MapPin size={14} className="text-white/60 mt-0.5 shrink-0" />
               <div>
-                <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">Sede de examen</div>
-                <div className="text-stone-800">{data.sede.nombre}</div>
-                <div className="text-xs text-stone-500">{data.sede.direccion}</div>
+                <div className="text-xs font-semibold uppercase tracking-widest text-white/60">Sede de examen</div>
+                <div className="text-white">{data.sede.nombre}</div>
+                <div className="text-xs text-white/70">{data.sede.direccion}</div>
               </div>
             </div>
           )}
@@ -1178,6 +1167,8 @@ function ConvocatoriaTab({
   data,
   loading,
   curp,
+  alumnoId,
+  configPago,
   pagoFile,
   setPagoFile,
   pagoFecha,
@@ -1190,6 +1181,8 @@ function ConvocatoriaTab({
   data: GestorConvocatoriaResponse | null;
   loading: boolean;
   curp: string;
+  alumnoId: number;
+  configPago: GestorConfigPagoResponse | null;
   pagoFile: File | null;
   setPagoFile: (f: File | null) => void;
   pagoFecha: string;
@@ -1221,6 +1214,7 @@ function ConvocatoriaTab({
   }
 
   const { inscripcionesActivas, costoExamen, etapa } = data;
+  const db = configPago?.datosBancarios ?? null;
 
   const fmtDate = (iso: string) =>
     new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
@@ -1388,15 +1382,23 @@ function ConvocatoriaTab({
                       <span className="text-xs font-bold text-white uppercase tracking-widest">SPEI / Transferencia bancaria</span>
                     </div>
                     <div className="p-4 space-y-2.5">
-                      <FichaRow label="CLABE interbancaria" value={INFO_PAGO.spei.clabe}     copy onCopy={() => copyText(INFO_PAGO.spei.clabe)} />
-                      <FichaRow label="Banco"               value={INFO_PAGO.spei.banco} />
-                      <FichaRow label="Beneficiario"        value={INFO_PAGO.spei.beneficiario} />
-                      <FichaRow label="Referencia"          value={curp}                        copy onCopy={() => copyText(curp)} />
+                      <FichaRow label="CLABE interbancaria" value={db?.clabe ?? '— no configurado —'} copy={!!db?.clabe} onCopy={() => copyText(db!.clabe)} />
+                      <FichaRow label="Banco"               value={db?.banco ?? '—'} />
+                      <FichaRow label="Beneficiario"        value={db?.titular ?? '—'} />
+                      <FichaRow label="Referencia"          value={curp} copy onCopy={() => copyText(curp)} />
                       <FichaRow label="Monto exacto"        value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
                       <FichaRow label="Concepto"            value="Derecho de examen — Prepa Abierta Michoacán" />
                     </div>
-                    <div className="px-4 py-2.5 bg-blue-100 border-t border-blue-200 text-[11px] text-blue-700">
-                      💡 Usa el número de referencia exacto para que la institución identifique tu pago.
+                    <div className="px-4 py-2.5 bg-blue-100 border-t border-blue-200 flex items-center justify-between gap-3">
+                      <span className="text-[11px] text-blue-700">💡 Usa el número de referencia exacto para que la institución identifique tu pago.</span>
+                      <a
+                        href={`/api/gestor/alumnos/${alumnoId}/ficha-pago?metodo=spei`}
+                        target="_blank"
+                        rel="noopener"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-[11px] font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                      >
+                        <Download size={11} /> Descargar ficha PDF
+                      </a>
                     </div>
                   </div>
                 )}
@@ -1408,14 +1410,25 @@ function ConvocatoriaTab({
                       <span className="text-xs font-bold text-white uppercase tracking-widest">Depósito bancario en ventanilla</span>
                     </div>
                     <div className="p-4 space-y-2.5">
-                      <FichaRow label="Banco"          value={INFO_PAGO.banco_deposito.banco} />
-                      <FichaRow label="Número de cuenta" value={INFO_PAGO.banco_deposito.numeroCuenta} copy onCopy={() => copyText(INFO_PAGO.banco_deposito.numeroCuenta)} />
-                      <FichaRow label="A nombre de"    value={INFO_PAGO.banco_deposito.beneficiario} />
-                      <FichaRow label="Referencia"     value={curp} copy onCopy={() => copyText(curp)} />
-                      <FichaRow label="Monto exacto"   value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
+                      <FichaRow label="Banco"             value={db?.banco ?? '—'} />
+                      {db?.numeroCuenta && (
+                        <FichaRow label="Número de cuenta" value={db.numeroCuenta} copy onCopy={() => copyText(db!.numeroCuenta!)} />
+                      )}
+                      <FichaRow label="CLABE"             value={db?.clabe ?? '— no configurado —'} copy={!!db?.clabe} onCopy={() => copyText(db!.clabe)} />
+                      <FichaRow label="A nombre de"       value={db?.titular ?? '—'} />
+                      <FichaRow label="Referencia"        value={curp} copy onCopy={() => copyText(curp)} />
+                      <FichaRow label="Monto exacto"      value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
                     </div>
-                    <div className="px-4 py-2.5 bg-emerald-100 border-t border-emerald-200 text-[11px] text-emerald-700">
-                      💡 Acude a cualquier sucursal del banco e indica el número de cuenta y la referencia.
+                    <div className="px-4 py-2.5 bg-emerald-100 border-t border-emerald-200 flex items-center justify-between gap-3">
+                      <span className="text-[11px] text-emerald-700">💡 Acude a cualquier sucursal del banco e indica el número de cuenta y la referencia.</span>
+                      <a
+                        href={`/api/gestor/alumnos/${alumnoId}/ficha-pago?metodo=banco_deposito`}
+                        target="_blank"
+                        rel="noopener"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[11px] font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                      >
+                        <Download size={11} /> Descargar ficha PDF
+                      </a>
                     </div>
                   </div>
                 )}
@@ -1427,14 +1440,24 @@ function ConvocatoriaTab({
                       <span className="text-xs font-bold text-white uppercase tracking-widest">Pago en tienda de conveniencia</span>
                     </div>
                     <div className="p-4 space-y-2.5">
-                      <FichaRow label="Servicio / empresa" value={INFO_PAGO.tienda_conveniencia.empresa} />
-                      <FichaRow label="Número de convenio" value={INFO_PAGO.tienda_conveniencia.convenio} copy onCopy={() => copyText(INFO_PAGO.tienda_conveniencia.convenio)} />
+                      <FichaRow label="Servicio / empresa" value={db?.titular ?? '—'} />
+                      {db?.convenio && (
+                        <FichaRow label="Número de convenio" value={db.convenio} copy onCopy={() => copyText(db!.convenio!)} />
+                      )}
                       <FichaRow label="Referencia"         value={curp} copy onCopy={() => copyText(curp)} />
                       <FichaRow label="Monto exacto"       value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
-                      <FichaRow label="Establecimientos"   value={INFO_PAGO.tienda_conveniencia.establecimientos} />
+                      <FichaRow label="Establecimientos"   value="OXXO · 7-Eleven · Farmacias del Ahorro · Círculo K" />
                     </div>
-                    <div className="px-4 py-2.5 bg-orange-100 border-t border-orange-200 text-[11px] text-orange-700">
-                      💡 Ve a la caja de cualquier tienda, indica que quieres pagar a <strong>Prepa Abierta Michoacán</strong>, proporciona el número de convenio y la referencia (tu CURP).
+                    <div className="px-4 py-2.5 bg-orange-100 border-t border-orange-200 flex items-center justify-between gap-3">
+                      <span className="text-[11px] text-orange-700">💡 Ve a la caja de cualquier tienda, indica que quieres pagar a <strong>Prepa Abierta Michoacán</strong>, proporciona el número de convenio y la referencia (tu CURP).</span>
+                      <a
+                        href={`/api/gestor/alumnos/${alumnoId}/ficha-pago?metodo=tienda_conveniencia`}
+                        target="_blank"
+                        rel="noopener"
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-500 text-white text-[11px] font-semibold rounded-lg hover:bg-orange-600 transition-colors"
+                      >
+                        <Download size={11} /> Descargar ficha PDF
+                      </a>
                     </div>
                   </div>
                 )}

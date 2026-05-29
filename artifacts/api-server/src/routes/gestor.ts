@@ -37,12 +37,14 @@ import {
   convocatoriasModulosHorarios,
   sedes,
   pagos,
+  datosBancarios,
+  conceptosPago,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
-import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 
@@ -50,7 +52,23 @@ const router = Router();
 
 router.use(authRequired, requireRol('gestor'));
 
-const COSTO_EXAMEN_MXN = 150; // pesos por módulo
+// Helper: fetch exam cost + bank data from DB (with fallbacks)
+async function getConfigPago() {
+  const [concepto] = await db
+    .select({ monto: conceptosPago.monto })
+    .from(conceptosPago)
+    .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
+    .limit(1);
+  const costoExamen = concepto ? parseFloat(String(concepto.monto)) : 150;
+
+  const [banco] = await db
+    .select()
+    .from(datosBancarios)
+    .where(eq(datosBancarios.activo, true))
+    .limit(1);
+
+  return { costoExamen, banco: banco ?? null };
+}
 
 // ─── Multer (shared by /registro-completo and /:id/documentos) ───────
 const STORAGE_DIR = process.env.STORAGE_DIR || '/tmp/prepa-storage';
@@ -1366,13 +1384,16 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     .orderBy(desc(convocatoriasEtapas.id))
     .limit(1);
 
+  // Exam cost from DB
+  const { costoExamen } = await getConfigPago();
+
   if (!etapa) {
     res.json({
       etapa: null,
       modulosDisponibles: [],
       inscripcionesActivas: [],
       sede: null,
-      costoExamen: COSTO_EXAMEN_MXN,
+      costoExamen,
     });
     return;
   }
@@ -1522,8 +1543,25 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     modulosDisponibles,
     inscripcionesActivas: inscripcionesActivasEnriquecidas,
     sede: sedeAlumno,
-    costoExamen: COSTO_EXAMEN_MXN,
+    costoExamen,
     pagoDerechos: pagoDerechos ?? null,
+  });
+});
+
+// ─── GET /gestor/config-pago ─────────────────────────────────────────────────
+// Devuelve el costo del examen y los datos bancarios para las fichas de pago.
+router.get('/config-pago', async (_req, res) => {
+  const config = await getConfigPago();
+  res.json({
+    costoExamen: config.costoExamen,
+    datosBancarios: config.banco ? {
+      banco: config.banco.banco,
+      titular: config.banco.titular,
+      clabe: config.banco.clabe,
+      numeroCuenta: config.banco.numeroCuenta ?? null,
+      rfc: config.banco.rfc ?? null,
+      convenio: config.banco.convenio ?? null,
+    } : null,
   });
 });
 
@@ -1721,6 +1759,76 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
     periodoAbierto,
     ...(periodoAbierto ? {} : { advertencia: 'El período de inscripción no está abierto, pero el gestor puede inscribir manualmente.' }),
   });
+});
+
+// ─── GET /gestor/alumnos/:id/ficha-pago ──────────────────────────────────────
+// Genera y devuelve una ficha PDF de pago de derecho de examen.
+// Query param: metodo = 'spei' | 'banco_deposito' | 'tienda_conveniencia'
+router.get('/alumnos/:id/ficha-pago', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const metodoRaw = (req.query.metodo as string) || 'spei';
+  const METODOS_VALIDOS: MetodoPagoFicha[] = ['spei', 'banco_deposito', 'tienda_conveniencia'];
+  if (!METODOS_VALIDOS.includes(metodoRaw as MetodoPagoFicha)) {
+    res.status(400).json({ error: 'Método inválido. Usa: spei, banco_deposito o tienda_conveniencia' });
+    return;
+  }
+  const metodo = metodoRaw as MetodoPagoFicha;
+
+  const alumno = await verificarAlumnoDelGestor(gestorId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  // Get active etapa
+  const hoy = new Date().toISOString().slice(0, 10);
+  const [etapa] = await db
+    .select({
+      id: convocatoriasEtapas.id,
+      clave: convocatoriasEtapas.clave,
+      etapa: convocatoriasEtapas.etapa,
+      fase: convocatoriasEtapas.fase,
+    })
+    .from(convocatoriasEtapas)
+    .where(
+      sql`(${convocatoriasEtapas.estado} = 'inscripcion_abierta'
+        OR (${convocatoriasEtapas.solicitudInicio} <= ${hoy}
+            AND ${convocatoriasEtapas.solicitudFin} >= ${hoy}))`
+    )
+    .orderBy(desc(convocatoriasEtapas.id))
+    .limit(1);
+
+  const etapaNombre = etapa
+    ? `${etapa.etapa} — Fase ${etapa.fase}`
+    : 'Convocatoria vigente';
+  const etapaClave = etapa?.clave ?? '—';
+
+  // Payment config from DB
+  const config = await getConfigPago();
+
+  // Reference = CURP (or alumno ID as fallback)
+  const referencia = alumno.curp ?? `ID-${alumnoId}`;
+
+  const pdf = await generarFichaPago({
+    nombreCompleto: alumno.nombreCompleto,
+    curp: alumno.curp ?? null,
+    etapaClave,
+    etapaNombre,
+    metodo,
+    monto: config.costoExamen,
+    referencia,
+    banco: config.banco?.banco ?? 'Banco no configurado',
+    titular: config.banco?.titular ?? 'IEMSyS — Prepa Abierta Michoacán',
+    clabe: config.banco?.clabe ?? '000000000000000000',
+    numeroCuenta: config.banco?.numeroCuenta ?? null,
+    convenio: config.banco?.convenio ?? null,
+    generadoEn: new Date(),
+  });
+
+  const safeNombre = alumno.nombreCompleto.replace(/[^a-zA-Z0-9]/g, '-').slice(0, 30);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="ficha-pago-${safeNombre}-${metodo}.pdf"`);
+  res.send(pdf);
 });
 
 export default router;

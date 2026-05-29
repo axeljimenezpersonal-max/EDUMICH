@@ -1121,6 +1121,8 @@ export const datosBancarios = pgTable('datos_bancarios', {
   numeroCuenta: varchar('numero_cuenta', { length: 30 }),
   rfc: varchar('rfc', { length: 20 }),
   conceptoPago: text('concepto_pago'),
+  // Número de convenio CIE para pago en tienda de conveniencia (OXXO, 7-Eleven, etc.)
+  convenio: varchar('convenio', { length: 30 }),
   activo: boolean('activo').notNull().default(true),
   actualizadoPor: integer('actualizado_por').references(() => users.id),
   actualizadoEn: timestamp('actualizado_en').defaultNow(),

@@ -517,6 +517,22 @@ export interface CalificacionesResponse {
   };
 }
 
+// ── Config pago gestor ────────────────────────────────────────────────────
+
+export interface GestorDatosBancarios {
+  banco: string;
+  titular: string;
+  clabe: string;
+  numeroCuenta: string | null;
+  rfc: string | null;
+  convenio: string | null;
+}
+
+export interface GestorConfigPagoResponse {
+  costoExamen: number;
+  datosBancarios: GestorDatosBancarios | null;
+}
+
 // ── Convocatoria gestor ────────────────────────────────────────────────────
 
 export interface GestorConvocatoriaEtapa {

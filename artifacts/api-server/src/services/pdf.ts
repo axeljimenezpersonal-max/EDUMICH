@@ -208,6 +208,192 @@ function drawStepList(page: PDFPage, bold: PDFFont, regular: PDFFont, steps: str
   return cy;
 }
 
+// ── Extra color palette for payment fichas ────────────────────────────────
+const AZUL    = rgb(0.04, 0.31, 0.65);  // SPEI / transferencia
+const AZUL_L  = rgb(0.90, 0.95, 1.00);
+const NARANJA = rgb(0.60, 0.25, 0.00);  // Tienda de conveniencia
+const NARANJA_L = rgb(1.00, 0.95, 0.86);
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PUBLIC: Ficha de pago (derecho de examen)
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type MetodoPagoFicha = 'spei' | 'banco_deposito' | 'tienda_conveniencia';
+
+export interface FichaPagoData {
+  // Student
+  nombreCompleto: string;
+  curp: string | null;
+  // Convocatoria
+  etapaClave: string;
+  etapaNombre: string;   // e.g. "2026-1 — Fase A"
+  // Payment
+  metodo: MetodoPagoFicha;
+  monto: number;
+  referencia: string;    // curp or generated ref
+  // Bank config (from DB)
+  banco: string;
+  titular: string;
+  clabe: string;
+  numeroCuenta: string | null;
+  convenio: string | null;
+  // Generation
+  generadoEn: Date;
+}
+
+export async function generarFichaPago(data: FichaPagoData): Promise<Buffer> {
+  const doc = await PDFDocument.create();
+  const page = doc.addPage([PAGE_W, PAGE_H]);
+  const bold    = await doc.embedFont(StandardFonts.HelveticaBold);
+  const regular = await doc.embedFont(StandardFonts.Helvetica);
+
+  const METODO_LABELS: Record<MetodoPagoFicha, string> = {
+    spei: 'TRANSFERENCIA ELECTRÓNICA — SPEI',
+    banco_deposito: 'DEPÓSITO BANCARIO EN VENTANILLA',
+    tienda_conveniencia: 'PAGO EN TIENDA DE CONVENIENCIA',
+  };
+
+  const METODO_COLOR: Record<MetodoPagoFicha, ReturnType<typeof rgb>> = {
+    spei: AZUL,
+    banco_deposito: VERDE,
+    tienda_conveniencia: NARANJA,
+  };
+
+  const METODO_COLOR_L: Record<MetodoPagoFicha, ReturnType<typeof rgb>> = {
+    spei: AZUL_L,
+    banco_deposito: VERDE_L,
+    tienda_conveniencia: NARANJA_L,
+  };
+
+  const mainColor  = METODO_COLOR[data.metodo];
+  const lightColor = METODO_COLOR_L[data.metodo];
+
+  // Watermark
+  drawWatermark(page, bold, 'FICHA DE PAGO', 0.04);
+
+  // Header
+  drawHeader(page, bold, regular);
+  let y = PAGE_H - MARGIN - 56;
+
+  // Band
+  y = drawBand(page, bold, regular, 'FICHA DE PAGO — DERECHO DE EXAMEN',
+    `${data.etapaNombre} · ${METODO_LABELS[data.metodo]}`, mainColor, y);
+
+  // ── Datos del solicitante ─────────────────────────────────────────────
+  y = drawSectionHeading(page, bold, 'Datos del solicitante', y);
+  const col1 = MARGIN;
+  const col2 = MARGIN + (PAGE_W - 2 * MARGIN) / 2 + 10;
+  const colW = (PAGE_W - 2 * MARGIN) / 2 - 20;
+
+  row(page, bold, regular, 'Nombre completo', data.nombreCompleto, col1, y, colW * 2 + 20);
+  y -= 24;
+  row(page, bold, regular, 'CURP', data.curp ?? '—', col1, y, colW);
+  row(page, bold, regular, 'Convocatoria', data.etapaNombre, col2, y, colW);
+  y -= 24;
+  drawLine(page, MARGIN, y + 8, PAGE_W - MARGIN, y + 8);
+  y -= 14;
+
+  // ── Instrucciones de pago ─────────────────────────────────────────────
+  y = drawSectionHeading(page, bold, 'Instrucciones de pago', y);
+
+  if (data.metodo === 'spei') {
+    y = drawBox(page, bold, regular, [
+      { label: 'Banco destino',   value: data.banco },
+      { label: 'Beneficiario',    value: data.titular },
+      { label: 'CLABE interbancaria', value: data.clabe },
+      { label: 'Concepto',        value: `PREPA ABIERTA — ${data.referencia}` },
+      { label: 'Monto exacto',    value: `$${data.monto.toFixed(2)} MXN` },
+    ], MARGIN, y, PAGE_W - 2 * MARGIN, lightColor);
+
+    y -= 8;
+    y = drawStepList(page, bold, regular, [
+      'Accede a tu banca en línea o app de tu banco.',
+      'Selecciona "Transferencia SPEI" e ingresa la CLABE de 18 dígitos mostrada arriba.',
+      'Ingresa el monto EXACTO de $' + data.monto.toFixed(2) + ' MXN.',
+      `En el campo "Concepto" o "Referencia" escribe: PREPA ABIERTA — ${data.referencia}`,
+      'Guarda el comprobante con número de operación y súbelo al portal.',
+    ], MARGIN, y - 4);
+
+  } else if (data.metodo === 'banco_deposito') {
+    y = drawBox(page, bold, regular, [
+      { label: 'Banco',           value: data.banco },
+      { label: 'Beneficiario',    value: data.titular },
+      { label: 'CLABE',           value: data.clabe },
+      ...(data.numeroCuenta ? [{ label: 'Número de cuenta', value: data.numeroCuenta }] : []),
+      { label: 'Referencia',      value: data.referencia },
+      { label: 'Monto exacto',    value: `$${data.monto.toFixed(2)} MXN` },
+    ], MARGIN, y, PAGE_W - 2 * MARGIN, lightColor);
+
+    y -= 8;
+    y = drawStepList(page, bold, regular, [
+      'Acude a cualquier sucursal del banco indicado.',
+      'Solicita un "Depósito en ventanilla" con los datos de esta ficha.',
+      `Indica la referencia: ${data.referencia} y el monto EXACTO de $${data.monto.toFixed(2)} MXN.`,
+      'Conserva el ticket con sello y número de autorización del banco.',
+      'Sube el comprobante escaneado o fotografiado al portal.',
+    ], MARGIN, y - 4);
+
+  } else {
+    // tienda_conveniencia
+    const convenioStr = data.convenio ?? '(ver con tu gestor)';
+    y = drawBox(page, bold, regular, [
+      { label: 'Empresa / Institución', value: data.titular },
+      ...(data.convenio ? [{ label: 'Número de convenio CIE', value: convenioStr }] : []),
+      { label: 'Referencia de pago',   value: data.referencia },
+      { label: 'Monto exacto',         value: `$${data.monto.toFixed(2)} MXN` },
+      { label: 'Establecimientos',     value: 'OXXO · 7-Eleven · Farmacias del Ahorro · Círculo K' },
+    ], MARGIN, y, PAGE_W - 2 * MARGIN, lightColor);
+
+    y -= 8;
+    y = drawStepList(page, bold, regular, [
+      'Acude a cualquier tienda participante: OXXO, 7-Eleven, Farmacias del Ahorro o Círculo K.',
+      'Indica al cajero que deseas realizar un "Pago de servicio" o "Pago de convenio".',
+      ...(data.convenio ? [`Proporciona el número de convenio CIE: ${convenioStr}`] : []),
+      `Proporciona la referencia: ${data.referencia} y el monto de $${data.monto.toFixed(2)} MXN.`,
+      'Conserva el ticket impreso de la tienda y súbelo al portal.',
+    ], MARGIN, y - 4);
+  }
+
+  y -= 14;
+
+  // ── Monto destacado ───────────────────────────────────────────────────
+  const montoBoxH = 52;
+  drawRect(page, MARGIN, y - montoBoxH, PAGE_W - 2 * MARGIN, montoBoxH, lightColor);
+  page.drawRectangle({ x: MARGIN, y: y - montoBoxH, width: PAGE_W - 2 * MARGIN, height: montoBoxH, borderColor: mainColor, borderWidth: 1, opacity: 0 });
+
+  drawText(page, 'MONTO A PAGAR (EXACTO)', MARGIN + 16, y - 14, bold, 8, mainColor);
+  const montoStr = `$${data.monto.toFixed(2)} MXN`;
+  drawText(page, montoStr, MARGIN + 16, y - 34, bold, 22, mainColor);
+  drawText(page, `Referencia: ${data.referencia}`, PAGE_W - MARGIN - 180, y - 26, regular, 9, GRIS);
+  drawText(page, `Generado: ${fmtFecha(data.generadoEn)}`, PAGE_W - MARGIN - 180, y - 38, regular, 8.5, GRIS);
+
+  y = y - montoBoxH - 14;
+
+  // ── Nota legal ────────────────────────────────────────────────────────
+  const notaH = 48;
+  drawRect(page, MARGIN, y - notaH, PAGE_W - 2 * MARGIN, notaH, GRIS_L);
+  drawText(page, 'IMPORTANTE', MARGIN + 12, y - 14, bold, 8, mainColor);
+  const notas = [
+    '• El monto debe ser EXACTO. Pagos con diferencia de centavos no serán reconocidos.',
+    '• Una vez realizado el pago, súbelo al portal en la sección "Inscripción" dentro de los siguientes 3 días hábiles.',
+    '• Esta ficha tiene validez para la convocatoria indicada y no puede ser utilizada para otros conceptos.',
+  ];
+  let ny = y - 26;
+  for (const nota of notas) {
+    drawText(page, nota, MARGIN + 12, ny, regular, 7.5, GRIS, PAGE_W - 2 * MARGIN - 24);
+    ny -= 11;
+  }
+
+  // Footer
+  drawFooter(page, regular, `CURP: ${data.curp ?? '—'}`, `Convocatoria: ${data.etapaClave}`);
+
+  // Corners
+  drawCorners(page);
+
+  const bytes = await doc.save();
+  return Buffer.from(bytes);
+}
+
 // ═══════════════════════════════════════════════════════════════════════════
 // PUBLIC: Ficha de pre-registro
 // ═══════════════════════════════════════════════════════════════════════════
