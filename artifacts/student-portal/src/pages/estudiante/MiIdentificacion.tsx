@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { BadgeCheck, Download, Loader2, Lock, QrCode } from 'lucide-react';
-import QRCodeReact from 'qrcode.react';
+import { QRCodeSVG as QRCodeReact } from 'qrcode.react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api } from '../../lib/api';
 
