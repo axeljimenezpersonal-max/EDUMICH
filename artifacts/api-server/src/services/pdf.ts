@@ -594,6 +594,16 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
 // PUBLIC: Ficha de registro oficial
 // ═══════════════════════════════════════════════════════════════════════════
 
+export interface ExamenInscritoRegistro {
+  moduloNumero: number;
+  moduloNombre: string;
+  fechaExamen: string | null;
+  dia: string;
+  hora: string;
+  sedeNombre: string;
+  etapaClave: string;
+}
+
 export interface RegistroOficialData {
   matricula: string;
   folio: string;
@@ -607,6 +617,7 @@ export interface RegistroOficialData {
   matriculaCapturadaEn: Date | string | null;
   documentosValidados: { tipo: string; validadoEn: Date | string | null }[];
   pagos: { concepto: string; monto: string; verificadoEn: Date | string | null }[];
+  examenesInscritos?: ExamenInscritoRegistro[];
 }
 
 export async function generarFichaRegistro(data: RegistroOficialData): Promise<Buffer> {
@@ -683,14 +694,46 @@ export async function generarFichaRegistro(data: RegistroOficialData): Promise<B
     y -= 12;
   }
 
+  // ── Convocatoria e inscripción a exámenes ─────────────────────────────────
+  if (data.examenesInscritos && data.examenesInscritos.length > 0) {
+    y = drawSectionHeading(page, bold, 'Convocatoria e inscripcion a examenes', y);
+
+    const etapaClave = data.examenesInscritos[0].etapaClave;
+    drawText(page, `Convocatoria: ${etapaClave}`, col1, y, bold, 9, NEGRO);
+    y -= 20;
+
+    const MESES_CORTO = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+    function fmtFechaCorta(ds: string | null): string {
+      if (!ds) return '—';
+      const [yr, mo, dy] = ds.split('-').map(Number);
+      return `${dy} ${MESES_CORTO[mo - 1]} ${yr}`;
+    }
+
+    for (const ex of data.examenesInscritos) {
+      const diaSemana = ex.dia === 'sabado' ? 'Sab' : 'Dom';
+      const fechaStr  = fmtFechaCorta(ex.fechaExamen);
+      const horaStr   = `${ex.hora} hrs`;
+      const lineLeft  = `M${ex.moduloNumero}  ${ex.moduloNombre}`;
+      const lineRight = `${diaSemana} ${fechaStr} · ${horaStr} · ${ex.sedeNombre}`;
+
+      drawText(page, lineLeft,  col1,       y, bold,    8.5, NEGRO, colW * 2 - 10);
+      drawText(page, lineRight, col1,       y - 12, regular, 7.5, GRIS, PAGE_W - 2 * MARGIN);
+      y -= 26;
+    }
+
+    drawLine(page, MARGIN, y + 4, PAGE_W - MARGIN, y + 4);
+    y -= 12;
+  }
+
   // Notas legales
   const notasH = 60;
   drawRect(page, MARGIN, y - notasH, PAGE_W - 2 * MARGIN, notasH, GRIS_L);
   drawText(page, 'NOTAS LEGALES', MARGIN + 12, y - 14, bold, 7.5, VERDE);
   const notas = [
-    '• Este documento certifica el registro del estudiante en el sistema estatal de Prepa Abierta Michoacán.',
-    '• La matrícula oficial DGB es ÚNICA, INTRANSFERIBLE y VÁLIDA EN TODO EL PAÍS.',
-    '• Conserve este documento para futuros trámites con la SEP-DGB.',
+    '• Este documento certifica el registro del estudiante en el sistema estatal de Prepa Abierta Michoacan.',
+    '• La matricula oficial DGB es UNICA, INTRANSFERIBLE y VALIDA EN TODO EL PAIS.',
+    '• Conserve este documento para futuros tramites con la SEP-DGB.',
   ];
   let ny = y - 26;
   for (const nota of notas) {
@@ -699,7 +742,7 @@ export async function generarFichaRegistro(data: RegistroOficialData): Promise<B
   }
 
   // Footer
-  drawFooter(page, regular, `Matrícula: ${data.matricula}`, `Folio interno: ${data.folio}`);
+  drawFooter(page, regular, `Matricula: ${data.matricula}`, `Folio interno: ${data.folio}`);
 
   const bytes = await doc.save();
   return Buffer.from(bytes);

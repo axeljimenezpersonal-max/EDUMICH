@@ -1862,6 +1862,26 @@ router.get('/ficha-registro', async (req, res) => {
     .from(expedienteDocumentos)
     .where(and(eq(expedienteDocumentos.estudianteId, userId), eq(expedienteDocumentos.estado, 'aprobado')));
 
+  // Exámenes inscritos para reflejar la convocatoria actual
+  const exInscritos = await db
+    .select({
+      moduloNumero: modulos.numero,
+      moduloNombre: modulos.nombre,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+      sedeNombre: sedes.nombre,
+      etapaExamenSabado: convocatoriasEtapas.examenSabado,
+      etapaExamenDomingo: convocatoriasEtapas.examenDomingo,
+      etapaClave: convocatoriasEtapas.clave,
+    })
+    .from(examenesInscripciones)
+    .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
+    .innerJoin(convocatoriasModulosHorarios, eq(examenesInscripciones.horarioId, convocatoriasModulosHorarios.id))
+    .innerJoin(sedes, eq(examenesInscripciones.sedeId, sedes.id))
+    .innerJoin(convocatoriasEtapas, eq(examenesInscripciones.etapaId, convocatoriasEtapas.id))
+    .where(eq(examenesInscripciones.estudianteId, userId))
+    .orderBy(modulos.numero);
+
   const pdf = await generarFichaRegistro({
     matricula: est.matriculaOficialDGB,
     folio: est.folioPreregistro ?? '—',
@@ -1875,6 +1895,15 @@ router.get('/ficha-registro', async (req, res) => {
     matriculaCapturadaEn: est.matriculaCapturadaEn ?? null,
     documentosValidados: docsValidados.map(d => ({ tipo: d.tipo, validadoEn: d.revisadoEn ?? null })),
     pagos: [],
+    examenesInscritos: exInscritos.map(e => ({
+      moduloNumero: e.moduloNumero,
+      moduloNombre: e.moduloNombre,
+      fechaExamen: e.dia === 'sabado' ? e.etapaExamenSabado : e.etapaExamenDomingo,
+      dia: e.dia,
+      hora: e.hora,
+      sedeNombre: e.sedeNombre,
+      etapaClave: e.etapaClave,
+    })),
   });
 
   const safeMat = est.matriculaOficialDGB.replace(/[^a-zA-Z0-9]/g, '');
