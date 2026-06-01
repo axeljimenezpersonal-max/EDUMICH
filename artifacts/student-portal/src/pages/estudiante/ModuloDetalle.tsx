@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
-import { Link, useParams } from 'wouter';
+import { useEffect, useState } from 'react';
+import { Link, useParams, useLocation } from 'wouter';
 import {
   ArrowLeft,
   BookOpen,
@@ -17,7 +17,6 @@ import {
   type ContactosResponse,
   type ProgresoEstado,
 } from '../../lib/api';
-import { QuizModal } from './QuizModal';
 
 const NIVEL_LABELS: Record<number, string> = {
   1: 'Nivel 1 — Comunicación y bases',
@@ -100,11 +99,10 @@ export default function ModuloDetalle() {
   const [contactos, setContactos] = useState<ContactosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('temario');
-  const [showQuiz, setShowQuiz] = useState(false);
+  const [, navigate] = useLocation();
 
-  const fetchData = useCallback(() => {
+  useEffect(() => {
     if (!moduloId) return;
-    setLoading(true);
     Promise.all([
       api.get<ModuloDetalleResponse>(`/estudiante/modulos/${moduloId}`),
       api.get<ContactosResponse>('/estudiante/contactos'),
@@ -116,8 +114,6 @@ export default function ModuloDetalle() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [moduloId]);
-
-  useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) {
     return (
@@ -173,10 +169,9 @@ export default function ModuloDetalle() {
           {modulo.totalPreguntas && (
             <span className="flex items-center gap-1.5">
               <FileText size={14} />
-              {modulo.totalPreguntas} preguntas
+              Banco de preguntas disponible
             </span>
           )}
-          {modulo.tiempoEstimadoMin && <span>~{modulo.tiempoEstimadoMin} min</span>}
         </div>
 
         {/* Status + botones */}
@@ -188,7 +183,7 @@ export default function ModuloDetalle() {
 
           {modulo.totalPreguntas ? (
             <button
-              onClick={() => setShowQuiz(true)}
+              onClick={() => navigate(`/estudiante/modulos/${moduloId}/evaluacion`)}
               className="flex items-center gap-2 text-sm px-4 py-2 rounded-md bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
             >
               <Trophy size={15} />
@@ -265,32 +260,36 @@ export default function ModuloDetalle() {
           {/* Tab: Quizzes */}
           {tab === 'quizzes' && (
             <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
-              <Trophy size={32} className="mx-auto mb-3 text-[var(--color-guinda-700)]" />
+              <Trophy size={32} className={`mx-auto mb-3 ${modulo.totalPreguntas ? 'text-[var(--color-guinda-700)]' : 'text-stone-300'}`} />
               <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">
                 Evaluación oficial del módulo
               </h3>
               {modulo.totalPreguntas ? (
                 <>
                   <p className="text-stone-500 text-sm mb-2">
-                    Banco de <span className="font-semibold text-stone-700">{modulo.totalPreguntas} preguntas</span> oficiales.
-                    El examen selecciona <span className="font-semibold text-stone-700">20 al azar</span> — apruebas con 60/100.
+                    Cada intento selecciona <span className="font-semibold text-stone-700">20 preguntas al azar</span>{' '}
+                    — apruebas con <span className="font-semibold text-stone-700">60/100</span>.
                   </p>
                   {progreso.mejorCalificacion !== null && (
-                    <p className="text-sm mb-4">
-                      Tu mejor calificación:{' '}
-                      <span className={`font-bold ${progreso.mejorCalificacion >= 60 ? 'text-green-600' : 'text-amber-600'}`}>
-                        {progreso.mejorCalificacion}/100
-                      </span>
-                      {' '}·{' '}
-                      <span className="text-stone-400">{progreso.intentosQuiz ?? 0} intento(s)</span>
-                    </p>
+                    <div className="flex justify-center gap-6 my-4">
+                      <div>
+                        <div className={`text-xl font-bold ${progreso.mejorCalificacion >= 60 ? 'text-green-600' : 'text-amber-600'}`}>
+                          {progreso.mejorCalificacion}/100
+                        </div>
+                        <div className="text-xs text-stone-400">Mejor calificación</div>
+                      </div>
+                      <div>
+                        <div className="text-xl font-bold text-stone-600">{progreso.intentosQuiz ?? 0}</div>
+                        <div className="text-xs text-stone-400">Intento(s)</div>
+                      </div>
+                    </div>
                   )}
                   <button
-                    onClick={() => setShowQuiz(true)}
-                    className="gov-btn-primary"
+                    onClick={() => navigate(`/estudiante/modulos/${moduloId}/evaluacion`)}
+                    className="gov-btn-primary mt-2"
                   >
                     <Trophy size={15} className="inline mr-2" />
-                    {progreso.intentosQuiz ? 'Reintentar evaluación' : 'Empezar evaluación'}
+                    {progreso.intentosQuiz ? 'Nuevo intento' : 'Empezar evaluación'}
                   </button>
                 </>
               ) : (
@@ -386,16 +385,6 @@ export default function ModuloDetalle() {
           )}
         </div>
       </div>
-
-      {/* Quiz Modal */}
-      {showQuiz && (
-        <QuizModal
-          moduloNum={modulo.numero}
-          moduloNombre={modulo.nombre}
-          onClose={() => setShowQuiz(false)}
-          onAprobado={() => { setShowQuiz(false); fetchData(); }}
-        />
-      )}
     </EstudianteLayout>
   );
 }

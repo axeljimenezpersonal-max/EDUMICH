@@ -17,6 +17,7 @@ import Avisos from './pages/estudiante/Avisos';
 import MiPerfil from './pages/estudiante/MiPerfil';
 import MisModulos from './pages/estudiante/MisModulos';
 import ModuloDetalle from './pages/estudiante/ModuloDetalle';
+import EvaluacionPage from './pages/estudiante/EvaluacionPage';
 import { EstudianteLayout } from './pages/estudiante/EstudianteLayout';
 import MiExpediente from './pages/estudiante/MiExpediente';
 import MiConvocatoria from './pages/estudiante/MiConvocatoria';
@@ -65,6 +66,7 @@ export default function App() {
       <Route path="/estudiante" component={EstudianteDashboard} />
       <Route path="/estudiante/avisos" component={Avisos} />
       <Route path="/estudiante/perfil" component={MiPerfil} />
+      <Route path="/estudiante/modulos/:id/evaluacion" component={EvaluacionPage} />
       <Route path="/estudiante/modulos/:id" component={ModuloDetalle} />
       <Route path="/estudiante/modulos" component={MisModulos} />
       <Route path="/estudiante/expediente" component={MiExpediente} />
