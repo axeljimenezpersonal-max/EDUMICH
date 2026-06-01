@@ -30,6 +30,7 @@ import {
   Building2,
   Store,
   Banknote,
+  Pencil,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -126,6 +127,10 @@ export default function AlumnoDetalle() {
   // Acciones menu
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Editar alumno modal
+  const [editarModal, setEditarModal] = useState(false);
+  const [editarLoading, setEditarLoading] = useState(false);
 
   // Reenviar modal
   const [reenviarModal, setReenviarModal] = useState(false);
@@ -281,6 +286,33 @@ export default function AlumnoDetalle() {
       showToast((e as Error).message || 'Error al subir comprobante', 'error');
     } finally {
       setPagoSubiendo(false);
+    }
+  }
+
+  async function handleEditarAlumno(fields: {
+    nombreCompleto: string;
+    telefono: string;
+    direccion: string;
+    fechaNacimiento: string;
+    curp: string;
+  }) {
+    if (!id) return;
+    setEditarLoading(true);
+    try {
+      await api.patch(`/gestor/alumnos/${id}`, {
+        nombreCompleto: fields.nombreCompleto.trim() || undefined,
+        telefono: fields.telefono.trim() || null,
+        direccion: fields.direccion.trim() || null,
+        fechaNacimiento: fields.fechaNacimiento || null,
+        curp: fields.curp.trim().toUpperCase() || undefined,
+      });
+      showToast('Información actualizada correctamente', 'success');
+      setEditarModal(false);
+      await load();
+    } catch (e) {
+      showToast((e as Error).message || 'Error al actualizar', 'error');
+    } finally {
+      setEditarLoading(false);
     }
   }
 
@@ -471,17 +503,29 @@ export default function AlumnoDetalle() {
                 <MoreVertical size={16} />
               </button>
               {menuOpen && (
-                <div className="absolute right-0 top-full mt-1 w-60 bg-white border border-stone-200 rounded-xl shadow-lg z-20 py-1 overflow-hidden">
+                <div className="absolute right-0 top-full mt-1 w-64 bg-white border border-stone-200 rounded-xl shadow-lg z-20 py-1 overflow-hidden">
+                  {/* Editar información */}
+                  <button
+                    onClick={() => { setMenuOpen(false); setEditarModal(true); }}
+                    className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-stone-700 hover:bg-stone-50 text-left"
+                  >
+                    <Pencil size={14} className="text-[var(--color-guinda-700)] shrink-0" />
+                    Editar información del alumno
+                  </button>
+
+                  <div className="border-t border-stone-100 my-1" />
+
+                  {/* Reenviar credenciales */}
                   {alumno.passwordTemporal ? (
                     <button
                       onClick={() => { setMenuOpen(false); setReenviarModal(true); }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-stone-700 hover:bg-stone-50 text-left"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 text-sm text-stone-700 hover:bg-stone-50 text-left"
                     >
                       <Send size={14} className="text-amber-500 shrink-0" />
                       Reenviar credenciales por correo
                     </button>
                   ) : (
-                    <div className="flex items-center gap-2 px-3 py-2.5 text-sm text-stone-400 cursor-not-allowed">
+                    <div className="flex items-center gap-2.5 px-3 py-2.5 text-sm text-stone-400 cursor-not-allowed">
                       <Send size={14} className="shrink-0" />
                       <span>
                         Reenviar credenciales
@@ -760,6 +804,16 @@ export default function AlumnoDetalle() {
       {/* ══════════════ TAB: Calificaciones ══════════════ */}
       {activeTab === 'calificaciones' && id !== null && (
         <CalificacionesTabContent estudianteId={id} readOnly={true} />
+      )}
+
+      {/* ── Modal: Editar alumno ── */}
+      {editarModal && alumno && (
+        <EditarAlumnoModal
+          alumno={alumno}
+          loading={editarLoading}
+          onClose={() => setEditarModal(false)}
+          onSave={handleEditarAlumno}
+        />
       )}
 
       {/* ── Modal: Reenviar credenciales ── */}
@@ -1577,6 +1631,166 @@ function FichaRow({
             <Copy size={12} />
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────
+// Modal: Editar información del alumno
+// ─────────────────────────────────────────────────────────────────
+function EditarAlumnoModal({
+  alumno,
+  loading,
+  onClose,
+  onSave,
+}: {
+  alumno: AlumnoConMatricula;
+  loading: boolean;
+  onClose: () => void;
+  onSave: (fields: {
+    nombreCompleto: string;
+    telefono: string;
+    direccion: string;
+    fechaNacimiento: string;
+    curp: string;
+  }) => void;
+}) {
+  const [nombre, setNombre] = useState(alumno.nombreCompleto ?? '');
+  const [telefono, setTelefono] = useState(alumno.telefono ?? '');
+  const [direccion, setDireccion] = useState(alumno.direccion ?? '');
+  const [fechaNacimiento, setFechaNacimiento] = useState(alumno.fechaNacimiento ?? '');
+  const [curp, setCurp] = useState(alumno.curp ?? '');
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    onSave({ nombreCompleto: nombre, telefono, direccion, fechaNacimiento, curp });
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+      onClick={() => { if (!loading) onClose(); }}
+    >
+      <div
+        className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
+          <div className="flex items-center gap-2">
+            <Pencil size={15} className="text-[var(--color-guinda-700)]" />
+            <span className="font-semibold text-stone-900">Editar información del alumno</span>
+          </div>
+          {!loading && (
+            <button onClick={onClose} className="p-1 rounded hover:bg-stone-100 text-stone-400 hover:text-stone-700">
+              <X size={18} />
+            </button>
+          )}
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          {/* Nombre */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
+              Nombre completo <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={nombre}
+              onChange={(e) => setNombre(e.target.value)}
+              required
+              minLength={2}
+              maxLength={200}
+              placeholder="Nombre completo del alumno"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+            />
+          </div>
+
+          {/* CURP */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
+              CURP
+            </label>
+            <input
+              value={curp}
+              onChange={(e) => setCurp(e.target.value.toUpperCase())}
+              maxLength={18}
+              placeholder="CURP de 18 caracteres"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm font-mono text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+            />
+          </div>
+
+          {/* Fecha de nacimiento + Teléfono */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
+                Fecha de nacimiento
+              </label>
+              <input
+                type="date"
+                value={fechaNacimiento}
+                onChange={(e) => setFechaNacimiento(e.target.value)}
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
+                Teléfono
+              </label>
+              <input
+                value={telefono}
+                onChange={(e) => setTelefono(e.target.value)}
+                maxLength={30}
+                placeholder="10 dígitos"
+                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Dirección */}
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
+              Dirección
+            </label>
+            <textarea
+              value={direccion}
+              onChange={(e) => setDireccion(e.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder="Calle, número, colonia, municipio…"
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent resize-none"
+            />
+          </div>
+
+          {/* Email — read-only info */}
+          <div className="bg-stone-50 border border-stone-200 rounded-lg px-3 py-2.5 flex items-center gap-2 text-xs text-stone-500">
+            <Mail size={13} className="shrink-0 text-stone-400" />
+            <span>
+              Correo: <strong className="text-stone-700">{alumno.email}</strong> — no se puede cambiar desde aquí.
+            </span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex gap-2 justify-end pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={loading}
+              className="px-4 py-2 text-sm text-stone-600 border border-stone-300 rounded-lg hover:bg-stone-50 disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={loading || !nombre.trim()}
+              className="px-5 py-2 text-sm font-semibold bg-[var(--color-guinda-700)] text-white rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 flex items-center gap-2"
+            >
+              {loading ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />}
+              {loading ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

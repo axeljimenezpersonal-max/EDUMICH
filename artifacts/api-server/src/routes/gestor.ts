@@ -619,6 +619,73 @@ router.get('/alumnos/:id', async (req, res) => {
   });
 });
 
+// ─── PATCH /gestor/alumnos/:id ───────────────────────────────────────
+// Gestor can update basic student profile fields (not email, not curp after initial entry)
+const editarAlumnoSchema = z.object({
+  nombreCompleto: z.string().min(2).max(200).optional(),
+  telefono: z.string().max(30).nullable().optional(),
+  direccion: z.string().max(500).nullable().optional(),
+  fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  curp: z.string().length(18).toUpperCase().nullable().optional(),
+});
+
+router.patch('/alumnos/:id', async (req, res) => {
+  const userId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+
+  // Verify ownership
+  const [alumno] = await db
+    .select()
+    .from(estudiantes)
+    .where(and(eq(estudiantes.userId, alumnoId), eq(estudiantes.gestorId, userId)));
+
+  if (!alumno) {
+    res.status(404).json({ error: 'Alumno no encontrado' });
+    return;
+  }
+
+  const parse = editarAlumnoSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
+    return;
+  }
+
+  const data = parse.data;
+  if (Object.keys(data).length === 0) {
+    res.status(400).json({ error: 'No hay campos para actualizar' });
+    return;
+  }
+
+  const updateFields: Record<string, unknown> = {};
+  if (data.nombreCompleto !== undefined) updateFields.nombreCompleto = data.nombreCompleto;
+  if (data.telefono !== undefined) updateFields.telefono = data.telefono;
+  if (data.direccion !== undefined) updateFields.direccion = data.direccion;
+  if (data.fechaNacimiento !== undefined) updateFields.fechaNacimiento = data.fechaNacimiento;
+  if (data.curp !== undefined) updateFields.curp = data.curp;
+  updateFields.updatedAt = new Date();
+
+  await db
+    .update(estudiantes)
+    .set(updateFields)
+    .where(eq(estudiantes.userId, alumnoId));
+
+  await tryAuditLog({
+    userId,
+    accion: 'editar_alumno',
+    entidad: 'estudiantes',
+    entidadId: alumnoId,
+    detalle: `Gestor actualizó datos del alumno: ${Object.keys(updateFields).filter(k => k !== 'updatedAt').join(', ')}`,
+    metadata: { campos: Object.keys(updateFields).filter(k => k !== 'updatedAt') },
+    req,
+  });
+
+  res.json({ ok: true });
+});
+
 // ─── POST /gestor/alumnos/:id/documentos ─────────────────────────────
 router.post('/alumnos/:id/documentos', upload.single('archivo'), async (req, res) => {
   const userId = req.user!.userId;
