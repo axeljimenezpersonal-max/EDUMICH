@@ -43,6 +43,7 @@ import {
   inscripcionModulos,
   datosBancarios,
   conceptosPago,
+  calificaciones,
 } from '@workspace/db/schema';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -1741,7 +1742,6 @@ router.get('/mi-identificacion', async (req, res) => {
       matriculaOficialDGB: estudiantes.matriculaOficialDGB,
       licenciaDigital: estudiantes.licenciaDigital,
       licenciaEmitidaEn: estudiantes.licenciaEmitidaEn,
-      foto: estudiantes.foto,
     })
     .from(estudiantes)
     .where(eq(estudiantes.userId, userId));
@@ -1751,21 +1751,54 @@ router.get('/mi-identificacion', async (req, res) => {
     return;
   }
 
-  const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, userId));
+  // Municipio → Centro de servicios
   const [municipio] = est.municipioId
     ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
     : [null];
+
+  // Módulos aprobados (calificaciones con aprobado=true)
+  const [califCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(calificaciones)
+    .where(and(eq(calificaciones.estudianteId, userId), eq(calificaciones.aprobado, true)));
+  const modulosAprobados = califCount?.count ?? 0;
+
+  // Separar nombre y apellidos
+  const partes = (est.nombreCompleto ?? '').trim().split(/\s+/);
+  const nombre = partes[0] ?? '';
+  const apellidos = partes.slice(1).join(' ');
+
+  // Máscara CURP: mostrar primeros 6, ocultar 4 (día/mes nacimiento), mostrar resto
+  const curp = est.curp ?? '';
+  const curpMask = curp.length >= 10 ? `${curp.slice(0, 6)}••••${curp.slice(10)}` : curp;
+
+  // Fechas de emisión y vigencia (1 año)
+  const fmtDate = (d: Date) =>
+    d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' });
+  const emisionDate = est.licenciaEmitidaEn ? new Date(est.licenciaEmitidaEn) : null;
+  const vigenciaDate = emisionDate ? new Date(emisionDate.getTime()) : null;
+  if (vigenciaDate) vigenciaDate.setFullYear(vigenciaDate.getFullYear() + 1);
+
+  const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
 
   res.json({
     tieneIdentificacion: true,
     identificacion: {
       nombreCompleto: est.nombreCompleto,
-      curp: est.curp ?? null,
-      email: userRow?.email ?? '',
-      municipio: municipio?.nombre ?? '',
+      nombre,
+      apellidos,
+      curp,
+      curpMask,
+      sede: municipio?.nombre ?? '',
       matriculaOficialDGB: est.matriculaOficialDGB ?? null,
-      licenciaDigital: est.licenciaDigital,
+      folio: est.licenciaDigital,
       licenciaEmitidaEn: est.licenciaEmitidaEn?.toISOString() ?? null,
+      emision: emisionDate ? fmtDate(emisionDate) : null,
+      vigencia: vigenciaDate ? fmtDate(vigenciaDate) : null,
+      plan: 'Plan 22 · Modular',
+      modulosAprobados,
+      modulosTotales: 21,
+      verifyUrl,
     },
   });
 });
@@ -1795,26 +1828,40 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
     ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
     : [null];
 
-  const qrPayload = firmarQrPayload({
-    licencia: est.licenciaDigital,
-    curp: est.curp ?? '',
-    nombre: est.nombreCompleto,
-    matricula: est.matriculaOficialDGB ?? '',
-  });
-  const qrDataUrl = await QRCode.toDataURL(qrPayload, { width: 200, margin: 2 });
+  // Separar nombre y apellidos
+  const partes = (est.nombreCompleto ?? '').trim().split(/\s+/);
+  const nombre  = partes[0] ?? '';
+  const apellidos = partes.slice(1).join(' ');
+
+  // Fechas
+  const fmtShort = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  const emisionDate = est.licenciaEmitidaEn ? new Date(est.licenciaEmitidaEn) : null;
+  const vigenciaDate = emisionDate ? new Date(emisionDate.getTime()) : null;
+  if (vigenciaDate) vigenciaDate.setFullYear(vigenciaDate.getFullYear() + 1);
+  const emision = emisionDate ? fmtShort(emisionDate) : '—';
+  const vigencia = vigenciaDate ? fmtShort(vigenciaDate) : '—';
+  const sede = municipio?.nombre ?? '—';
+
+  // QR → URL de verificación
+  const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
+  const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 220, margin: 1 });
   const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
   const qrBytes = Buffer.from(qrBase64, 'base64');
 
-  // Credencial: 85mm x 54mm => ~241 x 153 pts
+  // ── Credencial: 85 mm × 54 mm ≈ 241 × 153 pts ──────────────────────────
   const CARD_W = 241;
   const CARD_H = 153;
-  const GUINDA = rgb(0.48, 0.12, 0.23);
-  const CREMA  = rgb(0.96, 0.93, 0.84);
-  const BLANCO = rgb(1, 1, 1);
-  const NEGRO  = rgb(0.1, 0.1, 0.1);
-  const GRIS   = rgb(0.46, 0.44, 0.42);
+  const GUINDA  = rgb(0.482, 0.118, 0.227);   // #7B1E3A
+  const GUINDA2 = rgb(0.361, 0.078, 0.157);   // #5C1428
+  const CREMA   = rgb(0.973, 0.953, 0.925);   // #F8F4EC
+  const CREMA2  = rgb(0.937, 0.906, 0.839);   // #EFE7D6
+  const BLANCO  = rgb(1, 1, 1);
+  const NEGRO   = rgb(0.165, 0.118, 0.173);
+  const GRIS    = rgb(0.471, 0.443, 0.424);   // piedra500
+  const VERDE   = rgb(0.176, 0.490, 0.275);   // aprobado
 
-  const doc = await PDFDocument.create();
+  const doc  = await PDFDocument.create();
   const page = doc.addPage([CARD_W, CARD_H]);
   const bold    = await doc.embedFont(StandardFonts.HelveticaBold);
   const regular = await doc.embedFont(StandardFonts.Helvetica);
@@ -1822,61 +1869,78 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   // Fondo crema
   page.drawRectangle({ x: 0, y: 0, width: CARD_W, height: CARD_H, color: CREMA });
 
-  // Franja guinda superior
-  page.drawRectangle({ x: 0, y: CARD_H - 28, width: CARD_W, height: 28, color: GUINDA });
+  // Banda superior guinda
+  const HDR = 36;
+  page.drawRectangle({ x: 0, y: CARD_H - HDR, width: CARD_W, height: HDR, color: GUINDA });
+  // Línea de acento bajo el header
+  page.drawRectangle({ x: 0, y: CARD_H - HDR - 2, width: CARD_W, height: 2, color: rgb(0.863, 0.361, 0.471) });
 
-  // Barra lateral izquierda guinda
-  page.drawRectangle({ x: 0, y: 0, width: 5, height: CARD_H - 28, color: GUINDA });
+  // Textos del header
+  page.drawText('GOBIERNO DEL ESTADO DE MICHOACÁN · SECRETARÍA DE EDUCACIÓN', {
+    x: 9, y: CARD_H - 10, size: 4.5, font: regular, color: rgb(1, 1, 1),
+  });
+  page.drawText('Preparatoria Abierta · IEMSyS', {
+    x: 9, y: CARD_H - 19, size: 9, font: bold, color: BLANCO,
+  });
+  page.drawText('CREDENCIAL DEL ESTUDIANTE', {
+    x: 9, y: CARD_H - 30, size: 5.5, font: bold, color: rgb(0.918, 0.702, 0.773),
+  });
 
-  // Encabezado en la franja
-  page.drawText('PREPA ABIERTA MICHOACÁN', { x: 9, y: CARD_H - 17, size: 7.5, font: bold, color: BLANCO });
-  page.drawText('IEMSyS · Identificación Digital', { x: 9, y: CARD_H - 25, size: 5.5, font: regular, color: BLANCO });
-
-  // QR code a la derecha
-  const QR_SIZE = 68;
-  const QR_X = CARD_W - QR_SIZE - 8;
-  const QR_Y = 8;
+  // QR a la derecha
+  const QR_SZ = 74;
+  const QR_X  = CARD_W - QR_SZ - 8;
+  const QR_Y  = 14;
   const qrImg = await doc.embedPng(qrBytes);
-  page.drawRectangle({ x: QR_X - 2, y: QR_Y - 2, width: QR_SIZE + 4, height: QR_SIZE + 4, color: BLANCO });
-  page.drawImage(qrImg, { x: QR_X, y: QR_Y, width: QR_SIZE, height: QR_SIZE });
+  page.drawRectangle({ x: QR_X - 2, y: QR_Y - 2, width: QR_SZ + 4, height: QR_SZ + 4, color: BLANCO });
+  page.drawImage(qrImg, { x: QR_X, y: QR_Y, width: QR_SZ, height: QR_SZ });
+  page.drawText('ESCANEAR', { x: QR_X + 15, y: QR_Y - 8, size: 4, font: bold, color: GRIS });
 
-  // Datos del alumno
-  const LEFT = 12;
-  let cy = CARD_H - 38;
-  const lineGap = 17;
+  // Datos del alumno (columna izquierda)
+  const LEFT   = 9;
+  const MAX_W  = QR_X - LEFT - 6;
+  let cy = CARD_H - HDR - 12;
 
-  const rows: { label: string; value: string }[] = [
-    { label: 'NOMBRE', value: est.nombreCompleto },
-    { label: 'CURP', value: est.curp ?? '—' },
-    { label: 'MATRÍCULA', value: est.matriculaOficialDGB ?? '—' },
-    { label: 'MUNICIPIO', value: municipio?.nombre ?? '—' },
-    { label: 'LICENCIA', value: est.licenciaDigital },
-  ];
+  const clip = (text: string, font: typeof bold, size: number, maxW: number) => {
+    let t = text;
+    while (t.length > 1 && font.widthOfTextAtSize(t, size) > maxW) t = t.slice(0, -1);
+    return t !== text ? t.slice(0, -1) + '…' : t;
+  };
 
-  const contentMaxW = QR_X - LEFT - 8;
-  for (const { label, value } of rows) {
-    page.drawText(label, { x: LEFT, y: cy, size: 5.5, font: bold, color: GUINDA });
-    cy -= 8;
-    let v = value;
-    while (v.length > 3 && regular.widthOfTextAtSize(v, 7.5) > contentMaxW) {
-      v = v.slice(0, -1);
-    }
-    if (v !== value) v = v.slice(0, -1) + '…';
-    page.drawText(v, { x: LEFT, y: cy, size: 7.5, font: regular, color: NEGRO });
-    cy -= lineGap - 8;
-  }
+  // Nombre
+  page.drawText('NOMBRE', { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
+  cy -= 7;
+  page.drawText(clip(`${nombre} ${apellidos}`, bold, 9.5, MAX_W), { x: LEFT, y: cy, size: 9.5, font: bold, color: NEGRO });
+  cy -= 12;
 
-  // Fecha de emisión al pie
-  const emitidaEn = est.licenciaEmitidaEn
-    ? new Date(est.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' })
-    : '—';
-  page.drawText(`Emitida: ${emitidaEn}`, { x: LEFT, y: 6, size: 5, font: regular, color: GRIS });
-  page.drawText('edumich.michoacan.gob.mx', { x: CARD_W / 2 - 40, y: 6, size: 5, font: regular, color: GRIS });
+  // Matrícula
+  page.drawText('MATRÍCULA OFICIAL DGB', { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
+  cy -= 7;
+  page.drawText(clip(est.matriculaOficialDGB ?? '—', bold, 9, MAX_W), { x: LEFT, y: cy, size: 9, font: bold, color: VERDE });
+  cy -= 12;
+
+  // Plan + Sede
+  page.drawText('PLAN / CENTRO DE SERVICIOS', { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
+  cy -= 7;
+  page.drawText(clip(`Plan 22 · Modular · ${sede}`, regular, 7.5, MAX_W), { x: LEFT, y: cy, size: 7.5, font: regular, color: NEGRO });
+  cy -= 11;
+
+  // Emisión y vigencia (dos columnas)
+  const COL2 = LEFT + MAX_W / 2 + 2;
+  page.drawText('EMISIÓN',  { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
+  page.drawText('VIGENCIA', { x: COL2,  y: cy, size: 4.5, font: bold, color: GUINDA });
+  cy -= 7;
+  page.drawText(emision,  { x: LEFT, y: cy, size: 7.5, font: regular, color: NEGRO });
+  page.drawText(vigencia, { x: COL2,  y: cy, size: 7.5, font: regular, color: NEGRO });
+
+  // Pie guinda
+  page.drawRectangle({ x: 0, y: 0, width: CARD_W, height: 11, color: GUINDA2 });
+  page.drawText(`FOLIO: ${est.licenciaDigital}`, { x: 9, y: 3.5, size: 5, font: bold, color: BLANCO });
+  page.drawText('edumich.michoacan.gob.mx', { x: CARD_W - 85, y: 3.5, size: 5, font: regular, color: rgb(0.918, 0.702, 0.773) });
 
   const pdfBytes = await doc.save();
 
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'attachment; filename="identificacion-digital.pdf"');
+  res.setHeader('Content-Disposition', 'attachment; filename="credencial-digital-prepa-abierta.pdf"');
   res.send(Buffer.from(pdfBytes));
 });
 
