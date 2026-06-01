@@ -44,6 +44,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
       <InstitutionalHeader
         userName={me?.perfil?.nombreCompleto ?? me?.email}
         userRole="Estudiante"
+        userPhotoUrl="/api/estudiante/mi-foto"
         onLogout={handleLogout}
       />
 

@@ -42,6 +42,7 @@ interface IdentificacionData {
 
 interface Resp {
   tieneIdentificacion: boolean;
+  tieneFoto?: boolean;
   identificacion?: IdentificacionData;
 }
 
@@ -79,7 +80,7 @@ function Campo({
 }
 
 // ── Cara frontal ────────────────────────────────────────────────────────
-function CredFront({ id, onFlip }: { id: IdentificacionData; onFlip: () => void }) {
+function CredFront({ id, tieneFoto, onFlip }: { id: IdentificacionData; tieneFoto: boolean; onFlip: () => void }) {
   const cardShadow = '0 24px 46px -20px rgba(60,12,28,.42), 0 3px 10px rgba(60,12,28,.10)';
   const bandBg = `linear-gradient(150deg, ${G.g700} 0%, ${G.g800} 72%, ${G.g900} 100%)`;
 
@@ -133,17 +134,26 @@ function CredFront({ id, onFlip }: { id: IdentificacionData; onFlip: () => void 
         <div style={{ position: 'absolute', right: -28, bottom: 22, width: 130, height: 130, borderRadius: 999, background: G.g700, opacity: 0.04, pointerEvents: 'none' }} />
 
         <div style={{ position: 'relative', display: 'flex', gap: 15, alignItems: 'flex-start' }}>
-          {/* Avatar */}
+          {/* Avatar / Foto oficial */}
           <div style={{ position: 'relative', flexShrink: 0 }}>
             <div style={{
               width: 76, height: 93, borderRadius: 12, overflow: 'hidden',
               background: `linear-gradient(160deg, ${G.crema100}, ${G.crema200})`,
               display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
+              border: tieneFoto ? `2px solid ${G.g200}` : 'none',
             }}>
-              <svg viewBox="0 0 100 120" width="100%" height="100%" preserveAspectRatio="xMidYMax meet">
-                <circle cx="50" cy="42" r="22" fill={G.g300} />
-                <path d="M50 70 C26 70 12 88 10 120 L90 120 C88 88 74 70 50 70 Z" fill={G.g300} />
-              </svg>
+              {tieneFoto ? (
+                <img
+                  src="/api/estudiante/mi-foto"
+                  alt="Foto oficial"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                />
+              ) : (
+                <svg viewBox="0 0 100 120" width="100%" height="100%" preserveAspectRatio="xMidYMax meet">
+                  <circle cx="50" cy="42" r="22" fill={G.g300} />
+                  <path d="M50 70 C26 70 12 88 10 120 L90 120 C88 88 74 70 50 70 Z" fill={G.g300} />
+                </svg>
+              )}
             </div>
             <div style={{
               position: 'absolute', right: -6, bottom: -6, width: 21, height: 21,
@@ -429,7 +439,7 @@ export default function MiIdentificacion() {
           >
             {/* Cara delantera */}
             <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden' }}>
-              <CredFront id={id} onFlip={() => setFlipped((f) => !f)} />
+              <CredFront id={id} tieneFoto={data?.tieneFoto ?? false} onFlip={() => setFlipped((f) => !f)} />
             </div>
             {/* Cara trasera */}
             <div

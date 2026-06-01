@@ -1730,6 +1730,36 @@ router.get('/ficha-registro', async (req, res) => {
   res.send(pdf);
 });
 
+// ─── GET /estudiante/mi-foto ─────────────────────────────────────────────
+// Sirve la fotografía aprobada del alumno (para mostrar en credencial/header).
+// 404 si no tiene foto aprobada o el archivo no existe.
+router.get('/mi-foto', async (req, res) => {
+  const userId = req.user!.userId;
+
+  const [doc] = await db
+    .select({ rutaArchivo: expedienteDocumentos.rutaArchivo, nombreOriginal: expedienteDocumentos.nombreOriginal })
+    .from(expedienteDocumentos)
+    .where(
+      and(
+        eq(expedienteDocumentos.estudianteId, userId),
+        eq(expedienteDocumentos.tipo, 'foto'),
+        eq(expedienteDocumentos.estado, 'aprobado'),
+      )
+    );
+
+  if (!doc || !existsSync(doc.rutaArchivo)) {
+    res.status(404).json({ error: 'Sin foto aprobada' });
+    return;
+  }
+
+  const mime = doc.rutaArchivo.match(/\.(jpe?g)$/i) ? 'image/jpeg'
+    : doc.rutaArchivo.match(/\.png$/i) ? 'image/png'
+    : 'image/jpeg';
+  res.setHeader('Content-Type', mime);
+  res.setHeader('Cache-Control', 'private, max-age=3600');
+  createReadStream(doc.rutaArchivo).pipe(res);
+});
+
 // ─── GET /estudiante/mi-identificacion ───────────────────────────────────
 router.get('/mi-identificacion', async (req, res) => {
   const userId = req.user!.userId;
@@ -1781,8 +1811,20 @@ router.get('/mi-identificacion', async (req, res) => {
 
   const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
 
+  // ¿Tiene foto aprobada?
+  const [fotoDoc] = await db
+    .select({ rutaArchivo: expedienteDocumentos.rutaArchivo })
+    .from(expedienteDocumentos)
+    .where(and(
+      eq(expedienteDocumentos.estudianteId, userId),
+      eq(expedienteDocumentos.tipo, 'foto'),
+      eq(expedienteDocumentos.estado, 'aprobado'),
+    ));
+  const tieneFoto = !!(fotoDoc && existsSync(fotoDoc.rutaArchivo));
+
   res.json({
     tieneIdentificacion: true,
+    tieneFoto,
     identificacion: {
       nombreCompleto: est.nombreCompleto,
       nombre,
@@ -1895,8 +1937,39 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   page.drawImage(qrImg, { x: QR_X, y: QR_Y, width: QR_SZ, height: QR_SZ });
   page.drawText('ESCANEAR', { x: QR_X + 15, y: QR_Y - 8, size: 4, font: bold, color: GRIS });
 
-  // Datos del alumno (columna izquierda)
-  const LEFT   = 9;
+  // ── Foto del alumno (si está aprobada) ───────────────────────────────────
+  const [fotoDocPDF] = await db
+    .select({ rutaArchivo: expedienteDocumentos.rutaArchivo })
+    .from(expedienteDocumentos)
+    .where(and(
+      eq(expedienteDocumentos.estudianteId, userId),
+      eq(expedienteDocumentos.tipo, 'foto'),
+      eq(expedienteDocumentos.estado, 'aprobado'),
+    ));
+
+  let fotoImg: any = null;
+  if (fotoDocPDF && existsSync(fotoDocPDF.rutaArchivo)) {
+    try {
+      const fotoBytes = await fsp.readFile(fotoDocPDF.rutaArchivo);
+      fotoImg = /\.png$/i.test(fotoDocPDF.rutaArchivo)
+        ? await doc.embedPng(fotoBytes)
+        : await doc.embedJpg(fotoBytes);
+    } catch { /* skip si falla el embed */ }
+  }
+
+  const FOTO_W = 30;
+  const FOTO_H = 37;
+  const FOTO_X = 9;
+  const FOTO_Y = CARD_H - HDR - 2 - FOTO_H; // flush bajo la línea de acento
+
+  if (fotoImg) {
+    // Marco blanco y foto
+    page.drawRectangle({ x: FOTO_X - 1, y: FOTO_Y - 1, width: FOTO_W + 2, height: FOTO_H + 2, color: BLANCO });
+    page.drawImage(fotoImg, { x: FOTO_X, y: FOTO_Y, width: FOTO_W, height: FOTO_H });
+  }
+
+  // Columna de datos: si hay foto, el texto arranca más a la derecha
+  const LEFT   = fotoImg ? FOTO_X + FOTO_W + 5 : 9;
   const MAX_W  = QR_X - LEFT - 6;
   let cy = CARD_H - HDR - 11;
 

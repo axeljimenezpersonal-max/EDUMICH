@@ -12,6 +12,7 @@ import { api } from '../lib/api';
 interface Props {
   userName?: string;
   userRole?: string;
+  userPhotoUrl?: string;
   onLogout?: () => void;
 }
 
@@ -193,7 +194,7 @@ function HeaderNotifBell() {
   );
 }
 
-export function InstitutionalHeader({ userName, userRole, onLogout }: Props) {
+export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout }: Props) {
   return (
     <header className="border-b-4 border-[var(--color-guinda-700)] bg-white sticky top-0 z-50 shadow-sm">
       {/* Banda institucional superior */}
@@ -262,8 +263,19 @@ export function InstitutionalHeader({ userName, userRole, onLogout }: Props) {
                 </div>
               )}
             </div>
-            <div className="w-9 h-9 rounded-full bg-[var(--color-crema-200)] flex items-center justify-center text-[var(--color-guinda-700)]">
-              <User size={18} />
+            <div className="w-9 h-9 rounded-full bg-[var(--color-crema-200)] flex items-center justify-center text-[var(--color-guinda-700)] overflow-hidden flex-shrink-0">
+              {userPhotoUrl ? (
+                <img
+                  src={userPhotoUrl}
+                  alt="Foto"
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = 'none';
+                    (e.currentTarget.nextSibling as HTMLElement | null)?.removeAttribute('style');
+                  }}
+                />
+              ) : null}
+              <User size={18} style={userPhotoUrl ? { display: 'none' } : {}} />
             </div>
             <HeaderNotifBell />
             {onLogout && (
