@@ -1898,7 +1898,7 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   // Datos del alumno (columna izquierda)
   const LEFT   = 9;
   const MAX_W  = QR_X - LEFT - 6;
-  let cy = CARD_H - HDR - 12;
+  let cy = CARD_H - HDR - 11;
 
   const clip = (text: string, font: typeof bold, size: number, maxW: number) => {
     let t = text;
@@ -1906,29 +1906,39 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
     return t !== text ? t.slice(0, -1) + '…' : t;
   };
 
-  // Nombre
+  // Helper: thin separator line between fields
+  const sep = (y: number) =>
+    page.drawLine({ start: { x: LEFT, y }, end: { x: QR_X - 5, y }, thickness: 0.4, color: CREMA2 });
+
+  // ── NOMBRE ──────────────────────────────────────────────────────────────
   page.drawText('NOMBRE', { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
-  cy -= 7;
+  cy -= 9;
   page.drawText(clip(`${nombre} ${apellidos}`, bold, 9.5, MAX_W), { x: LEFT, y: cy, size: 9.5, font: bold, color: NEGRO });
-  cy -= 12;
+  cy -= 4;
 
-  // Matrícula
+  // ── MATRÍCULA ────────────────────────────────────────────────────────────
+  sep(cy);
+  cy -= 8;
   page.drawText('MATRÍCULA OFICIAL DGB', { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
-  cy -= 7;
+  cy -= 9;
   page.drawText(clip(est.matriculaOficialDGB ?? '—', bold, 9, MAX_W), { x: LEFT, y: cy, size: 9, font: bold, color: VERDE });
-  cy -= 12;
+  cy -= 4;
 
-  // Plan + Sede
+  // ── PLAN / SEDE ───────────────────────────────────────────────────────────
+  sep(cy);
+  cy -= 8;
   page.drawText('PLAN / CENTRO DE SERVICIOS', { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
-  cy -= 7;
+  cy -= 8;
   page.drawText(clip(`Plan 22 · Modular · ${sede}`, regular, 7.5, MAX_W), { x: LEFT, y: cy, size: 7.5, font: regular, color: NEGRO });
-  cy -= 11;
+  cy -= 4;
 
-  // Emisión y vigencia (dos columnas)
+  // ── EMISIÓN / VIGENCIA ────────────────────────────────────────────────────
+  sep(cy);
+  cy -= 8;
   const COL2 = LEFT + MAX_W / 2 + 2;
   page.drawText('EMISIÓN',  { x: LEFT, y: cy, size: 4.5, font: bold, color: GUINDA });
   page.drawText('VIGENCIA', { x: COL2,  y: cy, size: 4.5, font: bold, color: GUINDA });
-  cy -= 7;
+  cy -= 9;
   page.drawText(emision,  { x: LEFT, y: cy, size: 7.5, font: regular, color: NEGRO });
   page.drawText(vigencia, { x: COL2,  y: cy, size: 7.5, font: regular, color: NEGRO });
 
