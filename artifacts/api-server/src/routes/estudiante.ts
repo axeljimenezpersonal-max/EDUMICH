@@ -44,6 +44,7 @@ import {
   datosBancarios,
   conceptosPago,
   calificaciones,
+  pagos,
 } from '@workspace/db/schema';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -435,11 +436,36 @@ router.post('/cambiar-password', async (req, res) => {
 
 // ─── GET /estudiante/modulos ──────────────────────────────────────────────
 // Devuelve los 21 módulos del Plan Modular con el progreso del alumno.
-// Todos los alumnos de Prepa Abierta cursan los 21 módulos; no se filtra
-// por inscripcion_modulos porque el plan es el mismo para todos.
+// GATING: el plan sólo se desbloquea cuando el alumno tiene al menos
+// un pago verificado (pagos.estado = 'verificado').
+// Los módulos con examen inscrito en examenesInscripciones se marcan
+// como `inscritoExamen: true` y aparecen resaltados en el frontend.
 router.get('/modulos', async (req, res) => {
   const userId = req.user!.userId;
 
+  // 1. ¿Tiene pago verificado?
+  const [pagoVerificado] = await db
+    .select({ id: pagos.id })
+    .from(pagos)
+    .where(and(eq(pagos.estudianteId, userId), eq(pagos.estado, 'verificado')))
+    .limit(1);
+
+  const planDesbloqueado = !!pagoVerificado;
+
+  // 2. Exámenes inscritos (para badge y contador)
+  const examenes = await db
+    .select({
+      moduloId: examenesInscripciones.moduloId,
+      estado: examenesInscripciones.estado,
+    })
+    .from(examenesInscripciones)
+    .where(eq(examenesInscripciones.estudianteId, userId));
+
+  const examenPorModulo = new Map(examenes.map((e) => [e.moduloId, e.estado]));
+  const totalInscritos = examenes.length;
+  const aprobadosInscritos = examenes.filter((e) => e.estado === 'aprobado').length;
+
+  // 3. Los 21 módulos + progreso del alumno
   const rows = await db
     .select({
       id: modulos.id,
@@ -462,7 +488,6 @@ router.get('/modulos', async (req, res) => {
     )
     .orderBy(modulos.numero);
 
-  const aprobados = rows.filter((r) => r.estado === 'aprobado').length;
   const enCurso = rows.filter((r) => r.estado === 'en_curso').length;
   const totalQuizzes = rows.reduce((s, r) => s + (r.intentosQuiz ?? 0), 0);
   const conCal = rows.filter((r) => r.mejorCalificacion !== null);
@@ -472,13 +497,15 @@ router.get('/modulos', async (req, res) => {
       : 0;
 
   res.json({
-    planAsignado: true, // siempre true: plan modular = los 21 módulos
+    planDesbloqueado,
     modulos: rows.map((r) => ({
       id: r.id,
       numero: r.numero,
       nivel: r.nivel,
       nombre: r.nombre,
       descripcionCorta: r.descripcion ?? null,
+      inscritoExamen: examenPorModulo.has(r.id),
+      estadoExamen: examenPorModulo.get(r.id) ?? null,
       progreso: {
         estado: r.estado ?? 'no_iniciado',
         intentosQuiz: r.intentosQuiz ?? 0,
@@ -488,7 +515,8 @@ router.get('/modulos', async (req, res) => {
     })),
     resumen: {
       totalModulos: rows.length,
-      aprobados,
+      totalInscritos,      // módulos con examen agendado
+      aprobados: aprobadosInscritos,  // aprobados de los inscritos
       enCurso,
       totalQuizzes,
       promedioGlobal,

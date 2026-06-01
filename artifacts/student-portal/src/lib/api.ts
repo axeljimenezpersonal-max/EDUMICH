@@ -229,14 +229,17 @@ export interface ModuloListItem {
   nivel: number | null;
   nombre: string;
   descripcionCorta: string | null;
+  inscritoExamen: boolean;
+  estadoExamen: string | null;
   progreso: ProgresoModulo;
 }
 
 export interface MisModulosResponse {
-  planAsignado: boolean;
+  planDesbloqueado: boolean;
   modulos: ModuloListItem[];
   resumen: {
     totalModulos: number;
+    totalInscritos: number;
     aprobados: number;
     enCurso: number;
     totalQuizzes: number;

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { ChevronRight, Lock, BookOpen } from 'lucide-react';
+import { ChevronRight, Lock, BookOpen, CreditCard, CheckCircle2, CalendarCheck } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api, type MisModulosResponse, type ModuloListItem, type ProgresoEstado } from '../../lib/api';
 
@@ -13,46 +13,51 @@ const NIVEL_LABELS: Record<number, string> = {
 
 const STATUS_STYLE: Record<ProgresoEstado, string> = {
   no_iniciado: 'bg-stone-100 text-stone-500',
-  en_curso: 'bg-blue-100 text-blue-700',
-  aprobado: 'bg-green-100 text-green-700',
+  en_curso:    'bg-blue-100 text-blue-700',
+  aprobado:    'bg-green-100 text-green-700',
 };
 
 const STATUS_LABEL: Record<ProgresoEstado, string> = {
   no_iniciado: 'Sin iniciar',
-  en_curso: 'En curso',
-  aprobado: 'Aprobado',
+  en_curso:    'En curso',
+  aprobado:    'Aprobado',
 };
 
 const PROGRESS_BAR: Record<ProgresoEstado, string> = {
   no_iniciado: 'w-0',
-  en_curso: 'w-1/2 bg-blue-400',
-  aprobado: 'w-full bg-green-500',
+  en_curso:    'w-1/2 bg-blue-400',
+  aprobado:    'w-full bg-green-500',
 };
 
+// ── Tarjeta de módulo (desbloqueado) ─────────────────────────────────────────
 function ModuloCard({ modulo }: { modulo: ModuloListItem }) {
   const estado = modulo.progreso.estado;
-  const cal = modulo.progreso.mejorCalificacion;
+  const cal    = modulo.progreso.mejorCalificacion;
 
   return (
     <Link href={`/estudiante/modulos/${modulo.id}`}>
       <div
-        className="relative bg-white border border-stone-200 rounded-lg p-5 cursor-pointer overflow-hidden
-          hover:-translate-y-0.5 hover:shadow-md transition-all group"
+        className={`relative bg-white border rounded-lg p-5 cursor-pointer overflow-hidden
+          hover:-translate-y-0.5 hover:shadow-md transition-all group
+          ${modulo.inscritoExamen ? 'border-[var(--color-guinda-300)] ring-1 ring-[var(--color-guinda-200)]' : 'border-stone-200'}`}
       >
-        {/* Número decorativo en la esquina */}
-        <div
-          className="absolute -top-3 -right-1 text-[72px] font-bold leading-none
-            text-[var(--color-guinda-100)] select-none pointer-events-none"
-        >
+        {/* Número decorativo */}
+        <div className="absolute -top-3 -right-1 text-[72px] font-bold leading-none text-[var(--color-guinda-100)] select-none pointer-events-none">
           {modulo.numero}
         </div>
 
-        {/* Status pill */}
-        <span
-          className={`inline-block text-[11px] px-2 py-0.5 rounded-full font-semibold mb-2 ${STATUS_STYLE[estado]}`}
-        >
-          {STATUS_LABEL[estado]}
-        </span>
+        {/* Badges top */}
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          <span className={`inline-block text-[11px] px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[estado]}`}>
+            {STATUS_LABEL[estado]}
+          </span>
+          {modulo.inscritoExamen && (
+            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-[var(--color-guinda-50)] text-[var(--color-guinda-700)] border border-[var(--color-guinda-200)]">
+              <CalendarCheck size={9} />
+              Examen inscrito
+            </span>
+          )}
+        </div>
 
         {/* Nombre */}
         <h3 className="font-serif text-sm font-semibold text-stone-900 leading-snug mb-3 pr-10">
@@ -73,16 +78,46 @@ function ModuloCard({ modulo }: { modulo: ModuloListItem }) {
           {cal !== null && (
             <span className="font-semibold text-stone-600">{cal}/100</span>
           )}
-          <ChevronRight
-            size={14}
-            className="group-hover:text-[var(--color-guinda-700)] transition-colors"
-          />
+          <ChevronRight size={14} className="group-hover:text-[var(--color-guinda-700)] transition-colors" />
         </div>
       </div>
     </Link>
   );
 }
 
+// ── Tarjeta de módulo (bloqueado) ─────────────────────────────────────────────
+function ModuloCardLocked({ modulo }: { modulo: ModuloListItem }) {
+  return (
+    <div className="relative bg-stone-50 border border-stone-200 rounded-lg p-5 overflow-hidden opacity-60 cursor-not-allowed select-none">
+      {/* Número decorativo */}
+      <div className="absolute -top-3 -right-1 text-[72px] font-bold leading-none text-stone-200 pointer-events-none">
+        {modulo.numero}
+      </div>
+
+      {/* Lock pill */}
+      <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-stone-200 text-stone-500 mb-2">
+        <Lock size={9} />
+        Bloqueado
+      </span>
+
+      {/* Nombre */}
+      <h3 className="font-serif text-sm font-semibold text-stone-500 leading-snug mb-3 pr-10">
+        {modulo.nombre}
+      </h3>
+
+      {/* Barra vacía */}
+      <div className="h-1.5 bg-stone-200 rounded-full mb-3" />
+
+      {/* Placeholder stats */}
+      <div className="flex items-center justify-between text-xs text-stone-300">
+        <span>0 intentos</span>
+        <Lock size={14} />
+      </div>
+    </div>
+  );
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function MisModulos() {
   const [data, setData] = useState<MisModulosResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -95,19 +130,14 @@ export default function MisModulos() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Group by level
   const byNivel = (nivel: number) => data?.modulos.filter((m) => m.nivel === nivel) ?? [];
-  const nivel1 = byNivel(1);
-  const nivel2 = byNivel(2);
-  const nivel3 = byNivel(3);
-  const nivel4 = byNivel(4);
   const sinNivel = data?.modulos.filter((m) => !m.nivel) ?? [];
 
-  const planAsignado = data?.planAsignado ?? false;
+  const desbloqueado = data?.planDesbloqueado ?? false;
 
   return (
     <EstudianteLayout>
-      {/* Header de página */}
+      {/* Header */}
       <div className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
           MIS MÓDULOS
@@ -115,9 +145,7 @@ export default function MisModulos() {
         <h1 className="font-serif text-2xl font-bold text-stone-900">Plan Modular</h1>
         {data && (
           <p className="text-stone-500 text-sm mt-1">
-            {planAsignado
-              ? `${data.resumen.totalModulos} módulo${data.resumen.totalModulos !== 1 ? 's' : ''} asignado${data.resumen.totalModulos !== 1 ? 's' : ''} a tu plan`
-              : '21 módulos organizados en 4 niveles de avance'}
+            {data.resumen.totalModulos} módulos · 4 niveles de avance
           </p>
         )}
       </div>
@@ -126,59 +154,87 @@ export default function MisModulos() {
         <div className="text-center text-stone-400 py-16 text-sm">Cargando módulos...</div>
       )}
 
-      {/* Sin plan asignado */}
-      {!loading && data && !planAsignado && (
-        <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center mb-8">
-          <BookOpen size={32} className="mx-auto mb-3 text-stone-300" />
-          <div className="text-sm font-semibold text-stone-600 mb-1">
-            Tu gestor aún no ha asignado tu plan modular
-          </div>
-          <div className="text-xs text-stone-400">
-            Cuando tu gestor defina qué módulos debes cursar, aparecerán aquí con tu progreso.
-          </div>
-        </div>
-      )}
-
-      {/* Progress overview card — solo si hay plan */}
-      {data && planAsignado && (
-        <div className="rounded-lg overflow-hidden mb-8 bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white p-6">
-          <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70 mb-4">
-            Progreso global
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-            <div>
-              <div className="text-3xl font-bold font-serif">
-                {data.resumen.aprobados}
-                <span className="text-lg opacity-50">/{data.resumen.totalModulos}</span>
-              </div>
-              <div className="text-xs opacity-70 mt-0.5">Aprobados</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold font-serif">{data.resumen.enCurso}</div>
-              <div className="text-xs opacity-70 mt-0.5">En curso</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold font-serif">{data.resumen.totalQuizzes}</div>
-              <div className="text-xs opacity-70 mt-0.5">Evaluaciones hechas</div>
-            </div>
-            <div>
-              <div className="text-3xl font-bold font-serif">
-                {data.resumen.promedioGlobal > 0 ? data.resumen.promedioGlobal : '—'}
-              </div>
-              <div className="text-xs opacity-70 mt-0.5">Promedio global</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Módulos agrupados por nivel */}
-      {planAsignado && (
+      {data && (
         <>
+          {/* ── Aviso de bloqueo ── */}
+          {!desbloqueado && (
+            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-4 items-start">
+              <div className="bg-amber-100 rounded-full p-2 flex-shrink-0">
+                <CreditCard size={20} className="text-amber-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-amber-900 text-sm mb-1">
+                  Tu plan modular está pendiente de activación
+                </p>
+                <p className="text-amber-700 text-xs leading-relaxed">
+                  Para acceder a tus módulos de estudio necesitas tener un{' '}
+                  <strong>pago verificado</strong> por tu gestor. Una vez verificado,
+                  los 21 módulos se desbloquearán automáticamente.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Progreso global ── */}
+          <div className={`rounded-lg overflow-hidden mb-8 text-white p-6 ${
+            desbloqueado
+              ? 'bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)]'
+              : 'bg-gradient-to-r from-stone-600 to-stone-500'
+          }`}>
+            <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70 mb-4">
+              Progreso global
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
+              <div>
+                <div className="text-3xl font-bold font-serif">
+                  {data.resumen.aprobados}
+                  <span className="text-lg opacity-50">/{data.resumen.totalInscritos || '—'}</span>
+                </div>
+                <div className="text-xs opacity-70 mt-0.5">
+                  Aprobados {data.resumen.totalInscritos > 0 ? `de ${data.resumen.totalInscritos} inscritos` : ''}
+                </div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold font-serif">
+                  {desbloqueado ? data.resumen.totalInscritos : '—'}
+                </div>
+                <div className="text-xs opacity-70 mt-0.5">Con examen inscrito</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold font-serif">
+                  {desbloqueado ? data.resumen.totalQuizzes : '—'}
+                </div>
+                <div className="text-xs opacity-70 mt-0.5">Evaluaciones hechas</div>
+              </div>
+              <div>
+                <div className="text-3xl font-bold font-serif">
+                  {desbloqueado && data.resumen.promedioGlobal > 0 ? data.resumen.promedioGlobal : '—'}
+                </div>
+                <div className="text-xs opacity-70 mt-0.5">Promedio global</div>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Leyenda (solo si desbloqueado y hay inscritos) ── */}
+          {desbloqueado && data.resumen.totalInscritos > 0 && (
+            <div className="flex flex-wrap gap-3 mb-6 text-xs text-stone-600">
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-full bg-[var(--color-guinda-200)] border border-[var(--color-guinda-400)]" />
+                Tienes examen inscrito en esta convocatoria
+              </span>
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 size={12} className="text-green-600" />
+                Módulo aprobado
+              </span>
+            </div>
+          )}
+
+          {/* ── Módulos por nivel ── */}
           {[
-            { nivel: 1, items: nivel1 },
-            { nivel: 2, items: nivel2 },
-            { nivel: 3, items: nivel3 },
-            { nivel: 4, items: nivel4 },
+            { nivel: 1, items: byNivel(1) },
+            { nivel: 2, items: byNivel(2) },
+            { nivel: 3, items: byNivel(3) },
+            { nivel: 4, items: byNivel(4) },
           ]
             .filter(({ items }) => items.length > 0)
             .map(({ nivel, items }) => (
@@ -188,9 +244,11 @@ export default function MisModulos() {
                   <span className="font-normal text-stone-600">{NIVEL_LABELS[nivel] ?? ''}</span>
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {items.map((m) => (
-                    <ModuloCard key={m.id} modulo={m} />
-                  ))}
+                  {items.map((m) =>
+                    desbloqueado
+                      ? <ModuloCard key={m.id} modulo={m} />
+                      : <ModuloCardLocked key={m.id} modulo={m} />
+                  )}
                 </div>
               </section>
             ))}
@@ -199,11 +257,23 @@ export default function MisModulos() {
             <section className="mb-8">
               <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {sinNivel.map((m) => (
-                  <ModuloCard key={m.id} modulo={m} />
-                ))}
+                {sinNivel.map((m) =>
+                  desbloqueado
+                    ? <ModuloCard key={m.id} modulo={m} />
+                    : <ModuloCardLocked key={m.id} modulo={m} />
+                )}
               </div>
             </section>
+          )}
+
+          {/* ── Sin módulos ── */}
+          {data.modulos.length === 0 && (
+            <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center">
+              <BookOpen size={32} className="mx-auto mb-3 text-stone-300" />
+              <div className="text-sm font-semibold text-stone-600">
+                No hay módulos disponibles
+              </div>
+            </div>
           )}
         </>
       )}
