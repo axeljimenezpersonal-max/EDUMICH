@@ -671,7 +671,7 @@ export async function generarFichaRegistro(data: RegistroOficialData): Promise<B
     };
     for (const doc of data.documentosValidados) {
       const label = TIPO_LABELS[doc.tipo] ?? doc.tipo;
-      drawText(page, '✓', col1, y, bold, 9, VERDE);
+      drawText(page, '[OK]', col1, y, bold, 7.5, VERDE);
       drawText(page, label, col1 + 14, y, regular, 9, NEGRO);
       if (doc.validadoEn) {
         drawText(page, `validado el ${fmtFecha(doc.validadoEn)}`, col2, y, regular, 8.5, GRIS);
