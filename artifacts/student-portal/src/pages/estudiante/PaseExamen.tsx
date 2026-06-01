@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Download,
   Printer,
-  X,
   BookOpen,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
@@ -74,106 +73,6 @@ function estadoBadge(estado: string): { label: string; icon: React.ReactNode; ba
   }
 }
 
-// ── Modal de impresión ────────────────────────────────────────────────────
-
-function PrintModal({ pase, onClose }: { pase: PaseExamenData; onClose: () => void }) {
-  function handlePrint() {
-    window.print();
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
-          <p className="font-bold text-stone-900">Vista de impresión</p>
-          <button onClick={onClose} className="p-1 text-stone-400 hover:text-stone-600">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        {/* Pase layout */}
-        <div className="p-5 space-y-4">
-          {/* Institution header */}
-          <div className="text-center border-b border-stone-200 pb-4">
-            <p className="text-xs uppercase tracking-widest text-stone-400 mb-1">
-              IEMSyS — Prepa Abierta Michoacán
-            </p>
-            <p className="font-bold text-stone-900 text-lg">PASE DE EXAMEN PROVISIONAL</p>
-          </div>
-
-          {/* QR code */}
-          <div className="flex justify-center">
-            <QRCodeSVG
-              value={pase.qrPayload}
-              size={160}
-              fgColor="#7B1E3A"
-              bgColor="#FFFFFF"
-            />
-          </div>
-
-          {/* Info */}
-          <div className="space-y-2 text-sm">
-            <div className="flex justify-between">
-              <span className="text-stone-500">Folio:</span>
-              <span className="font-mono font-bold text-stone-900">{pase.folio}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Alumno:</span>
-              <span className="font-medium text-stone-900">{pase.estudiante.nombreCompleto}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">CURP:</span>
-              <span className="font-mono text-stone-900">{pase.estudiante.curp}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Módulo:</span>
-              <span className="font-medium text-stone-900">M{pase.modulo.numero} — {pase.modulo.nombre}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Fecha:</span>
-              <span className="text-stone-900">{formatFechaLarga(pase.fechaExamen)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Hora:</span>
-              <span className="text-stone-900">{pase.hora} hrs</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Sede:</span>
-              <span className="text-stone-900">{pase.sede.nombre}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-stone-500">Dirección:</span>
-              <span className="text-stone-900 text-right max-w-[60%]">{pase.sede.direccion}</span>
-            </div>
-          </div>
-
-          <p className="text-[11px] text-stone-400 text-center border-t border-stone-100 pt-3">
-            Presentar este pase con identificación oficial el día del examen.
-          </p>
-        </div>
-
-        {/* Footer */}
-        <div className="px-5 py-4 border-t border-stone-200 flex gap-2 justify-end">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-stone-600 border border-stone-200 rounded-lg hover:bg-stone-50"
-          >
-            Cerrar
-          </button>
-          <button
-            onClick={handlePrint}
-            className="px-4 py-2 text-sm font-semibold bg-[var(--color-guinda-700)] text-white rounded-lg hover:bg-[var(--color-guinda-800)] flex items-center gap-2"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // ── Página principal ──────────────────────────────────────────────────────
 
 export default function PaseExamen() {
@@ -183,7 +82,6 @@ export default function PaseExamen() {
   const [pase, setPase] = useState<PaseExamenData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showPrint, setShowPrint] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -194,8 +92,18 @@ export default function PaseExamen() {
       .finally(() => setLoading(false));
   }, [id]);
 
+  const pdfUrl = `/api/estudiante/convocatoria/pase/${id}/pdf`;
+
   function handleDescargarPDF() {
-    window.open(`/api/estudiante/convocatoria/pase/${id}/pdf`, '_blank');
+    // Force download via anchor
+    const a = document.createElement('a');
+    a.href = pdfUrl;
+    a.download = `pase-${id}.pdf`;
+    a.click();
+  }
+
+  function handleImprimir() {
+    window.open(pdfUrl, '_blank');
   }
 
   if (loading) {
@@ -351,7 +259,7 @@ export default function PaseExamen() {
             Descargar PDF
           </button>
           <button
-            onClick={() => setShowPrint(true)}
+            onClick={handleImprimir}
             className="flex items-center justify-center gap-2 px-4 py-3 border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] text-sm font-semibold rounded-xl hover:bg-[var(--color-crema-100)] transition-colors"
           >
             <Printer className="w-4 h-4" />
@@ -403,8 +311,6 @@ export default function PaseExamen() {
         )}
       </div>
 
-      {/* Print Modal */}
-      {showPrint && <PrintModal pase={pase} onClose={() => setShowPrint(false)} />}
     </EstudianteLayout>
   );
 }

@@ -1447,6 +1447,128 @@ router.get('/convocatoria/pase/:inscripcionId', async (req, res) => {
   });
 });
 
+// ─── Generador de PDF profesional para pase de examen ────────────────────
+async function generarPasePDF(data: {
+  folio: string;
+  estudianteNombre: string;
+  estudianteCurp: string | null;
+  moduloNumero: number;
+  moduloNombre: string;
+  fechaExamen: string | null;
+  dia: string;
+  hora: string;
+  sedeNombre: string;
+  sedeDireccion: string;
+  qrPayload: string;
+}): Promise<Buffer> {
+  const pdoc = await PDFDocument.create();
+  const page = pdoc.addPage([595, 842]);
+  const W = 595, H = 842;
+
+  const boldFont = await pdoc.embedFont(StandardFonts.HelveticaBold);
+  const regFont  = await pdoc.embedFont(StandardFonts.Helvetica);
+
+  const GUINDA = rgb(0.484, 0.118, 0.227);
+  const WHITE  = rgb(1, 1, 1);
+  const DARK   = rgb(0.08, 0.08, 0.08);
+  const MUTED  = rgb(0.52, 0.48, 0.46);
+  const CREMA  = rgb(0.98, 0.97, 0.95);
+  const SEP    = rgb(0.88, 0.86, 0.84);
+  const PINK   = rgb(0.96, 0.78, 0.84);
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  const HDR = 118;
+  page.drawRectangle({ x: 0, y: H - HDR, width: W, height: HDR, color: GUINDA });
+  page.drawText('IEMSyS - Prepa Abierta Michoacan', {
+    x: 40, y: H - 30, font: regFont, size: 8, color: PINK,
+  });
+  page.drawText('PASE DE EXAMEN PROVISIONAL', {
+    x: 40, y: H - 56, font: boldFont, size: 21, color: WHITE,
+  });
+  page.drawText(data.folio, {
+    x: 40, y: H - 78, font: boldFont, size: 12, color: PINK,
+  });
+  const now = new Date();
+  const fecha_gen = `${now.getDate()}/${now.getMonth() + 1}/${now.getFullYear()}`;
+  page.drawText(`Generado: ${fecha_gen}`, {
+    x: 40, y: H - 98, font: regFont, size: 7.5, color: rgb(0.9, 0.65, 0.72),
+  });
+
+  // ── QR Code ──────────────────────────────────────────────────────────────
+  const qrBuf = await QRCode.toBuffer(data.qrPayload, {
+    width: 180, margin: 1,
+    color: { dark: '#7B1E3A', light: '#FFFFFF' },
+  });
+  const qrImg = await pdoc.embedPng(qrBuf);
+  const QR = 155;
+  const QX = W - 45 - QR;
+  const QY = H - HDR - 18 - QR;
+  page.drawRectangle({ x: QX - 4, y: QY - 4, width: QR + 8, height: QR + 8, color: WHITE });
+  page.drawImage(qrImg, { x: QX, y: QY, width: QR, height: QR });
+  page.drawText('Codigo QR - presentar en sede', {
+    x: QX - 2, y: QY - 14, font: regFont, size: 7, color: MUTED,
+  });
+
+  // ── Fields ────────────────────────────────────────────────────────────────
+  const LX = 45;
+  const LINE_RIGHT = QX - 18;
+  let cy = H - HDR - 26;
+
+  function field(label: string, value: string) {
+    page.drawText(label, { x: LX, y: cy, font: regFont, size: 7.5, color: MUTED });
+    cy -= 15;
+    const safe = (value || '-').replace(/[-￿]/g, (c) => {
+      // keep accented Latin chars (U+00C0–U+00FF) which are in WinAnsi
+      return c.charCodeAt(0) <= 0x00FF ? c : '?';
+    });
+    page.drawText(safe, { x: LX, y: cy, font: boldFont, size: 11.5, color: DARK });
+    cy -= 20;
+    page.drawLine({ start: { x: LX, y: cy }, end: { x: LINE_RIGHT, y: cy }, thickness: 0.5, color: SEP });
+    cy -= 13;
+  }
+
+  function formatFecha(ds: string | null): string {
+    if (!ds) return 'Por definir';
+    const MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto',
+                   'septiembre','octubre','noviembre','diciembre'];
+    const DIAS  = ['domingo','lunes','martes','miercoles','jueves','viernes','sabado'];
+    const [y, m, d] = ds.split('-').map(Number);
+    const dt = new Date(Date.UTC(y, m - 1, d));
+    return `${DIAS[dt.getUTCDay()]}, ${d} de ${MESES[m - 1]} de ${y}`;
+  }
+
+  field('ALUMNO',           data.estudianteNombre);
+  field('CURP',             data.estudianteCurp ?? '');
+  field('MODULO',           `M${data.moduloNumero} - ${data.moduloNombre}`);
+  field('FECHA DE EXAMEN',  formatFecha(data.fechaExamen));
+  field('HORA',             `${data.hora} hrs`);
+  field('SEDE',             data.sedeNombre);
+  field('DIRECCION',        data.sedeDireccion);
+
+  // ── Nota importante ──────────────────────────────────────────────────────
+  cy -= 8;
+  const NOTE_H = 50;
+  page.drawRectangle({ x: 0, y: cy - NOTE_H, width: W, height: NOTE_H, color: CREMA });
+  page.drawLine({ start: { x: 0, y: cy }, end: { x: W, y: cy }, thickness: 1, color: SEP });
+  page.drawLine({ start: { x: 0, y: cy - NOTE_H }, end: { x: W, y: cy - NOTE_H }, thickness: 1, color: SEP });
+  // barra lateral guinda
+  page.drawRectangle({ x: 0, y: cy - NOTE_H, width: 5, height: NOTE_H, color: GUINDA });
+  page.drawText('IMPORTANTE', { x: LX, y: cy - 18, font: boldFont, size: 9, color: GUINDA });
+  page.drawText(
+    'Presentar este pase con identificacion oficial el dia del examen.',
+    { x: LX, y: cy - 34, font: regFont, size: 9, color: DARK }
+  );
+
+  // ── Footer ────────────────────────────────────────────────────────────────
+  page.drawRectangle({ x: 0, y: 0, width: W, height: 40, color: GUINDA });
+  page.drawText(
+    'Gobierno del Estado de Michoacan  -  IEMSyS  -  Prepa Abierta Michoacan',
+    { x: 40, y: 15, font: regFont, size: 8, color: PINK }
+  );
+
+  return Buffer.from(await pdoc.save());
+}
+
 // ─── GET /estudiante/convocatoria/pase/:inscripcionId/pdf ─────────────────
 router.get('/convocatoria/pase/:inscripcionId/pdf', async (req, res) => {
   const userId = req.user!.userId;
@@ -1511,36 +1633,23 @@ router.get('/convocatoria/pase/:inscripcionId/pdf', async (req, res) => {
   const qrData = { folio: row.folio, estudianteId: userId, etapa: row.etapaClave, moduloId: row.moduloId, sedeId: row.sedeId };
   const qrPayload = firmarQrPayload(qrData);
 
-  const titulo = `PASE DE EXAMEN PROVISIONAL - ${row.folio}`;
-  const contenido = [
-    titulo,
-    '',
-    `Alumno: ${row.estudianteNombre}`,
-    `CURP: ${row.estudianteCurp ?? ''}`,
-    '',
-    `Modulo: ${row.moduloNumero} - ${row.moduloNombre}`,
-    `Fecha de examen: ${fechaExamen}`,
-    `Dia: ${row.dia === 'sabado' ? 'Sabado' : 'Domingo'}`,
-    `Hora: ${row.hora}`,
-    '',
-    `Sede: ${row.sedeNombre}`,
-    `Direccion: ${row.sedeDireccion}`,
-    '',
-    `Folio: ${row.folio}`,
-    `Etapa: ${row.etapaClave}`,
-    '',
-    'CODIGO QR (presentar en sede):',
+  const pdfBuffer = await generarPasePDF({
+    folio:            row.folio,
+    estudianteNombre: row.estudianteNombre,
+    estudianteCurp:   row.estudianteCurp ?? null,
+    moduloNumero:     row.moduloNumero,
+    moduloNombre:     row.moduloNombre,
+    fechaExamen,
+    dia:              row.dia,
+    hora:             row.hora,
+    sedeNombre:       row.sedeNombre,
+    sedeDireccion:    row.sedeDireccion,
     qrPayload,
-    '',
-    'IEMSyS - Prepa Abierta Michoacan',
-    'Este pase es PROVISIONAL. Presentarlo el dia del examen.',
-  ].join('\n');
-
-  const pdfBuffer = generarPdfStub(contenido);
+  });
 
   const safeForename = row.folio.replace(/[^a-zA-Z0-9-]/g, '');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="pase-${safeForename}.pdf"`);
+  res.setHeader('Content-Disposition', `inline; filename="pase-${safeForename}.pdf"`);
   res.setHeader('Content-Length', pdfBuffer.length);
   res.send(pdfBuffer);
 });
