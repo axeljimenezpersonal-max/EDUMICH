@@ -434,28 +434,13 @@ router.post('/cambiar-password', async (req, res) => {
 });
 
 // ─── GET /estudiante/modulos ──────────────────────────────────────────────
+// Devuelve los 21 módulos del Plan Modular con el progreso del alumno.
+// Todos los alumnos de Prepa Abierta cursan los 21 módulos; no se filtra
+// por inscripcion_modulos porque el plan es el mismo para todos.
 router.get('/modulos', async (req, res) => {
   const userId = req.user!.userId;
 
-  // Check if the student has a plan assigned (via inscripcion_modulos)
-  const [insc] = await db
-    .select({ id: inscripciones.id })
-    .from(inscripciones)
-    .where(eq(inscripciones.estudianteId, userId))
-    .orderBy(desc(inscripciones.createdAt))
-    .limit(1);
-
-  const planAsignado: number[] = insc
-    ? (await db
-        .select({ moduloId: inscripcionModulos.moduloId })
-        .from(inscripcionModulos)
-        .where(eq(inscripcionModulos.inscripcionId, insc.id))
-      ).map((r) => r.moduloId)
-    : [];
-
-  const hasPlan = planAsignado.length > 0;
-
-  const query = db
+  const rows = await db
     .select({
       id: modulos.id,
       numero: modulos.numero,
@@ -477,10 +462,6 @@ router.get('/modulos', async (req, res) => {
     )
     .orderBy(modulos.numero);
 
-  const rows = hasPlan
-    ? await query.where(inArray(modulos.id, planAsignado))
-    : await query;
-
   const aprobados = rows.filter((r) => r.estado === 'aprobado').length;
   const enCurso = rows.filter((r) => r.estado === 'en_curso').length;
   const totalQuizzes = rows.reduce((s, r) => s + (r.intentosQuiz ?? 0), 0);
@@ -491,7 +472,7 @@ router.get('/modulos', async (req, res) => {
       : 0;
 
   res.json({
-    planAsignado: hasPlan,
+    planAsignado: true, // siempre true: plan modular = los 21 módulos
     modulos: rows.map((r) => ({
       id: r.id,
       numero: r.numero,
