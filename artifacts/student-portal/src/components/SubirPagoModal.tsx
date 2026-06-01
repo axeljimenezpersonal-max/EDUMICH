@@ -59,7 +59,7 @@ export default function SubirPagoModal({ open, onClose, estudianteId, onSuccess 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const file = fileRef.current?.files?.[0];
-    if (!file) { setError('Selecciona el comprobante PDF'); return; }
+    if (!file) { setError('Selecciona el comprobante (PDF o imagen)'); return; }
     if (!monto || isNaN(parseFloat(monto)) || parseFloat(monto) <= 0) {
       setError('Ingresa un monto válido'); return;
     }
@@ -226,7 +226,7 @@ export default function SubirPagoModal({ open, onClose, estudianteId, onSuccess 
               {/* Comprobante PDF */}
               <div>
                 <label className="block text-xs font-semibold text-stone-600 mb-1 uppercase tracking-widest">
-                  Comprobante PDF <span className="text-red-500">*</span>
+                  Comprobante (PDF o imagen) <span className="text-red-500">*</span>
                 </label>
                 {fileName ? (
                   <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-md px-3 py-2">
@@ -247,13 +247,13 @@ export default function SubirPagoModal({ open, onClose, estudianteId, onSuccess 
                   >
                     <Upload size={22} className="mx-auto text-stone-400 mb-2" />
                     <div className="text-sm font-medium text-stone-600">Arrastra el comprobante aquí</div>
-                    <div className="text-[10px] text-stone-400 mt-1">PDF · máx 10 MB</div>
+                    <div className="text-[10px] text-stone-400 mt-1">PDF, JPG, PNG · máx 10 MB</div>
                   </div>
                 )}
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="application/pdf"
+                  accept="application/pdf,image/*"
                   className="hidden"
                   onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
                 />

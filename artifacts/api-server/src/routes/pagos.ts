@@ -43,8 +43,9 @@ const uploadPago = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') {
-      cb(new Error('Solo se aceptan archivos PDF'));
+    const allowed = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/heic', 'image/heif'];
+    if (!allowed.includes(file.mimetype)) {
+      cb(new Error('Solo se aceptan PDF o imágenes (JPG, PNG, WEBP)'));
       return;
     }
     cb(null, true);
@@ -229,9 +230,16 @@ router.get('/:pagoId/comprobante', async (req, res) => {
     res.status(404).json({ error: 'Archivo no disponible' }); return;
   }
 
-  const safe = (pago.nombreComprobante ?? 'comprobante.pdf')
-    .replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'comprobante.pdf';
-  res.setHeader('Content-Type', 'application/pdf');
+  const safe = (pago.nombreComprobante ?? 'comprobante')
+    .replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'comprobante';
+  const mime = pago.rutaComprobante.match(/\.(jpe?g)$/i)
+    ? 'image/jpeg'
+    : pago.rutaComprobante.match(/\.png$/i)
+    ? 'image/png'
+    : pago.rutaComprobante.match(/\.webp$/i)
+    ? 'image/webp'
+    : 'application/pdf';
+  res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `inline; filename="${safe}"`);
   createReadStream(pago.rutaComprobante).pipe(res);
 });

@@ -214,6 +214,7 @@ function DetalleModal({
   const estado = ESTADO_CONFIG[pago.estado];
   const ini = iniciales(pago.alumnoNombre);
   const comprobanteUrl = `/api/pagos/${pago.id}/comprobante`;
+  const esImagen = /\.(jpe?g|png|webp|heic|heif)$/i.test(pago.nombreComprobante ?? '');
 
   return (
     <div
@@ -390,12 +391,23 @@ function DetalleModal({
               </a>
             </div>
             {pago.nombreComprobante ? (
-              <iframe
-                src={comprobanteUrl}
-                title="Comprobante de pago"
-                className="flex-1 w-full border-0"
-                style={{ minHeight: 0 }}
-              />
+              esImagen ? (
+                <div className="flex-1 overflow-auto flex items-start justify-center p-4">
+                  <img
+                    src={comprobanteUrl}
+                    alt="Comprobante de pago"
+                    className="max-w-full rounded-lg shadow"
+                    style={{ maxHeight: '100%', objectFit: 'contain' }}
+                  />
+                </div>
+              ) : (
+                <iframe
+                  src={comprobanteUrl}
+                  title="Comprobante de pago"
+                  className="flex-1 w-full border-0"
+                  style={{ minHeight: 0 }}
+                />
+              )
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
