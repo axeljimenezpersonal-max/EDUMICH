@@ -586,3 +586,46 @@ export interface GestorConvocatoriaResponse {
   costoExamen: number;
   pagoDerechos: GestorConvocatoriaPago | null;
 }
+
+// ── Banco de preguntas / Quiz ──────────────────────────────────────────────
+
+export type Dificultad = 'facil' | 'media' | 'alta';
+
+/** Una pregunta sin respuesta correcta (para el alumno durante el quiz) */
+export interface PreguntaQuiz {
+  id: number;
+  preguntaDocId: string;
+  unidadNum: number;
+  tema: string;
+  dificultad: Dificultad;
+  pregunta: string;
+  opcionA: string;
+  opcionB: string;
+  opcionC: string;
+  opcionD: string;
+  paraRepasar: string | null;
+}
+
+export interface QuizResponse {
+  moduloNum: number;
+  total: number;
+  preguntas: PreguntaQuiz[];
+}
+
+/** Una pregunta corregida con retroalimentación (para resultados) */
+export interface PreguntaFeedback extends PreguntaQuiz {
+  respuestaCorrecta: 'A' | 'B' | 'C' | 'D';
+  respuestaAlumno: 'A' | 'B' | 'C' | 'D' | null;
+  acerto: boolean;
+  explicacion: string;
+}
+
+export interface QuizResultado {
+  moduloNum: number;
+  total: number;
+  correctas: number;
+  incorrectas: number;
+  calificacion: number;  // 0-100
+  aprobado: boolean;
+  feedback: PreguntaFeedback[];
+}

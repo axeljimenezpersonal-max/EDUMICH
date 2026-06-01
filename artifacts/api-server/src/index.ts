@@ -23,6 +23,7 @@ import notificacionesRoutes from './routes/notificaciones';
 import reportesRoutes, { ejecutarReportesProgramados } from './routes/reportes';
 import configuracionRoutes from './routes/configuracion';
 import depuracionRoutes from './routes/depuracion';
+import bancoRoutes from './routes/banco';
 import devRoutes from './routes/dev';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
@@ -56,6 +57,7 @@ app.use('/api/notificaciones', notificacionesRoutes);
 app.use('/api/admin/reportes', reportesRoutes);
 app.use('/api/admin/configuracion', configuracionRoutes);
 app.use('/api/admin/depuracion', depuracionRoutes);
+app.use('/api/banco', bancoRoutes);
 app.use('/api/dev', devRoutes);
 
 // Cron: check programmed reports every hour

@@ -1296,3 +1296,42 @@ export const outbox = pgTable('outbox', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
   sentAt: timestamp('sent_at'),
 });
+
+// ─────────────────────────────────────────────────────────────────────────
+// Banco de preguntas — 21 módulos, exámenes aleatorios de 20 preguntas
+// ─────────────────────────────────────────────────────────────────────────
+
+export const dificultadEnum = pgEnum('dificultad', ['facil', 'media', 'alta']);
+
+export const bancoPreguntas = pgTable(
+  'banco_preguntas',
+  {
+    id: serial('id').primaryKey(),
+    preguntaDocId: varchar('pregunta_doc_id', { length: 20 }).notNull(), // e.g. M01-U1-001
+    moduloNum: integer('modulo_num').notNull(), // 1-21
+    moduloId: integer('modulo_id').references(() => modulos.id),
+    unidadNum: integer('unidad_num').notNull(), // 1, 2, 3...
+    tema: varchar('tema', { length: 300 }).notNull(),
+    dificultad: dificultadEnum('dificultad').notNull(),
+    pregunta: text('pregunta').notNull(),
+    opcionA: text('opcion_a').notNull(),
+    opcionB: text('opcion_b').notNull(),
+    opcionC: text('opcion_c').notNull(),
+    opcionD: text('opcion_d').notNull(),
+    respuestaCorrecta: varchar('respuesta_correcta', { length: 1 }).notNull(), // A, B, C, D
+    explicacion: text('explicacion').notNull(),
+    paraRepasar: text('para_repasar'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (t) => ({
+    preguntaDocIdIdx: uniqueIndex('banco_preguntas_doc_id_idx').on(t.preguntaDocId),
+    moduloNumIdx: index('banco_preguntas_modulo_num_idx').on(t.moduloNum),
+  })
+);
+
+export const bancoPreguntas_relations = relations(bancoPreguntas, ({ one }) => ({
+  modulo: one(modulos, {
+    fields: [bancoPreguntas.moduloId],
+    references: [modulos.id],
+  }),
+}));
