@@ -11,7 +11,6 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Download,
   Printer,
   BookOpen,
 } from 'lucide-react';
@@ -92,18 +91,8 @@ export default function PaseExamen() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  const pdfUrl = `/api/estudiante/convocatoria/pase/${id}/pdf`;
-
-  function handleDescargarPDF() {
-    // Force download via anchor
-    const a = document.createElement('a');
-    a.href = pdfUrl;
-    a.download = `pase-${id}.pdf`;
-    a.click();
-  }
-
   function handleImprimir() {
-    window.open(pdfUrl, '_blank');
+    window.open(`/api/estudiante/convocatoria/pase/${id}/pdf`, '_blank');
   }
 
   if (loading) {
@@ -249,23 +238,14 @@ export default function PaseExamen() {
           </div>
         </div>
 
-        {/* Action buttons */}
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={handleDescargarPDF}
-            className="flex items-center justify-center gap-2 px-4 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Descargar PDF
-          </button>
-          <button
-            onClick={handleImprimir}
-            className="flex items-center justify-center gap-2 px-4 py-3 border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] text-sm font-semibold rounded-xl hover:bg-[var(--color-crema-100)] transition-colors"
-          >
-            <Printer className="w-4 h-4" />
-            Imprimir pase
-          </button>
-        </div>
+        {/* Action button */}
+        <button
+          onClick={handleImprimir}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] transition-colors"
+        >
+          <Printer className="w-4 h-4" />
+          Imprimir pase
+        </button>
 
         {/* Ver cómo llegar */}
         <a
