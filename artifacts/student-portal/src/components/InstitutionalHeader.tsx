@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { LogOut, User, Bell, ChevronRight } from 'lucide-react';
+import { LogOut, User, Bell, ChevronRight, X, Check } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Props {
@@ -84,6 +84,18 @@ function HeaderNotifBell() {
     setNoLeidas(prev => Math.max(0, prev - 1));
   }
 
+  function borrarNotif(id: number, eraNoLeida: boolean) {
+    api.delete(`/notificaciones/${id}`).catch(() => {});
+    setNotifs(prev => prev.filter(n => n.id !== id));
+    if (eraNoLeida) setNoLeidas(prev => Math.max(0, prev - 1));
+  }
+
+  function marcarTodas() {
+    api.put('/notificaciones/leer-todas', {}).catch(() => {});
+    setNotifs(prev => prev.map(n => ({ ...n, leida: true })));
+    setNoLeidas(0);
+  }
+
   return (
     <div ref={ref} style={{ position: 'relative' }}>
       <button
@@ -132,10 +144,24 @@ function HeaderNotifBell() {
             overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#2a2a2a' }}>
               Notificaciones {noLeidas > 0 && <span style={{ color: 'var(--color-guinda-700)' }}>({noLeidas})</span>}
             </span>
+            {noLeidas > 0 && (
+              <button
+                onClick={(e) => { e.stopPropagation(); marcarTodas(); }}
+                title="Marcar todas como leídas"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 3,
+                  fontSize: 11, color: '#78716c', background: 'none',
+                  border: '1px solid #e7e5e4', borderRadius: 5,
+                  padding: '3px 8px', cursor: 'pointer',
+                }}
+              >
+                <Check size={10} /> Leer todas
+              </button>
+            )}
           </div>
 
           <div style={{ maxHeight: 280, overflowY: 'auto' }}>
@@ -157,15 +183,42 @@ function HeaderNotifBell() {
                     padding: '10px 14px',
                     background: n.leida ? 'transparent' : '#fdf8f0',
                     borderBottom: '1px solid #f5f5f4',
-                    cursor: 'pointer',
+                    cursor: n.enlace ? 'pointer' : 'default',
+                    position: 'relative',
                   }}
                 >
                   <div style={{ width: 3, borderRadius: 2, background: PRIORIDAD_COLOR[n.prioridad] ?? '#a8a29e', alignSelf: 'stretch', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: '#2a2a2a', lineHeight: 1.3 }}>{n.titulo}</div>
+                    <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: '#2a2a2a', lineHeight: 1.3, paddingRight: 20 }}>{n.titulo}</div>
                     <div style={{ fontSize: 11, color: '#78716c', marginTop: 2, lineHeight: 1.4 }}>{n.cuerpo}</div>
                     <div style={{ fontSize: 10, color: '#a8a29e', marginTop: 3 }}>{tiempoRelativo(n.creadaEn)}</div>
                   </div>
+                  {/* Dismiss button */}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); borrarNotif(n.id, !n.leida); }}
+                    title="Quitar notificación"
+                    style={{
+                      position: 'absolute',
+                      top: 8,
+                      right: 10,
+                      width: 18,
+                      height: 18,
+                      borderRadius: 4,
+                      border: 'none',
+                      background: 'transparent',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#a8a29e',
+                      padding: 0,
+                      opacity: 0.7,
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.opacity = '1')}
+                    onMouseLeave={e => (e.currentTarget.style.opacity = '0.7')}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
               ))
             )}
