@@ -230,11 +230,18 @@ export interface Aviso {
 // ── Módulos ─────────────────────────────────────────────────────────────
 export type ProgresoEstado = 'no_iniciado' | 'en_curso' | 'aprobado';
 
+export interface TemaDebil {
+  tema: string;
+  correctas: number;
+  total: number;
+}
+
 export interface ProgresoModulo {
   estado: ProgresoEstado;
   intentosQuiz: number;
   mejorCalificacion: number | null;
   ultimaCalificacion: number | null;
+  temasDebiles?: TemaDebil[] | null;
 }
 
 export interface ModuloListItem {

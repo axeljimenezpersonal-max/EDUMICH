@@ -681,6 +681,7 @@ export const estudiantesModulosProgreso = pgTable(
     mejorCalificacion: integer('mejor_calificacion'),
     ultimaCalificacion: integer('ultima_calificacion'),
     ultimaActividad: timestamp('ultima_actividad'),
+    temasDebiles: jsonb('temas_debiles').$type<{ tema: string; correctas: number; total: number }[]>(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

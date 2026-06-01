@@ -27,6 +27,7 @@ import bancoRoutes from './routes/banco';
 import devRoutes from './routes/dev';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
+import { runStartupMigrations } from './db';
 
 const app = express();
 
@@ -93,8 +94,10 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 });
 
 const PORT = Number(process.env.PORT) || 3001;
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Prepa Abierta Michoacán API escuchando en :${PORT}`);
+  await runStartupMigrations();
+  console.log('✅ Migraciones de arranque completadas');
 });
 
 export default app;

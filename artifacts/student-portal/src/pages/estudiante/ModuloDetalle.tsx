@@ -16,6 +16,7 @@ import {
   type UnidadDetalle,
   type ContactosResponse,
   type ProgresoEstado,
+  type TemaDebil,
 } from '../../lib/api';
 
 const NIVEL_LABELS: Record<number, string> = {
@@ -27,13 +28,13 @@ const NIVEL_LABELS: Record<number, string> = {
 
 const STATUS_STYLE: Record<ProgresoEstado, string> = {
   no_iniciado: 'bg-stone-100 text-stone-600',
-  en_curso: 'bg-blue-100 text-blue-700',
+  en_curso: 'bg-amber-100 text-amber-700',
   aprobado: 'bg-green-100 text-green-700',
 };
 
 const STATUS_LABEL: Record<ProgresoEstado, string> = {
   no_iniciado: 'Sin iniciar',
-  en_curso: 'En curso',
+  en_curso: 'Sin aprobar',
   aprobado: 'Aprobado',
 };
 
@@ -86,6 +87,127 @@ function UnidadCard({ unidad }: { unidad: UnidadDetalle }) {
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Componente: Áreas de oportunidad ────────────────────────────────────
+function BarraProgreso({ pct }: { pct: number }) {
+  const color = pct >= 70 ? 'bg-green-500' : pct >= 40 ? 'bg-amber-500' : 'bg-red-500';
+  return (
+    <div className="h-2 bg-stone-100 rounded-full overflow-hidden">
+      <div className={`h-2 rounded-full transition-all duration-500 ${color}`} style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+
+function AreasOportunidadPanel({
+  temasDebiles, intentos, onEvaluar, tienePreguntas,
+}: {
+  temasDebiles: TemaDebil[] | null;
+  intentos: number;
+  onEvaluar: () => void;
+  tienePreguntas: boolean;
+}) {
+  if (!tienePreguntas) {
+    return (
+      <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
+        <Target size={32} className="mx-auto mb-3 text-stone-300" />
+        <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">Áreas de oportunidad</h3>
+        <p className="text-stone-500 text-sm max-w-sm mx-auto">
+          El banco de preguntas para este módulo estará disponible próximamente.
+        </p>
+      </div>
+    );
+  }
+
+  if (intentos === 0 || !temasDebiles) {
+    return (
+      <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
+        <Target size={32} className="mx-auto mb-3 text-stone-300" />
+        <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">Áreas de oportunidad</h3>
+        <p className="text-stone-500 text-sm max-w-sm mx-auto mb-5">
+          Completa una evaluación para descubrir en qué temas tienes oportunidad de mejorar.
+        </p>
+        <button onClick={onEvaluar} className="gov-btn-primary">
+          <Target size={14} className="inline mr-2" />
+          Hacer primera evaluación
+        </button>
+      </div>
+    );
+  }
+
+  if (temasDebiles.length === 0) {
+    return (
+      <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
+        <Target size={32} className="mx-auto mb-3 text-green-500" />
+        <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">¡Excelente dominio!</h3>
+        <p className="text-stone-500 text-sm max-w-sm mx-auto">
+          En tu último intento respondiste correctamente todos los temas. Sigue así.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Header explicativo */}
+      <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 flex items-start gap-3">
+        <Target size={18} className="text-amber-600 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-sm font-semibold text-amber-800">
+            {temasDebiles.length} {temasDebiles.length === 1 ? 'tema' : 'temas'} para reforzar
+          </p>
+          <p className="text-xs text-amber-700 mt-0.5">
+            Basado en tu último intento. Estudia estos temas y vuelve a hacer la evaluación.
+          </p>
+        </div>
+      </div>
+
+      {/* Lista de temas débiles */}
+      <div className="bg-white border border-stone-200 rounded-lg overflow-hidden">
+        {temasDebiles.map((t, i) => {
+          const pct = Math.round((t.correctas / t.total) * 100);
+          return (
+            <div
+              key={i}
+              className={`px-5 py-4 flex items-center gap-4 ${i < temasDebiles.length - 1 ? 'border-b border-stone-100' : ''}`}
+            >
+              {/* Rank */}
+              <div className="w-6 h-6 rounded-full bg-stone-100 flex items-center justify-center text-xs font-bold text-stone-500 shrink-0">
+                {i + 1}
+              </div>
+              {/* Tema */}
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-stone-800 truncate">{t.tema}</p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <div className="flex-1">
+                    <BarraProgreso pct={pct} />
+                  </div>
+                  <span className="text-xs text-stone-500 shrink-0">
+                    {t.correctas}/{t.total} correctas
+                  </span>
+                </div>
+              </div>
+              {/* Porcentaje */}
+              <div className={`text-sm font-bold shrink-0 ${pct >= 70 ? 'text-green-600' : pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                {pct}%
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* CTA reintentar */}
+      <div className="text-center">
+        <button onClick={onEvaluar} className="gov-btn-primary">
+          <Target size={14} className="inline mr-2" />
+          Practicar de nuevo
+        </button>
+        <p className="text-xs text-stone-400 mt-2">
+          El análisis se actualiza con cada intento
+        </p>
+      </div>
     </div>
   );
 }
@@ -308,16 +430,12 @@ export default function ModuloDetalle() {
 
           {/* Tab: Áreas de oportunidad */}
           {tab === 'areas' && (
-            <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
-              <Target size={32} className="mx-auto mb-3 text-stone-300" />
-              <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">
-                Áreas de oportunidad
-              </h3>
-              <p className="text-stone-500 text-sm max-w-sm mx-auto">
-                Aún no has hecho evaluaciones en este módulo. Cuando empieces a practicar, aquí verás
-                los temas en los que te conviene reforzar.
-              </p>
-            </div>
+            <AreasOportunidadPanel
+              temasDebiles={progreso.temasDebiles ?? null}
+              intentos={progreso.intentosQuiz}
+              onEvaluar={() => navigate(`/estudiante/modulos/${moduloId}/evaluacion`)}
+              tienePreguntas={!!modulo.totalPreguntas}
+            />
           )}
         </div>
 

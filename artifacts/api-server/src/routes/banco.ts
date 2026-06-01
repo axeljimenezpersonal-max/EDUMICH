@@ -167,6 +167,21 @@ router.post('/modulo/:num/quiz/verificar', async (req, res) => {
 
       const nuevaMejor = Math.max(calificacion, progExist?.mejorCalificacion ?? 0);
 
+      // Calcular temas débiles (temas con al menos 1 respuesta incorrecta)
+      const temaMap = new Map<string, { correctas: number; total: number }>();
+      for (const f of feedback) {
+        const key = f.tema || 'General';
+        const entry = temaMap.get(key) ?? { correctas: 0, total: 0 };
+        entry.total++;
+        if (f.acerto) entry.correctas++;
+        temaMap.set(key, entry);
+      }
+      // Solo incluir temas donde no fue 100% correcto, ordenar de peor a mejor
+      const temasDebiles = Array.from(temaMap.entries())
+        .filter(([, v]) => v.correctas < v.total)
+        .sort((a, b) => (a[1].correctas / a[1].total) - (b[1].correctas / b[1].total))
+        .map(([tema, v]) => ({ tema, correctas: v.correctas, total: v.total }));
+
       if (progExist) {
         await db
           .update(estudiantesModulosProgreso)
@@ -175,6 +190,7 @@ router.post('/modulo/:num/quiz/verificar', async (req, res) => {
             ultimaCalificacion: calificacion,
             mejorCalificacion: nuevaMejor,
             estado: nuevoEstado,
+            temasDebiles: temasDebiles.length > 0 ? temasDebiles : null,
             updatedAt: new Date(),
           })
           .where(
@@ -191,6 +207,7 @@ router.post('/modulo/:num/quiz/verificar', async (req, res) => {
           intentosQuiz: 1,
           ultimaCalificacion: calificacion,
           mejorCalificacion: calificacion,
+          temasDebiles: temasDebiles.length > 0 ? temasDebiles : null,
         });
       }
     }

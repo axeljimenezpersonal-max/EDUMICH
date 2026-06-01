@@ -675,6 +675,7 @@ router.get('/modulos/:moduloId', async (req, res) => {
       intentosQuiz: progreso?.intentosQuiz ?? 0,
       mejorCalificacion: progreso?.mejorCalificacion ?? null,
       ultimaCalificacion: progreso?.ultimaCalificacion ?? null,
+      temasDebiles: (progreso?.temasDebiles as { tema: string; correctas: number; total: number }[] | null) ?? null,
     },
     intentosRecientes: [],
     areasOportunidad: [],
