@@ -20,7 +20,6 @@ import {
   Download,
   FileText,
   Lock,
-  BookOpen,
   CalendarCheck,
   Clock,
   AlertTriangle,
@@ -145,41 +144,6 @@ export default function AlumnoDetalle() {
   function showToast(msg: string, type: 'success' | 'error', detail?: string) {
     setToast({ msg, type, detail });
     setTimeout(() => setToast(null), 4000);
-  }
-
-  // Aprobar / rechazar documentos
-  const [modalAprobarDoc, setModalAprobarDoc] = useState<{ id: number; tipo: string; nombre: string } | null>(null);
-  const [modalRechazarDoc, setModalRechazarDoc] = useState<{ id: number; tipo: string; nombre: string } | null>(null);
-  const [docActionLoading, setDocActionLoading] = useState(false);
-  const [motivoRechazoGestor, setMotivoRechazoGestor] = useState('');
-
-  async function handleAprobarDoc(docId: number) {
-    setDocActionLoading(true);
-    try {
-      await api.patch(`/gestor/expediente-documentos/${docId}/aprobar`, {});
-      showToast('Documento aprobado', 'success');
-      setModalAprobarDoc(null);
-      await reloadExpediente();
-    } catch (e) {
-      showToast((e as Error).message || 'Error al aprobar', 'error');
-    } finally {
-      setDocActionLoading(false);
-    }
-  }
-
-  async function handleRechazarDoc(docId: number, motivo: string) {
-    setDocActionLoading(true);
-    try {
-      await api.patch(`/gestor/expediente-documentos/${docId}/rechazar`, { motivoRechazo: motivo });
-      showToast('Documento rechazado', 'error');
-      setModalRechazarDoc(null);
-      setMotivoRechazoGestor('');
-      await reloadExpediente();
-    } catch (e) {
-      showToast((e as Error).message || 'Error al rechazar', 'error');
-    } finally {
-      setDocActionLoading(false);
-    }
   }
 
   // Close menu on outside click
@@ -749,24 +713,9 @@ export default function AlumnoDetalle() {
                         onUploaded={reloadExpediente}
                       />
                       {doc && doc.estado === 'pendiente_revision' && (
-                        <div className="flex items-center gap-2 mt-1.5 pl-2">
-                          <span className="text-[11px] text-amber-700 font-semibold uppercase tracking-wide">
-                            Pendiente de aprobación
-                          </span>
-                          <button
-                            onClick={() => setModalAprobarDoc({ id: doc.id, tipo: def.tipo, nombre: doc.nombreOriginal })}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg"
-                            style={{ color: '#2d7d46', border: '1px solid #86efac', background: '#f0fdf4' }}
-                          >
-                            <CheckCircle2 size={11} /> Aprobar
-                          </button>
-                          <button
-                            onClick={() => { setMotivoRechazoGestor(''); setModalRechazarDoc({ id: doc.id, tipo: def.tipo, nombre: doc.nombreOriginal }); }}
-                            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg"
-                            style={{ color: '#b91c1c', border: '1px solid #fca5a5', background: 'white' }}
-                          >
-                            <AlertCircle size={11} /> Rechazar
-                          </button>
+                        <div className="flex items-center gap-1.5 mt-1.5 pl-2 text-[11px] text-amber-700 font-semibold uppercase tracking-wide">
+                          <Clock size={11} className="shrink-0" />
+                          En revisión por la administración
                         </div>
                       )}
                     </div>
@@ -911,93 +860,6 @@ export default function AlumnoDetalle() {
         </div>
       )}
 
-      {/* ── Modal: aprobar documento ── */}
-      {modalAprobarDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
-                <CheckCircle2 size={20} className="text-green-700" />
-              </div>
-              <div>
-                <h3 className="font-serif text-lg font-bold text-stone-900">¿Aprobar este documento?</h3>
-                <p className="text-xs text-stone-500">Se contabilizará como completo en el expediente.</p>
-              </div>
-            </div>
-            <div className="bg-stone-50 rounded-md p-3 mb-5">
-              <div className="text-sm font-semibold text-stone-800">{modalAprobarDoc.tipo}</div>
-              <div className="text-xs text-stone-500">{modalAprobarDoc.nombre}</div>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setModalAprobarDoc(null)} className="gov-btn-secondary">Cancelar</button>
-              <button
-                onClick={() => handleAprobarDoc(modalAprobarDoc.id)}
-                disabled={docActionLoading}
-                className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-60"
-                style={{ background: '#2d7d46', border: 'none' }}
-              >
-                {docActionLoading ? <Loader2 size={13} className="animate-spin" /> : null}
-                Sí, aprobar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Modal: rechazar documento ── */}
-      {modalRechazarDoc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
-                <AlertCircle size={20} className="text-red-700" />
-              </div>
-              <div>
-                <h3 className="font-serif text-lg font-bold text-stone-900">Rechazar documento</h3>
-                <p className="text-xs text-stone-500">{modalRechazarDoc.tipo} · {modalRechazarDoc.nombre}</p>
-              </div>
-            </div>
-            <div className="mb-3">
-              <label className="gov-label">Motivo del rechazo <span className="text-red-600">*</span></label>
-              <textarea
-                value={motivoRechazoGestor}
-                onChange={(e) => setMotivoRechazoGestor(e.target.value)}
-                placeholder="El alumno verá esta razón para volver a subir el documento…"
-                rows={3}
-                className="gov-input resize-none"
-              />
-            </div>
-            <div className="flex flex-wrap gap-1.5 mb-4">
-              {['Documento ilegible', 'Documento incompleto', 'Tipo incorrecto', 'Documento vencido'].map((m) => (
-                <button
-                  key={m}
-                  onClick={() => setMotivoRechazoGestor(m)}
-                  className="text-[11px] px-2.5 py-1 border rounded-full"
-                  style={{
-                    border: motivoRechazoGestor === m ? '1px solid #b91c1c' : '1px solid #d6d3d1',
-                    background: motivoRechazoGestor === m ? '#fee2e2' : 'white',
-                    color: motivoRechazoGestor === m ? '#b91c1c' : '#44403c',
-                  }}
-                >
-                  {m}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-2 justify-end">
-              <button onClick={() => setModalRechazarDoc(null)} className="gov-btn-secondary">Cancelar</button>
-              <button
-                onClick={() => motivoRechazoGestor.trim() && handleRechazarDoc(modalRechazarDoc.id, motivoRechazoGestor.trim())}
-                disabled={docActionLoading || !motivoRechazoGestor.trim()}
-                className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-60"
-                style={{ background: '#b91c1c', border: 'none' }}
-              >
-                {docActionLoading ? <Loader2 size={13} className="animate-spin" /> : null}
-                Rechazar documento
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </GestorLayout>
   );
 }
