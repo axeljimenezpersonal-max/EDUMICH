@@ -245,7 +245,7 @@ export default function MisModulos() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {items.map((m) =>
-                    desbloqueado
+                    (desbloqueado && m.inscritoExamen)
                       ? <ModuloCard key={m.id} modulo={m} />
                       : <ModuloCardLocked key={m.id} modulo={m} />
                   )}
@@ -258,7 +258,7 @@ export default function MisModulos() {
               <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sinNivel.map((m) =>
-                  desbloqueado
+                  (desbloqueado && m.inscritoExamen)
                     ? <ModuloCard key={m.id} modulo={m} />
                     : <ModuloCardLocked key={m.id} modulo={m} />
                 )}
