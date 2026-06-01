@@ -169,6 +169,19 @@ export interface SiguientePaso {
   urgencia: 'baja' | 'media' | 'alta';
 }
 
+export interface ExamenInscritoDashboard {
+  id: number;
+  folio: string;
+  estado: string;
+  moduloNumero: number;
+  moduloNombre: string;
+  fechaExamen: string | null;
+  dia: string;
+  hora: string;
+  sedeNombre: string;
+  etapaClave: string;
+}
+
 export interface DashboardEstudiante {
   estudiante: {
     nombreCompleto: string;
@@ -201,6 +214,7 @@ export interface DashboardEstudiante {
     diasRestantes: number;
     diasInactivo: number;
   } | null;
+  examenesInscritos: ExamenInscritoDashboard[];
 }
 
 export interface Aviso {

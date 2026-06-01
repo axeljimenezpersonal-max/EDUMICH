@@ -20,9 +20,11 @@ import {
   Download,
   CalendarClock,
   BadgeCheck,
+  MapPin,
+  CalendarCheck,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { api, type DashboardEstudiante, type Aviso, type ContactosResponse } from '../../lib/api';
+import { api, type DashboardEstudiante, type Aviso, type ContactosResponse, type ExamenInscritoDashboard } from '../../lib/api';
 
 interface AnuncioItem {
   id: number;
@@ -300,32 +302,32 @@ export default function EstudianteDashboard() {
               </div>
             )}
 
-            {/* ── Matrícula oficial DGB ── */}
+            {/* ── Matrícula ── */}
             {data.matriculaOficialDGB && (
               <div style={{ background: 'linear-gradient(160deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #86efac', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ padding: '16px 18px 14px', flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+                <div style={{ padding: '18px 20px 16px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 14 }}>
                     <div style={{ width: 34, height: 34, borderRadius: 9, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <Award size={16} style={{ color: '#16a34a' }} />
                     </div>
                     <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#15803d', lineHeight: 1.3 }}>
-                      Matrícula<br />oficial DGB
+                      Matrícula
                     </span>
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#15803d', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 22, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#15803d', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 8 }}>
                     {data.matriculaOficialDGB}
                   </div>
-                  <div style={{ fontSize: 11, color: '#4ade80', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4ade80', display: 'inline-block', flexShrink: 0 }} />
+                  <div style={{ fontSize: 11, color: '#16a34a', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 7, height: 7, borderRadius: 999, background: '#4ade80', display: 'inline-block', flexShrink: 0 }} />
                     Inscripción confirmada · SEP-DGB
                   </div>
                 </div>
-                <div style={{ borderTop: '1px solid #bbf7d0', padding: '10px 18px' }}>
+                <div style={{ borderTop: '1px solid #bbf7d0', padding: '12px 20px' }}>
                   <a
                     href="/api/alumno/ficha-registro"
                     target="_blank"
                     rel="noopener"
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
                   >
                     <Download size={13} /> Ficha de registro
                   </a>
@@ -363,6 +365,92 @@ export default function EstudianteDashboard() {
               </div>
             )}
 
+          </div>
+        )}
+
+        {/* ── Módulos inscritos en convocatoria ── */}
+        {data.examenesInscritos && data.examenesInscritos.length > 0 && (
+          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarCheck size={15} className="text-[var(--color-guinda-700)]" />
+                <span className="text-xs font-semibold uppercase tracking-widest text-stone-500">
+                  Mis exámenes inscritos
+                </span>
+              </div>
+              <Link
+                href="/estudiante/convocatoria"
+                className="text-xs text-[var(--color-guinda-700)] hover:underline flex items-center gap-1"
+              >
+                Ver detalle <ChevronRight size={12} />
+              </Link>
+            </div>
+
+            {/* Etapa / convocatoria */}
+            <div className="px-5 py-3 bg-[var(--color-crema-100)] border-b border-stone-100">
+              <span className="text-xs text-stone-500">Convocatoria: </span>
+              <span className="text-xs font-semibold text-stone-700">
+                {data.examenesInscritos[0].etapaClave}
+              </span>
+            </div>
+
+            <div className="divide-y divide-stone-100">
+              {data.examenesInscritos.map((ex) => {
+                const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+                let fechaStr = '—';
+                if (ex.fechaExamen) {
+                  const [y, m, d] = ex.fechaExamen.split('-').map(Number);
+                  fechaStr = `${d} ${MESES[m - 1]} ${y}`;
+                }
+                const estadoColor: Record<string, string> = {
+                  inscrito:        'bg-blue-50 text-blue-700',
+                  pase_descargado: 'bg-sky-50 text-sky-700',
+                  pase_validado:   'bg-green-50 text-green-700',
+                  aprobado:        'bg-emerald-50 text-emerald-700',
+                  reprobado:       'bg-red-50 text-red-700',
+                };
+                const estadoLabel: Record<string, string> = {
+                  inscrito:        'Inscrito',
+                  pase_descargado: 'Pase descargado',
+                  pase_validado:   'Validado en sede',
+                  aprobado:        'Aprobado',
+                  reprobado:       'No aprobado',
+                };
+                return (
+                  <Link key={ex.id} href={`/estudiante/convocatoria/pase/${ex.id}`}>
+                    <div className="px-5 py-3.5 flex items-center gap-4 hover:bg-stone-50 transition-colors cursor-pointer">
+                      {/* Número módulo */}
+                      <div className="w-9 h-9 rounded-lg bg-[var(--color-guinda-50)] flex items-center justify-center flex-shrink-0 border border-[var(--color-guinda-100)]">
+                        <span className="text-xs font-bold text-[var(--color-guinda-700)]">M{ex.moduloNumero}</span>
+                      </div>
+
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-stone-900 truncate">{ex.moduloNombre}</div>
+                        <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                          <span className="text-xs text-stone-500 flex items-center gap-1">
+                            <Clock size={10} />
+                            {ex.hora} hrs · {ex.dia === 'sabado' ? 'Sábado' : 'Domingo'} {fechaStr}
+                          </span>
+                          <span className="text-xs text-stone-500 flex items-center gap-1">
+                            <MapPin size={10} />
+                            {ex.sedeNombre}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Estado */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${estadoColor[ex.estado] ?? 'bg-stone-100 text-stone-600'}`}>
+                          {estadoLabel[ex.estado] ?? ex.estado}
+                        </span>
+                        <ChevronRight size={13} className="text-stone-300" />
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
         )}
 

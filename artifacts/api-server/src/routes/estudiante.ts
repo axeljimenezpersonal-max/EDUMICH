@@ -252,6 +252,29 @@ router.get('/dashboard', async (req, res) => {
     });
   }
 
+  // Exámenes inscritos (convocatoria activa)
+  const examenesInscritos = await db
+    .select({
+      id: examenesInscripciones.id,
+      folio: examenesInscripciones.folio,
+      estado: examenesInscripciones.estado,
+      moduloNumero: modulos.numero,
+      moduloNombre: modulos.nombre,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+      sedeNombre: sedes.nombre,
+      etapaExamenSabado: convocatoriasEtapas.examenSabado,
+      etapaExamenDomingo: convocatoriasEtapas.examenDomingo,
+      etapaClave: convocatoriasEtapas.clave,
+    })
+    .from(examenesInscripciones)
+    .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
+    .innerJoin(convocatoriasModulosHorarios, eq(examenesInscripciones.horarioId, convocatoriasModulosHorarios.id))
+    .innerJoin(sedes, eq(examenesInscripciones.sedeId, sedes.id))
+    .innerJoin(convocatoriasEtapas, eq(examenesInscripciones.etapaId, convocatoriasEtapas.id))
+    .where(eq(examenesInscripciones.estudianteId, userId))
+    .orderBy(modulos.numero);
+
   res.json({
     estudiante: {
       nombreCompleto: est.nombreCompleto,
@@ -292,6 +315,18 @@ router.get('/dashboard', async (req, res) => {
     },
     siguientesPasos,
     avisosNoLeidos: Number(avisosNoLeidos),
+    examenesInscritos: examenesInscritos.map((e) => ({
+      id: e.id,
+      folio: e.folio,
+      estado: e.estado,
+      moduloNumero: e.moduloNumero,
+      moduloNombre: e.moduloNombre,
+      fechaExamen: e.dia === 'sabado' ? e.etapaExamenSabado : e.etapaExamenDomingo,
+      dia: e.dia,
+      hora: e.hora,
+      sedeNombre: e.sedeNombre,
+      etapaClave: e.etapaClave,
+    })),
   });
 });
 
