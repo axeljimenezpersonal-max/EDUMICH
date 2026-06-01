@@ -147,10 +147,12 @@ function calcEdad(fechaNacimiento: string | null): number | null {
 
 function DocRow({
   doc,
+  alumnoId,
   onAprobar,
   onRechazar,
 }: {
   doc: Documento;
+  alumnoId: number;
   onAprobar: (doc: Documento) => void;
   onRechazar: (doc: Documento) => void;
 }) {
@@ -191,7 +193,7 @@ function DocRow({
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0 mt-0.5">
         <a
-          href={`/api/admin/alumnos/${doc.tipo}/expediente/preview`}
+          href={`/api/admin/alumnos/${alumnoId}/expediente/${doc.tipo}/preview`}
           target="_blank"
           rel="noopener noreferrer"
           className="px-2.5 py-1 text-xs font-semibold border rounded-lg transition-colors"
@@ -1003,6 +1005,7 @@ export default function AdminAlumnoDetalle() {
                   <DocRow
                     key={d.id}
                     doc={d}
+                    alumnoId={alumnoId}
                     onAprobar={(doc) => setModalAprobar(doc)}
                     onRechazar={(doc) => setModalRechazar(doc)}
                   />

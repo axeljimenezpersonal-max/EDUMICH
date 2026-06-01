@@ -7,6 +7,7 @@
 import { Router } from 'express';
 import { and, eq, sql, desc, gte, count, countDistinct, isNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
+import { createReadStream, existsSync } from 'node:fs';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db } from '../db';
@@ -3412,6 +3413,62 @@ router.patch('/expediente-documentos/:id/rechazar', async (req, res) => {
   });
 
   res.json({ ok: true, documento: { id: updated.id, estado: updated.estado } });
+});
+
+// ─── Helpers: servir archivo de expediente (admin ve todos los alumnos) ───────
+const TIPOS_EXPEDIENTE_ADMIN = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'foto'] as const;
+type TipoExpedienteAdmin = (typeof TIPOS_EXPEDIENTE_ADMIN)[number];
+function esTipoExpedienteAdmin(t: string): t is TipoExpedienteAdmin {
+  return (TIPOS_EXPEDIENTE_ADMIN as readonly string[]).includes(t);
+}
+
+async function servirDocExpedienteAdmin(
+  alumnoId: number,
+  tipo: string,
+  disposition: 'inline' | 'attachment',
+  res: import('express').Response
+) {
+  if (!esTipoExpedienteAdmin(tipo)) {
+    res.status(400).json({ error: 'Tipo inválido' });
+    return;
+  }
+
+  const [doc] = await db
+    .select()
+    .from(expedienteDocumentos)
+    .where(
+      and(eq(expedienteDocumentos.estudianteId, alumnoId), eq(expedienteDocumentos.tipo, tipo))
+    );
+
+  if (!doc) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
+  if (!existsSync(doc.rutaArchivo)) {
+    res.status(404).json({ error: 'Archivo no disponible en el servidor' });
+    return;
+  }
+
+  const safe = doc.nombreOriginal.replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'documento';
+  const mime = doc.rutaArchivo.match(/\.(jpe?g)$/i)
+    ? 'image/jpeg'
+    : doc.rutaArchivo.match(/\.png$/i)
+    ? 'image/png'
+    : 'application/pdf';
+  res.setHeader('Content-Type', mime);
+  res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
+  createReadStream(doc.rutaArchivo).pipe(res);
+}
+
+// ─── GET /admin/alumnos/:id/expediente/:tipo/preview ─────────────────────────
+router.get('/alumnos/:id/expediente/:tipo/preview', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  await servirDocExpedienteAdmin(alumnoId, req.params.tipo, 'inline', res);
+});
+
+// ─── GET /admin/alumnos/:id/expediente/:tipo/descargar ────────────────────────
+router.get('/alumnos/:id/expediente/:tipo/descargar', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  await servirDocExpedienteAdmin(alumnoId, req.params.tipo, 'attachment', res);
 });
 
 // ─── Anuncios CRUD ────────────────────────────────────────────────────────────
