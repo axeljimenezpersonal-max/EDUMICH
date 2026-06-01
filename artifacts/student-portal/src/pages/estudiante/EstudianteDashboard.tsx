@@ -262,77 +262,107 @@ export default function EstudianteDashboard() {
 
         {/* Fichas PDF */}
         {(data.folioPreregistro || data.matriculaOficialDGB || data.licenciaDigital) && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 12 }}>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+
+            {/* ── Ficha de pre-registro ── */}
             {data.folioPreregistro && (
-              <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <FileText size={20} style={{ color: 'var(--color-guinda-700)' }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 2 }}>FICHA DE PRE-REGISTRO</div>
-                  <div style={{ fontSize: 17, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-guinda-700)', letterSpacing: '0.03em' }}>
+              <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px 14px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <FileText size={16} style={{ color: 'var(--color-guinda-700)' }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', lineHeight: 1.3 }}>
+                      Ficha de<br />pre-registro
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: 'var(--color-guinda-700)', letterSpacing: '0.03em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {data.folioPreregistro}
                   </div>
                   {data.preregistroVigenteHasta && (
-                    <div style={{ fontSize: 11, color: diasVigencia !== null && diasVigencia <= 0 ? '#b91c1c' : diasVigencia !== null && diasVigencia <= 3 ? '#b45309' : '#78716c', marginTop: 2 }}>
+                    <div style={{ fontSize: 11, marginTop: 5, color: diasVigencia !== null && diasVigencia <= 0 ? '#b91c1c' : diasVigencia !== null && diasVigencia <= 3 ? '#b45309' : '#78716c' }}>
                       {diasVigencia !== null && diasVigencia <= 0
-                        ? 'Vencida'
-                        : `Vigente hasta ${new Date(data.preregistroVigenteHasta + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}`}
+                        ? '⚠ Vencida'
+                        : `Vigente hasta ${new Date(data.preregistroVigenteHasta + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                     </div>
                   )}
                 </div>
-                <a
-                  href="/api/alumno/ficha-preregistro"
-                  target="_blank"
-                  rel="noopener"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--color-guinda-700)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}
-                >
-                  <Download size={13} /> Descargar
-                </a>
+                <div style={{ borderTop: '1px solid #f5f5f4', padding: '10px 18px' }}>
+                  <a
+                    href="/api/alumno/ficha-preregistro"
+                    target="_blank"
+                    rel="noopener"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'var(--color-guinda-700)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    <Download size={13} /> Descargar PDF
+                  </a>
+                </div>
               </div>
             )}
+
+            {/* ── Matrícula oficial DGB ── */}
             {data.matriculaOficialDGB && (
-              <div style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #86efac', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <Award size={20} style={{ color: '#16a34a' }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#16a34a', marginBottom: 2 }}>MATRÍCULA OFICIAL DGB</div>
-                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#15803d', letterSpacing: '0.05em' }}>
+              <div style={{ background: 'linear-gradient(160deg, #f0fdf4 0%, #ffffff 100%)', border: '1px solid #86efac', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px 14px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: '#dcfce7', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Award size={16} style={{ color: '#16a34a' }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#15803d', lineHeight: 1.3 }}>
+                      Matrícula<br />oficial DGB
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#15803d', letterSpacing: '0.05em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {data.matriculaOficialDGB}
                   </div>
-                  <div style={{ fontSize: 11, color: '#4ade80', marginTop: 2 }}>Inscripción confirmada · Asignada por SEP-DGB</div>
+                  <div style={{ fontSize: 11, color: '#4ade80', marginTop: 5, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 999, background: '#4ade80', display: 'inline-block', flexShrink: 0 }} />
+                    Inscripción confirmada · SEP-DGB
+                  </div>
                 </div>
-                <a
-                  href="/api/alumno/ficha-registro"
-                  target="_blank"
-                  rel="noopener"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0 }}
-                >
-                  <Download size={13} /> Ficha oficial
-                </a>
+                <div style={{ borderTop: '1px solid #bbf7d0', padding: '10px 18px' }}>
+                  <a
+                    href="/api/alumno/ficha-registro"
+                    target="_blank"
+                    rel="noopener"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    <Download size={13} /> Ficha de registro
+                  </a>
+                </div>
               </div>
             )}
+
+            {/* ── Credencial / licencia digital ── */}
             {data.licenciaDigital && (
-              <div style={{ background: 'linear-gradient(135deg, #7B1F3A 0%, #5C1428 100%)', border: '1px solid #9f2d4a', borderRadius: 12, padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 10, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <BadgeCheck size={20} style={{ color: '#fff' }} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.65)', marginBottom: 2 }}>IDENTIFICACIÓN DIGITAL</div>
-                  <div style={{ fontSize: 16, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#fff', letterSpacing: '0.04em' }}>
+              <div style={{ background: 'linear-gradient(150deg, #7B1F3A 0%, #5C1428 100%)', border: '1px solid #9f2d4a', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px 14px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <BadgeCheck size={16} style={{ color: '#fff' }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'rgba(255,255,255,0.7)', lineHeight: 1.3 }}>
+                      Identificación<br />digital
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, fontFamily: "'JetBrains Mono', monospace", color: '#fff', letterSpacing: '0.04em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {data.licenciaDigital}
                   </div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', marginTop: 2 }}>Emitida por IEMSyS · Prepa Abierta Michoacán</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 5 }}>
+                    Emitida por IEMSyS · Prepa Abierta Michoacán
+                  </div>
                 </div>
-                <Link
-                  href="/estudiante/identificacion"
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', flexShrink: 0, border: '1px solid rgba(255,255,255,0.25)' }}
-                >
-                  Ver →
-                </Link>
+                <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', padding: '10px 18px' }}>
+                  <Link
+                    href="/estudiante/identificacion"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none', border: '1px solid rgba(255,255,255,0.25)' }}
+                  >
+                    <BadgeCheck size={13} /> Ver credencial
+                  </Link>
+                </div>
               </div>
             )}
+
           </div>
         )}
 
