@@ -7,9 +7,9 @@
  */
 
 import { Router } from 'express';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray, sql, and } from 'drizzle-orm';
 import { db } from '../db';
-import { bancoPreguntas } from '@workspace/db/schema';
+import { bancoPreguntas, estudiantesModulosProgreso, modulos } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
 import { z } from 'zod';
 
@@ -133,6 +133,70 @@ router.post('/modulo/:num/quiz/verificar', async (req, res) => {
   const total = rows.length;
   const calificacion = Math.round((correctas / total) * 100);
   const aprobado = calificacion >= 60;
+
+  // Actualizar progreso del alumno
+  try {
+    const userId = req.user!.userId;
+    const [mod] = await db
+      .select({ id: modulos.id })
+      .from(modulos)
+      .where(eq(modulos.numero, moduloNum))
+      .limit(1);
+
+    if (mod) {
+      const [progExist] = await db
+        .select({
+          intentosQuiz: estudiantesModulosProgreso.intentosQuiz,
+          mejorCalificacion: estudiantesModulosProgreso.mejorCalificacion,
+          estado: estudiantesModulosProgreso.estado,
+        })
+        .from(estudiantesModulosProgreso)
+        .where(
+          and(
+            eq(estudiantesModulosProgreso.estudianteId, userId),
+            eq(estudiantesModulosProgreso.moduloId, mod.id)
+          )
+        );
+
+      const nuevoEstado =
+        progExist?.estado === 'aprobado'
+          ? 'aprobado'
+          : calificacion >= 60
+          ? 'aprobado'
+          : 'en_curso';
+
+      const nuevaMejor = Math.max(calificacion, progExist?.mejorCalificacion ?? 0);
+
+      if (progExist) {
+        await db
+          .update(estudiantesModulosProgreso)
+          .set({
+            intentosQuiz: (progExist.intentosQuiz ?? 0) + 1,
+            ultimaCalificacion: calificacion,
+            mejorCalificacion: nuevaMejor,
+            estado: nuevoEstado,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(estudiantesModulosProgreso.estudianteId, userId),
+              eq(estudiantesModulosProgreso.moduloId, mod.id)
+            )
+          );
+      } else {
+        await db.insert(estudiantesModulosProgreso).values({
+          estudianteId: userId,
+          moduloId: mod.id,
+          estado: nuevoEstado,
+          intentosQuiz: 1,
+          ultimaCalificacion: calificacion,
+          mejorCalificacion: calificacion,
+        });
+      }
+    }
+  } catch {
+    // No fallar el request si el tracking falla
+  }
 
   res.json({
     moduloNum,

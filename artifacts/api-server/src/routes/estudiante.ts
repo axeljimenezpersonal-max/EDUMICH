@@ -45,6 +45,7 @@ import {
   conceptosPago,
   calificaciones,
   pagos,
+  bancoPreguntas,
 } from '@workspace/db/schema';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
@@ -639,6 +640,12 @@ router.get('/modulos/:moduloId', async (req, res) => {
       )
     );
 
+  // Conteo de preguntas en el banco para este módulo
+  const [{ totalPreguntas }] = await db
+    .select({ totalPreguntas: sql<number>`COUNT(*)::int` })
+    .from(bancoPreguntas)
+    .where(eq(bancoPreguntas.moduloId, moduloId));
+
   res.json({
     modulo: {
       id: mod.id,
@@ -646,8 +653,8 @@ router.get('/modulos/:moduloId', async (req, res) => {
       nivel: mod.nivel,
       nombre: mod.nombre,
       descripcionCorta: mod.descripcion ?? null,
-      totalPreguntas: null,
-      tiempoEstimadoMin: null,
+      totalPreguntas: totalPreguntas > 0 ? totalPreguntas : null,
+      tiempoEstimadoMin: totalPreguntas > 0 ? 20 : null, // ~1 min/pregunta
     },
     unidades: unidades.map((u) => ({
       id: u.id,

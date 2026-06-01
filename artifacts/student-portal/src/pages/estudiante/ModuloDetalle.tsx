@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Link, useParams } from 'wouter';
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   type ContactosResponse,
   type ProgresoEstado,
 } from '../../lib/api';
+import { QuizModal } from './QuizModal';
 
 const NIVEL_LABELS: Record<number, string> = {
   1: 'Nivel 1 — Comunicación y bases',
@@ -99,9 +100,11 @@ export default function ModuloDetalle() {
   const [contactos, setContactos] = useState<ContactosResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('temario');
+  const [showQuiz, setShowQuiz] = useState(false);
 
-  useEffect(() => {
+  const fetchData = useCallback(() => {
     if (!moduloId) return;
+    setLoading(true);
     Promise.all([
       api.get<ModuloDetalleResponse>(`/estudiante/modulos/${moduloId}`),
       api.get<ContactosResponse>('/estudiante/contactos'),
@@ -113,6 +116,8 @@ export default function ModuloDetalle() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [moduloId]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   if (loading) {
     return (
@@ -181,14 +186,24 @@ export default function ModuloDetalle() {
             {progreso.mejorCalificacion !== null ? ` · ${progreso.mejorCalificacion}/100` : ''}
           </span>
 
-          <button
-            disabled
-            title="Disponible próximamente"
-            className="flex items-center gap-2 text-sm px-4 py-2 rounded-md bg-stone-100 text-stone-400 cursor-not-allowed"
-          >
-            <Trophy size={15} />
-            Hacer evaluación nueva
-          </button>
+          {modulo.totalPreguntas ? (
+            <button
+              onClick={() => setShowQuiz(true)}
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-md bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
+            >
+              <Trophy size={15} />
+              Hacer evaluación nueva
+            </button>
+          ) : (
+            <button
+              disabled
+              title="Banco de preguntas no disponible aún"
+              className="flex items-center gap-2 text-sm px-4 py-2 rounded-md bg-stone-100 text-stone-400 cursor-not-allowed"
+            >
+              <Trophy size={15} />
+              Hacer evaluación nueva
+            </button>
+          )}
 
           {materiales.length > 0 && (
             <a
@@ -250,19 +265,45 @@ export default function ModuloDetalle() {
           {/* Tab: Quizzes */}
           {tab === 'quizzes' && (
             <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
-              <Trophy size={32} className="mx-auto mb-3 text-stone-300" />
+              <Trophy size={32} className="mx-auto mb-3 text-[var(--color-guinda-700)]" />
               <h3 className="font-serif text-lg font-bold text-stone-700 mb-2">
-                Sistema de evaluaciones
+                Evaluación oficial del módulo
               </h3>
-              <p className="text-stone-500 text-sm mb-6">
-                Próximamente: sistema de evaluaciones con banco de preguntas oficial para este módulo.
-              </p>
-              <button
-                disabled
-                className="gov-btn-primary opacity-40 cursor-not-allowed"
-              >
-                Empezar evaluación
-              </button>
+              {modulo.totalPreguntas ? (
+                <>
+                  <p className="text-stone-500 text-sm mb-2">
+                    Banco de <span className="font-semibold text-stone-700">{modulo.totalPreguntas} preguntas</span> oficiales.
+                    El examen selecciona <span className="font-semibold text-stone-700">20 al azar</span> — apruebas con 60/100.
+                  </p>
+                  {progreso.mejorCalificacion !== null && (
+                    <p className="text-sm mb-4">
+                      Tu mejor calificación:{' '}
+                      <span className={`font-bold ${progreso.mejorCalificacion >= 60 ? 'text-green-600' : 'text-amber-600'}`}>
+                        {progreso.mejorCalificacion}/100
+                      </span>
+                      {' '}·{' '}
+                      <span className="text-stone-400">{progreso.intentosQuiz ?? 0} intento(s)</span>
+                    </p>
+                  )}
+                  <button
+                    onClick={() => setShowQuiz(true)}
+                    className="gov-btn-primary"
+                  >
+                    <Trophy size={15} className="inline mr-2" />
+                    {progreso.intentosQuiz ? 'Reintentar evaluación' : 'Empezar evaluación'}
+                  </button>
+                </>
+              ) : (
+                <p className="text-stone-500 text-sm">
+                  El banco de preguntas para este módulo estará disponible próximamente.
+                </p>
+              )}
+              {progreso.estado === 'aprobado' && (
+                <div className="mt-4 inline-flex items-center gap-1.5 text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded-full">
+                  <Trophy size={13} />
+                  Módulo aprobado
+                </div>
+              )}
             </div>
           )}
 
@@ -345,6 +386,16 @@ export default function ModuloDetalle() {
           )}
         </div>
       </div>
+
+      {/* Quiz Modal */}
+      {showQuiz && (
+        <QuizModal
+          moduloNum={modulo.numero}
+          moduloNombre={modulo.nombre}
+          onClose={() => setShowQuiz(false)}
+          onAprobado={() => { setShowQuiz(false); fetchData(); }}
+        />
+      )}
     </EstudianteLayout>
   );
 }
