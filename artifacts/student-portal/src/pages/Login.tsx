@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
-import { GraduationCap, Lock, Mail, Loader2, Edit3, UserPlus, Zap } from 'lucide-react';
+import { GraduationCap, Lock, Mail, Loader2, Edit3, Zap } from 'lucide-react';
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -227,33 +227,21 @@ export default function Login() {
               <div className="flex-1 h-px bg-stone-200" />
             </div>
 
-            {/* Opciones de registro */}
-            <div className="grid grid-cols-2 gap-2">
-              <a
-                href="/solicitar-cuenta"
-                className="flex flex-col items-center gap-1.5 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group text-center"
-              >
-                <Edit3 size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors" />
+            {/* Opción de registro */}
+            <a
+              href="/solicitar-cuenta"
+              className="flex items-center gap-3 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group"
+            >
+              <Edit3 size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors shrink-0" />
+              <div>
                 <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
                   Solicitar cuenta
                 </div>
                 <div className="text-[10px] text-stone-400 leading-tight">
-                  El admin te dará acceso
+                  La secretaría te dará acceso
                 </div>
-              </a>
-              <a
-                href="/registro/email"
-                className="flex flex-col items-center gap-1.5 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group text-center"
-              >
-                <UserPlus size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors" />
-                <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
-                  Auto-registrarme
-                </div>
-                <div className="text-[10px] text-stone-400 leading-tight">
-                  Crea tu cuenta ahora
-                </div>
-              </a>
-            </div>
+              </div>
+            </a>
 
             <div className="mt-4" style={{ fontSize: 11, color: '#78716c', lineHeight: 1.4 }}>
               Al iniciar sesión aceptas el aviso de privacidad institucional. Tus datos personales
