@@ -7,6 +7,36 @@
 
 const API_BASE = '/api';
 
+/** Zod-style issue returned by the server on 400 validation errors */
+export interface ApiFieldError {
+  path: string[];
+  message: string;
+}
+
+/** Error thrown by api.* calls. Includes field-level `detalles` when the
+ *  server returns a 400 with a `detalles` array (Zod validation errors). */
+export class ApiError extends Error {
+  status: number;
+  detalles: ApiFieldError[];
+
+  constructor(msg: string, status: number, detalles?: ApiFieldError[]) {
+    super(msg);
+    this.name = 'ApiError';
+    this.status = status;
+    this.detalles = detalles ?? [];
+  }
+
+  /** Returns a `{ fieldName: errorMessage }` map for easy use in forms */
+  fieldErrors(): Record<string, string> {
+    const out: Record<string, string> = {};
+    for (const d of this.detalles) {
+      const key = d.path[0];
+      if (key && !out[key]) out[key] = d.message;
+    }
+    return out;
+  }
+}
+
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -21,11 +51,13 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 
   if (!res.ok) {
     let msg = `${res.status}`;
+    let detalles: ApiFieldError[] | undefined;
     try {
       const j = await res.json();
       msg = j.error || msg;
+      if (Array.isArray(j.detalles)) detalles = j.detalles;
     } catch {}
-    throw new Error(msg);
+    throw new ApiError(msg, res.status, detalles);
   }
   return res.json();
 }

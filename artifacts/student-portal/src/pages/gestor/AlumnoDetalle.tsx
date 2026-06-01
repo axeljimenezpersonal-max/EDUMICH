@@ -35,6 +35,7 @@ import {
 import { GestorLayout } from './GestorLayout';
 import {
   api,
+  ApiError,
   type AlumnoDetalle as AlumnoDetalleType,
   type GestorExpedienteResponse,
   type TipoDocumento,
@@ -131,6 +132,7 @@ export default function AlumnoDetalle() {
   // Editar alumno modal
   const [editarModal, setEditarModal] = useState(false);
   const [editarLoading, setEditarLoading] = useState(false);
+  const [editarFieldErrors, setEditarFieldErrors] = useState<Record<string, string>>({});
 
   // Reenviar modal
   const [reenviarModal, setReenviarModal] = useState(false);
@@ -298,6 +300,7 @@ export default function AlumnoDetalle() {
   }) {
     if (!id) return;
     setEditarLoading(true);
+    setEditarFieldErrors({});
     try {
       await api.patch(`/gestor/alumnos/${id}`, {
         nombreCompleto: fields.nombreCompleto.trim() || undefined,
@@ -310,7 +313,12 @@ export default function AlumnoDetalle() {
       setEditarModal(false);
       await load();
     } catch (e) {
-      showToast((e as Error).message || 'Error al actualizar', 'error');
+      if (e instanceof ApiError && e.detalles.length > 0) {
+        // Map Zod field errors back into the modal
+        setEditarFieldErrors(e.fieldErrors());
+      } else {
+        showToast((e as Error).message || 'Error al actualizar', 'error');
+      }
     } finally {
       setEditarLoading(false);
     }
@@ -811,7 +819,8 @@ export default function AlumnoDetalle() {
         <EditarAlumnoModal
           alumno={alumno}
           loading={editarLoading}
-          onClose={() => setEditarModal(false)}
+          serverFieldErrors={editarFieldErrors}
+          onClose={() => { setEditarModal(false); setEditarFieldErrors({}); }}
           onSave={handleEditarAlumno}
         />
       )}
@@ -1642,11 +1651,13 @@ function FichaRow({
 function EditarAlumnoModal({
   alumno,
   loading,
+  serverFieldErrors,
   onClose,
   onSave,
 }: {
   alumno: AlumnoConMatricula;
   loading: boolean;
+  serverFieldErrors: Record<string, string>;
   onClose: () => void;
   onSave: (fields: {
     nombreCompleto: string;
@@ -1662,10 +1673,50 @@ function EditarAlumnoModal({
   const [fechaNacimiento, setFechaNacimiento] = useState(alumno.fechaNacimiento ?? '');
   const [curp, setCurp] = useState(alumno.curp ?? '');
 
+  // Client-side field errors — merged with server errors
+  const [clientErrors, setClientErrors] = useState<Record<string, string>>({});
+
+  // Merge: client errors take precedence over server errors while user is editing
+  const errors: Record<string, string> = { ...serverFieldErrors, ...clientErrors };
+
+  function clearError(field: string) {
+    setClientErrors((prev) => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  }
+
+  function validate(): boolean {
+    const errs: Record<string, string> = {};
+
+    if (!nombre.trim() || nombre.trim().length < 2) {
+      errs.nombreCompleto = 'El nombre debe tener al menos 2 caracteres.';
+    }
+    if (curp.trim() && curp.trim().length !== 18) {
+      errs.curp = `La CURP debe tener exactamente 18 caracteres (actualmente tiene ${curp.trim().length}).`;
+    }
+    if (telefono.trim() && !/^\d{7,15}$/.test(telefono.trim())) {
+      errs.telefono = 'Ingresa solo dígitos (entre 7 y 15).';
+    }
+
+    setClientErrors(errs);
+    return Object.keys(errs).length === 0;
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!validate()) return;
     onSave({ nombreCompleto: nombre, telefono, direccion, fechaNacimiento, curp });
   }
+
+  const inputCls = (field: string) =>
+    `w-full border rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:border-transparent ${
+      errors[field]
+        ? 'border-red-400 focus:ring-red-400 bg-red-50'
+        : 'border-stone-300 focus:ring-[var(--color-guinda-700)]'
+    }`;
 
   return (
     <div
@@ -1698,27 +1749,40 @@ function EditarAlumnoModal({
             </label>
             <input
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
-              required
-              minLength={2}
+              onChange={(e) => { setNombre(e.target.value); clearError('nombreCompleto'); }}
               maxLength={200}
               placeholder="Nombre completo del alumno"
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+              className={inputCls('nombreCompleto')}
             />
+            {errors.nombreCompleto && (
+              <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                <AlertCircle size={11} className="shrink-0" />
+                {errors.nombreCompleto}
+              </p>
+            )}
           </div>
 
           {/* CURP */}
           <div>
             <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
               CURP
+              <span className="ml-1.5 text-[10px] font-normal text-stone-400 normal-case tracking-normal">
+                ({curp.trim().length}/18 caracteres)
+              </span>
             </label>
             <input
               value={curp}
-              onChange={(e) => setCurp(e.target.value.toUpperCase())}
+              onChange={(e) => { setCurp(e.target.value.toUpperCase()); clearError('curp'); }}
               maxLength={18}
-              placeholder="CURP de 18 caracteres"
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm font-mono text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+              placeholder="18 caracteres"
+              className={`${inputCls('curp')} font-mono`}
             />
+            {errors.curp && (
+              <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                <AlertCircle size={11} className="shrink-0" />
+                {errors.curp}
+              </p>
+            )}
           </div>
 
           {/* Fecha de nacimiento + Teléfono */}
@@ -1730,9 +1794,15 @@ function EditarAlumnoModal({
               <input
                 type="date"
                 value={fechaNacimiento}
-                onChange={(e) => setFechaNacimiento(e.target.value)}
-                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+                onChange={(e) => { setFechaNacimiento(e.target.value); clearError('fechaNacimiento'); }}
+                className={inputCls('fechaNacimiento')}
               />
+              {errors.fechaNacimiento && (
+                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle size={11} className="shrink-0" />
+                  {errors.fechaNacimiento}
+                </p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wider mb-1">
@@ -1740,11 +1810,17 @@ function EditarAlumnoModal({
               </label>
               <input
                 value={telefono}
-                onChange={(e) => setTelefono(e.target.value)}
-                maxLength={30}
+                onChange={(e) => { setTelefono(e.target.value); clearError('telefono'); }}
+                maxLength={15}
                 placeholder="10 dígitos"
-                className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent"
+                className={inputCls('telefono')}
               />
+              {errors.telefono && (
+                <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                  <AlertCircle size={11} className="shrink-0" />
+                  {errors.telefono}
+                </p>
+              )}
             </div>
           </div>
 
@@ -1755,12 +1831,18 @@ function EditarAlumnoModal({
             </label>
             <textarea
               value={direccion}
-              onChange={(e) => setDireccion(e.target.value)}
+              onChange={(e) => { setDireccion(e.target.value); clearError('direccion'); }}
               maxLength={500}
               rows={2}
               placeholder="Calle, número, colonia, municipio…"
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm text-stone-800 focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)] focus:border-transparent resize-none"
+              className={`${inputCls('direccion')} resize-none`}
             />
+            {errors.direccion && (
+              <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                <AlertCircle size={11} className="shrink-0" />
+                {errors.direccion}
+              </p>
+            )}
           </div>
 
           {/* Email — read-only info */}
