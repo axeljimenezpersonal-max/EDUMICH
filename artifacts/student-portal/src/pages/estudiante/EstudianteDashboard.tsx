@@ -418,7 +418,7 @@ export default function EstudianteDashboard() {
                 };
                 return (
                   <Link key={ex.id} href={`/estudiante/convocatoria/pase/${ex.id}`}>
-                    <div className="px-5 py-3.5 flex items-center gap-4 hover:bg-stone-50 transition-colors cursor-pointer">
+                    <div className="px-3 sm:px-5 py-3 sm:py-3.5 flex items-center gap-3 sm:gap-4 hover:bg-stone-50 transition-colors cursor-pointer">
                       {/* Número módulo */}
                       <div className="w-9 h-9 rounded-lg bg-[var(--color-guinda-50)] flex items-center justify-center flex-shrink-0 border border-[var(--color-guinda-100)]">
                         <span className="text-xs font-bold text-[var(--color-guinda-700)]">M{ex.moduloNumero}</span>
@@ -432,7 +432,7 @@ export default function EstudianteDashboard() {
                             <Clock size={10} />
                             {ex.hora} hrs · {ex.dia === 'sabado' ? 'Sábado' : 'Domingo'} {fechaStr}
                           </span>
-                          <span className="text-xs text-stone-500 flex items-center gap-1">
+                          <span className="hidden sm:flex items-center gap-1 text-xs text-stone-500">
                             <MapPin size={10} />
                             {ex.sedeNombre}
                           </span>

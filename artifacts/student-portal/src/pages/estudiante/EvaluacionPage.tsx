@@ -524,8 +524,8 @@ export default function EvaluacionPage() {
           </div>
         </div>
 
-        {/* Mapa de puntos numerados */}
-        <div className="px-4 sm:px-6 pb-3 flex flex-wrap items-center justify-center gap-1.5">
+        {/* Mapa de puntos numerados — scroll horizontal en móvil si no caben */}
+        <div className="pb-3 flex items-center gap-1.5 overflow-x-auto px-4 sm:px-6 scrollbar-none justify-start sm:justify-center">
           {preguntas.map((p, i) => {
             const contestada = !!respuestas[p.id];
             const actual = i === indice;

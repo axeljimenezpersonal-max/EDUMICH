@@ -132,10 +132,11 @@ function HeaderNotifBell() {
       {open && (
         <div
           style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 8px)',
-            width: 320,
+            position: 'fixed',
+            right: 8,
+            top: 'auto',
+            marginTop: 8,
+            width: 'min(320px, calc(100vw - 16px))',
             background: 'white',
             border: '1px solid #e7e5e4',
             borderRadius: 10,
@@ -261,16 +262,16 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
       </div>
 
       {/* Cabecera con logos y branding */}
-      <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4 flex items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center gap-5">
           {/* Logo izquierdo: escudo Gobierno de Michoacán */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <img
               src="/logo-see-michoacan-256.png"
               alt="Secretaría de Educación de Michoacán"
-              className="brand-logo-img flex-shrink-0"
+              className="brand-logo-img flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto"
             />
-            <div className="leading-tight">
+            <div className="leading-tight hidden sm:block">
               <div className="font-serif text-sm font-semibold text-[var(--color-guinda-800)]">
                 Gobierno de
               </div>
@@ -280,6 +281,11 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
               <div className="text-[10px] tracking-widest text-stone-500 mt-0.5">
                 HONESTIDAD Y TRABAJO
               </div>
+            </div>
+            {/* Mobile: solo nombre corto */}
+            <div className="sm:hidden leading-tight">
+              <div className="font-serif text-xs font-bold text-[var(--color-guinda-800)]">Prepa Abierta</div>
+              <div className="text-[9px] text-stone-500">EDUMICH · IEMSyS</div>
             </div>
           </div>
 
@@ -308,7 +314,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
         {/* Usuario / sesión */}
         {userName && (
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block text-right leading-tight">
+            <div className="hidden md:block text-right leading-tight">
               <div className="text-sm font-medium text-stone-800">{userName}</div>
               {userRole && (
                 <div className="text-xs uppercase tracking-wider text-[var(--color-guinda-700)] font-semibold">

@@ -6,10 +6,10 @@ import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
-  { to: '/estudiante/expediente', label: 'Mi expediente', icon: FolderOpen },
-  { to: '/estudiante/convocatoria', label: 'Mi convocatoria', icon: Calendar },
-  { to: '/estudiante/modulos', label: 'Mis módulos', icon: BookOpen },
-  { to: '/estudiante/identificacion', label: 'Mi identificación', icon: BadgeCheck },
+  { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen },
+  { to: '/estudiante/convocatoria', label: 'Convocatoria', icon: Calendar },
+  { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen },
+  { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck },
 ];
 
 export function EstudianteLayout({ children }: { children: ReactNode }) {
@@ -48,9 +48,9 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         onLogout={handleLogout}
       />
 
-      <div className="flex-1 max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 w-full">
-        {/* Sidebar */}
-        <nav className="md:sticky md:top-[114px] self-start">
+      <div className="flex-1 max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 w-full pb-20 md:pb-6">
+        {/* Sidebar — solo visible en md+ */}
+        <nav className="hidden md:block md:sticky md:top-[114px] self-start">
           <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
             <div className="px-4 py-3 bg-[var(--color-guinda-700)] text-white">
               <div className="text-[10px] tracking-widest opacity-80">PORTAL</div>
@@ -86,7 +86,41 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         <main className="min-w-0">{children}</main>
       </div>
 
-      <footer className="border-t border-stone-200 bg-white">
+      {/* Bottom tab bar — solo en móvil */}
+      <nav
+        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-200"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      >
+        <div className="flex items-stretch">
+          {NAV.map((item) => {
+            const active =
+              item.to === '/estudiante'
+                ? location === '/estudiante'
+                : location.startsWith(item.to);
+            return (
+              <Link key={item.to} href={item.to} className="flex-1">
+                <div
+                  className={`flex flex-col items-center justify-center py-2 gap-0.5 transition-colors ${
+                    active
+                      ? 'text-[var(--color-guinda-700)]'
+                      : 'text-stone-400'
+                  }`}
+                >
+                  <item.icon size={20} />
+                  <span className="text-[9px] font-semibold tracking-wide leading-none">
+                    {item.label}
+                  </span>
+                  {active && (
+                    <span className="absolute top-0 left-0 right-0 h-0.5 bg-[var(--color-guinda-700)]" />
+                  )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      <footer className="hidden md:block border-t border-stone-200 bg-white">
         <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>© {new Date().getFullYear()} Gobierno del Estado de Michoacán</div>
           <div style={{ fontWeight: 500 }}>

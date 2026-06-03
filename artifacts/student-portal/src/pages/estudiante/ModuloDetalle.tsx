@@ -267,7 +267,7 @@ export default function ModuloDetalle() {
       </Link>
 
       {/* Hero card */}
-      <div className="bg-white border border-stone-200 rounded-lg p-6 mb-6">
+      <div className="bg-white border border-stone-200 rounded-lg p-4 sm:p-6 mb-6">
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {modulo.nivel && (
             <span className="text-xs px-2 py-0.5 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] rounded font-semibold border border-[var(--color-crema-200)]">
@@ -297,7 +297,7 @@ export default function ModuloDetalle() {
         </div>
 
         {/* Status + botones */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <span className={`text-sm px-3 py-1 rounded-full font-semibold ${STATUS_STYLE[estado]}`}>
             {STATUS_LABEL[estado]}
             {progreso.mejorCalificacion !== null ? ` · ${progreso.mejorCalificacion}/100` : ''}
@@ -339,19 +339,19 @@ export default function ModuloDetalle() {
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6">
         {/* Columna izquierda: tabs */}
         <div>
-          {/* Tab bar */}
-          <div className="flex border-b border-stone-200 mb-5">
+          {/* Tab bar — scroll horizontal en móvil */}
+          <div className="flex border-b border-stone-200 mb-5 overflow-x-auto scrollbar-none -mx-3 sm:mx-0 px-3 sm:px-0">
             {(
               [
                 { key: 'temario', label: 'Temario', Icon: BookOpen },
                 { key: 'quizzes', label: 'Evaluaciones', Icon: Trophy },
-                { key: 'areas', label: 'Áreas de oportunidad', Icon: Target },
+                { key: 'areas', label: 'Áreas', Icon: Target },
               ] as const
             ).map(({ key, label, Icon }) => (
               <button
                 key={key}
                 onClick={() => setTab(key)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                   tab === key
                     ? 'border-[var(--color-guinda-700)] text-[var(--color-guinda-700)]'
                     : 'border-transparent text-stone-500 hover:text-stone-700'

@@ -560,20 +560,20 @@ function PagosTab({
 
       {/* ── Resumen general ── */}
       {pagosData && (
-        <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center">
-          <div>
+        <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 flex flex-wrap gap-4 items-center">
+          <div className="flex-1 min-w-[140px]">
             <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Total pagado y verificado</div>
-            <div className="text-4xl font-bold leading-none">
+            <div className="text-3xl sm:text-4xl font-bold leading-none">
               ${pagosData.resumen.totalPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
             </div>
           </div>
-          <div className="h-14 w-px bg-white/20" />
+          <div className="hidden sm:block h-14 w-px bg-white/20" />
           <div className="text-center">
-            <div className="text-4xl font-bold">{pagosData.resumen.verificados}</div>
+            <div className="text-3xl sm:text-4xl font-bold">{pagosData.resumen.verificados}</div>
             <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Verificados</div>
           </div>
           <div className="text-center">
-            <div className="text-4xl font-bold">{pagosData.resumen.pendientes}</div>
+            <div className="text-3xl sm:text-4xl font-bold">{pagosData.resumen.pendientes}</div>
             <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Pendientes</div>
           </div>
         </div>
@@ -666,7 +666,7 @@ function PagosTab({
                 <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
                 <span className="text-sm font-bold text-stone-800">Selecciona cómo vas a pagar</span>
               </div>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {metodoPicker.map((m) => {
                   const active = pagoMetodo === m.value;
                   return (

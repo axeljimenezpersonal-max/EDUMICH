@@ -55,10 +55,10 @@ export default function Login() {
       {/* Cuerpo split */}
       <div className="flex-1 grid md:grid-cols-2">
 
-        {/* Columna izquierda: branding */}
+        {/* Columna izquierda: branding — oculta en móvil */}
         <div
-          className="bg-[var(--color-guinda-700)] text-white relative overflow-hidden"
-          style={{ display: 'flex', flexDirection: 'column', padding: '48px 60px' }}
+          className="hidden md:flex bg-[var(--color-guinda-700)] text-white relative overflow-hidden"
+          style={{ flexDirection: 'column', padding: '48px 60px' }}
         >
           {/* Patrón decorativo sutil */}
           <div
