@@ -244,9 +244,16 @@ export default function Login() {
             </a>
 
             <div className="mt-4" style={{ fontSize: 11, color: '#78716c', lineHeight: 1.4 }}>
-              Al iniciar sesión aceptas el aviso de privacidad institucional. Tus datos personales
-              son protegidos conforme a la Ley General de Protección de Datos Personales en
-              Posesión de Sujetos Obligados (LGPDPPSO).
+              Al iniciar sesión aceptas el aviso de privacidad institucional. Tus datos se
+              protegen conforme a la LGPDPPSO.{' '}
+              <a
+                href="/aviso-privacidad"
+                style={{ color: 'var(--color-guinda-700)', textDecoration: 'underline' }}
+                className="hover:no-underline"
+              >
+                Consultar aviso
+              </a>
+              .
             </div>
           </div>
         </div>

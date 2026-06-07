@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound } from 'lucide-react';
+import { Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
@@ -28,6 +28,7 @@ export default function SolicitarCuenta() {
   });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [aceptaAviso, setAceptaAviso] = useState(false);
 
   // Verificación de código
   const [codigoDev, setCodigoDev] = useState<string | null>(null);
@@ -424,9 +425,47 @@ export default function SolicitarCuenta() {
             </div>
           )}
 
+          {/* Aviso de privacidad simplificado */}
+          <div className="border border-stone-200 rounded-md bg-stone-50 px-4 py-3">
+            <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--color-guinda-700)] mb-2">
+              <ShieldCheck size={12} />
+              Aviso de privacidad
+            </div>
+            <p className="text-xs text-stone-600 leading-relaxed mb-3">
+              El Instituto de Educación Media Superior y Superior del Estado de Michoacán
+              (IEMSyS), a través de la Coordinación Estatal de Preparatoria Abierta, tratará sus
+              datos personales para registrarle, integrar su expediente académico, gestionar pagos
+              y exámenes, y emitir sus documentos oficiales. Algunos datos son sensibles
+              (fotografía e identificación oficial). No se transferirán salvo a las autoridades
+              educativas que la ley señala. Consulte el{' '}
+              <a
+                href="/aviso-privacidad"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline hover:no-underline"
+                style={{ color: 'var(--color-guinda-700)' }}
+              >
+                aviso de privacidad integral
+              </a>{' '}
+              y ejerza sus derechos ARCO ante la Unidad de Transparencia.
+            </p>
+            <label className="flex items-start gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={aceptaAviso}
+                onChange={(e) => setAceptaAviso(e.target.checked)}
+                className="mt-0.5 shrink-0 accent-[var(--color-guinda-700)]"
+              />
+              <span className="text-xs text-stone-700 leading-snug">
+                He leído y acepto el tratamiento de mis datos personales conforme al aviso de
+                privacidad.
+              </span>
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={formLoading}
+            disabled={formLoading || !aceptaAviso}
             className="gov-btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50"
           >
             {formLoading ? <Loader2 className="animate-spin" size={18} /> : null}

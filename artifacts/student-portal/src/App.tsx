@@ -29,6 +29,7 @@ import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
 import AutoRegistroExito from './pages/publico/AutoRegistroExito';
 import SolicitarCuenta from './pages/publico/SolicitarCuenta';
+import AvisoPrivacidad from './pages/publico/AvisoPrivacidad';
 import RecuperarPassword from './pages/RecuperarPassword';
 import ResetPassword from './pages/ResetPassword';
 import PagosPendientes from './pages/admin/PagosPendientes';
@@ -81,6 +82,7 @@ export default function App() {
       <Route path="/registro/datos" component={AutoRegistroDatos} />
       <Route path="/registro/exito" component={AutoRegistroExito} />
       <Route path="/solicitar-cuenta" component={SolicitarCuenta} />
+      <Route path="/aviso-privacidad" component={AvisoPrivacidad} />
       <Route path="/recuperar-password" component={RecuperarPassword} />
       <Route path="/reset-password" component={ResetPassword} />
 
