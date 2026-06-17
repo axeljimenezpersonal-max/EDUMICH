@@ -269,7 +269,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
             <img
               src="/logo-see-michoacan-256.png"
               alt="Secretaría de Educación de Michoacán"
-              className="brand-logo-img flex-shrink-0 w-8 h-8 sm:w-auto sm:h-auto"
+              className="brand-logo-img flex-shrink-0 w-8 h-8 sm:w-14 sm:h-14"
             />
             <div className="leading-tight hidden sm:block">
               <div className="font-serif text-sm font-semibold text-[var(--color-guinda-800)]">
