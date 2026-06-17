@@ -76,7 +76,7 @@ function EstadoPill({ estado }: { estado: EstadoEtapa }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-      style={{ background: '#f5e6ef', color: '#6B0F3C' }}
+      style={{ background: '#f5e6ef', color: '#6B1530' }}
     >
       <Clock size={10} strokeWidth={2} />
       PROXIMA
@@ -94,14 +94,14 @@ function EtapaRow({ etapa, index }: { etapa: Etapa; index: number }) {
       style={{
         gridTemplateColumns: '90px 1fr 1fr 1fr 100px',
         background: isActiva ? '#fdf8fb' : index % 2 === 0 ? 'white' : '#fafaf9',
-        borderLeft: isActiva ? '3px solid #6B0F3C' : '3px solid transparent',
+        borderLeft: isActiva ? '3px solid #6B1530' : '3px solid transparent',
       }}
     >
       {/* Clave + Fase */}
       <div className="flex items-center gap-1.5">
         <span
           className="text-sm font-bold font-mono"
-          style={{ color: '#6B0F3C' }}
+          style={{ color: '#6B1530' }}
         >
           {etapa.clave}
         </span>
@@ -182,7 +182,7 @@ export default function EtapasDGB({ onDirty: _onDirty }: { onDirty?: (d: boolean
         {/* Header bar */}
         <div
           className="px-5 py-3 flex items-center justify-between"
-          style={{ background: '#6B0F3C' }}
+          style={{ background: '#6B1530' }}
         >
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Calendar size={14} strokeWidth={2} />
@@ -208,8 +208,8 @@ export default function EtapasDGB({ onDirty: _onDirty }: { onDirty?: (d: boolean
               onClick={() => setSelectedYear(year)}
               className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors"
               style={{
-                borderBottomColor: selectedYear === year ? '#6B0F3C' : 'transparent',
-                color: selectedYear === year ? '#6B0F3C' : '#78716c',
+                borderBottomColor: selectedYear === year ? '#6B1530' : 'transparent',
+                color: selectedYear === year ? '#6B1530' : '#78716c',
                 background: 'transparent',
               }}
             >

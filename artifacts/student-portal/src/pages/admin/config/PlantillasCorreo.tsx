@@ -62,7 +62,7 @@ function ToolbarBtn({
       className="p-1.5 rounded text-stone-700 hover:bg-stone-100"
       style={{
         background: active ? '#f5e6ef' : 'transparent',
-        color: active ? '#6B0F3C' : undefined,
+        color: active ? '#6B1530' : undefined,
       }}
     >
       {children}
@@ -133,7 +133,7 @@ function EmailPreview({ html, mobile }: { html: string; mobile: boolean }) {
       style={{ maxWidth: mobile ? 375 : '100%', margin: '0 auto' }}
     >
       {/* Govt header */}
-      <div style={{ background: '#6B0F3C', padding: '10px 16px' }}>
+      <div style={{ background: '#6B1530', padding: '10px 16px' }}>
         <div className="text-white text-[11px] font-bold tracking-wider uppercase">
           Gobierno de Michoacan
         </div>
@@ -303,7 +303,7 @@ function EditorView({
     <div>
       {/* Editor header */}
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-4">
-        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B1530' }}>
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -368,7 +368,7 @@ function EditorView({
           <div className="px-4 pt-4 pb-3 border-b border-stone-100">
             <label className="text-xs font-semibold text-stone-500 block mb-1">Asunto</label>
             <input
-              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
               value={asunto}
               onChange={(e) => handleAsuntoChange(e.target.value)}
               placeholder="Asunto del correo..."
@@ -387,7 +387,7 @@ function EditorView({
                   type="button"
                   onClick={() => insertVariable(v)}
                   className="px-2 py-0.5 rounded text-[11px] font-mono border hover:bg-stone-50 transition-colors"
-                  style={{ borderColor: '#d6d3d1', color: '#6B0F3C' }}
+                  style={{ borderColor: '#d6d3d1', color: '#6B1530' }}
                 >
                   {`{{${v}}}`}
                 </button>
@@ -417,7 +417,7 @@ function EditorView({
                 className="p-1.5 rounded transition-colors"
                 style={{
                   background: !previewMobile ? '#f5e6ef' : 'transparent',
-                  color: !previewMobile ? '#6B0F3C' : '#78716c',
+                  color: !previewMobile ? '#6B1530' : '#78716c',
                 }}
               >
                 <Monitor size={13} strokeWidth={2} />
@@ -428,7 +428,7 @@ function EditorView({
                 className="p-1.5 rounded transition-colors"
                 style={{
                   background: previewMobile ? '#f5e6ef' : 'transparent',
-                  color: previewMobile ? '#6B0F3C' : '#78716c',
+                  color: previewMobile ? '#6B1530' : '#78716c',
                 }}
               >
                 <Smartphone size={13} strokeWidth={2} />
@@ -483,7 +483,7 @@ function ListView({
   return (
     <div>
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-        <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Mail size={14} strokeWidth={2} />
             Plantillas de correo
@@ -502,7 +502,7 @@ function ListView({
                 className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: '#f5e6ef' }}
               >
-                <Mail size={16} strokeWidth={2} style={{ color: '#6B0F3C' }} />
+                <Mail size={16} strokeWidth={2} style={{ color: '#6B1530' }} />
               </div>
               {/* Info */}
               <div className="flex-1 min-w-0">
@@ -599,7 +599,7 @@ export default function PlantillasCorreo({ onDirty }: { onDirty?: (d: boolean) =
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+        <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
       </div>
     );
   }

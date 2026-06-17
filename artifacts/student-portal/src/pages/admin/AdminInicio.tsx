@@ -172,7 +172,7 @@ export default function AdminInicio() {
           ) : (
             <div
               className="rounded-xl text-white px-7 py-5 mb-6 flex items-center gap-4"
-              style={{ background: 'linear-gradient(135deg, #7B1E3A 0%, #5C1428 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #6B1530 0%, #5C1428 100%)' }}
             >
               <Flag size={24} style={{ opacity: 0.7 }} />
               <p className="text-sm" style={{ opacity: 0.9 }}>No hay convocatoria activa en este momento.</p>
@@ -322,7 +322,7 @@ function ConvocatoriaStrip({ conv }: { conv: NonNullable<DashboardData['convocat
     <div
       className="rounded-xl text-white px-7 py-5 mb-6 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #7B1E3A 0%, #5C1428 100%)',
+        background: 'linear-gradient(135deg, #6B1530 0%, #5C1428 100%)',
         display: 'grid',
         gridTemplateColumns: 'auto 1fr auto auto',
         gap: 24,
@@ -485,7 +485,7 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
                 <div key={etapa.clave} className="flex-1 flex flex-col items-center justify-end gap-1.5 min-w-0">
                   <div
                     className="w-full rounded-t-md relative"
-                    style={{ height: `${heightPct}%`, background: 'linear-gradient(to top, #7B1E3A, #c43759)', opacity, minHeight: 8 }}
+                    style={{ height: `${heightPct}%`, background: 'linear-gradient(to top, #6B1530, #c43759)', opacity, minHeight: 8 }}
                     title={`${etapa.inscritos} inscritos`}
                   >
                     <span
@@ -512,7 +512,7 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
           </div>
           <div className="flex gap-6 mt-3.5 pt-3.5 border-t border-stone-100 text-xs flex-wrap" style={{ color: '#78716c' }}>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#7B1E3A' }} /> Inscritos cerrados
+              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#6B1530' }} /> Inscritos cerrados
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#c43759' }} /> Convocatoria activa
@@ -684,7 +684,7 @@ function TopMunicipios({ municipios }: { municipios: DashboardData['topMunicipio
                       width: `${barWidth}%`,
                       background: isOtros
                         ? 'linear-gradient(to right, #78716c, #d6d3d1)'
-                        : 'linear-gradient(to right, #7B1E3A, #c43759)',
+                        : 'linear-gradient(to right, #6B1530, #c43759)',
                     }}
                   />
                 </div>

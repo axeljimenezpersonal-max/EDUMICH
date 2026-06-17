@@ -152,7 +152,7 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+        <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
       </div>
     );
   }
@@ -162,7 +162,7 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
       {/* Card */}
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <MapPin size={14} strokeWidth={2} />
             Municipios
@@ -190,7 +190,7 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
           <div className="relative mb-5">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
-              className="w-full pl-9 pr-9 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-[#6B0F3C]"
+              className="w-full pl-9 pr-9 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-[#6B1530]"
               placeholder="Buscar municipio..."
               value={buscar}
               onChange={(e) => setBuscar(e.target.value)}
@@ -209,12 +209,12 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
           {/* ACTIVOS */}
           <div className="mb-6">
             <div className="flex items-center gap-2 mb-3">
-              <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6B0F3C' }}>
+              <h3 className="text-xs font-bold uppercase tracking-widest" style={{ color: '#6B1530' }}>
                 ACTIVOS
               </h3>
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                style={{ background: '#f5e6ef', color: '#6B0F3C' }}
+                style={{ background: '#f5e6ef', color: '#6B1530' }}
               >
                 {activos.length}
               </span>
@@ -227,7 +227,7 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
                   <div
                     key={m.id}
                     className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full text-sm font-medium"
-                    style={{ background: '#6B0F3C', color: 'white' }}
+                    style={{ background: '#6B1530', color: 'white' }}
                   >
                     <span>{m.nombre}</span>
                     {m.totalAlumnos > 0 && (
@@ -275,7 +275,7 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
                   <div
                     key={m.id}
                     className="flex items-center gap-1.5 pl-3 pr-1.5 py-1.5 rounded-full text-sm font-medium"
-                    style={{ border: '1.5px dashed #6B0F3C', color: '#6B0F3C' }}
+                    style={{ border: '1.5px dashed #6B1530', color: '#6B1530' }}
                   >
                     <span>{m.nombre}</span>
                     <button

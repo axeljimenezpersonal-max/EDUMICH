@@ -50,6 +50,10 @@ import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
 import VerificacionPase from './pages/admin/VerificacionPase';
 import Notificaciones from './pages/Notificaciones';
+import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
+import ManualAlumno from './pages/capacitacion/ManualAlumno';
+import ManualGestor from './pages/capacitacion/ManualGestor';
+import ManualAdmin from './pages/capacitacion/ManualAdmin';
 
 export default function App() {
   return (
@@ -111,6 +115,12 @@ export default function App() {
 
       {/* Notificaciones — accesible desde todos los perfiles */}
       <Route path="/notificaciones" component={Notificaciones} />
+
+      {/* Centro de capacitación — público, sin login */}
+      <Route path="/capacitacion" component={CapacitacionPortada} />
+      <Route path="/capacitacion/alumno" component={ManualAlumno} />
+      <Route path="/capacitacion/gestor" component={ManualGestor} />
+      <Route path="/capacitacion/admin" component={ManualAdmin} />
 
       {/* Catch-all → login */}
       <Route>

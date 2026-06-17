@@ -88,7 +88,7 @@ function accionStyle(accion: Accion): React.CSSProperties {
 
 function rolStyle(rol: Rol): React.CSSProperties {
   switch (rol) {
-    case 'admin': return { background: '#f5e6ef', color: '#6B0F3C' };
+    case 'admin': return { background: '#f5e6ef', color: '#6B1530' };
     case 'gestor': return { background: '#dbeafe', color: '#1e40af' };
     case 'estudiante': return { background: '#d1fae5', color: '#2d7d46' };
   }
@@ -122,7 +122,7 @@ function DetailModal({ row, onClose }: { row: BitacoraRow; onClose: () => void }
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
       <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full mx-4 max-h-[85vh] flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200 flex-shrink-0" style={{ background: '#6B0F3C' }}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200 flex-shrink-0" style={{ background: '#6B1530' }}>
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
             <ClipboardList size={14} strokeWidth={2} />
             Detalle del registro
@@ -327,7 +327,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
     <div>
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
         {/* Header */}
-        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <ClipboardList size={14} strokeWidth={2} />
             Bitacora de actividad
@@ -350,7 +350,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
           <div className="relative flex-1 min-w-[180px] max-w-xs">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
-              className="w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-lg focus:outline-none focus:border-[#6B0F3C]"
+              className="w-full pl-8 pr-3 py-1.5 text-xs border border-stone-200 rounded-lg focus:outline-none focus:border-[#6B1530]"
               placeholder="Buscar detalle, usuario..."
               value={buscar}
               onChange={(e) => setBuscar(e.target.value)}
@@ -359,7 +359,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
 
           {/* Accion dropdown */}
           <select
-            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B0F3C] bg-white"
+            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B1530] bg-white"
             value={accion}
             onChange={(e) => setAccion(e.target.value)}
           >
@@ -370,7 +370,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
 
           {/* Entidad dropdown */}
           <select
-            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B0F3C] bg-white"
+            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B1530] bg-white"
             value={entidad}
             onChange={(e) => setEntidad(e.target.value)}
           >
@@ -382,14 +382,14 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
           {/* Date range */}
           <input
             type="date"
-            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B0F3C] bg-white"
+            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B1530] bg-white"
             value={fechaInicio}
             onChange={(e) => setFechaInicio(e.target.value)}
             title="Fecha inicio"
           />
           <input
             type="date"
-            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B0F3C] bg-white"
+            className="text-xs border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-[#6B1530] bg-white"
             value={fechaFin}
             onChange={(e) => setFechaFin(e.target.value)}
             title="Fecha fin"
@@ -437,7 +437,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
               {loading ? (
                 <tr>
                   <td colSpan={6} className="px-4 py-12 text-center">
-                    <RefreshCw size={18} className="animate-spin mx-auto" style={{ color: '#6B0F3C' }} />
+                    <RefreshCw size={18} className="animate-spin mx-auto" style={{ color: '#6B1530' }} />
                   </td>
                 </tr>
               ) : rows.length === 0 ? (

@@ -58,8 +58,8 @@
 
 /* ── DayPicker root ── */
 .rdp-root {
-  --rdp-accent-color: var(--color-guinda-700, #7b1e3a);
-  --rdp-accent-background-color: var(--color-guinda-700, #7b1e3a);
+  --rdp-accent-color: var(--color-guinda-700, #6B1530);
+  --rdp-accent-background-color: var(--color-guinda-700, #6B1530);
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 13px;
 }
@@ -196,15 +196,15 @@
 .rdp-today:not(.rdp-selected) .rdp-day_button {
   border-color: var(--color-guinda-300, #ec96a9);
   font-weight: 700;
-  color: var(--color-guinda-700, #7b1e3a);
+  color: var(--color-guinda-700, #6B1530);
 }
 
 /* Selected */
 .rdp-selected .rdp-day_button {
-  background: var(--color-guinda-700, #7b1e3a) !important;
+  background: var(--color-guinda-700, #6B1530) !important;
   color: white !important;
   font-weight: 600;
-  border-color: var(--color-guinda-700, #7b1e3a);
+  border-color: var(--color-guinda-700, #6B1530);
 }
 .rdp-selected .rdp-day_button:hover {
   background: var(--color-guinda-800, #5c1428) !important;

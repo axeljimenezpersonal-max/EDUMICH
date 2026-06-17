@@ -28,7 +28,7 @@ const Depuracion = lazy(() => import('./config/Depuracion'));
 // Nav config
 // ─────────────────────────────────────────────────────────────
 
-const GUINDA = '#6B0F3C';
+const GUINDA = '#6B1530';
 
 type Seccion =
   | 'mi-cuenta' | 'seguridad' | 'datos-institucionales'

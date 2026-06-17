@@ -79,7 +79,7 @@ const REPORTES: { tipo: ReporteTipo; label: string; desc: string; icon: React.FC
   { tipo: 'ejecutivo',            label: 'Ejecutivo',              desc: 'Dashboard consolidado con todos los KPI institucionales',      icon: TrendingUp },
 ];
 
-const GUINDA = '#6B0F3C';
+const GUINDA = '#6B1530';
 const FRECUENCIAS = ['diaria', 'semanal', 'quincenal', 'mensual'];
 const CHART_COLORS = [GUINDA, '#BF9000', '#4B5563', '#9D174D', '#1D4ED8', '#047857'];
 

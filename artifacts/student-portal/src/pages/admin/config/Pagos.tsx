@@ -101,7 +101,7 @@ function EditarBancariosModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-md mx-4 overflow-hidden">
         <div
           className="flex items-center justify-between px-6 py-4"
-          style={{ background: '#6B0F3C', color: 'white' }}
+          style={{ background: '#6B1530', color: 'white' }}
         >
           <h3 className="font-semibold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Editar datos bancarios
@@ -120,7 +120,7 @@ function EditarBancariosModal({
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">Banco *</label>
             <input
-              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
               value={form.banco}
               onChange={(e) => set('banco', e.target.value)}
               placeholder="Ej. BBVA Bancomer"
@@ -129,7 +129,7 @@ function EditarBancariosModal({
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">Titular de la cuenta *</label>
             <input
-              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
               value={form.titular}
               onChange={(e) => set('titular', e.target.value)}
               placeholder="Nombre completo del titular"
@@ -138,7 +138,7 @@ function EditarBancariosModal({
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">CLABE interbancaria *</label>
             <input
-              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C] font-mono"
+              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530] font-mono"
               value={form.clabe}
               onChange={(e) => set('clabe', e.target.value.replace(/\D/g, '').slice(0, 18))}
               placeholder="18 digitos"
@@ -148,7 +148,7 @@ function EditarBancariosModal({
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">RFC</label>
             <input
-              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C] uppercase"
+              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530] uppercase"
               value={form.rfc}
               onChange={(e) => set('rfc', e.target.value.toUpperCase())}
               placeholder="RFC del titular o institucion"
@@ -158,7 +158,7 @@ function EditarBancariosModal({
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">Concepto de pago</label>
             <input
-              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+              className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
               value={form.concepto}
               onChange={(e) => set('concepto', e.target.value)}
               placeholder="Ej. Inscripcion Prepa Abierta Michoacan"
@@ -181,7 +181,7 @@ function EditarBancariosModal({
               onClick={handleSave}
               disabled={saving}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50"
-              style={{ background: '#6B0F3C' }}
+              style={{ background: '#6B1530' }}
             >
               {saving
                 ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" />
@@ -213,7 +213,7 @@ function CuentaBancaria({ onDirty }: { onDirty: (d: boolean) => void }) {
   return (
     <>
       <div className="rounded-xl overflow-hidden border border-stone-200 mb-5" style={{ background: 'white' }}>
-        <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Banknote size={14} strokeWidth={2} /> Cuenta bancaria institucional
           </h2>
@@ -221,7 +221,7 @@ function CuentaBancaria({ onDirty }: { onDirty: (d: boolean) => void }) {
 
         {loading ? (
           <div className="flex items-center justify-center p-10">
-            <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+            <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
           </div>
         ) : (
           <div className="p-5">
@@ -229,7 +229,7 @@ function CuentaBancaria({ onDirty }: { onDirty: (d: boolean) => void }) {
             <div
               className="rounded-xl p-5 mb-4 text-white"
               style={{
-                background: 'linear-gradient(135deg, #6B0F3C 0%, #3d0822 100%)',
+                background: 'linear-gradient(135deg, #6B1530 0%, #3d0822 100%)',
                 boxShadow: '0 4px 16px rgba(107,15,60,0.25)',
               }}
             >
@@ -274,7 +274,7 @@ function CuentaBancaria({ onDirty }: { onDirty: (d: boolean) => void }) {
               type="button"
               onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white"
-              style={{ background: '#6B0F3C' }}
+              style={{ background: '#6B1530' }}
             >
               <Edit2 size={14} strokeWidth={2} /> Editar datos bancarios
             </button>
@@ -361,7 +361,7 @@ function MontoCell({
         title="Clic para editar"
       >
         {fmtMonto(concepto.monto)}
-        <Edit2 size={11} strokeWidth={2} className="opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: '#6B0F3C' }} />
+        <Edit2 size={11} strokeWidth={2} className="opacity-0 group-hover:opacity-50 transition-opacity" style={{ color: '#6B1530' }} />
       </button>
     );
   }
@@ -374,7 +374,7 @@ function MontoCell({
         step="0.01"
         className="w-24 text-sm border rounded-lg px-2 py-1 font-mono focus:outline-none"
         style={{
-          borderColor: error ? '#b91c1c' : '#6B0F3C',
+          borderColor: error ? '#b91c1c' : '#6B1530',
         }}
         value={draft}
         onChange={(e) => { setDraft(e.target.value); setError(false); }}
@@ -386,7 +386,7 @@ function MontoCell({
         onClick={handleSave}
         disabled={saving}
         className="w-6 h-6 flex items-center justify-center rounded disabled:opacity-50"
-        style={{ background: '#6B0F3C', color: 'white', border: 'none', cursor: 'pointer' }}
+        style={{ background: '#6B1530', color: 'white', border: 'none', cursor: 'pointer' }}
       >
         {saving ? <RefreshCw size={11} strokeWidth={2} className="animate-spin" /> : <Check size={11} strokeWidth={2} />}
       </button>
@@ -423,7 +423,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
 
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-      <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+      <div className="px-5 py-3" style={{ background: '#6B1530' }}>
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <DollarSign size={14} strokeWidth={2} /> Montos por concepto
         </h2>
@@ -431,7 +431,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
 
       {loading ? (
         <div className="flex items-center justify-center p-10">
-          <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+          <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
         </div>
       ) : conceptos.length === 0 ? (
         <div className="p-6 text-sm text-center" style={{ color: '#78716c' }}>
@@ -498,7 +498,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
 function HistorialCambios() {
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-      <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+      <div className="px-5 py-3" style={{ background: '#6B1530' }}>
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <History size={14} strokeWidth={2} /> Historial de cambios
         </h2>

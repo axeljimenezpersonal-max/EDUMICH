@@ -26,7 +26,7 @@ function StrengthBar({ password }: { password: string }) {
   if (!password) return null;
   const score = calcStrength(password);
   const labels = ['', 'Debil', 'Media', 'Fuerte', 'Muy fuerte'];
-  const colors = ['', '#b91c1c', '#d97706', '#2d7d46', '#6B0F3C'];
+  const colors = ['', '#b91c1c', '#d97706', '#2d7d46', '#6B1530'];
   return (
     <div className="mt-2">
       <div className="flex gap-1 mb-1">
@@ -71,7 +71,7 @@ function PasswordInput({
       <div className="relative">
         <input
           type={show ? 'text' : 'password'}
-          className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:border-[#6B0F3C]"
+          className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:border-[#6B1530]"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -139,7 +139,7 @@ function CambiarPassword({ onDirty }: { onDirty: (d: boolean) => void }) {
 
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-      <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+      <div className="px-5 py-3" style={{ background: '#6B1530' }}>
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <Lock size={14} strokeWidth={2} /> Cambiar contrasena
         </h2>
@@ -174,7 +174,7 @@ function CambiarPassword({ onDirty }: { onDirty: (d: boolean) => void }) {
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
-            style={{ background: '#6B0F3C' }}
+            style={{ background: '#6B1530' }}
           >
             {saving ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" /> : <Lock size={14} strokeWidth={2} />}
             {saving ? 'Guardando...' : 'Cambiar contrasena'}
@@ -271,7 +271,7 @@ function SesionesActivas() {
 
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-      <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+      <div className="px-5 py-3" style={{ background: '#6B1530' }}>
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <Monitor size={14} strokeWidth={2} /> Sesiones activas
         </h2>
@@ -279,7 +279,7 @@ function SesionesActivas() {
       <div className="p-5">
         {loading ? (
           <div className="flex items-center justify-center py-8">
-            <RefreshCw size={18} className="animate-spin" style={{ color: '#6B0F3C' }} />
+            <RefreshCw size={18} className="animate-spin" style={{ color: '#6B1530' }} />
           </div>
         ) : sesiones.length === 0 ? (
           <p className="text-sm text-center py-6" style={{ color: '#78716c' }}>
@@ -295,7 +295,7 @@ function SesionesActivas() {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.id === currentId ? '#efe7d6' : '#f5f5f4', color: s.id === currentId ? '#6B0F3C' : '#78716c' }}
+                  style={{ background: s.id === currentId ? '#efe7d6' : '#f5f5f4', color: s.id === currentId ? '#6B1530' : '#78716c' }}
                 >
                   <Monitor size={14} strokeWidth={2} />
                 </div>
@@ -307,7 +307,7 @@ function SesionesActivas() {
                     {s.id === currentId && (
                       <span
                         className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white"
-                        style={{ background: '#6B0F3C' }}
+                        style={{ background: '#6B1530' }}
                       >
                         ESTA SESION
                       </span>
@@ -366,7 +366,7 @@ function SesionesActivas() {
 function TwoFactorAuth() {
   return (
     <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-      <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+      <div className="px-5 py-3" style={{ background: '#6B1530' }}>
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <Shield size={14} strokeWidth={2} /> Autenticacion de dos factores
         </h2>
@@ -377,7 +377,7 @@ function TwoFactorAuth() {
             className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: '#efe7d6' }}
           >
-            <Shield size={18} strokeWidth={2} style={{ color: '#6B0F3C' }} />
+            <Shield size={18} strokeWidth={2} style={{ color: '#6B1530' }} />
           </div>
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -386,7 +386,7 @@ function TwoFactorAuth() {
               </span>
               <span
                 className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white"
-                style={{ background: '#6B0F3C' }}
+                style={{ background: '#6B1530' }}
               >
                 PROXIMAMENTE
               </span>
@@ -406,7 +406,7 @@ function TwoFactorAuth() {
             type="button"
             disabled
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white cursor-not-allowed"
-            style={{ background: '#6B0F3C', opacity: 0.4 }}
+            style={{ background: '#6B1530', opacity: 0.4 }}
             title="Proximamente disponible"
           >
             <Shield size={14} strokeWidth={2} /> Activar 2FA

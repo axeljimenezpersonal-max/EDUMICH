@@ -230,7 +230,7 @@ export default function PaseExamen() {
               <QRCodeSVG
                 value={pase.qrPayload}
                 size={140}
-                fgColor="#7B1E3A"
+                fgColor="#6B1530"
                 bgColor="#FFFFFF"
               />
               <p className="text-xs font-mono text-stone-400 mt-2">{pase.folio}</p>

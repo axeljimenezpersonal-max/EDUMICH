@@ -9,22 +9,28 @@
 @import "tailwindcss";
 
 @theme {
-  /* ── Paleta institucional guinda ─────────────────────── */
-  --color-guinda-50: #fdf2f4;
-  --color-guinda-100: #fbe6ea;
-  --color-guinda-200: #f5c2cd;
-  --color-guinda-300: #ec96a9;
-  --color-guinda-400: #dd5d7a;
-  --color-guinda-500: #c43759;
-  --color-guinda-600: #a02440; /* secundario */
-  --color-guinda-700: #7b1e3a; /* PRIMARIO Gobierno de Michoacán */
-  --color-guinda-800: #5c1428;
-  --color-guinda-900: #3d0d1a;
+  /* ── Paleta institucional guinda ─────────────────────────────────────
+     Re-entonada a partir de los manuales EDUMICH (más fiel y con más tono):
+     guinda #6B1530 · guinda profundo #4A0E20 · guinda2 #7C1839. */
+  --color-guinda-50: #fbf1f4;
+  --color-guinda-100: #f6dee6;
+  --color-guinda-200: #eabfcb;
+  --color-guinda-300: #dc93a8;
+  --color-guinda-400: #c56480;
+  --color-guinda-500: #a63b5b;
+  --color-guinda-600: #7c1839; /* secundario (guinda2 del manual) */
+  --color-guinda-700: #6b1530; /* PRIMARIO Gobierno de Michoacán */
+  --color-guinda-800: #4a0e20; /* guinda profundo */
+  --color-guinda-900: #2e0814;
+
+  /* ── Dorado institucional (acento nuevo, tomado del manual) ──────────── */
+  --color-dorado: #b89968;
+  --color-dorado-soft: #cdb48c;
 
   /* ── Neutros institucionales ─────────────────────────── */
-  --color-crema-50: #fbf8f2;
-  --color-crema-100: #f8f4ec;  /* fondo cálido */
-  --color-crema-200: #efe7d6;
+  --color-crema-50: #fcfaf7;   /* crema base (cream del manual) */
+  --color-crema-100: #f7f2ed;  /* fondo cálido (paper del manual) */
+  --color-crema-200: #eadfd7;  /* líneas / bordes cálidos (line del manual) */
   --color-piedra-700: #44403c;
   --color-piedra-900: #2a2a2a;
 
@@ -36,6 +42,15 @@
   /* ── Tipografía ──────────────────────────────────────── */
   --font-serif: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
   --font-sans: "Inter", system-ui, sans-serif;   /* cuerpo */
+}
+
+/* ── Tokens siempre disponibles como CSS vars ─────────────
+   Tailwind v4 elimina del :root los tokens de @theme no usados por utilidades.
+   El dorado es un acento nuevo que también queremos consumir con var(), así que
+   lo declaramos explícitamente para garantizar su disponibilidad global. */
+:root {
+  --color-dorado: #b89968;
+  --color-dorado-soft: #cdb48c;
 }
 
 /* ── Globales ─────────────────────────────────────────── */

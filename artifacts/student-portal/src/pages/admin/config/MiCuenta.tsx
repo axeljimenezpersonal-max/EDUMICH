@@ -43,7 +43,7 @@ function Toggle({
         onClick={() => !disabled && onChange(!value)}
         disabled={disabled}
         className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-        style={{ background: value ? '#6B0F3C' : '#d6d3d1', opacity: disabled ? 0.5 : 1 }}
+        style={{ background: value ? '#6B1530' : '#d6d3d1', opacity: disabled ? 0.5 : 1 }}
       >
         <span
           className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform"
@@ -159,7 +159,7 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
     <div>
       {/* AVATAR + NOMBRE */}
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-        <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <User size={14} strokeWidth={2} /> Mi cuenta
           </h2>
@@ -167,14 +167,14 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
         <div className="p-5">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+              <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
             </div>
           ) : (
             <div className="flex items-start gap-5 mb-5">
               {/* Avatar */}
               <div
                 className="flex-shrink-0 flex items-center justify-center rounded-full text-white font-bold text-lg"
-                style={{ width: 60, height: 60, background: '#6B0F3C', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                style={{ width: 60, height: 60, background: '#6B1530', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
               >
                 {initials || <User size={24} strokeWidth={2} />}
               </div>
@@ -196,7 +196,7 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
                   <User size={11} strokeWidth={2} /> Nombre completo *
                 </label>
                 <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={cuenta.nombreCompleto}
                   onChange={(e) => setCuentaField('nombreCompleto', e.target.value)}
                   placeholder="Ej. María López Hernández"
@@ -207,7 +207,7 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
                   <Briefcase size={11} strokeWidth={2} /> Cargo
                 </label>
                 <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={cuenta.cargo}
                   onChange={(e) => setCuentaField('cargo', e.target.value)}
                   placeholder="Ej. Administrador del Sistema"
@@ -219,7 +219,7 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
                 </label>
                 <input
                   type="tel"
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={cuenta.telefono}
                   onChange={(e) => setCuentaField('telefono', e.target.value)}
                   placeholder="443-123-4567"
@@ -248,7 +248,7 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
       {/* PREFERENCIAS */}
       {!loading && (
         <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-          <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+          <div className="px-5 py-3" style={{ background: '#6B1530' }}>
             <h2 className="text-sm font-semibold text-white">Preferencias</h2>
           </div>
           <div className="px-5 py-2">
@@ -288,7 +288,7 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
-            style={{ background: '#6B0F3C' }}
+            style={{ background: '#6B1530' }}
           >
             {saving
               ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" />

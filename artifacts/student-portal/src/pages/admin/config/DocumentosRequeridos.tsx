@@ -38,14 +38,14 @@ function DocCard({ doc }: { doc: DocDef }) {
   return (
     <div
       className="bg-white rounded-xl border border-stone-200 p-4 flex items-start gap-3"
-      style={{ borderLeft: '3px solid #6B0F3C' }}
+      style={{ borderLeft: '3px solid #6B1530' }}
     >
       {/* Icon circle */}
       <div
         className="flex-shrink-0 flex items-center justify-center rounded-full"
         style={{ width: 36, height: 36, background: '#efe7d6' }}
       >
-        <Icon size={16} strokeWidth={2} style={{ color: '#6B0F3C' }} />
+        <Icon size={16} strokeWidth={2} style={{ color: '#6B1530' }} />
       </div>
 
       {/* Content */}
@@ -60,7 +60,7 @@ function DocCard({ doc }: { doc: DocDef }) {
         <div className="flex flex-wrap gap-1.5">
           <span
             className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full text-white"
-            style={{ background: '#6B0F3C' }}
+            style={{ background: '#6B1530' }}
           >
             OBLIGATORIO
           </span>
@@ -86,7 +86,7 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
         className="flex items-start gap-3 px-4 py-3 rounded-xl border mb-5 text-sm"
         style={{ background: '#fdf8fb', border: '1px solid #e8d5e0' }}
       >
-        <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#6B0F3C' }} />
+        <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#6B1530' }} />
         <span style={{ color: '#5a0e32' }}>
           Los 4 documentos requeridos estan establecidos por la norma oficial <strong>DGB22DR-001</strong> de la
           Secretaria de Educacion Publica. No es posible modificarlos desde este sistema.
@@ -95,7 +95,7 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
 
       {/* Section header card */}
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-        <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <FileText size={14} strokeWidth={2} /> Documentos requeridos para inscripcion
           </h2>

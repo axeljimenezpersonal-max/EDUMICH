@@ -98,7 +98,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
         className="flex items-start gap-2.5 px-4 py-3 rounded-xl border mb-5 text-sm"
         style={{ background: '#fdf8fb', border: '1px solid #e8d5e0', color: '#5a0e32' }}
       >
-        <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#6B0F3C' }} />
+        <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#6B1530' }} />
         <span>
           Estos datos aparecen en los encabezados de PDFs, correos institucionales y en la pagina publica de
           verificacion.
@@ -106,7 +106,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
       </div>
 
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-        <div className="px-5 py-3" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Building2 size={14} strokeWidth={2} /> Datos institucionales
           </h2>
@@ -115,7 +115,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
         <div className="p-5">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+              <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -125,7 +125,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                   Nombre oficial *
                 </label>
                 <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={form.nombreOficial}
                   onChange={(e) => set('nombreOficial', e.target.value)}
                   placeholder="Ej. Preparatoria Abierta del Estado de Michoacan"
@@ -138,7 +138,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                   Nombre corto *
                 </label>
                 <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={form.nombreCorto}
                   onChange={(e) => set('nombreCorto', e.target.value)}
                   maxLength={50}
@@ -155,7 +155,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                   RFC
                 </label>
                 <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C] uppercase"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530] uppercase"
                   value={form.rfc}
                   onChange={(e) => set('rfc', e.target.value.toUpperCase())}
                   maxLength={20}
@@ -170,7 +170,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                 </label>
                 <textarea
                   rows={3}
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C] resize-none"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530] resize-none"
                   value={form.direccionOficial}
                   onChange={(e) => set('direccionOficial', e.target.value)}
                   placeholder="Calle, numero, colonia, municipio, estado, CP"
@@ -184,7 +184,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                 </label>
                 <input
                   type="tel"
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={form.telefonoGeneral}
                   onChange={(e) => set('telefonoGeneral', e.target.value)}
                   placeholder="443-322-0000"
@@ -198,7 +198,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                 </label>
                 <input
                   type="email"
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={form.correoSoporte}
                   onChange={(e) => set('correoSoporte', e.target.value)}
                   placeholder="soporte@prepaabierta.edu.mx"
@@ -212,7 +212,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                 </label>
                 <input
                   type="url"
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={form.sitioWeb}
                   onChange={(e) => set('sitioWeb', e.target.value)}
                   placeholder="https://prepaabierta.michoacan.gob.mx"
@@ -231,7 +231,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
-            style={{ background: '#6B0F3C' }}
+            style={{ background: '#6B1530' }}
           >
             {saving
               ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" />

@@ -20,7 +20,7 @@ export default function AcercaDe() {
             fontWeight: 900,
             fontSize: 56,
             letterSpacing: '-0.04em',
-            background: 'linear-gradient(135deg, #6B0F3C 0%, #3d0722 100%)',
+            background: 'linear-gradient(135deg, #6B1530 0%, #4A0E20 100%)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',

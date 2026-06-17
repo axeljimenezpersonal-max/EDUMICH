@@ -94,7 +94,7 @@ function MaskedInput({
       <div className="relative">
         <textarea
           rows={3}
-          className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:border-[#6B0F3C] font-mono resize-none"
+          className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:border-[#6B1530] font-mono resize-none"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
@@ -115,7 +115,7 @@ function MaskedInput({
     <div className="relative">
       <input
         type={visible ? 'text' : 'password'}
-        className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:border-[#6B0F3C] font-mono"
+        className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 pr-9 focus:outline-none focus:border-[#6B1530] font-mono"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
@@ -174,7 +174,7 @@ function ConfigModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.4)' }}>
       <div className="bg-white rounded-xl shadow-xl max-w-lg w-full mx-4 overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200" style={{ background: '#6B0F3C' }}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-stone-200" style={{ background: '#6B1530' }}>
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">
             <Settings size={14} strokeWidth={2} />
             Configurar {integracion.nombre}
@@ -202,7 +202,7 @@ function ConfigModal({
                     />
                   ) : (
                     <input
-                      className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B0F3C]"
+                      className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                       value={values[f.key] ?? ''}
                       onChange={(e) => setValue(f.key, e.target.value)}
                       placeholder={f.placeholder}
@@ -228,7 +228,7 @@ function ConfigModal({
               onClick={handleSave}
               disabled={saving}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
-              style={{ background: '#6B0F3C' }}
+              style={{ background: '#6B1530' }}
             >
               {saving ? <RefreshCw size={13} strokeWidth={2} className="animate-spin" /> : <Save size={13} strokeWidth={2} />}
               Guardar
@@ -280,7 +280,7 @@ function IntegracionCard({
         {/* Avatar */}
         <div
           className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-sm font-bold"
-          style={{ background: isSepDgb ? '#78716c' : '#6B0F3C' }}
+          style={{ background: isSepDgb ? '#78716c' : '#6B1530' }}
         >
           {providerInitials(integracion.nombre)}
         </div>
@@ -358,7 +358,7 @@ function IntegracionCard({
               type="button"
               onClick={() => setConfigOpen(true)}
               className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold rounded-lg text-white"
-              style={{ background: '#6B0F3C' }}
+              style={{ background: '#6B1530' }}
             >
               <Zap size={11} strokeWidth={2} />
               Conectar
@@ -418,7 +418,7 @@ export default function Integraciones({ onDirty: _onDirty }: { onDirty?: (d: boo
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16">
-        <RefreshCw size={20} className="animate-spin" style={{ color: '#6B0F3C' }} />
+        <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
       </div>
     );
   }
@@ -428,7 +428,7 @@ export default function Integraciones({ onDirty: _onDirty }: { onDirty?: (d: boo
   return (
     <div>
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden">
-        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B0F3C' }}>
+        <div className="px-5 py-3 flex items-center justify-between" style={{ background: '#6B1530' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Zap size={14} strokeWidth={2} />
             Integraciones

@@ -18,7 +18,7 @@ function Root() {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'linear-gradient(135deg, #6B0F3C 0%, #3d0722 100%)',
+            background: 'linear-gradient(135deg, #6B1530 0%, #4A0E20 100%)',
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'center',

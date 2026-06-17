@@ -3,7 +3,7 @@ import { Mail, Search, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-rea
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 
-const GUINDA = '#7B1E3A';
+const GUINDA = '#6B1530';
 
 interface OutboxRow {
   id: number;

@@ -113,7 +113,7 @@ function ConfirmModal({
             onClick={onConfirm}
             style={{
               padding: '8px 18px', borderRadius: 8, border: 'none',
-              background: danger ? '#dc2626' : '#7b1e3a',
+              background: danger ? '#dc2626' : '#6B1530',
               color: 'white', fontSize: 13, fontWeight: 600, cursor: 'pointer',
             }}
           >
@@ -236,7 +236,7 @@ export default function Depuracion() {
     );
   }
 
-  const GUINDA = '#7b1e3a';
+  const GUINDA = '#6B1530';
 
   return (
     <div style={{ fontFamily: "'Inter', sans-serif", maxWidth: 900 }}>
