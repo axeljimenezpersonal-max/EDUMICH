@@ -6,6 +6,7 @@ import {
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { safeUrl } from '../../lib/safeUrl';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -82,7 +83,7 @@ function NotifItem({ notif, onLeer }: { notif: Notif; onLeer: (id: number) => vo
       }}
       onClick={() => {
         if (!notif.leida) onLeer(notif.id);
-        if (notif.enlace) window.location.href = notif.enlace;
+        if (notif.enlace) window.location.href = safeUrl(notif.enlace);
       }}
     >
       <div

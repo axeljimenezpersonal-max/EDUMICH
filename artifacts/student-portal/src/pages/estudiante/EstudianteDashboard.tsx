@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
+import { safeUrl } from '../../lib/safeUrl';
 import {
   BookOpen,
   FileCheck2,
@@ -186,7 +187,7 @@ export default function EstudianteDashboard() {
                 <div className="font-semibold text-sm" style={{ color: c.text, marginBottom: 2 }}>{a.titulo}</div>
                 <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>{a.contenido}</p>
                 {a.ctaTexto && a.ctaUrl && (
-                  <a href={a.ctaUrl} className="inline-block mt-2 text-xs font-semibold" style={{ color: c.text, textDecoration: 'underline' }}>
+                  <a href={safeUrl(a.ctaUrl)} rel="noopener noreferrer" className="inline-block mt-2 text-xs font-semibold" style={{ color: c.text, textDecoration: 'underline' }}>
                     {a.ctaTexto} →
                   </a>
                 )}

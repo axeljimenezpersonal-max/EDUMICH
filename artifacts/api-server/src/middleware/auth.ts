@@ -9,9 +9,9 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'node:crypto';
+import { SESSION_SECRET as SECRET } from '../config/env';
 
 const COOKIE_NAME = 'pa_session';
-const SECRET = process.env.SESSION_SECRET || 'CAMBIAR_EN_PRODUCCION_michoacan_2026';
 
 export interface SessionUser {
   userId: number;
@@ -26,12 +26,18 @@ declare global {
   }
 }
 
+// Edad máxima absoluta de la sesión, validada en el SERVIDOR a partir de `iat`.
+// Evita que una cookie copiada siga siendo válida indefinidamente aunque el
+// cliente la conserve (el maxAge de la cookie solo lo respeta el navegador).
+const MAX_SESSION_AGE_MS = 1000 * 60 * 60 * 24 * 7; // 7 días
+
 function sign(payload: string): string {
   return crypto.createHmac('sha256', SECRET).update(payload).digest('hex');
 }
 
 export function encodeSession(user: SessionUser): string {
-  const payload = Buffer.from(JSON.stringify(user)).toString('base64url');
+  const data = { userId: user.userId, rol: user.rol, iat: Date.now() };
+  const payload = Buffer.from(JSON.stringify(data)).toString('base64url');
   const sig = sign(payload);
   return `${payload}.${sig}`;
 }
@@ -41,7 +47,12 @@ export function decodeSession(cookie: string): SessionUser | null {
   if (!payload || !sig) return null;
   if (sign(payload) !== sig) return null;
   try {
-    return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
+    // Rechaza sesiones sin marca de tiempo o expiradas (expiración server-side).
+    if (typeof data?.iat !== 'number' || Date.now() - data.iat > MAX_SESSION_AGE_MS) {
+      return null;
+    }
+    return { userId: data.userId, rol: data.rol };
   } catch {
     return null;
   }

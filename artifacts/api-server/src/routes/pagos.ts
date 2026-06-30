@@ -239,8 +239,12 @@ router.get('/:pagoId/comprobante', async (req, res) => {
     : pago.rutaComprobante.match(/\.webp$/i)
     ? 'image/webp'
     : 'application/pdf';
+  // SEGURIDAD: las imágenes se muestran inline (para revisar el comprobante);
+  // cualquier otro tipo (PDF/desconocido) se fuerza a descarga. nosniff es global (helmet).
+  const isImage = mime.startsWith('image/');
   res.setHeader('Content-Type', mime);
-  res.setHeader('Content-Disposition', `inline; filename="${safe}"`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', `${isImage ? 'inline' : 'attachment'}; filename="${safe}"`);
   createReadStream(pago.rutaComprobante).pipe(res);
 });
 

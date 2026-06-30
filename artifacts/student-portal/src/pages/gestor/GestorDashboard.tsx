@@ -9,6 +9,7 @@ import { Link } from 'wouter';
 import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, type DashboardGestor, type Convocatoria } from '../../lib/api';
+import { safeUrl } from '../../lib/safeUrl';
 
 interface AnuncioItem {
   id: number;
@@ -87,7 +88,7 @@ export default function GestorDashboard() {
               <div style={{ fontSize: 13, fontWeight: 700, color: c.text, marginBottom: 2 }}>{a.titulo}</div>
               <div style={{ fontSize: 12, color: '#57534e', lineHeight: 1.4 }}>{a.contenido}</div>
               {a.ctaTexto && a.ctaUrl && (
-                <a href={a.ctaUrl} style={{ display: 'inline-block', marginTop: 6, fontSize: 11, fontWeight: 600, color: c.text, textDecoration: 'underline' }}>
+                <a href={safeUrl(a.ctaUrl)} rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, fontSize: 11, fontWeight: 600, color: c.text, textDecoration: 'underline' }}>
                   {a.ctaTexto} →
                 </a>
               )}

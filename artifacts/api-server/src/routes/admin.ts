@@ -40,8 +40,7 @@ import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } fro
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
-
-const QR_SECRET = process.env.QR_SECRET || 'prepa-qr-secret-dev';
+import { QR_SECRET } from '../config/env';
 
 const router = Router();
 

@@ -52,8 +52,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
-
-const QR_SECRET = process.env.QR_SECRET || 'prepa-qr-secret-dev';
+import { QR_SECRET } from '../config/env';
 
 // ── Multer para expediente ────────────────────────────────────────────────
 const EXPEDIENTE_DIR = process.env.STORAGE_DIR

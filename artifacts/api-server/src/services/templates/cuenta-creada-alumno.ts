@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/escapeHtml';
+
 export interface CuentaCreadaAlumnoData {
   nombreAlumno: string;
   email: string;
@@ -18,9 +20,9 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf2f4;border:1px solid #e8c4cc;border-radius:8px;padding:20px;">
           <tr><td>
             <div style="font-size:10px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:10px;">Tu gestor asignado</div>
-            <div style="font-size:15px;font-weight:bold;color:#1c1917;margin-bottom:4px;">${data.gestor.nombre}</div>
-            ${data.gestor.municipio ? `<div style="font-size:13px;color:#44403c;margin-bottom:4px;">${data.gestor.municipio}</div>` : ''}
-            ${data.gestor.telefono ? `<div style="font-size:13px;color:#44403c;margin-bottom:10px;">${data.gestor.telefono}</div>` : ''}
+            <div style="font-size:15px;font-weight:bold;color:#1c1917;margin-bottom:4px;">${escapeHtml(data.gestor.nombre)}</div>
+            ${data.gestor.municipio ? `<div style="font-size:13px;color:#44403c;margin-bottom:4px;">${escapeHtml(data.gestor.municipio)}</div>` : ''}
+            ${data.gestor.telefono ? `<div style="font-size:13px;color:#44403c;margin-bottom:10px;">${escapeHtml(data.gestor.telefono)}</div>` : ''}
             <div style="font-size:13px;color:#44403c;line-height:1.6;">Si tienes dudas, contacta a tu gestor o visita las oficinas.</div>
           </td></tr>
         </table>
@@ -50,7 +52,7 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
           </tr></table>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
-          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">¡Hola, ${data.nombreAlumno}!</h1>
+          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">¡Hola, ${escapeHtml(data.nombreAlumno)}!</h1>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Te damos la bienvenida al <strong>Sistema de Gestión de Prepa Abierta</strong> del Gobierno de Michoacán.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">

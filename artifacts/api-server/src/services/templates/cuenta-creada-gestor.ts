@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/escapeHtml';
+
 export interface CuentaCreadaGestorData {
   nombreGestor: string;
   email: string;
@@ -26,8 +28,8 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
           <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:10px;">Designación como gestor municipal</div>
-          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Bienvenido(a), ${data.nombreGestor}</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Has sido designado(a) como <strong>Gestor Municipal de ${data.municipio}</strong> en el Sistema de Prepa Abierta del Gobierno de Michoacán.</p>
+          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Bienvenido(a), ${escapeHtml(data.nombreGestor)}</h1>
+          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Has sido designado(a) como <strong>Gestor Municipal de ${escapeHtml(data.municipio)}</strong> en el Sistema de Prepa Abierta del Gobierno de Michoacán.</p>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Como gestor podrás dar de alta aspirantes, subir documentación de expediente y dar seguimiento personalizado a cada alumno de tu municipio.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">

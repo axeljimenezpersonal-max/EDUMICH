@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
+import DOMPurify from 'dompurify';
+import { safeUrl } from '../../../lib/safeUrl';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
@@ -81,7 +83,14 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
       editor.chain().focus().unsetLink().run();
       return;
     }
-    editor.chain().focus().setLink({ href: url }).run();
+    // SEGURIDAD: solo se aceptan rutas internas, http(s) o mailto;
+    // se bloquean esquemas peligrosos (javascript:, data:).
+    const safe = safeUrl(url);
+    if (safe === '#') {
+      window.alert('Enlace no válido. Usa una URL http(s) o mailto.');
+      return;
+    }
+    editor.chain().focus().setLink({ href: safe }).run();
   }
 
   return (
@@ -126,7 +135,10 @@ function EditorToolbar({ editor }: { editor: ReturnType<typeof useEditor> }) {
 // ─── Email preview wrapper ────────────────────────────────────────────────
 
 function EmailPreview({ html, mobile }: { html: string; mobile: boolean }) {
-  const content = applyDemoVars(html);
+  // SEGURIDAD: el HTML proviene del editor TipTap y de la API; se sanitiza con
+  // DOMPurify antes de inyectarlo para evitar XSS almacenado (scripts, onerror,
+  // javascript: URIs) en el navegador de quien previsualiza la plantilla.
+  const content = DOMPurify.sanitize(applyDemoVars(html));
   return (
     <div
       className="border border-stone-200 rounded-lg overflow-hidden"

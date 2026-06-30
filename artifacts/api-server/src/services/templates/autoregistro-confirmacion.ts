@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/escapeHtml';
+
 export interface AutoregistroConfirmacionData {
   nombreCompleto: string;
   municipio: string;
@@ -23,7 +25,7 @@ export function autoregistroConfirmacionTemplate(data: AutoregistroConfirmacionD
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
-          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Hola, ${data.nombreCompleto}</h1>
+          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Hola, ${escapeHtml(data.nombreCompleto)}</h1>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Recibimos tu solicitud de inscripción al programa <strong>Prepa Abierta Michoacán</strong>. Nos da mucho gusto que quieras continuar tu formación académica.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">
@@ -32,7 +34,7 @@ export function autoregistroConfirmacionTemplate(data: AutoregistroConfirmacionD
               <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#1d4ed8;text-transform:uppercase;margin-bottom:12px;">¿Qué sigue?</div>
               ${[
                 'Nuestro equipo revisará tu solicitud en los próximos días hábiles.',
-                `Un gestor municipal de <strong>${data.municipio}</strong> te contactará para orientarte.`,
+                `Un gestor municipal de <strong>${escapeHtml(data.municipio)}</strong> te contactará para orientarte.`,
                 'Cuando aprueben tu solicitud, recibirás un correo con tus datos de acceso.',
                 'Mientras tanto, puedes ir reuniendo tu CURP, acta de nacimiento, INE y comprobante de domicilio.',
               ].map((paso, i) => `

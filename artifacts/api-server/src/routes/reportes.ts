@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { authRequired, requireRol } from '../middleware/auth';
 import { reportesGenerados, reportesProgramados } from '@workspace/db/schema';
 import { eq, desc, and, gte, lte } from 'drizzle-orm';
+import { z } from 'zod';
 import { generarExcelReporte } from '../services/excelGenerator';
 import { generarPDFReporte } from '../services/pdfReport';
 import type { ReporteData } from '../services/excelGenerator';
@@ -23,10 +24,31 @@ interface FiltrosReporte {
   estado?: string;
 }
 
+// SEGURIDAD: valida y normaliza los filtros que llegan del cliente antes de que
+// toquen cualquier query. Fechas en ISO, ids numéricos, estado acotado.
+const filtrosSchema = z
+  .object({
+    fechaInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    fechaFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+    municipioId: z.string().regex(/^\d+$/).optional(),
+    gestorId: z.string().regex(/^\d+$/).optional(),
+    estado: z.string().max(50).optional(),
+  })
+  .strip();
+
+function parseFiltros(raw: unknown): FiltrosReporte {
+  const r = filtrosSchema.safeParse(raw ?? {});
+  return r.success ? r.data : {};
+}
+
+// SEGURIDAD: las fechas se interpolan dentro de sql.raw(), así que se valida
+// estrictamente el formato ISO (YYYY-MM-DD). Cualquier valor que no calce se
+// IGNORA — esto cierra el vector de SQL injection por `fechaInicio`/`fechaFin`.
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 function sqlFechaFiltro(col: string, inicio?: string, fin?: string): string {
   const parts: string[] = [];
-  if (inicio) parts.push(`${col} >= '${inicio}'`);
-  if (fin) parts.push(`${col} <= '${fin} 23:59:59'`);
+  if (inicio && ISO_DATE.test(inicio)) parts.push(`${col} >= '${inicio}'`);
+  if (fin && ISO_DATE.test(fin)) parts.push(`${col} <= '${fin} 23:59:59'`);
   return parts.length ? 'AND ' + parts.join(' AND ') : '';
 }
 
@@ -386,7 +408,8 @@ const NOMBRES: Record<string, string> = {
 // POST /api/admin/reportes/preview
 // ─────────────────────────────────────────────────────────────
 router.post('/preview', async (req, res) => {
-  const { tipo, filtros = {} } = req.body as { tipo: string; filtros: FiltrosReporte };
+  const { tipo } = req.body as { tipo: string };
+  const filtros = parseFiltros((req.body as { filtros?: unknown }).filtros);
   const fn = DATA_FN[tipo];
   if (!fn) { res.status(400).json({ error: 'Tipo de reporte inválido' }); return; }
 
@@ -398,11 +421,11 @@ router.post('/preview', async (req, res) => {
 // POST /api/admin/reportes/generar
 // ─────────────────────────────────────────────────────────────
 router.post('/generar', async (req, res) => {
-  const { tipo, formato = 'excel', filtros = {} } = req.body as {
+  const { tipo, formato = 'excel' } = req.body as {
     tipo: string;
     formato: 'excel' | 'pdf';
-    filtros: FiltrosReporte;
   };
+  const filtros = parseFiltros((req.body as { filtros?: unknown }).filtros);
 
   const fn = DATA_FN[tipo];
   if (!fn) { res.status(400).json({ error: 'Tipo de reporte inválido' }); return; }

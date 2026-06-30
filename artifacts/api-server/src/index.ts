@@ -8,6 +8,8 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -31,14 +33,50 @@ import { runStartupMigrations } from './db';
 
 const app = express();
 
+// Detrás del proxy de Railway: necesario para que express-rate-limit y las
+// cookies `secure` lean correctamente la IP/protocolo del cliente.
+app.set('trust proxy', 1);
+
+// Cabeceras de seguridad (nosniff, frameguard, HSTS, etc.).
+// CSP se deja desactivada por ahora para no romper el SPA + Google Fonts;
+// debe afinarse y activarse en una iteración dedicada.
+app.use(helmet({ contentSecurityPolicy: false }));
+
+// CORS restringido por allowlist (antes reflejaba CUALQUIER origen con credenciales).
+// Configurable con ALLOWED_ORIGINS="https://a.gob.mx,https://b.gob.mx".
+const ALLOWED_ORIGINS = [
+  ...(process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
+    : ['https://edumich.up.railway.app']),
+  ...(process.env.NODE_ENV !== 'production'
+    ? ['http://localhost:5173', 'http://localhost:3001']
+    : []),
+];
 app.use(
   cors({
-    origin: (origin, cb) => cb(null, true), // permite mismo host del Replit
+    origin: (origin, cb) => {
+      // Permite peticiones sin Origin (same-origin, curl, apps nativas, health checks).
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
+      return cb(new Error('CORS: origen no permitido'));
+    },
     credentials: true,
   })
 );
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
+
+// Rate limiting para frenar fuerza bruta y abuso en autenticación.
+// max por ventana e IP; ajustable si hay oficinas tras NAT compartido.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiados intentos. Intenta de nuevo en unos minutos.' },
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/recuperar-password', authLimiter);
+app.use('/api/auth/reset-password', authLimiter);
 
 // Healthcheck
 app.get('/api/health', (_req, res) => {
@@ -59,7 +97,11 @@ app.use('/api/admin/reportes', reportesRoutes);
 app.use('/api/admin/configuracion', configuracionRoutes);
 app.use('/api/admin/depuracion', depuracionRoutes);
 app.use('/api/banco', bancoRoutes);
-app.use('/api/dev', devRoutes);
+// Rutas de mantenimiento/dev: NUNCA se montan en producción (defensa en
+// profundidad, además del propio gate interno por NODE_ENV).
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/dev', devRoutes);
+}
 
 // Cron: check programmed reports every hour
 cron.schedule('0 * * * *', () => {
@@ -87,10 +129,11 @@ if (fs.existsSync(STATIC_DIR)) {
   console.log(`📁 Sirviendo frontend desde ${STATIC_DIR}`);
 }
 
-// Error handler
+// Error handler — no filtrar detalles internos al cliente en producción.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[API Error]', err);
-  res.status(500).json({ error: err.message || 'Error interno' });
+  const isProd = process.env.NODE_ENV === 'production';
+  res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message || 'Error interno' });
 });
 
 const PORT = Number(process.env.PORT) || 3001;

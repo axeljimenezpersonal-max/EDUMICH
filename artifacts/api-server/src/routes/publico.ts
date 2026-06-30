@@ -53,7 +53,7 @@ router.get('/municipios', async (_req, res) => {
 });
 
 // ─── Token helpers (HMAC, 30 min) ────────────────────────────────────────
-const TOKEN_SECRET = process.env.SESSION_SECRET || 'CAMBIAR_EN_PRODUCCION';
+import { SESSION_SECRET as TOKEN_SECRET } from '../config/env';
 const TOKEN_TTL_MS = 30 * 60 * 1000;
 
 function signEmailToken(email: string, tipo: string): string {

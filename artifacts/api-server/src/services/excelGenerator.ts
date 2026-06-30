@@ -17,6 +17,16 @@ export interface ReporteData {
   generadoPor: string;
 }
 
+// SEGURIDAD: evita "formula/CSV injection". Si una celda de texto empieza con
+// = + - @ (o tab/CR), Excel la interpreta como fórmula al abrir el archivo.
+// Se antepone un apóstrofe para forzar que se trate como texto.
+function sanitizarCelda(val: string | number | null): string | number | null {
+  if (typeof val === 'string' && /^[=+\-@\t\r]/.test(val)) {
+    return `'${val}`;
+  }
+  return val;
+}
+
 function cabeceraEstilo(ws: ExcelJS.Worksheet, row: ExcelJS.Row) {
   row.eachCell((cell) => {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GUINDA } };
@@ -133,7 +143,7 @@ export async function generarExcelReporte(data: ReporteData): Promise<Buffer> {
 
   altRow = false;
   for (const fila of data.filas) {
-    const r = wsDatos.addRow(fila);
+    const r = wsDatos.addRow(fila.map(sanitizarCelda));
     if (altRow) {
       r.eachCell((c) => {
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GREY_BG } };

@@ -8,6 +8,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { LogOut, User, Bell, ChevronRight, X, Check } from 'lucide-react';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 
 interface Props {
   userName?: string;
@@ -176,7 +177,7 @@ function HeaderNotifBell() {
                   key={n.id}
                   onClick={() => {
                     if (!n.leida) marcarLeida(n.id);
-                    if (n.enlace) window.location.href = n.enlace;
+                    if (n.enlace) window.location.href = safeUrl(n.enlace);
                   }}
                   style={{
                     display: 'flex',

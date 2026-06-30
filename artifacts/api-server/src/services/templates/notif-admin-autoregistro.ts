@@ -1,3 +1,5 @@
+import { escapeHtml } from '../../utils/escapeHtml';
+
 export interface NotifAdminAutoregistroData {
   nombreAspirante: string;
   emailAspirante: string;
@@ -43,7 +45,7 @@ export function notifAdminAutoregistroTemplate(data: NotifAdminAutoregistroData)
                 ].map(([label, value]) => `
                 <tr>
                   <td style="font-size:12px;color:#78716c;font-weight:bold;text-transform:uppercase;letter-spacing:0.5px;padding-bottom:10px;width:40%;vertical-align:top;">${label}</td>
-                  <td style="font-size:14px;color:#1c1917;padding-bottom:10px;">${value}</td>
+                  <td style="font-size:14px;color:#1c1917;padding-bottom:10px;">${escapeHtml(value)}</td>
                 </tr>`).join('')}
               </table>
             </td></tr>

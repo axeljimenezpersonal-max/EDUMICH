@@ -3,6 +3,7 @@ import { db } from '../db';
 import { outbox } from '@workspace/db/schema';
 import { cuentaCreadaAlumnoTemplate } from './templates/cuenta-creada-alumno';
 import { cuentaCreadaGestorTemplate } from './templates/cuenta-creada-gestor';
+import { escapeHtml } from '../utils/escapeHtml';
 
 // ─── Configuración de modo ────────────────────────────────────────────────
 
@@ -266,7 +267,7 @@ function getRecuperarPasswordHTML(data: RecuperarPasswordData): string {
         <tr><td style="padding:32px 32px 24px 32px;">
           <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:12px;">Recuperación de contraseña</div>
           <h1 style="color:#1c1917;font-size:22px;margin:0 0 14px 0;font-family:Georgia,serif;">Crea una nueva contraseña</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 24px 0;">Hola, <strong>${data.nombre}</strong>. Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
+          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 24px 0;">Hola, <strong>${escapeHtml(data.nombre)}</strong>. Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
           <table width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;"><tr><td align="center">
             <a href="${data.resetUrl}" style="display:inline-block;background:#7b1e3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;">Crear nueva contraseña</a>
           </td></tr></table>
@@ -289,8 +290,8 @@ function getAvisoEliminacionHTML(data: AvisoEliminacionData): string {
   const gestorSection = data.gestor
     ? `<tr><td style="padding:0 32px 24px 32px;"><table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf2f4;border:1px solid #e8c4cc;border-radius:8px;padding:20px;"><tr><td>
         <div style="font-size:10px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:8px;">Gestor asignado</div>
-        <div style="font-size:14px;font-weight:bold;color:#1c1917;margin-bottom:4px;">${data.gestor.nombre}</div>
-        <div style="font-size:13px;color:#44403c;">${data.gestor.email}</div>
+        <div style="font-size:14px;font-weight:bold;color:#1c1917;margin-bottom:4px;">${escapeHtml(data.gestor.nombre)}</div>
+        <div style="font-size:13px;color:#44403c;">${escapeHtml(data.gestor.email)}</div>
       </td></tr></table></td></tr>`
     : `<tr><td style="padding:0 32px 24px 32px;"><div style="font-size:13px;color:#44403c;">Soporte: <strong>soporte.prepaabierta@michoacan.gob.mx</strong></div></td></tr>`;
 
@@ -312,7 +313,7 @@ function getAvisoEliminacionHTML(data: AvisoEliminacionData): string {
           </td></tr></table>
         </td></tr>
         <tr><td style="padding:24px 32px 20px 32px;">
-          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Hola, ${data.nombreCompleto}</h1>
+          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Hola, ${escapeHtml(data.nombreCompleto)}</h1>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Para reactivar tu cuenta, sube al menos un documento o comprobante de pago en el portal.</p>
         </td></tr>
         <tr><td style="padding:0 32px 28px 32px;" align="center">

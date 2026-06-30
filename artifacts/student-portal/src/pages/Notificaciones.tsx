@@ -4,6 +4,7 @@ import {
   CheckCircle, XCircle, Star, Megaphone, ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { safeUrl } from '../lib/safeUrl';
 
 type Notif = {
   id: number;
@@ -247,7 +248,7 @@ export default function Notificaciones() {
                     <span style={{ fontSize: 11, color: '#a8a29e' }}>{tiempoRelativo(n.creadaEn)}</span>
                     {n.enlace && (
                       <a
-                        href={n.enlace}
+                        href={safeUrl(n.enlace)}
                         style={{ fontSize: 11, color: 'var(--color-guinda-700)', textDecoration: 'none', fontWeight: 600 }}
                       >
                         Ver detalle →

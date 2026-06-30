@@ -19,6 +19,13 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Quita el token del query string una vez leído, para que no quede en el
+  // historial del navegador ni en cabeceras Referer.
+  useEffect(() => {
+    if (token) window.history.replaceState(null, '', window.location.pathname);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!token) { setTokenError('No se proporcionó un token de recuperación.'); setEstado('invalido'); return; }
     api.get<{ valido: boolean; error?: string }>(`/auth/validar-token-reset?token=${encodeURIComponent(token)}`)

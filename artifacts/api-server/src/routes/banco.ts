@@ -105,7 +105,9 @@ router.post('/modulo/:num/quiz/verificar', async (req, res) => {
       paraRepasar: bancoPreguntas.paraRepasar,
     })
     .from(bancoPreguntas)
-    .where(inArray(bancoPreguntas.id, ids));
+    // SEGURIDAD: solo preguntas del módulo solicitado — evita que el alumno mande
+    // IDs de OTROS módulos para cosechar sus respuestas correctas.
+    .where(and(eq(bancoPreguntas.moduloNum, moduloNum), inArray(bancoPreguntas.id, ids)));
 
   let correctas = 0;
   const feedback = rows.map((q) => {

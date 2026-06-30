@@ -671,7 +671,7 @@ router.patch('/alumnos/:id', async (req, res) => {
   await db
     .update(estudiantes)
     .set(updateFields)
-    .where(eq(estudiantes.userId, alumnoId));
+    .where(and(eq(estudiantes.userId, alumnoId), eq(estudiantes.gestorId, userId)));
 
   await tryAuditLog({
     userId,
