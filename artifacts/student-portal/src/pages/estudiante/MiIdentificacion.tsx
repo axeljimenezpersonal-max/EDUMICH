@@ -372,7 +372,7 @@ export default function MiIdentificacion() {
           </p>
           <div className="space-y-2 text-sm">
             {[
-              'Completa tu expediente con los 4 documentos',
+              'Completa tu expediente con los 5 documentos',
               'La administración valida y asigna tu matrícula',
               'Se emite tu credencial digital',
             ].map((paso, i) => (

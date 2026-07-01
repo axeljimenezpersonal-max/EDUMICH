@@ -51,6 +51,12 @@ import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import {
+  obtenerDatosCedula,
+  guardarDatosCedula,
+  generarCedulaPdf,
+  cedulaDatosSchema,
+} from '../services/cedula';
 import { tryAuditLog } from '../utils/audit';
 import { QR_SECRET } from '../config/env';
 
@@ -939,6 +945,41 @@ router.get('/expediente/documento/:tipo/descargar', async (req, res) => {
   await servirDocExpediente(req.user!.userId, req.params.tipo, 'attachment', res);
 });
 
+// ─── Cédula de inscripción ────────────────────────────────────────────────
+
+// GET /estudiante/cedula — datos consolidados (autollenados) para el formulario
+router.get('/cedula', async (req, res) => {
+  try {
+    const datos = await obtenerDatosCedula(req.user!.userId);
+    res.json(datos);
+  } catch (e) {
+    res.status(404).json({ error: e instanceof Error ? e.message : 'No disponible' });
+  }
+});
+
+// PATCH /estudiante/cedula — guardar los campos editables
+router.patch('/cedula', async (req, res) => {
+  const parse = cedulaDatosSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
+    return;
+  }
+  await guardarDatosCedula(req.user!.userId, parse.data);
+  res.json({ ok: true });
+});
+
+// GET /estudiante/cedula/pdf — cédula rellenada y aplanada
+router.get('/cedula/pdf', async (req, res) => {
+  try {
+    const pdf = await generarCedulaPdf(req.user!.userId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="cedula-inscripcion.pdf"');
+    res.send(Buffer.from(pdf));
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // Helpers convocatoria
 // ─────────────────────────────────────────────────────────────────────────
@@ -946,7 +987,7 @@ router.get('/expediente/documento/:tipo/descargar', async (req, res) => {
 async function expedienteCompleto(
   estudianteId: number
 ): Promise<{ completo: boolean; faltantes: string[] }> {
-  const OBLIGATORIOS = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio'];
+  const OBLIGATORIOS = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
   const docs = await db
     .select()
     .from(expedienteDocumentos)

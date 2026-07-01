@@ -1,5 +1,6 @@
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import type { ReporteData } from './excelGenerator';
+import { winAnsiSafe } from '../utils/pdfText';
 
 const GUINDA = rgb(0.42, 0.06, 0.24);
 const GUINDA_LIGHT = rgb(0.96, 0.9, 0.94);
@@ -28,7 +29,7 @@ function drawText(
   color = BLACK,
   maxWidth?: number
 ) {
-  const safeText = text.normalize('NFD').replace(/[̀-ͯ]/g, '').slice(0, 200);
+  const safeText = winAnsiSafe(text).slice(0, 200);
   if (maxWidth) {
     let display = safeText;
     while (display.length > 3 && font.widthOfTextAtSize(display, size) > maxWidth) {

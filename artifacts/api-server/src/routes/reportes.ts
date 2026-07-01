@@ -234,7 +234,11 @@ async function datosProductividadGestores(f: FiltrosReporte) {
            COUNT(DISTINCT e.user_id)::text AS total_alumnos,
            COUNT(DISTINCT CASE WHEN e.matricula_oficial_dgb IS NOT NULL THEN e.user_id END)::text AS con_matricula,
            COUNT(DISTINCT CASE WHEN e.user_id IN (
-             SELECT estudiante_id FROM expediente_documentos WHERE estado = 'aprobado'
+             SELECT estudiante_id FROM expediente_documentos
+             WHERE estado = 'aprobado'
+               AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')
+             GROUP BY estudiante_id
+             HAVING count(DISTINCT tipo) >= 5
            ) THEN e.user_id END)::text AS documentos_completos,
            g.estado
     FROM gestores g

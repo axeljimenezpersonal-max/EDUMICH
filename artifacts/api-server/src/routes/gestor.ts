@@ -45,6 +45,12 @@ import { sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
+import {
+  obtenerDatosCedula,
+  guardarDatosCedula,
+  generarCedulaPdf,
+  cedulaDatosSchema,
+} from '../services/cedula';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 
@@ -332,6 +338,7 @@ router.post(
     { name: 'doc_acta', maxCount: 1 },
     { name: 'doc_ine', maxCount: 1 },
     { name: 'doc_domicilio', maxCount: 1 },
+    { name: 'doc_certificado', maxCount: 1 },
   ]),
   async (req, res) => {
     const userId = req.user!.userId;
@@ -346,8 +353,9 @@ router.post(
     const docActa = files?.['doc_acta']?.[0];
     const docIne = files?.['doc_ine']?.[0];
     const docDomicilio = files?.['doc_domicilio']?.[0];
+    const docCertificado = files?.['doc_certificado']?.[0];
 
-    const allFiles = [docCurp, docActa, docIne, docDomicilio].filter(Boolean) as Express.Multer.File[];
+    const allFiles = [docCurp, docActa, docIne, docDomicilio, docCertificado].filter(Boolean) as Express.Multer.File[];
 
     const body = req.body as Record<string, string>;
     const parse = crearAlumnoSchema.safeParse({
@@ -430,6 +438,7 @@ router.post(
           { file: docActa, tipo: 'acta', nombre: 'Acta de nacimiento' },
           { file: docIne, tipo: 'ine', nombre: 'Identificación oficial (INE)' },
           { file: docDomicilio, tipo: 'domicilio', nombre: 'Comprobante de domicilio' },
+          { file: docCertificado, tipo: 'certificado', nombre: 'Certificado de secundaria' },
         ].filter((d): d is { file: Express.Multer.File; tipo: string; nombre: string } => d.file != null);
         const docsInserted = [];
         for (const def of docDefs) {
@@ -534,7 +543,7 @@ router.get('/alumnos-pendientes-docs', async (req, res) => {
       ? await db.select({ c: count() }).from(documentos).where(eq(documentos.inscripcionId, insc.id))
       : [{ c: 0 }];
 
-    if (docsCount < 4) {
+    if (docsCount < 5) {
       const creadoEn = new Date(r.createdAt as string | Date);
       const diasDesdeRegistro = Math.floor((Date.now() - creadoEn.getTime()) / 86400000);
       const parts = r.nombreCompleto.split(' ').filter(Boolean);
@@ -810,7 +819,7 @@ const uploadExpedienteGestor = multer({
 
 const TIPOS_EXPEDIENTE = [
   'curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio',
-  'foto', 'comprobante_pago',
+  'certificado_secundaria', 'foto', 'comprobante_pago',
 ] as const;
 type TipoExpediente = (typeof TIPOS_EXPEDIENTE)[number];
 
@@ -1066,6 +1075,48 @@ router.get('/alumnos/:id/expediente/documento/:tipo/preview', async (req, res) =
 router.get('/alumnos/:id/expediente/documento/:tipo/descargar', async (req, res) => {
   const alumnoId = Number(req.params.id as string);
   await servirDocExpedienteGestor(req.user!.userId, alumnoId, req.params.tipo as string, 'attachment', res);
+});
+
+// ─── Cédula de inscripción (gestor) ──────────────────────────────────
+
+// GET /gestor/alumnos/:id/cedula — datos consolidados
+router.get('/alumnos/:id/cedula', async (req, res) => {
+  const alumnoId = Number(req.params.id as string);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  res.json(await obtenerDatosCedula(alumnoId));
+});
+
+// PATCH /gestor/alumnos/:id/cedula — el gestor también puede completar datos
+router.patch('/alumnos/:id/cedula', async (req, res) => {
+  const alumnoId = Number(req.params.id as string);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  const parse = cedulaDatosSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
+    return;
+  }
+  await guardarDatosCedula(alumnoId, parse.data);
+  res.json({ ok: true });
+});
+
+// GET /gestor/alumnos/:id/cedula/pdf — cédula rellenada (incluye firma del gestor responsable)
+router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
+  const alumnoId = Number(req.params.id as string);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  try {
+    const pdf = await generarCedulaPdf(alumnoId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename="cedula-inscripcion.pdf"');
+    res.send(Buffer.from(pdf));
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
+  }
 });
 
 // ─── GET helper: find a gestors student by doc id ────────────────────

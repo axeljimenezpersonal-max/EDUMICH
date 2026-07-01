@@ -1,12 +1,13 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
   { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen },
+  { to: '/estudiante/cedula', label: 'Cédula', icon: ClipboardList },
   { to: '/estudiante/convocatoria', label: 'Convocatoria', icon: Calendar },
   { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen },
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck },

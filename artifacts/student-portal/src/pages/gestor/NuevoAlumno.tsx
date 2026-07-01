@@ -10,6 +10,7 @@ import {
   CreditCard,
   FileBadge,
   MapPin,
+  GraduationCap,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { GestorLayout } from './GestorLayout';
@@ -28,13 +29,14 @@ interface DatosPersonales {
   direccion: string;
 }
 
-type DocKey = 'curp' | 'acta' | 'ine' | 'domicilio';
+type DocKey = 'curp' | 'acta' | 'ine' | 'domicilio' | 'certificado';
 
 interface Archivos {
   curp: File | null;
   acta: File | null;
   ine: File | null;
   domicilio: File | null;
+  certificado: File | null;
 }
 
 interface RegistroExito {
@@ -79,6 +81,13 @@ const DOC_DEFS: Array<{
     fieldName: 'doc_domicilio',
     icon: <MapPin size={20} />,
   },
+  {
+    key: 'certificado',
+    nombre: 'Certificado de secundaria',
+    subtitulo: 'Certificado o constancia (ambos lados)',
+    fieldName: 'doc_certificado',
+    icon: <GraduationCap size={20} />,
+  },
 ];
 
 const DATOS_INIT: DatosPersonales = {
@@ -90,7 +99,7 @@ const DATOS_INIT: DatosPersonales = {
   direccion: '',
 };
 
-const ARCHIVOS_INIT: Archivos = { curp: null, acta: null, ine: null, domicilio: null };
+const ARCHIVOS_INIT: Archivos = { curp: null, acta: null, ine: null, domicilio: null, certificado: null };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -165,6 +174,7 @@ export default function NuevoAlumno() {
     acta: null,
     ine: null,
     domicilio: null,
+    certificado: null,
   });
 
   // ── Fetch convocatoria ───────────────────────────────────────────────
@@ -182,7 +192,8 @@ export default function NuevoAlumno() {
     archivos.curp !== null ||
     archivos.acta !== null ||
     archivos.ine !== null ||
-    archivos.domicilio !== null;
+    archivos.domicilio !== null ||
+    archivos.certificado !== null;
 
   useEffect(() => {
     const handler = (e: BeforeUnloadEvent) => {
@@ -234,7 +245,7 @@ export default function NuevoAlumno() {
     !fieldErrors.email;
 
   // ── Step 2 counters ──────────────────────────────────────────────────
-  const faltanCount = ([archivos.curp, archivos.acta, archivos.ine, archivos.domicilio] as (File | null)[]).filter(
+  const faltanCount = ([archivos.curp, archivos.acta, archivos.ine, archivos.domicilio, archivos.certificado] as (File | null)[]).filter(
     (f) => !f
   ).length;
 
@@ -277,6 +288,7 @@ export default function NuevoAlumno() {
     fd.append('doc_acta', archivos.acta!);
     fd.append('doc_ine', archivos.ine!);
     fd.append('doc_domicilio', archivos.domicilio!);
+    fd.append('doc_certificado', archivos.certificado!);
 
     try {
       const r = await api.post<RegistroExito>('/gestor/alumnos/registro-completo', fd);
@@ -308,6 +320,7 @@ export default function NuevoAlumno() {
     if (archivos.acta) fd.append('doc_acta', archivos.acta);
     if (archivos.ine) fd.append('doc_ine', archivos.ine);
     if (archivos.domicilio) fd.append('doc_domicilio', archivos.domicilio);
+    if (archivos.certificado) fd.append('doc_certificado', archivos.certificado);
 
     try {
       const r = await api.post<RegistroExito>('/gestor/alumnos/registro-completo', fd);
@@ -347,7 +360,7 @@ export default function NuevoAlumno() {
           </h1>
           <p className="text-stone-600 mb-6">
             <strong>{exito.alumno.nombreCompleto}</strong> fue registrado e inscrito a la
-            convocatoria activa con sus 4 documentos enviados.
+            convocatoria activa con sus documentos enviados.
           </p>
 
           {/* Credenciales */}

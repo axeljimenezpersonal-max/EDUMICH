@@ -4,6 +4,7 @@
  */
 
 import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, degrees } from 'pdf-lib';
+import { winAnsiSafe } from '../utils/pdfText';
 import QRCode from 'qrcode';
 import { existsSync, readFileSync } from 'fs';
 
@@ -43,12 +44,13 @@ function drawText(
   color = NEGRO,
   maxWidth?: number,
 ) {
-  let t = text;
+  let t = winAnsiSafe(text);
+  const original = t;
   if (maxWidth) {
     while (t.length > 3 && font.widthOfTextAtSize(t, size) > maxWidth) {
       t = t.slice(0, -1);
     }
-    if (t !== text) t = t.slice(0, -1) + '…';
+    if (t !== original) t = t.slice(0, -1) + '...';
   }
   page.drawText(t, { x, y, size, font, color });
 }
@@ -183,7 +185,7 @@ function drawCorners(page: PDFPage, margin = 16, size = 22, thickness = 2.5) {
 function drawWatermark(page: PDFPage, font: PDFFont, text: string, opacity = 0.04) {
   const W = page.getWidth();
   const H = page.getHeight();
-  page.drawText(text, {
+  page.drawText(winAnsiSafe(text), {
     x: W / 2 - 140,
     y: H / 2 - 30,
     size: 72,

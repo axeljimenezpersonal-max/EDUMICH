@@ -56,7 +56,7 @@ export default function AutoRegistroExito() {
           <ul className="space-y-2 text-sm text-stone-700">
             {[
               'Tu cuenta está activa y puedes acceder ahora.',
-              'Sube tus 4 documentos desde el panel (CURP, acta, INE, domicilio).',
+              'Sube tus 5 documentos desde el panel (CURP, acta, INE, domicilio, certificado de secundaria).',
               'La administración los revisará y validará en días hábiles.',
               'Cuando todo esté aprobado, recibirás confirmación de tu inscripción.',
             ].map((paso, i) => (

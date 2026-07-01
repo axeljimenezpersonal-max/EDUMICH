@@ -26,6 +26,7 @@ import reportesRoutes, { ejecutarReportesProgramados } from './routes/reportes';
 import configuracionRoutes from './routes/configuracion';
 import depuracionRoutes from './routes/depuracion';
 import bancoRoutes from './routes/banco';
+import firmaRoutes from './routes/firma';
 import devRoutes from './routes/dev';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
@@ -97,6 +98,7 @@ app.use('/api/admin/reportes', reportesRoutes);
 app.use('/api/admin/configuracion', configuracionRoutes);
 app.use('/api/admin/depuracion', depuracionRoutes);
 app.use('/api/banco', bancoRoutes);
+app.use('/api/firma', firmaRoutes);
 // Rutas de mantenimiento/dev: NUNCA se montan en producción (defensa en
 // profundidad, además del propio gate interno por NODE_ENV).
 if (process.env.NODE_ENV !== 'production') {

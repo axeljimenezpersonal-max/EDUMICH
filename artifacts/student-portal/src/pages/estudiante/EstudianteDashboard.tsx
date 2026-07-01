@@ -156,10 +156,10 @@ export default function EstudianteDashboard() {
     : null;
   const avisosRecientes = avisos.slice(0, 3);
 
-  // Mostrar banner si tiene menos de 4 documentos aprobados
+  // Mostrar banner si tiene menos de 5 documentos aprobados
   const mostrarBannerDocs =
-    data.kpis.documentosAprobados < 4 &&
-    data.kpis.documentosPendientes + data.kpis.documentosAprobados < 4;
+    data.kpis.documentosAprobados < 5 &&
+    data.kpis.documentosPendientes + data.kpis.documentosAprobados < 5;
 
   // Vigencia del pre-registro
   const diasVigencia = diasHasta(data.preregistroVigenteHasta);
@@ -470,9 +470,9 @@ export default function EstudianteDashboard() {
                 Completa tu expediente
               </div>
               <p className="text-amber-800 text-xs mt-0.5 leading-relaxed">
-                Para que tu inscripción avance necesitas subir 4 documentos: CURP, acta de
-                nacimiento, identificación oficial (INE) y comprobante de domicilio. Una vez
-                subidos, la administración los validará.
+                Para que tu inscripción avance necesitas subir 5 documentos: CURP, acta de
+                nacimiento, identificación oficial (INE), comprobante de domicilio y certificado
+                de secundaria. Una vez subidos, la administración los validará.
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <Link

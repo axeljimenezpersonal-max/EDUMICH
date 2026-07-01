@@ -1,4 +1,4 @@
-import { Info, FileText, User, GraduationCap, CreditCard } from 'lucide-react';
+import { Info, FileText, User, GraduationCap, CreditCard, MapPin } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -10,24 +10,29 @@ type DocDef = {
 
 const DOCUMENTOS: DocDef[] = [
   {
-    icon: FileText,
-    titulo: 'Acta de nacimiento',
-    descripcion: 'PDF · Max 10 MB · Original o digitalizada',
-  },
-  {
     icon: User,
     titulo: 'Hoja de CURP',
     descripcion: 'PDF · Max 10 MB · CURP vigente',
   },
   {
-    icon: GraduationCap,
-    titulo: 'Certificado de secundaria',
-    descripcion: 'PDF · Max 10 MB · Original o ambos lados',
+    icon: FileText,
+    titulo: 'Acta de nacimiento',
+    descripcion: 'PDF · Max 10 MB · Original o digitalizada',
   },
   {
     icon: CreditCard,
     titulo: 'Identificacion oficial (INE/IFE)',
     descripcion: 'PDF · Max 10 MB · Vigente, ambos lados',
+  },
+  {
+    icon: MapPin,
+    titulo: 'Comprobante de domicilio',
+    descripcion: 'PDF · Max 10 MB · No mayor a 3 meses',
+  },
+  {
+    icon: GraduationCap,
+    titulo: 'Certificado de secundaria',
+    descripcion: 'PDF · Max 10 MB · Original o ambos lados',
   },
 ];
 
@@ -88,7 +93,7 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
       >
         <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#6B1530' }} />
         <span style={{ color: '#5a0e32' }}>
-          Los 4 documentos requeridos estan establecidos por la norma oficial <strong>DGB22DR-001</strong> de la
+          Los 5 documentos requeridos estan establecidos por la norma oficial <strong>DGB22DR-001</strong> de la
           Secretaria de Educacion Publica. No es posible modificarlos desde este sistema.
         </span>
       </div>
@@ -102,7 +107,7 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
         </div>
         <div className="p-5">
           <p className="text-sm mb-4" style={{ color: '#78716c' }}>
-            Todos los aspirantes deben presentar los siguientes 4 documentos en formato PDF para completar
+            Todos los aspirantes deben presentar los siguientes 5 documentos en formato PDF para completar
             su expediente de inscripcion. El sistema valida automaticamente que cada documento haya sido
             revisado y aprobado antes de proceder al registro definitivo.
           </p>

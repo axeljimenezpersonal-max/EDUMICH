@@ -398,6 +398,40 @@ export const expedienteDocumentos = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// Cédula de inscripción — datos adicionales que no caben en `estudiantes`
+// ─────────────────────────────────────────────────────────────────────────
+
+export const cedulaDatos = pgTable('cedula_datos', {
+  estudianteId: integer('estudiante_id')
+    .primaryKey()
+    .references(() => estudiantes.userId, { onDelete: 'cascade' }),
+  apellidoPaterno: varchar('apellido_paterno', { length: 100 }),
+  apellidoMaterno: varchar('apellido_materno', { length: 100 }),
+  nombres: varchar('nombres', { length: 120 }),
+  sexo: varchar('sexo', { length: 20 }),
+  estadoCivil: varchar('estado_civil', { length: 30 }),
+  lugarNacimiento: varchar('lugar_nacimiento', { length: 120 }),
+  entidadNacimiento: varchar('entidad_nacimiento', { length: 80 }),
+  calleNumero: varchar('calle_numero', { length: 200 }),
+  colonia: varchar('colonia', { length: 120 }),
+  cp: varchar('cp', { length: 10 }),
+  ciudad: varchar('ciudad', { length: 120 }),
+  estado: varchar('estado', { length: 80 }),
+  ultimoEstudio: varchar('ultimo_estudio', { length: 120 }),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// Firma reutilizable por usuario (se guarda una vez y se reutiliza — estilo "agregar firma")
+export const firmasUsuario = pgTable('firmas_usuario', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  imagenDataUrl: text('imagen_data_url').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // Pagos — comprobantes de pago del alumno
 // ─────────────────────────────────────────────────────────────────────────
 

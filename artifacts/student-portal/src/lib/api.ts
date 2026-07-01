@@ -462,6 +462,47 @@ export interface ExpedienteResponse {
   documentos: Partial<Record<TipoDocumento, DocExpediente>>;
 }
 
+// ── Cédula de inscripción ───────────────────────────────────────────────────
+export interface CedulaDatos {
+  matricula: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
+  nombres: string;
+  nombreCompleto: string;
+  curp: string;
+  fechaNacimiento: string;
+  sexo: string;
+  estadoCivil: string;
+  lugarNacimiento: string;
+  entidadNacimiento: string;
+  calleNumero: string;
+  colonia: string;
+  cp: string;
+  ciudad: string;
+  estado: string;
+  telefono: string;
+  correo: string;
+  ultimoEstudio: string;
+  responsableNombre: string;
+  tieneFoto: boolean;
+  tieneFirmaAlumno: boolean;
+  tieneFirmaResponsable: boolean;
+}
+
+/** Campos editables de la cédula (los que se guardan). */
+export type CedulaDatosEditable = Pick<
+  CedulaDatos,
+  | 'apellidoPaterno' | 'apellidoMaterno' | 'nombres' | 'sexo' | 'estadoCivil'
+  | 'lugarNacimiento' | 'entidadNacimiento' | 'calleNumero' | 'colonia'
+  | 'cp' | 'ciudad' | 'estado' | 'ultimoEstudio'
+>;
+
+// ── Firma reutilizable ──────────────────────────────────────────────────────
+export interface FirmaResponse {
+  imagenDataUrl: string | null;
+  actualizadaEn: string | null;
+}
+
 // ── Pagos ─────────────────────────────────────────────────────────────────
 export type PagoConcepto =
   | 'derecho_examen'

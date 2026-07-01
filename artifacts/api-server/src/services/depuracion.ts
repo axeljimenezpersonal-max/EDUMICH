@@ -80,17 +80,17 @@ export async function evaluarProteccion(
     motivos.push('Tiene al menos 1 pago verificado');
   }
 
-  // 4. Expediente completo (4/4 docs aprobados)
+  // 4. Expediente completo (5/5 docs aprobados)
   const rawDocs = await db.execute<{ total: string }>(sql`
     SELECT count(DISTINCT tipo)::text AS total
     FROM expediente_documentos
     WHERE estudiante_id = ${estudianteId}
       AND estado = 'aprobado'
-      AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio')
+      AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')
   `);
   const docsAprobadosResult = rawDocs.rows[0];
-  if (Number(docsAprobadosResult?.total ?? 0) >= 4) {
-    motivos.push('Expediente completo (4/4 aprobados)');
+  if (Number(docsAprobadosResult?.total ?? 0) >= 5) {
+    motivos.push('Expediente completo (5/5 aprobados)');
   }
 
   // 5. Al menos 1 documento subido (cualquier estado)

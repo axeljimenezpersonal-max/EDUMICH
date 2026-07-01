@@ -24,6 +24,7 @@ import MiConvocatoria from './pages/estudiante/MiConvocatoria';
 import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import PaseExamen from './pages/estudiante/PaseExamen';
 import MiIdentificacion from './pages/estudiante/MiIdentificacion';
+import MiCedula from './pages/estudiante/MiCedula';
 import AutoRegistroEmail from './pages/publico/AutoRegistroEmail';
 import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
@@ -75,6 +76,7 @@ export default function App() {
       <Route path="/estudiante/modulos/:id" component={ModuloDetalle} />
       <Route path="/estudiante/modulos" component={MisModulos} />
       <Route path="/estudiante/expediente" component={MiExpediente} />
+      <Route path="/estudiante/cedula" component={MiCedula} />
       <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
       <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
       <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
