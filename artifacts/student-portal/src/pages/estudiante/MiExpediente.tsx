@@ -213,7 +213,7 @@ export default function MiExpediente() {
   const [convData, setConvData] = useState<ConvocatoriaResponse | null>(null);
 
   // Flujo de pago
-  const [pagoMetodo, setPagoMetodo] = useState('spei');
+  const [pagoMetodo, setPagoMetodo] = useState('otro');
   const [pagoFile, setPagoFile] = useState<File | null>(null);
   const [pagoFecha, setPagoFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [pagoSubiendo, setPagoSubiendo] = useState(false);
@@ -709,122 +709,28 @@ function PagosTab({
               </div>
             </div>
 
-            {/* PASO 1 — método */}
+            {/* PASO 1 — Paga ante la Tesorería del Estado */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">1</span>
-                <span className="text-sm font-bold text-stone-800">Selecciona cómo vas a pagar</span>
+                <span className="text-sm font-bold text-stone-800">Paga ante la Tesorería del Estado</span>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {metodoPicker.map((m) => {
-                  const active = pagoMetodo === m.value;
-                  return (
-                    <button
-                      key={m.value}
-                      onClick={() => setPagoMetodo(m.value)}
-                      className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all text-center ${
-                        active
-                          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] text-[var(--color-guinda-700)]'
-                          : 'border-stone-200 bg-white text-stone-500 hover:border-stone-300 hover:bg-stone-50'
-                      }`}
-                    >
-                      <span className={active ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}>{m.icon}</span>
-                      <span className="text-[11px] font-semibold leading-tight">{m.label}</span>
-                    </button>
-                  );
-                })}
+              <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] flex items-center justify-center shrink-0">
+                  <Building2 size={18} />
+                </div>
+                <div className="flex-1 min-w-0 text-sm text-stone-600 leading-relaxed">
+                  El pago de derechos de examen se realiza ante la <strong className="text-stone-800">Tesorería / Secretaría de Finanzas del Estado de Michoacán</strong> (formato de pago de derechos).
+                  Realiza el pago por <strong className="text-stone-800">${total.toLocaleString('es-MX')} MXN</strong> ({inscripcionesActivas.length} examen{inscripcionesActivas.length !== 1 ? 'es' : ''}) y conserva tu comprobante o línea de captura para subirlo abajo.
+                  <div className="mt-1.5 text-[11px] text-stone-400">Si tienes gestor, confirma con él si tu pago se cubre de forma grupal.</div>
+                </div>
               </div>
             </div>
 
-            {/* PASO 2 — ficha */}
+            {/* PASO 2 — subir comprobante */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">2</span>
-                <span className="text-sm font-bold text-stone-800">Realiza el pago con estos datos</span>
-              </div>
-
-              {pagoMetodo === 'spei' && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl overflow-hidden">
-                  <div className="px-4 py-2.5 bg-blue-600 flex items-center gap-2">
-                    <Banknote size={14} className="text-white" />
-                    <span className="text-xs font-bold text-white uppercase tracking-widest">SPEI / Transferencia bancaria</span>
-                  </div>
-                  <div className="p-4 space-y-2.5">
-                    <FichaRow label="CLABE interbancaria" value={db?.clabe ?? '— no configurado —'} copy={!!db?.clabe} onCopy={() => copyText(db!.clabe)} />
-                    <FichaRow label="Banco"               value={db?.banco ?? '—'} />
-                    <FichaRow label="Beneficiario"        value={db?.titular ?? '—'} />
-                    <FichaRow label="Referencia"          value={curp || '— ingresa tu CURP —'} copy={!!curp} onCopy={() => copyText(curp)} />
-                    <FichaRow label="Monto exacto"        value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
-                    <FichaRow label="Concepto"            value="Derecho de examen — Prepa Abierta Michoacán" />
-                  </div>
-                  <div className="px-4 py-2.5 bg-blue-100 border-t border-blue-200 flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-blue-700">💡 Usa tu CURP como referencia exacta.</span>
-                    {meId && (
-                      <a href={`/api/gestor/alumnos/${meId}/ficha-pago?metodo=spei`} target="_blank" rel="noopener"
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-blue-600 text-white text-[11px] font-semibold rounded-lg hover:bg-blue-700 transition-colors">
-                        <Download size={11} /> Ficha PDF
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {pagoMetodo === 'banco_deposito' && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl overflow-hidden">
-                  <div className="px-4 py-2.5 bg-emerald-600 flex items-center gap-2">
-                    <Building2 size={14} className="text-white" />
-                    <span className="text-xs font-bold text-white uppercase tracking-widest">Depósito bancario en ventanilla</span>
-                  </div>
-                  <div className="p-4 space-y-2.5">
-                    <FichaRow label="Banco"              value={db?.banco ?? '—'} />
-                    {db?.numeroCuenta && <FichaRow label="Número de cuenta" value={db.numeroCuenta} copy onCopy={() => copyText(db!.numeroCuenta!)} />}
-                    <FichaRow label="CLABE"              value={db?.clabe ?? '— no configurado —'} copy={!!db?.clabe} onCopy={() => copyText(db!.clabe)} />
-                    <FichaRow label="A nombre de"        value={db?.titular ?? '—'} />
-                    <FichaRow label="Referencia"         value={curp || '— ingresa tu CURP —'} copy={!!curp} onCopy={() => copyText(curp)} />
-                    <FichaRow label="Monto exacto"       value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
-                  </div>
-                  <div className="px-4 py-2.5 bg-emerald-100 border-t border-emerald-200 flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-emerald-700">💡 Acude a cualquier sucursal del banco e indica número de cuenta y referencia.</span>
-                    {meId && (
-                      <a href={`/api/gestor/alumnos/${meId}/ficha-pago?metodo=banco_deposito`} target="_blank" rel="noopener"
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-emerald-600 text-white text-[11px] font-semibold rounded-lg hover:bg-emerald-700 transition-colors">
-                        <Download size={11} /> Ficha PDF
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {pagoMetodo === 'tienda_conveniencia' && (
-                <div className="bg-orange-50 border border-orange-200 rounded-xl overflow-hidden">
-                  <div className="px-4 py-2.5 bg-orange-500 flex items-center gap-2">
-                    <Store size={14} className="text-white" />
-                    <span className="text-xs font-bold text-white uppercase tracking-widest">Pago en tienda de conveniencia</span>
-                  </div>
-                  <div className="p-4 space-y-2.5">
-                    <FichaRow label="Servicio / empresa"  value={db?.titular ?? '—'} />
-                    {db?.convenio && <FichaRow label="Número de convenio" value={db.convenio} copy onCopy={() => copyText(db!.convenio!)} />}
-                    <FichaRow label="Referencia"          value={curp || '— ingresa tu CURP —'} copy={!!curp} onCopy={() => copyText(curp)} />
-                    <FichaRow label="Monto exacto"        value={`$${total.toLocaleString('es-MX')} MXN`} copy onCopy={() => copyText(String(total))} highlight />
-                    <FichaRow label="Establecimientos"    value="OXXO · 7-Eleven · Farmacias del Ahorro · Círculo K" />
-                  </div>
-                  <div className="px-4 py-2.5 bg-orange-100 border-t border-orange-200 flex items-center justify-between gap-3">
-                    <span className="text-[11px] text-orange-700">💡 Indica el número de convenio y tu CURP como referencia en la caja.</span>
-                    {meId && (
-                      <a href={`/api/gestor/alumnos/${meId}/ficha-pago?metodo=tienda_conveniencia`} target="_blank" rel="noopener"
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 bg-orange-500 text-white text-[11px] font-semibold rounded-lg hover:bg-orange-600 transition-colors">
-                        <Download size={11} /> Ficha PDF
-                      </a>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* PASO 3 — subir comprobante */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">3</span>
                 <span className="text-sm font-bold text-stone-800">Sube tu comprobante de pago</span>
               </div>
               <div className="space-y-3">
