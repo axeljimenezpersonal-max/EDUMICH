@@ -379,6 +379,7 @@ export interface ConvocatoriaResponse {
   requisitos: {
     expedienteCompleto: boolean;
     documentosFaltantes: string[];
+    tieneMatricula?: boolean;
     puedeInscribirse: boolean;
   };
 }

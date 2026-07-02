@@ -1197,6 +1197,12 @@ router.get('/convocatoria', async (req, res) => {
   const { completo: expedienteCompleto_, faltantes: documentosFaltantes } =
     await expedienteCompleto(userId);
 
+  const [estConv] = await db
+    .select({ matricula: estudiantes.matriculaOficialDGB })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, userId));
+  const tieneMatricula = !!estConv?.matricula;
+
   res.json({
     etapaActiva: etapaActiva
       ? {
@@ -1226,7 +1232,8 @@ router.get('/convocatoria', async (req, res) => {
     requisitos: {
       expedienteCompleto: expedienteCompleto_,
       documentosFaltantes,
-      puedeInscribirse: expedienteCompleto_ && etapaActiva !== undefined,
+      tieneMatricula,
+      puedeInscribirse: expedienteCompleto_ && tieneMatricula && etapaActiva != null,
     },
   });
 });

@@ -497,8 +497,25 @@ export default function MiConvocatoria() {
           </div>
         )}
 
+        {/* Expediente aprobado pero sin matrícula oficial */}
+        {requisitos.expedienteCompleto && !requisitos.tieneMatricula && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-amber-800 text-sm">Falta tu matrícula oficial</p>
+                <p className="text-amber-700 text-sm mt-1">
+                  Tu expediente está completo. La inscripción a exámenes se abrirá cuando la administración
+                  registre tu <strong>matrícula oficial</strong>, una vez que la Secretaría (SEP-DGB) valide tu
+                  expediente. Si tienes dudas del estatus de tu cuenta, contacta a tu gestor o a la administración.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Banner etapa activa */}
-        {requisitos.expedienteCompleto && etapaActiva && (
+        {requisitos.puedeInscribirse && etapaActiva && (
           <div className="bg-[var(--color-guinda-700)] rounded-2xl p-5 text-white">
             <div className="flex items-start gap-3">
               <div className="bg-white/20 rounded-lg p-2">
@@ -521,7 +538,7 @@ export default function MiConvocatoria() {
         )}
 
         {/* Módulos disponibles para inscribir (inline) */}
-        {requisitos.expedienteCompleto && etapaActiva && etapaActiva.estado === 'inscripcion_abierta' && (
+        {requisitos.puedeInscribirse && etapaActiva && etapaActiva.estado === 'inscripcion_abierta' && (
           <ModulosInscripcion
             etapa={etapaActiva}
             calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}

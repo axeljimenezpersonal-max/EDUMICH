@@ -411,8 +411,8 @@ export default function MiExpediente() {
                   <Calendar size={18} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-stone-900">Inscripción</div>
-                  <div className="text-xs text-stone-500">Consulta tu convocatoria, módulos y sede asignada.</div>
+                  <div className="text-sm font-semibold text-stone-900">Inscribir exámenes</div>
+                  <div className="text-xs text-stone-500">Inscríbete a los módulos de la convocatoria activa.</div>
                 </div>
                 <span className="text-xs font-semibold text-[var(--color-guinda-700)] group-hover:underline shrink-0">
                   Ver →
