@@ -51,6 +51,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import FirmaPad from '../../components/FirmaPad';
+import { CampoCopiable } from '../../components/CampoCopiable';
 
 interface AlumnoConMatricula {
   userId: number;
@@ -1799,6 +1800,7 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
   const [form, setForm] = useState<CedulaDatosEditable | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
 
@@ -1832,6 +1834,7 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
       await api.patch(`/gestor/alumnos/${alumnoId}/cedula`, form);
       await cargar();
       setPreviewKey((k) => k + 1);
+      setEditing(false);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
     } finally {
@@ -1848,57 +1851,106 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-5">
-        <div className="bg-white border border-stone-200 rounded-xl p-5">
-          <h3 className="font-serif text-base font-bold text-stone-900 mb-3">Completar datos de la cédula</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {CEDULA_EDITABLES.map((k) => (
-              <div key={k} className={k === 'calleNumero' ? 'sm:col-span-2' : ''}>
-                <label className="block text-xs font-semibold text-stone-500 mb-1">{CEDULA_LABELS[k]}</label>
-                {k === 'sexo' ? (
-                  <select className={inputCls} value={form.sexo} onChange={(e) => setForm({ ...form, sexo: e.target.value })}>
-                    <option value="">Selecciona…</option>
-                    <option value="Hombre">Hombre</option>
-                    <option value="Mujer">Mujer</option>
-                  </select>
-                ) : k === 'estadoCivil' ? (
-                  <select className={inputCls} value={form.estadoCivil} onChange={(e) => setForm({ ...form, estadoCivil: e.target.value })}>
-                    <option value="">Selecciona…</option>
-                    <option value="Soltero(a)">Soltero(a)</option>
-                    <option value="Casado(a)">Casado(a)</option>
-                    <option value="Unión libre">Unión libre</option>
-                    <option value="Divorciado(a)">Divorciado(a)</option>
-                    <option value="Viudo(a)">Viudo(a)</option>
-                  </select>
-                ) : (
-                  <input className={inputCls} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-3">
-            <label className="block text-xs font-semibold text-stone-500 mb-1">Observaciones (opcional)</label>
-            <textarea
-              className={inputCls}
-              rows={2}
-              value={form.observaciones}
-              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
-              placeholder="Notas o comentarios adicionales para la cédula…"
-            />
-          </div>
-          {error && (
-            <div className="mt-3 text-xs text-red-600 bg-red-50 rounded p-2 flex items-center gap-1.5">
-              <AlertCircle size={13} /> {error}
+        {!editing ? (
+          /* ── Modo lectura (cerrado) con copiar ── */
+          <div className="bg-white border border-stone-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-serif text-base font-bold text-stone-900 flex items-center gap-2">
+                <Lock size={15} className="text-stone-400" /> Datos de la cédula
+              </h3>
+              <button
+                onClick={() => setEditing(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
+              >
+                <Pencil size={13} /> Editar cédula
+              </button>
             </div>
-          )}
-          <button
-            onClick={guardar}
-            disabled={saving}
-            className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-          >
-            {saving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
-            Guardar y actualizar cédula
-          </button>
-        </div>
+            <p className="text-xs text-stone-400 mb-2">Toca <Copy size={11} className="inline -mt-0.5" /> para copiar un dato.</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">
+              <CampoCopiable label="Matrícula" value={datos.matricula} />
+              <CampoCopiable label="CURP" value={datos.curp} />
+              <CampoCopiable label="Nombre(s)" value={datos.nombres} />
+              <CampoCopiable label="Apellido paterno" value={datos.apellidoPaterno} />
+              <CampoCopiable label="Apellido materno" value={datos.apellidoMaterno} />
+              <CampoCopiable label="Fecha de nacimiento" value={datos.fechaNacimiento} />
+              <CampoCopiable label="Sexo" value={datos.sexo} />
+              <CampoCopiable label="Estado civil" value={datos.estadoCivil} />
+              <CampoCopiable label="Lugar de nacimiento" value={datos.lugarNacimiento} />
+              <CampoCopiable label="Entidad de nacimiento" value={datos.entidadNacimiento} />
+              <CampoCopiable label="Teléfono" value={datos.telefono} />
+              <CampoCopiable label="Correo" value={datos.correo} />
+              <CampoCopiable label="Calle y número" value={datos.calleNumero} />
+              <CampoCopiable label="Colonia" value={datos.colonia} />
+              <CampoCopiable label="Código postal" value={datos.cp} />
+              <CampoCopiable label="Ciudad" value={datos.ciudad} />
+              <CampoCopiable label="Estado" value={datos.estado} />
+              <CampoCopiable label="Último estudio" value={datos.ultimoEstudio} />
+              <CampoCopiable label="Responsable" value={datos.responsableNombre} />
+              <CampoCopiable label="Observaciones" value={datos.observaciones} />
+            </div>
+          </div>
+        ) : (
+          /* ── Modo edición ── */
+          <div className="bg-white border border-stone-200 rounded-xl p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-serif text-base font-bold text-stone-900">Editar cédula</h3>
+              <button
+                onClick={() => { setEditing(false); setError(null); cargar(); }}
+                className="text-xs text-stone-500 hover:text-stone-700 font-semibold"
+              >
+                Cancelar
+              </button>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {CEDULA_EDITABLES.map((k) => (
+                <div key={k} className={k === 'calleNumero' ? 'sm:col-span-2' : ''}>
+                  <label className="block text-xs font-semibold text-stone-500 mb-1">{CEDULA_LABELS[k]}</label>
+                  {k === 'sexo' ? (
+                    <select className={inputCls} value={form.sexo} onChange={(e) => setForm({ ...form, sexo: e.target.value })}>
+                      <option value="">Selecciona…</option>
+                      <option value="Hombre">Hombre</option>
+                      <option value="Mujer">Mujer</option>
+                    </select>
+                  ) : k === 'estadoCivil' ? (
+                    <select className={inputCls} value={form.estadoCivil} onChange={(e) => setForm({ ...form, estadoCivil: e.target.value })}>
+                      <option value="">Selecciona…</option>
+                      <option value="Soltero(a)">Soltero(a)</option>
+                      <option value="Casado(a)">Casado(a)</option>
+                      <option value="Unión libre">Unión libre</option>
+                      <option value="Divorciado(a)">Divorciado(a)</option>
+                      <option value="Viudo(a)">Viudo(a)</option>
+                    </select>
+                  ) : (
+                    <input className={inputCls} value={form[k]} onChange={(e) => setForm({ ...form, [k]: e.target.value })} />
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-3">
+              <label className="block text-xs font-semibold text-stone-500 mb-1">Observaciones (opcional)</label>
+              <textarea
+                className={inputCls}
+                rows={2}
+                value={form.observaciones}
+                onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+                placeholder="Notas o comentarios adicionales para la cédula…"
+              />
+            </div>
+            {error && (
+              <div className="mt-3 text-xs text-red-600 bg-red-50 rounded p-2 flex items-center gap-1.5">
+                <AlertCircle size={13} /> {error}
+              </div>
+            )}
+            <button
+              onClick={guardar}
+              disabled={saving}
+              className="mt-4 w-full flex items-center justify-center gap-2 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+            >
+              {saving ? <Loader2 size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+              Guardar y actualizar cédula
+            </button>
+          </div>
+        )}
 
         <div className="bg-white border border-stone-200 rounded-xl p-5">
           <h3 className="font-serif text-base font-bold text-stone-900 mb-1 flex items-center gap-2">

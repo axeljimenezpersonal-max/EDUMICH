@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import {
   Pencil, AlertCircle, FileText, CreditCard, GraduationCap,
   Copy, CheckCircle2, UploadCloud, Loader2, Banknote, Building2,
-  Store, Download, Clock, Calendar, MapPin,
+  Store, Download, Clock, Calendar, MapPin, ClipboardList,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import {
@@ -423,6 +423,23 @@ export default function MiExpediente() {
                     />
                   ))}
                 </div>
+
+                {/* Acceso a la cédula de inscripción — parte del flujo del expediente */}
+                <a
+                  href="/estudiante/cedula"
+                  className="mt-3 flex items-center gap-3 bg-white border border-stone-200 rounded-lg p-4 hover:border-[var(--color-guinda-700)] transition-colors group"
+                >
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+                    <ClipboardList size={18} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-stone-900">Cédula de inscripción</div>
+                    <div className="text-xs text-stone-500">Registra y firma tu cédula para completar tu inscripción.</div>
+                  </div>
+                  <span className="text-xs font-semibold text-[var(--color-guinda-700)] group-hover:underline shrink-0">
+                    Registrar →
+                  </span>
+                </a>
               </section>
 
               <section className="mb-6">
