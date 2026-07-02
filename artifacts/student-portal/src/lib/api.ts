@@ -851,3 +851,24 @@ export interface PagoExamenDesglose {
   totales: { pagos: number; examenes: number; total: number; iemsys: number; synapsis: number };
   porMunicipio: { municipio: string; pagos: number; total: number; iemsys: number; synapsis: number }[];
 }
+
+export interface ExamenContable {
+  id: number;
+  folio: string;
+  alumno: string;
+  matricula: string | null;
+  moduloNumero: number;
+  moduloNombre: string;
+  registrado: boolean;
+  pagado: boolean;
+  enProcesoPago: boolean;
+  presentado: boolean;
+  aprobado: boolean;
+  calificacion: number | null;
+  fichaFolio: string | null;
+}
+
+export interface ContabilidadExamenes {
+  examenes: ExamenContable[];
+  resumen: { total: number; pagados: number; enProcesoPago: number; presentados: number; aprobados: number };
+}

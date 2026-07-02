@@ -758,6 +758,76 @@ router.get('/reportes/desglose', async (req, res) => {
   }
 });
 
+// GET /api/pagos-examen/contabilidad — control interno por examen (admin)
+// Cada examen (alumno + módulo) con su folio y estado: registrado / pagado / aprobado.
+router.get('/contabilidad', async (req, res) => {
+  if (!esAdmin(req.user!.rol)) return res.status(403).json({ error: 'Solo administración' });
+  try {
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+    const rows = await db.execute<{
+      id: number; folio: string; estado: string; calificacion: number | null;
+      alumno: string; matricula: string | null;
+      modulo_numero: number; modulo_nombre: string;
+      pagado: boolean; en_proceso: boolean; ficha_folio: string | null;
+    }>(sql`
+      SELECT ei.id, ei.folio, ei.estado, ei.calificacion,
+             e.nombre_completo AS alumno, e.matricula_oficial_dgb AS matricula,
+             m.numero AS modulo_numero, m.nombre AS modulo_nombre,
+             EXISTS (
+               SELECT 1 FROM pagos_examen_inscripciones pei
+               JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+               WHERE pei.examen_inscripcion_id = ei.id AND pe.estado = 'pagado'
+             ) AS pagado,
+             EXISTS (
+               SELECT 1 FROM pagos_examen_inscripciones pei
+               JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+               WHERE pei.examen_inscripcion_id = ei.id
+                 AND pe.estado IN ('pendiente_emision','emitida','en_revision')
+             ) AS en_proceso,
+             (
+               SELECT pe.folio FROM pagos_examen_inscripciones pei
+               JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+               WHERE pei.examen_inscripcion_id = ei.id AND pe.estado != 'cancelado'
+               ORDER BY pe.id DESC LIMIT 1
+             ) AS ficha_folio
+      FROM examenes_inscripciones ei
+      JOIN estudiantes e ON e.user_id = ei.estudiante_id
+      JOIN modulos m ON m.id = ei.modulo_id
+      ${q ? sql`WHERE (e.nombre_completo ILIKE ${'%' + q + '%'} OR ei.folio ILIKE ${'%' + q + '%'} OR e.matricula_oficial_dgb ILIKE ${'%' + q + '%'})` : sql``}
+      ORDER BY e.nombre_completo, m.numero
+      LIMIT 1000
+    `);
+
+    const examenes = rows.rows.map((r) => ({
+      id: Number(r.id),
+      folio: r.folio,
+      alumno: r.alumno,
+      matricula: r.matricula,
+      moduloNumero: Number(r.modulo_numero),
+      moduloNombre: r.modulo_nombre,
+      registrado: true,
+      pagado: r.pagado,
+      enProcesoPago: r.en_proceso && !r.pagado,
+      presentado: ['presentado', 'aprobado', 'reprobado'].includes(r.estado),
+      aprobado: r.estado === 'aprobado',
+      calificacion: r.calificacion,
+      fichaFolio: r.ficha_folio,
+    }));
+
+    const resumen = {
+      total: examenes.length,
+      pagados: examenes.filter((e) => e.pagado).length,
+      enProcesoPago: examenes.filter((e) => e.enProcesoPago).length,
+      presentados: examenes.filter((e) => e.presentado).length,
+      aprobados: examenes.filter((e) => e.aprobado).length,
+    };
+
+    return res.json({ examenes, resumen });
+  } catch {
+    return res.status(500).json({ error: 'Error al generar la contabilidad' });
+  }
+});
+
 /**
  * Marca como 'vencido' toda orden emitida/en_revisión cuya fecha de vencimiento
  * ya pasó. Se ejecuta por cron. Nunca toca órdenes ya pagadas o canceladas.
