@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
-import { Lock, GraduationCap, Grid3x3, List } from 'lucide-react';
+import { Lock, GraduationCap, Grid3x3, List, Download } from 'lucide-react';
 import { api, type CalificacionesResponse, type CalifRow } from '../lib/api';
+
+// Metas del Plan Modular por nivel (total 21)
+const META_NIVEL: Record<number, number> = { 1: 4, 2: 6, 3: 6, 4: 5 };
 
 interface Props {
   estudianteId: number;
@@ -63,8 +66,26 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
     );
   }
 
+  // Aprobados por nivel (para el análisis)
+  const porNivel: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  for (const m of modulosAprobados) {
+    if (m.moduloNivel && porNivel[m.moduloNivel] !== undefined) porNivel[m.moduloNivel]++;
+  }
+
   return (
     <div>
+      {/* Encabezado con descarga del historial */}
+      <div className="flex items-center justify-between gap-3 mb-4">
+        <h2 className="font-serif text-base font-bold text-stone-900">Calificaciones</h2>
+        <a
+          href={`/api/calificaciones/estudiantes/${estudianteId}/pdf`}
+          download=""
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors shrink-0"
+        >
+          <Download size={13} /> Descargar historial (PDF)
+        </a>
+      </div>
+
       {/* Read-only banner */}
       {readOnly && (
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 text-xs text-blue-900">
@@ -115,6 +136,37 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
             </div>
             <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Avance</div>
           </div>
+        </div>
+      </div>
+
+      {/* Análisis por nivel */}
+      <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4">
+        <div className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
+          Avance por nivel del Plan Modular
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3">
+          {[1, 2, 3, 4].map((n) => {
+            const meta = META_NIVEL[n];
+            const got = porNivel[n] ?? 0;
+            const pct = meta ? Math.min(100, Math.round((got / meta) * 100)) : 0;
+            const completo = got >= meta;
+            return (
+              <div key={n} className="flex items-center gap-3">
+                <span className="text-xs font-semibold text-stone-700 w-14 shrink-0" style={{ fontFamily: "'Poppins', sans-serif" }}>
+                  Nivel {n}
+                </span>
+                <div className="flex-1 h-2.5 bg-stone-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${pct}%`, background: completo ? '#2d7d46' : 'var(--color-guinda-700)' }}
+                  />
+                </div>
+                <span className="text-[11px] font-semibold text-stone-500 w-16 text-right shrink-0">
+                  {got}/{meta}
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

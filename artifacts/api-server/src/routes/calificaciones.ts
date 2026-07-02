@@ -12,6 +12,7 @@ import {
   estudiantes,
 } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
+import { generarHistorialPdf } from '../services/historialPdf';
 
 const router = Router();
 router.use(authRequired);
@@ -89,6 +90,24 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     historial: rows,
     resumen: { totalAprobados, promedioGlobal, examenesPresentados, porcentajeAvance },
   });
+});
+
+// GET /calificaciones/estudiantes/:estudianteId/pdf → historial académico en PDF
+router.get('/estudiantes/:estudianteId/pdf', async (req, res) => {
+  const estudianteId = Number(req.params.estudianteId);
+  if (!estudianteId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await canAccessStudent(req.user!, estudianteId))) {
+    res.status(403).json({ error: 'Sin acceso' }); return;
+  }
+  try {
+    const { pdf, nombreArchivo } = await generarHistorialPdf(estudianteId);
+    const ascii = nombreArchivo.normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/"/g, '') || 'historial.pdf';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombreArchivo)}`);
+    res.send(Buffer.from(pdf));
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar el historial' });
+  }
 });
 
 export default router;
