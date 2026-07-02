@@ -1675,6 +1675,22 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
   const alumno = await verificarAlumnoDelGestor(gestorId, alumnoId);
   if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
 
+  // 1.b Gating: expediente aprobado (5 obligatorios) + matrícula oficial
+  if (!alumno.matriculaOficialDGB) {
+    res.status(400).json({ error: 'El alumno aún no tiene matrícula oficial registrada. La asigna la administración cuando la Secretaría valida el expediente.' });
+    return;
+  }
+  const OBLIG_INSCRIBIR = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
+  const aprobadosRows = await db
+    .select({ tipo: expedienteDocumentos.tipo })
+    .from(expedienteDocumentos)
+    .where(and(eq(expedienteDocumentos.estudianteId, alumnoId), eq(expedienteDocumentos.estado, 'aprobado')));
+  const aprobadosOblig = new Set(aprobadosRows.map((r) => r.tipo).filter((t) => OBLIG_INSCRIBIR.includes(t)));
+  if (aprobadosOblig.size < OBLIG_INSCRIBIR.length) {
+    res.status(400).json({ error: 'El expediente del alumno no está completo y aprobado (5 documentos obligatorios).' });
+    return;
+  }
+
   // 2. Validate etapa exists (don't require inscripcion_abierta)
   const [etapa] = await db
     .select({

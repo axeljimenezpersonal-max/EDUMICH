@@ -1359,11 +1359,23 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
     return;
   }
 
-  // b. Expediente completo
+  // b. Expediente completo (5 documentos obligatorios aprobados)
   const { completo, faltantes } = await expedienteCompleto(userId);
   if (!completo) {
     res.status(400).json({
       error: `Expediente incompleto. Documentos faltantes: ${faltantes.join(', ')}`,
+    });
+    return;
+  }
+
+  // b.2. Matrícula oficial registrada (requisito para inscribirse a módulos)
+  const [estMat] = await db
+    .select({ matricula: estudiantes.matriculaOficialDGB })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, userId));
+  if (!estMat?.matricula) {
+    res.status(400).json({
+      error: 'Aún no tienes matrícula oficial registrada. La asigna la administración cuando la Secretaría (SEP-DGB) valida tu expediente.',
     });
     return;
   }
