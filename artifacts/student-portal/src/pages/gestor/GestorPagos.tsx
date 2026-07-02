@@ -10,7 +10,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Plus, Download, UploadCloud, Loader2, CheckCircle2, Clock,
-  AlertCircle, ChevronLeft, FileText, Landmark, Copy, Check, ExternalLink, Ban,
+  AlertCircle, ChevronLeft, FileText, Landmark, Copy, Check, ExternalLink, Ban, Trash2, X,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
@@ -355,9 +355,25 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
     } catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); } finally { setSubiendo(false); }
   }
 
+  async function cancelarFicha() {
+    if (!confirm('¿Cancelar esta ficha de pago? Los exámenes quedarán libres para solicitarse de nuevo.')) return;
+    try { await api.post(`/pagos-examen/${id}/cancelar-mia`, {}); onToast('Ficha cancelada'); onBack(); }
+    catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); }
+  }
+
+  async function quitarExamen(inscripcionId: number) {
+    if (!confirm('¿Quitar este examen de la ficha?')) return;
+    try {
+      const r = await api.post<{ reemitir?: boolean }>(`/pagos-examen/${id}/quitar-examen`, { examenInscripcionId: inscripcionId });
+      onToast(r.reemitir ? 'Examen quitado — la coordinación debe re-emitir la ficha' : 'Examen quitado');
+      cargar();
+    } catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); }
+  }
+
   if (loading || !p) return <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>;
 
   const puedePagar = p.estado === 'emitida';
+  const editable = p.estado === 'pendiente_emision' || p.estado === 'emitida';
 
   return (
     <>
@@ -475,9 +491,24 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
                   <div className="text-[11px] text-stone-400 font-mono">M{e.moduloNumero} · {e.folio}</div>
                 </div>
                 <span className="text-sm font-semibold text-stone-600">{fmtMoney(p.montoTotal / p.cantidadExamenes)}</span>
+                {editable && p.examenes.length > 1 && (
+                  <button onClick={() => quitarExamen(e.inscripcionId)} title="Quitar de la ficha" className="text-stone-300 hover:text-red-600 shrink-0">
+                    <X size={15} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
+          {editable && (
+            <div className="px-4 py-3 border-t border-stone-100">
+              <button onClick={cancelarFicha} className="w-full inline-flex items-center justify-center gap-2 py-2 border border-red-200 text-red-600 text-sm font-semibold rounded-lg hover:bg-red-50">
+                <Trash2 size={14} /> Cancelar ficha
+              </button>
+              {p.estado === 'emitida' && (
+                <p className="text-[11px] text-stone-400 mt-2 leading-snug">Editar o quitar un examen invalida la línea de captura: la coordinación deberá re-emitir la ficha.</p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </>

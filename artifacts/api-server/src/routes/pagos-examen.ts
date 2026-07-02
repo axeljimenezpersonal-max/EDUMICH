@@ -427,6 +427,79 @@ router.get('/gestor-detalle/:id', async (req, res) => {
   }
 });
 
+// Recalcula cantidad/montos/estudianteId de una ficha según sus exámenes.
+// Si estaba 'emitida', vuelve a 'pendiente_emision' e invalida la orden
+// (requiere re-validación/re-emisión por la coordinación).
+export async function recalcularFicha(pagoId: number, estadoActual: PagoExamenEstado) {
+  const items = await db
+    .select({ estudianteId: examenesInscripciones.estudianteId })
+    .from(pagosExamenInscripciones)
+    .innerJoin(examenesInscripciones, eq(pagosExamenInscripciones.examenInscripcionId, examenesInscripciones.id))
+    .where(eq(pagosExamenInscripciones.pagoExamenId, pagoId));
+
+  if (items.length === 0) {
+    await db.update(pagosExamen).set({ estado: 'cancelado', cantidadExamenes: 0, updatedAt: new Date() }).where(eq(pagosExamen.id, pagoId));
+    return;
+  }
+  const estudianteIds = new Set(items.map((i) => i.estudianteId));
+  const cantidad = items.length;
+  const invalidar = estadoActual === 'emitida';
+  await db.update(pagosExamen).set({
+    cantidadExamenes: cantidad,
+    montoTotal: (cantidad * 145).toFixed(2),
+    montoIemsys: (cantidad * 115).toFixed(2),
+    montoSynapsis: (cantidad * 30).toFixed(2),
+    estudianteId: estudianteIds.size === 1 ? [...estudianteIds][0] : null,
+    ...(invalidar ? {
+      estado: 'pendiente_emision' as const,
+      lineaCaptura: null, ordenPagoPath: null, ordenPagoNombre: null,
+      linkPago: null, fechaEmision: null, fechaVencimiento: null, motivoRechazo: null,
+    } : {}),
+    updatedAt: new Date(),
+  }).where(eq(pagosExamen.id, pagoId));
+}
+
+// POST /api/pagos-examen/:id/cancelar-mia — el solicitante cancela su ficha
+router.post('/:id/cancelar-mia', async (req, res) => {
+  const rol = req.user!.rol;
+  if (rol !== 'gestor' && rol !== 'estudiante') return res.status(403).json({ error: 'Sin permiso' });
+  try {
+    const id = Number(req.params.id);
+    const [p] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
+    if (!p || !(await tieneAcceso(p, req.user!))) return res.status(404).json({ error: 'No existe' });
+    if (!['pendiente_emision', 'emitida'].includes(p.estado)) {
+      return res.status(409).json({ error: 'Solo puedes cancelar antes de pagar. Si ya subiste comprobante, contacta a la coordinación.' });
+    }
+    await db.update(pagosExamen).set({ estado: 'cancelado', updatedAt: new Date() }).where(eq(pagosExamen.id, id));
+    return res.json({ ok: true });
+  } catch {
+    return res.status(500).json({ error: 'Error al cancelar' });
+  }
+});
+
+// POST /api/pagos-examen/:id/quitar-examen — el solicitante quita un examen (editar)
+router.post('/:id/quitar-examen', async (req, res) => {
+  const rol = req.user!.rol;
+  if (rol !== 'gestor' && rol !== 'estudiante') return res.status(403).json({ error: 'Sin permiso' });
+  try {
+    const id = Number(req.params.id);
+    const { examenInscripcionId } = req.body as { examenInscripcionId: number };
+    const [p] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
+    if (!p || !(await tieneAcceso(p, req.user!))) return res.status(404).json({ error: 'No existe' });
+    if (!['pendiente_emision', 'emitida'].includes(p.estado)) {
+      return res.status(409).json({ error: 'No se puede editar la ficha en su estado actual.' });
+    }
+    await db.delete(pagosExamenInscripciones).where(and(
+      eq(pagosExamenInscripciones.pagoExamenId, id),
+      eq(pagosExamenInscripciones.examenInscripcionId, examenInscripcionId)
+    ));
+    await recalcularFicha(id, p.estado as PagoExamenEstado);
+    return res.json({ ok: true, reemitir: p.estado === 'emitida' });
+  } catch {
+    return res.status(500).json({ error: 'Error al editar la ficha' });
+  }
+});
+
 // ═══════════════════════════════════════════════════════════════════════════
 // ADMIN / ENLACE DE TESORERÍA
 // ═══════════════════════════════════════════════════════════════════════════

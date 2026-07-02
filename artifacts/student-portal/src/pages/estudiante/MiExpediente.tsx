@@ -850,6 +850,16 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
     } catch { /* noop */ } finally { setSubiendo(null); }
   }
 
+  async function cancelarOrden(id: number) {
+    if (!confirm('¿Cancelar esta orden de pago? Podrás solicitarla de nuevo después.')) return;
+    try { await api.post(`/pagos-examen/${id}/cancelar-mia`, {}); await cargar(); } catch { /* noop */ }
+  }
+
+  async function quitarExamen(id: number, inscripcionId: number) {
+    if (!confirm('¿Quitar este módulo de la orden?')) return;
+    try { await api.post(`/pagos-examen/${id}/quitar-examen`, { examenInscripcionId: inscripcionId }); await cargar(); } catch { /* noop */ }
+  }
+
   const fmtMoney = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
   const fmtFecha = (iso: string | null) =>
     iso ? new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
@@ -880,15 +890,23 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
                 <span className="text-sm text-stone-500">{o.cantidadExamenes} examen{o.cantidadExamenes !== 1 ? 'es' : ''} de derecho a examen</span>
                 <span className="text-2xl font-bold text-stone-900">{fmtMoney(o.montoTotal)} <span className="text-sm font-medium text-stone-400">MXN</span></span>
               </div>
-              {o.examenes.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                  {o.examenes.map((e) => (
-                    <span key={e.inscripcionId} className="text-[11px] bg-stone-100 text-stone-600 rounded-full px-2 py-0.5">
-                      Módulo {e.moduloNumero}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {o.examenes.length > 0 && (() => {
+                const editable = o.estado === 'pendiente_emision' || o.estado === 'emitida';
+                return (
+                  <div className="flex flex-wrap gap-1.5">
+                    {o.examenes.map((e) => (
+                      <span key={e.inscripcionId} className="text-[11px] bg-stone-100 text-stone-600 rounded-full pl-2 pr-1 py-0.5 inline-flex items-center gap-1">
+                        Módulo {e.moduloNumero}
+                        {editable && o.examenes.length > 1 && (
+                          <button onClick={() => quitarExamen(o.id, e.inscripcionId)} title="Quitar módulo" className="text-stone-400 hover:text-red-600 text-[13px] leading-none">
+                            ×
+                          </button>
+                        )}
+                      </span>
+                    ))}
+                  </div>
+                );
+              })()}
 
               {/* Emitida / en_revision / vencido: mostrar línea de captura + descarga */}
               {(o.estado === 'emitida' || o.estado === 'en_revision' || o.estado === 'vencido') && (
@@ -965,6 +983,17 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
               {o.estado === 'pendiente_emision' && (
                 <div className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-lg p-2.5 flex gap-2">
                   <Clock size={14} className="shrink-0 mt-0.5" /> La coordinación está generando tu orden de pago ante la Tesorería. Vuelve pronto.
+                </div>
+              )}
+
+              {(o.estado === 'pendiente_emision' || o.estado === 'emitida') && (
+                <div className="pt-1 flex items-center justify-between gap-2">
+                  <button onClick={() => cancelarOrden(o.id)} className="text-xs font-semibold text-red-600 hover:underline">
+                    Cancelar orden
+                  </button>
+                  {o.estado === 'emitida' && (
+                    <span className="text-[11px] text-stone-400">Editar/quitar un módulo requiere re-emisión de la coordinación.</span>
+                  )}
                 </div>
               )}
             </div>

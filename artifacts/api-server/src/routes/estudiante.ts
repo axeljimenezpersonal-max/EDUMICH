@@ -46,7 +46,10 @@ import {
   calificaciones,
   pagos,
   bancoPreguntas,
+  pagosExamen,
+  pagosExamenInscripciones,
 } from '@workspace/db/schema';
+import { recalcularFicha } from './pagos-examen';
 import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
@@ -1869,6 +1872,38 @@ router.post('/convocatoria/inscripcion/:id/cancelar', async (req, res) => {
   if (!solicitudFinDate || solicitudFinDate < new Date()) {
     res.status(400).json({ error: 'El período de inscripción ya cerró, no se puede cancelar' });
     return;
+  }
+
+  // Si el examen ya está pagado o con comprobante en revisión, no se puede
+  // cancelar sin intervención de la coordinación (implicaría reembolso).
+  const enPago = await db
+    .select({ estado: pagosExamen.estado, id: pagosExamen.id })
+    .from(pagosExamenInscripciones)
+    .innerJoin(pagosExamen, eq(pagosExamenInscripciones.pagoExamenId, pagosExamen.id))
+    .where(and(
+      eq(pagosExamenInscripciones.examenInscripcionId, inscripcionId),
+      inArray(pagosExamen.estado, ['pagado', 'en_revision'])
+    ));
+  if (enPago.length > 0) {
+    res.status(409).json({ error: 'Este examen ya tiene un pago pagado o en revisión. Contacta a la coordinación para cancelarlo.' });
+    return;
+  }
+
+  // Quitar el examen de fichas activas (solicitada/emitida) y re-validar cada una.
+  const fichasActivas = await db
+    .select({ id: pagosExamen.id, estado: pagosExamen.estado })
+    .from(pagosExamenInscripciones)
+    .innerJoin(pagosExamen, eq(pagosExamenInscripciones.pagoExamenId, pagosExamen.id))
+    .where(and(
+      eq(pagosExamenInscripciones.examenInscripcionId, inscripcionId),
+      inArray(pagosExamen.estado, ['pendiente_emision', 'emitida'])
+    ));
+  for (const f of fichasActivas) {
+    await db.delete(pagosExamenInscripciones).where(and(
+      eq(pagosExamenInscripciones.pagoExamenId, f.id),
+      eq(pagosExamenInscripciones.examenInscripcionId, inscripcionId)
+    ));
+    await recalcularFicha(f.id, f.estado as 'pendiente_emision' | 'emitida');
   }
 
   await db
