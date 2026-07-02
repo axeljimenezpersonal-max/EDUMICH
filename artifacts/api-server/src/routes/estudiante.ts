@@ -59,6 +59,7 @@ import {
   cedulaDatosSchema,
 } from '../services/cedula';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { nombreArchivoUtf8 } from '../utils/archivo';
 import { tryAuditLog } from '../utils/audit';
 import { QR_SECRET } from '../config/env';
 
@@ -918,7 +919,7 @@ router.post(
         tipo,
         estado: 'pendiente_revision',
         rutaArchivo: req.file.path,
-        nombreOriginal: req.file.originalname,
+        nombreOriginal: nombreArchivoUtf8(req.file.originalname),
         tamanoBytes: req.file.size,
         subidoPorUserId: userId,
         subidoEn: new Date(),
@@ -929,7 +930,7 @@ router.post(
         set: {
           estado: 'pendiente_revision',
           rutaArchivo: req.file.path,
-          nombreOriginal: req.file.originalname,
+          nombreOriginal: nombreArchivoUtf8(req.file.originalname),
           tamanoBytes: req.file.size,
           subidoPorUserId: userId,
           subidoEn: new Date(),

@@ -58,6 +58,7 @@ import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
+import { nombreArchivoUtf8 } from '../utils/archivo';
 
 const router = Router();
 
@@ -494,7 +495,7 @@ router.post(
             .values({
               inscripcionId: insc.id,
               nombre: def.nombre,
-              archivoOriginal: def.file.originalname,
+              archivoOriginal: nombreArchivoUtf8(def.file.originalname),
               storageKey: def.file.path,
               tamanoBytes: def.file.size,
               tipoSugerido: def.tipo,
@@ -783,7 +784,7 @@ router.post('/alumnos/:id/documentos', upload.single('archivo'), async (req, res
     .values({
       inscripcionId: insc.id,
       nombre,
-      archivoOriginal: file.originalname,
+      archivoOriginal: nombreArchivoUtf8(file.originalname),
       storageKey: file.path,
       tamanoBytes: file.size,
       tipoSugerido,
@@ -959,7 +960,7 @@ router.post(
         tipo,
         estado: 'pendiente_revision',
         rutaArchivo: req.file.path,
-        nombreOriginal: req.file.originalname,
+        nombreOriginal: nombreArchivoUtf8(req.file.originalname),
         tamanoBytes: req.file.size,
         subidoPorUserId: gestorId,
         subidoEn: new Date(),
@@ -970,7 +971,7 @@ router.post(
         set: {
           estado: 'pendiente_revision',
           rutaArchivo: req.file.path,
-          nombreOriginal: req.file.originalname,
+          nombreOriginal: nombreArchivoUtf8(req.file.originalname),
           tamanoBytes: req.file.size,
           subidoPorUserId: gestorId,
           subidoEn: new Date(),
@@ -2166,7 +2167,7 @@ router.post('/pagos-grupales/:id/comprobante', uploadComprobanteGrupal.single('c
   await db.update(pagosGrupales)
     .set({
       rutaComprobante: req.file.path,
-      nombreComprobante: req.file.originalname,
+      nombreComprobante: nombreArchivoUtf8(req.file.originalname),
       fechaPago,
       estado: 'en_revision',
       motivoRechazo: null,

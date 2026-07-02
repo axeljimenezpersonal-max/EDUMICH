@@ -4,6 +4,7 @@ import {
   FileText, ChevronLeft, ChevronRight,
   Building2, Smartphone, Landmark, User, UserCheck,
   ZoomIn,
+  Download,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
@@ -380,15 +381,24 @@ function DetalleModal({
                 <FileText size={14} style={{ color: '#6b635e' }} />
                 {pago.nombreComprobante ?? 'comprobante.pdf'}
               </div>
-              <a
-                href={comprobanteUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
-                style={{ color: '#443e39' }}
-              >
-                <ZoomIn size={12} /> Abrir en nueva pestaña
-              </a>
+              <div className="flex items-center gap-2">
+                <a
+                  href={comprobanteUrl}
+                  download={pago.nombreComprobante ?? 'comprobante'}
+                  className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
+                >
+                  <Download size={12} /> Descargar
+                </a>
+                <a
+                  href={comprobanteUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
+                  style={{ color: '#443e39' }}
+                >
+                  <ZoomIn size={12} /> Abrir en nueva pestaña
+                </a>
+              </div>
             </div>
             {pago.nombreComprobante ? (
               esImagen ? (

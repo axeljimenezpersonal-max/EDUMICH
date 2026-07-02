@@ -13,6 +13,7 @@ import fsp from 'node:fs/promises';
 import { createReadStream, existsSync } from 'fs';
 import { z } from 'zod';
 import { db } from '../db';
+import { nombreArchivoUtf8 } from '../utils/archivo';
 import {
   pagos,
   estudiantes,
@@ -185,7 +186,7 @@ router.post(
         referenciaBancaria: data.referenciaBancaria ?? null,
         notas: data.notas ?? null,
         rutaComprobante: file.path,
-        nombreComprobante: file.originalname,
+        nombreComprobante: nombreArchivoUtf8(file.originalname),
         tamanoBytes: file.size,
         estado: 'pendiente',
         subidoPorUserId: req.user!.userId,
