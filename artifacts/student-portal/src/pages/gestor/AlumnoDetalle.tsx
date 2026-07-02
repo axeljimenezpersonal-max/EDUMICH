@@ -376,12 +376,6 @@ export default function AlumnoDetalle() {
       badgeVariant: docsCount < 5 ? 'warn' : 'default', // 5 obligatorios
     },
     {
-      key: 'cedula',
-      label: 'Cédula',
-      icon: <ClipboardList size={15} />,
-      badge: '—',
-    },
-    {
       key: 'plan',
       label: 'Convocatoria',
       icon: <CalendarCheck size={15} />,
@@ -570,10 +564,10 @@ export default function AlumnoDetalle() {
               </div>
               <div className="flex-1">
                 <div className="text-sm font-bold text-stone-800">Matrícula oficial DGB</div>
-                <div className="text-xs text-stone-500 mt-0.5">Pendiente de asignación por la administración.</div>
+                <div className="text-xs text-stone-500 mt-0.5">Aún no asignada.</div>
                 <div className="mt-2 flex items-center gap-1.5 text-[11px] text-stone-500 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
                   <Lock size={10} className="shrink-0" />
-                  Se asigna una vez que el expediente completo sea validado.
+                  La administración la asigna cuando la Secretaría (SEP-DGB) valida el expediente del alumno.
                 </div>
               </div>
             </div>
@@ -739,23 +733,26 @@ export default function AlumnoDetalle() {
             </section>
           ))}
 
-          {/* Botón grande: armar la cédula de inscripción */}
-          <button
-            onClick={() => setActiveTab('cedula')}
-            className="w-full flex items-center gap-4 rounded-xl p-5 text-white transition-transform hover:scale-[1.01] shadow-sm text-left"
-            style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}
-          >
-            <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-              <ClipboardList size={24} />
+          {/* Cédula de inscripción — como un documento más, descargable */}
+          <section className="mb-6">
+            <h3 className="text-sm font-semibold text-stone-700 uppercase tracking-widest mb-3">Cédula de inscripción</h3>
+            <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+                <ClipboardList size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-stone-900">Cédula de inscripción</div>
+                <div className="text-xs text-stone-500">Se genera con los datos del alumno. Descarga la última versión.</div>
+              </div>
+              <a
+                href={`/api/gestor/alumnos/${id}/cedula/pdf`}
+                download=""
+                className="shrink-0 inline-flex items-center gap-1.5 px-3 py-2 bg-[var(--color-guinda-700)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors"
+              >
+                <Download size={13} /> Descargar
+              </a>
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-base font-bold">Armar cédula de inscripción</div>
-              <div className="text-xs opacity-80 mt-0.5">Llena los datos, firma como responsable y descarga la cédula.</div>
-            </div>
-            <span className="shrink-0 inline-flex items-center gap-1.5 bg-white text-[var(--color-guinda-700)] font-bold text-sm px-4 py-2 rounded-lg">
-              Armar →
-            </span>
-          </button>
+          </section>
         </>
       )}
 

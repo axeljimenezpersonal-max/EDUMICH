@@ -51,6 +51,12 @@ import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
 import VerificacionPase from './pages/admin/VerificacionPase';
 import Notificaciones from './pages/Notificaciones';
+import DireccionPanorama from './pages/direccion/DireccionPanorama';
+import DireccionAcademico from './pages/direccion/DireccionAcademico';
+import DireccionOperacion from './pages/direccion/DireccionOperacion';
+import DireccionSalud from './pages/direccion/DireccionSalud';
+import DireccionProyecciones from './pages/direccion/DireccionProyecciones';
+import DireccionReportes from './pages/direccion/DireccionReportes';
 import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
@@ -114,6 +120,14 @@ export default function App() {
       <Route path="/admin/pagos"><Redirect to="/admin/alumnos?filtro=pagos_pendientes" /></Route>
       <Route path="/admin/calificaciones"><Redirect to="/admin/alumnos?filtro=calif_pendientes" /></Route>
       <Route path="/admin" component={AdminInicio} />
+
+      {/* Dirección de programa — indicadores agregados, solo lectura */}
+      <Route path="/direccion/academico" component={DireccionAcademico} />
+      <Route path="/direccion/operacion" component={DireccionOperacion} />
+      <Route path="/direccion/salud" component={DireccionSalud} />
+      <Route path="/direccion/proyecciones" component={DireccionProyecciones} />
+      <Route path="/direccion/reportes" component={DireccionReportes} />
+      <Route path="/direccion" component={DireccionPanorama} />
 
       {/* Notificaciones — accesible desde todos los perfiles */}
       <Route path="/notificaciones" component={Notificaciones} />

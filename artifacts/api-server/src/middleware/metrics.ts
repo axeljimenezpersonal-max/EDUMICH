@@ -69,6 +69,9 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
     return;
   }
   const inicio = process.hrtime.bigint();
+  // Capturado AHORA: dentro de res.on('finish') los routers de Express ya
+  // recortaron req.path a la ruta relativa del mount y el grupo saldría mal.
+  const grupo = grupoDeRuta(req.originalUrl);
 
   res.on('finish', () => {
     try {
@@ -82,7 +85,6 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
       if (res.statusCode >= 500) b.errores5xx += 1;
       else if (res.statusCode >= 400) b.errores4xx += 1;
 
-      const grupo = grupoDeRuta(req.path);
       const g = (b.porGrupo[grupo] ??= { total: 0, errores: 0, sumMs: 0 });
       g.total += 1;
       g.sumMs += ms;

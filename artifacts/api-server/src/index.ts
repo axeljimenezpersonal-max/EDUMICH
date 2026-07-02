@@ -18,6 +18,7 @@ import gestorRoutes from './routes/gestor';
 import estudianteRoutes from './routes/estudiante';
 import publicoRoutes from './routes/publico';
 import adminRoutes from './routes/admin';
+import direccionRoutes from './routes/direccion';
 import pagosRoutes from './routes/pagos';
 import calificacionesRoutes from './routes/calificaciones';
 import anunciosRoutes from './routes/anuncios';
@@ -31,6 +32,7 @@ import devRoutes from './routes/dev';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
 import { runStartupMigrations } from './db';
+import { metricsMiddleware } from './middleware/metrics';
 
 const app = express();
 
@@ -66,6 +68,10 @@ app.use(
 app.use(express.json({ limit: '2mb' }));
 app.use(cookieParser());
 
+// Métricas de salud del API (latencia/tráfico/errores) — consumidas por el
+// panel de dirección. En memoria, costo despreciable por request.
+app.use(metricsMiddleware);
+
 // Rate limiting para frenar fuerza bruta y abuso en autenticación.
 // max por ventana e IP; ajustable si hay oficinas tras NAT compartido.
 const authLimiter = rateLimit({
@@ -90,6 +96,11 @@ app.use('/api/estudiante', estudianteRoutes);
 app.use('/api/alumno', estudianteRoutes);
 app.use('/api/publico', publicoRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/direccion', direccionRoutes);
+// Reportes para dirección: mismo router de reportes (valida rol adentro).
+// Se monta bajo /api/direccion/reportes para no pasar por el middleware
+// de adminRoutes, que exige rol admin.
+app.use('/api/direccion/reportes', reportesRoutes);
 app.use('/api/pagos', pagosRoutes);
 app.use('/api/calificaciones', calificacionesRoutes);
 app.use('/api/anuncios', anunciosRoutes);

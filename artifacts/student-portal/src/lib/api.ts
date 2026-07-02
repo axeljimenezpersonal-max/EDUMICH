@@ -83,7 +83,7 @@ export const api = {
 };
 
 // ── Tipos ──────────────────────────────────────────────────────
-export type Rol = 'admin' | 'gestor' | 'estudiante';
+export type Rol = 'admin' | 'gestor' | 'estudiante' | 'direccion';
 
 export interface MeResponse {
   id: number;

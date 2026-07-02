@@ -10,7 +10,11 @@ import { generarPDFReporte } from '../services/pdfReport';
 import type { ReporteData } from '../services/excelGenerator';
 
 const router = Router();
-router.use(authRequired, requireRol('admin'));
+// Dirección de programa puede CONSULTAR y generar los mismos reportes (es un
+// perfil de solo lectura); la programación de reportes recurrentes y su
+// administración siguen siendo exclusivas del admin.
+router.use(authRequired, requireRol('admin', 'direccion'));
+router.use('/programados', requireRol('admin'));
 
 // ─────────────────────────────────────────────────────────────
 // Helpers

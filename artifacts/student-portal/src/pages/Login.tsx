@@ -29,6 +29,8 @@ export default function Login() {
         setLocation('/gestor');
       } else if (r.user.rol === 'admin') {
         setLocation('/admin');
+      } else if (r.user.rol === 'direccion') {
+        setLocation('/direccion');
       } else if (r.user.passwordTemporal) {
         setLocation('/estudiante/cambiar-password');
       } else {
