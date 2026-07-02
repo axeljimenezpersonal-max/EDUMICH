@@ -323,6 +323,60 @@ function NuevoView({ onCancel, onCreado, onError }: {
   );
 }
 
+// ─── Aviso "Ficha solicitada" — grande, con pulso + stepper del flujo ───────
+function FichaSolicitada({ estado }: { estado: PagoExamenEstado }) {
+  const pasos = ['Solicitada', 'Emisión', 'Pago', 'Confirmado'];
+  const actual = estado === 'pendiente_emision' ? 0 : estado === 'emitida' ? 1 : estado === 'en_revision' ? 2 : 3;
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-[#e8c4d4] p-6"
+      style={{ background: 'linear-gradient(135deg, #fdf6f8 0%, #ffffff 60%)' }}>
+      {/* halo decorativo */}
+      <div className="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full opacity-[0.06]" style={{ background: 'var(--color-guinda-700)' }} />
+
+      <div className="flex items-center gap-4 mb-4">
+        <div className="relative shrink-0">
+          <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'var(--color-guinda-700)', opacity: 0.25 }} />
+          <span className="relative w-14 h-14 rounded-full flex items-center justify-center text-white" style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
+            <Clock size={26} />
+          </span>
+        </div>
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.2em] font-bold text-[var(--color-guinda-700)]">En proceso</div>
+          <h3 className="text-2xl font-bold text-stone-900 leading-tight">Ficha solicitada</h3>
+        </div>
+      </div>
+
+      <p className="text-stone-600 text-[15px] leading-relaxed max-w-2xl mb-6">
+        La coordinación la revisará y emitirá con su <strong className="text-stone-800">línea de captura</strong>. Vuelve pronto para pagar y subir tu comprobante.
+      </p>
+
+      {/* Stepper del flujo */}
+      <div className="flex items-center">
+        {pasos.map((label, i) => {
+          const done = i < actual;
+          const active = i === actual;
+          return (
+            <div key={label} className="flex items-center" style={{ flex: i < pasos.length - 1 ? 1 : '0 0 auto' }}>
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                  done ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)] text-white'
+                  : active ? 'border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white'
+                  : 'border-stone-200 text-stone-300 bg-white'}`}>
+                  {done ? <Check size={14} /> : active ? <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)] animate-pulse" /> : i + 1}
+                </span>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${active ? 'text-[var(--color-guinda-700)]' : done ? 'text-stone-600' : 'text-stone-300'}`}>{label}</span>
+              </div>
+              {i < pasos.length - 1 && (
+                <div className="flex-1 h-0.5 mx-1 rounded-full -mt-4" style={{ background: done ? 'var(--color-guinda-700)' : '#e7e0d9' }} />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 // ─── Detalle ────────────────────────────────────────────────────────────────
 function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; onToast: (m: string, ok?: boolean) => void }) {
   const [p, setP] = useState<PagoExamenAlumno | null>(null);
@@ -398,12 +452,7 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
       <div className="grid md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-4">
           {/* Estado por fase */}
-          {p.estado === 'pendiente_emision' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-sm text-amber-800">
-              <Clock size={18} className="shrink-0 mt-0.5" />
-              <div>Ficha <strong>solicitada</strong>. La coordinación la revisará y emitirá con su línea de captura. Vuelve pronto para pagar.</div>
-            </div>
-          )}
+          {p.estado === 'pendiente_emision' && <FichaSolicitada estado={p.estado} />}
 
           {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'vencido') && p.lineaCaptura && (
             <div className="bg-white border border-stone-200 rounded-xl p-4">
