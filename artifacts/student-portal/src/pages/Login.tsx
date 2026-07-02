@@ -69,6 +69,7 @@ export default function Login() {
               src="/logo-see-blanco-256.png"
               alt="Secretaría de Educación de Michoacán"
               style={{ width: 48, height: 48, objectFit: 'contain', display: 'block', flexShrink: 0 }}
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
             <div style={{ lineHeight: 1.25 }}>
               <div className="font-serif" style={{ fontSize: 15, fontWeight: 600 }}>Gobierno de Michoacán</div>
@@ -116,6 +117,7 @@ export default function Login() {
                 src="/ilustracion-login.svg"
                 alt=""
                 style={{ width: '100%', maxWidth: 340, height: 'auto', opacity: 0.88, display: 'block' }}
+                onError={(e) => { e.currentTarget.style.display = 'none'; }}
               />
             </div>
           </div>
