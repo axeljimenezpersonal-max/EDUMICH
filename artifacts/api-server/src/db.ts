@@ -21,6 +21,11 @@ const migrations = [
      telefono_publico varchar(30),
      created_at timestamp NOT NULL DEFAULT now()
    )`,
+  // Concepto "derecho de examen" a $145 (Tesorería del Estado). Idempotente:
+  // solo se siembra si no existe; ediciones posteriores del admin persisten.
+  `INSERT INTO conceptos_pago (clave, nombre, descripcion, monto, vigencia, activo)
+     VALUES ('derecho_examen', 'Derecho de examen', 'Pago de derecho de examen ante la Tesorería del Estado', 145.00, 2026, true)
+     ON CONFLICT (clave) DO NOTHING`,
 ];
 
 export async function runStartupMigrations() {
