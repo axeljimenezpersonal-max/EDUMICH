@@ -40,6 +40,13 @@ import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } fro
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
 import { armarDireccion } from '../utils/estudianteDatos';
+import {
+  obtenerDatosCedula,
+  guardarDatosCedula,
+  generarCedulaPdf,
+  dispositionCedula,
+  cedulaDatosSchema,
+} from '../services/cedula';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 
@@ -3691,6 +3698,46 @@ router.delete('/anuncios/:id', async (req, res) => {
   await tryAuditLog({ userId, accion: 'eliminar_anuncio', entidad: 'anuncios', entidadId: anuncioId, detalle: `Eliminó anuncio "${existing.titulo}"`, metadata: { titulo: existing.titulo }, req });
 
   res.json({ ok: true });
+});
+
+// ─── Cédula de inscripción (admin) ───────────────────────────────────────────
+async function adminVerAlumno(alumnoId: number) {
+  const [a] = await db.select({ userId: estudiantes.userId }).from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  return a ?? null;
+}
+
+// GET /admin/alumnos/:id/cedula — datos consolidados de la cédula
+router.get('/alumnos/:id/cedula', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  res.json(await obtenerDatosCedula(alumnoId));
+});
+
+// PATCH /admin/alumnos/:id/cedula — el admin arma/edita la cédula
+router.patch('/alumnos/:id/cedula', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  const parse = cedulaDatosSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' }); return; }
+  await guardarDatosCedula(alumnoId, parse.data);
+  res.json({ ok: true });
+});
+
+// GET /admin/alumnos/:id/cedula/pdf — cédula rellenada
+router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  try {
+    const { pdf, nombreArchivo } = await generarCedulaPdf(alumnoId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', dispositionCedula(nombreArchivo));
+    res.send(Buffer.from(pdf));
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
+  }
 });
 
 // ─── POST /admin/alumnos/:id/matricula ───────────────────────────────────────

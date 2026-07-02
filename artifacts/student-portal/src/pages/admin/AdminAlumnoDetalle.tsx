@@ -4,10 +4,12 @@ import {
   ChevronLeft, MapPin, Mail, Phone, Users, FileText, CreditCard,
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
-  Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2,
+  Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2, ClipboardList,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
+import CalificacionesTabContent from '../../components/CalificacionesTabContent';
+import { CedulaEditor } from '../../components/CedulaEditor';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -83,7 +85,7 @@ type DetalleResp = {
   examenes: Examen[];
 };
 
-type ActiveTab = 'docs' | 'pagos' | 'examenes';
+type ActiveTab = 'docs' | 'cedula' | 'pagos' | 'calificaciones' | 'examenes';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -602,7 +604,9 @@ export default function AdminAlumnoDetalle() {
 
   const TABS: { key: ActiveTab; label: string; icon: typeof FileText; count?: number }[] = [
     { key: 'docs',    label: 'Documentos',   icon: FileText,     count: documentos.length },
+    { key: 'cedula',  label: 'Cédula',       icon: ClipboardList },
     { key: 'pagos',   label: 'Pagos',        icon: CreditCard,   count: pagosData.length },
+    { key: 'calificaciones', label: 'Calificaciones', icon: Award },
     { key: 'examenes', label: 'Evaluaciones', icon: GraduationCap, count: examenes.length },
   ];
 
@@ -1020,6 +1024,12 @@ export default function AdminAlumnoDetalle() {
             examenes.length === 0
               ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay evaluaciones registradas</p>
               : examenes.map((e) => <ExamenRow key={e.id} examen={e} />)
+          )}
+          {activeTab === 'cedula' && (
+            <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} />
+          )}
+          {activeTab === 'calificaciones' && (
+            <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
           )}
         </div>
       </div>
