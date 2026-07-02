@@ -121,15 +121,6 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
-      <footer className="hidden md:block border-t border-stone-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <div>© {new Date().getFullYear()} Gobierno del Estado de Michoacán</div>
-          <div style={{ fontWeight: 500 }}>
-            Powered by <strong style={{ color: 'var(--color-guinda-700)' }}>EDUMICH</strong> · Plataforma Educativa Digital
-          </div>
-          <div className="opacity-70">v0.1 (demo) · IEMSyS</div>
-        </div>
-      </footer>
     </div>
   );
 }

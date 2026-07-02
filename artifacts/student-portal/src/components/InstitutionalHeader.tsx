@@ -252,16 +252,6 @@ function HeaderNotifBell() {
 export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout }: Props) {
   return (
     <header className="border-b-4 border-[var(--color-guinda-700)] bg-white sticky top-0 z-50 shadow-sm">
-      {/* Banda institucional superior */}
-      <div className="bg-[var(--color-guinda-700)] text-white text-xs">
-        <div className="max-w-7xl mx-auto px-4 py-1.5 flex items-center justify-between">
-          <span className="font-medium tracking-wide">
-            GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO
-          </span>
-          <span className="hidden sm:inline opacity-80">prepaabierta.michoacan.gob.mx</span>
-        </div>
-      </div>
-
       {/* Cabecera con logos y branding */}
       <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-4 flex items-center justify-between gap-3 sm:gap-6">
         <div className="flex items-center gap-5">

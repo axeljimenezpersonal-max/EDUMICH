@@ -179,15 +179,6 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <footer className="bg-white" style={{ borderTop: '1px solid #eadfd7' }}>
-        <div className="max-w-[1400px] mx-auto px-6 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
-          <div>© {new Date().getFullYear()} Gobierno del Estado de Michoacán</div>
-          <div style={{ fontWeight: 500 }}>
-            Powered by <strong style={{ color: 'var(--color-guinda-700)' }}>EDUMICH</strong> · Plataforma Educativa Digital
-          </div>
-          <div style={{ opacity: 0.7 }}>Dirección de Programa · IEMSyS</div>
-        </div>
-      </footer>
     </div>
   );
 }
