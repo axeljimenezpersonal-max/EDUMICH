@@ -555,12 +555,18 @@ export const pagosExamen = pgTable(
   'pagos_examen',
   {
     id: serial('id').primaryKey(),
-    estudianteId: integer('estudiante_id')
-      .notNull()
-      .references(() => estudiantes.userId, { onDelete: 'cascade' }),
+    // Folio de la ficha de pago (referencia legible). Ej: FP-2026-000123
+    folio: varchar('folio', { length: 30 }).unique(),
+    // Individual = un alumno (estudianteId set). Grupal = varios (estudianteId null,
+    // los alumnos reales viven en el puente pagos_examen_inscripciones).
+    estudianteId: integer('estudiante_id').references(() => estudiantes.userId, { onDelete: 'cascade' }),
     etapaId: integer('etapa_id').references(() => convocatoriasEtapas.id),
-    // Gestor que armó la orden (si la disparó un gestor por sus alumnos)
+    // Gestor que solicitó/armó la orden (si la disparó un gestor por sus alumnos)
     gestorId: integer('gestor_id').references(() => gestores.userId),
+    // Quién solicitó la ficha (gestor o alumno)
+    solicitadoPorUserId: integer('solicitado_por_user_id').references(() => users.id),
+    // Cómo se pagó (lo declara quien sube el comprobante): banco / tienda / linea
+    metodoPago: varchar('metodo_pago', { length: 30 }),
     concepto: pagoConceptoEnum('concepto').notNull().default('derecho_examen'),
     cantidadExamenes: integer('cantidad_examenes').notNull().default(1),
     // $145 = $115 IEMSyS + $30 Synapsis. El split es INTERNO (solo reportes admin).

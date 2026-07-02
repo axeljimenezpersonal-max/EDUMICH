@@ -55,6 +55,44 @@ const upload = multer({
 
 const esAdmin = (rol?: string) => rol === 'admin';
 
+// Folio legible de la ficha de pago: FP-AAAA-000123
+function folioFicha(id: number) {
+  return `FP-${2026}-${String(id).padStart(6, '0')}`;
+}
+
+// ¿El usuario (alumno / gestor / admin) tiene acceso a este pago?
+// - admin: siempre.
+// - alumno: es el titular, o alguno de SUS exámenes está en la ficha (grupal).
+// - gestor: solicitó la ficha, o algún examen es de uno de SUS alumnos.
+async function tieneAcceso(
+  pago: typeof pagosExamen.$inferSelect,
+  user: { userId: number; rol: string }
+): Promise<boolean> {
+  if (esAdmin(user.rol)) return true;
+  if (user.rol === 'estudiante') {
+    if (pago.estudianteId === user.userId) return true;
+    const rows = await db
+      .select({ id: pagosExamenInscripciones.id })
+      .from(pagosExamenInscripciones)
+      .innerJoin(examenesInscripciones, eq(pagosExamenInscripciones.examenInscripcionId, examenesInscripciones.id))
+      .where(and(eq(pagosExamenInscripciones.pagoExamenId, pago.id), eq(examenesInscripciones.estudianteId, user.userId)))
+      .limit(1);
+    return rows.length > 0;
+  }
+  if (user.rol === 'gestor') {
+    if (pago.gestorId === user.userId) return true;
+    const rows = await db
+      .select({ id: pagosExamenInscripciones.id })
+      .from(pagosExamenInscripciones)
+      .innerJoin(examenesInscripciones, eq(pagosExamenInscripciones.examenInscripcionId, examenesInscripciones.id))
+      .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
+      .where(and(eq(pagosExamenInscripciones.pagoExamenId, pago.id), eq(estudiantes.gestorId, user.userId)))
+      .limit(1);
+    return rows.length > 0;
+  }
+  return false;
+}
+
 // ── Helper: arma el detalle de un pago con sus exámenes cubiertos ─────────
 async function detallePago(pagoId: number) {
   const [pago] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, pagoId)).limit(1);
@@ -82,11 +120,13 @@ async function detallePago(pagoId: number) {
 function vistaAlumno(pago: typeof pagosExamen.$inferSelect, items: any[]) {
   return {
     id: pago.id,
+    folio: pago.folio,
     estado: pago.estado,
     concepto: pago.concepto,
     cantidadExamenes: pago.cantidadExamenes,
     montoTotal: Number(pago.montoTotal),
     referencia: pago.referencia,
+    metodoPago: pago.metodoPago,
     lineaCaptura: pago.lineaCaptura,
     tieneOrden: !!pago.ordenPagoPath,
     linkPago: pago.linkPago,
@@ -122,11 +162,19 @@ router.get('/mios', async (req, res) => {
   if (req.user!.rol !== 'estudiante') return res.status(403).json({ error: 'Solo alumnos' });
   try {
     const userId = req.user!.userId;
-    const filas = await db
-      .select()
-      .from(pagosExamen)
-      .where(eq(pagosExamen.estudianteId, userId))
-      .orderBy(desc(pagosExamen.createdAt));
+    // Fichas donde el alumno es titular (individual) O aparece por el puente (grupal)
+    const viaBridge = await db
+      .selectDistinct({ id: pagosExamenInscripciones.pagoExamenId })
+      .from(pagosExamenInscripciones)
+      .innerJoin(examenesInscripciones, eq(pagosExamenInscripciones.examenInscripcionId, examenesInscripciones.id))
+      .where(eq(examenesInscripciones.estudianteId, userId));
+    const ids = new Set<number>(viaBridge.map((r) => r.id));
+    const propias = await db.select().from(pagosExamen).where(eq(pagosExamen.estudianteId, userId));
+    propias.forEach((p) => ids.add(p.id));
+
+    const filas = ids.size
+      ? await db.select().from(pagosExamen).where(inArray(pagosExamen.id, [...ids])).orderBy(desc(pagosExamen.createdAt))
+      : [];
 
     const out = [];
     for (const p of filas) {
@@ -145,8 +193,7 @@ router.get('/:id/orden', async (req, res) => {
     const id = Number(req.params.id);
     const [p] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
     if (!p) return res.status(404).json({ error: 'No existe' });
-    // El alumno solo puede ver la suya; el admin cualquiera
-    if (!esAdmin(req.user!.rol) && p.estudianteId !== req.user!.userId) {
+    if (!(await tieneAcceso(p, req.user!))) {
       return res.status(403).json({ error: 'Sin permiso' });
     }
     if (!p.ordenPagoPath || !existsSync(p.ordenPagoPath)) {
@@ -159,14 +206,18 @@ router.get('/:id/orden', async (req, res) => {
   }
 });
 
-// POST /api/pagos-examen/:id/comprobante — el alumno sube comprobante (ruta interina)
+// POST /api/pagos-examen/:id/comprobante — alumno o gestor sube comprobante + método
 router.post('/:id/comprobante', upload.single('comprobante'), async (req, res) => {
-  if (req.user!.rol !== 'estudiante') return res.status(403).json({ error: 'Solo alumnos' });
+  if (req.user!.rol !== 'estudiante' && req.user!.rol !== 'gestor') {
+    return res.status(403).json({ error: 'Solo alumno o gestor' });
+  }
   try {
     const id = Number(req.params.id);
     const [p] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
-    if (!p || p.estudianteId !== req.user!.userId) return res.status(404).json({ error: 'No existe' });
+    if (!p || !(await tieneAcceso(p, req.user!))) return res.status(404).json({ error: 'No existe' });
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
+
+    const { metodoPago } = req.body as { metodoPago?: string };
 
     try {
       assertTransicion(p.estado as PagoExamenEstado, 'en_revision');
@@ -179,6 +230,7 @@ router.post('/:id/comprobante', upload.single('comprobante'), async (req, res) =
       .set({
         comprobantePath: req.file.path,
         comprobanteNombre: nombreArchivoUtf8(req.file.originalname),
+        metodoPago: metodoPago ?? p.metodoPago,
         estado: 'en_revision',
         motivoRechazo: null,
         updatedAt: new Date(),
@@ -197,7 +249,7 @@ router.get('/:id/comprobante', async (req, res) => {
     const id = Number(req.params.id);
     const [p] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
     if (!p) return res.status(404).json({ error: 'No existe' });
-    if (!esAdmin(req.user!.rol) && p.estudianteId !== req.user!.userId) {
+    if (!(await tieneAcceso(p, req.user!))) {
       return res.status(403).json({ error: 'Sin permiso' });
     }
     if (!p.comprobantePath || !existsSync(p.comprobantePath)) {
@@ -207,6 +259,171 @@ router.get('/:id/comprobante', async (req, res) => {
     return createReadStream(p.comprobantePath).pipe(res);
   } catch {
     return res.status(500).json({ error: 'Error al descargar el comprobante' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GESTOR / ALUMNO — solicitud de ficha
+// ═══════════════════════════════════════════════════════════════════════════
+
+// GET /api/pagos-examen/gestor-candidatos — exámenes de MIS alumnos sin ficha activa
+router.get('/gestor-candidatos', async (req, res) => {
+  if (req.user!.rol !== 'gestor') return res.status(403).json({ error: 'Solo gestor' });
+  try {
+    const gestorId = req.user!.userId;
+    const rows = await db.execute<{
+      id: number; folio: string; estudiante_id: number; alumno: string;
+      modulo_id: number; modulo_numero: number; modulo_nombre: string;
+    }>(sql`
+      SELECT ei.id, ei.folio, ei.estudiante_id, e.nombre_completo AS alumno,
+             m.id AS modulo_id, m.numero AS modulo_numero, m.nombre AS modulo_nombre
+      FROM examenes_inscripciones ei
+      JOIN estudiantes e ON e.user_id = ei.estudiante_id
+      JOIN modulos m ON m.id = ei.modulo_id
+      WHERE e.gestor_id = ${gestorId}
+        AND ei.estado = 'inscrito'
+        AND NOT EXISTS (
+          SELECT 1 FROM pagos_examen_inscripciones pei
+          JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+          WHERE pei.examen_inscripcion_id = ei.id AND pe.estado NOT IN ('cancelado','vencido')
+        )
+      ORDER BY m.numero, e.nombre_completo
+    `);
+    return res.json({
+      costoExamen: 145,
+      examenes: rows.rows.map((r) => ({
+        id: Number(r.id), folio: r.folio, estudianteId: Number(r.estudiante_id), alumno: r.alumno,
+        moduloId: Number(r.modulo_id), moduloNumero: Number(r.modulo_numero), moduloNombre: r.modulo_nombre,
+      })),
+    });
+  } catch {
+    return res.status(500).json({ error: 'Error al obtener exámenes' });
+  }
+});
+
+// POST /api/pagos-examen/solicitar — gestor o alumno solicita una ficha (pendiente_emision)
+router.post('/solicitar', async (req, res) => {
+  const rol = req.user!.rol;
+  const userId = req.user!.userId;
+  if (rol !== 'gestor' && rol !== 'estudiante') return res.status(403).json({ error: 'Sin permiso' });
+  try {
+    const { examenInscripcionIds } = req.body as { examenInscripcionIds: number[] };
+    const ids = Array.isArray(examenInscripcionIds) ? [...new Set(examenInscripcionIds)] : [];
+    if (ids.length === 0) return res.status(400).json({ error: 'Selecciona al menos un examen' });
+
+    // Traer exámenes con su alumno y validar pertenencia + que no estén ya cubiertos
+    const inscs = await db
+      .select({
+        id: examenesInscripciones.id,
+        estudianteId: examenesInscripciones.estudianteId,
+        etapaId: examenesInscripciones.etapaId,
+        gestorId: estudiantes.gestorId,
+        estado: examenesInscripciones.estado,
+      })
+      .from(examenesInscripciones)
+      .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
+      .where(inArray(examenesInscripciones.id, ids));
+
+    if (inscs.length !== ids.length) return res.status(409).json({ error: 'Algún examen no es válido' });
+    if (rol === 'estudiante' && inscs.some((i) => i.estudianteId !== userId)) {
+      return res.status(403).json({ error: 'Solo tus exámenes' });
+    }
+    if (rol === 'gestor' && inscs.some((i) => i.gestorId !== userId)) {
+      return res.status(403).json({ error: 'Solo exámenes de tus alumnos' });
+    }
+
+    // ¿ya cubiertos por una ficha activa?
+    const cubiertos = await db
+      .select({ id: pagosExamenInscripciones.examenInscripcionId })
+      .from(pagosExamenInscripciones)
+      .innerJoin(pagosExamen, eq(pagosExamenInscripciones.pagoExamenId, pagosExamen.id))
+      .where(and(
+        inArray(pagosExamenInscripciones.examenInscripcionId, ids),
+        inArray(pagosExamen.estado, ['pendiente_emision', 'emitida', 'en_revision', 'pagado'])
+      ));
+    if (cubiertos.length > 0) {
+      return res.status(409).json({ error: 'Algún examen ya está en una ficha. Actualiza la lista.' });
+    }
+
+    const estudianteIds = new Set(inscs.map((i) => i.estudianteId));
+    const grupal = estudianteIds.size > 1;
+    const estudianteId = grupal ? null : inscs[0].estudianteId;
+    const etapaId = inscs[0].etapaId ?? null;
+    const cantidad = ids.length;
+
+    let referencia: string | null = null;
+    if (!grupal) {
+      const [alu] = await db
+        .select({ matricula: estudiantes.matriculaOficialDGB, curp: estudiantes.curp })
+        .from(estudiantes).where(eq(estudiantes.userId, estudianteId!)).limit(1);
+      referencia = alu?.matricula || alu?.curp || null;
+    }
+
+    const [nuevo] = await db.insert(pagosExamen).values({
+      estudianteId,
+      etapaId,
+      gestorId: rol === 'gestor' ? userId : null,
+      solicitadoPorUserId: userId,
+      concepto: 'derecho_examen',
+      cantidadExamenes: cantidad,
+      montoTotal: (cantidad * 145).toFixed(2),
+      montoIemsys: (cantidad * 115).toFixed(2),
+      montoSynapsis: (cantidad * 30).toFixed(2),
+      referencia,
+      estado: 'pendiente_emision',
+    }).returning({ id: pagosExamen.id });
+
+    const folio = folioFicha(nuevo.id);
+    await db.update(pagosExamen).set({ folio, referencia: referencia ?? folio }).where(eq(pagosExamen.id, nuevo.id));
+    await db.insert(pagosExamenInscripciones).values(
+      ids.map((iid) => ({ pagoExamenId: nuevo.id, examenInscripcionId: iid }))
+    );
+
+    return res.json({ id: nuevo.id, folio });
+  } catch {
+    return res.status(500).json({ error: 'Error al solicitar la ficha' });
+  }
+});
+
+// GET /api/pagos-examen/gestor-mios — fichas solicitadas por el gestor
+router.get('/gestor-mios', async (req, res) => {
+  if (req.user!.rol !== 'gestor') return res.status(403).json({ error: 'Solo gestor' });
+  try {
+    const gestorId = req.user!.userId;
+    const filas = await db
+      .select().from(pagosExamen)
+      .where(eq(pagosExamen.gestorId, gestorId))
+      .orderBy(desc(pagosExamen.createdAt));
+    const out = [];
+    for (const p of filas) {
+      const det = await detallePago(p.id);
+      out.push(vistaAlumno(p, det?.items ?? []));
+    }
+    return res.json({ pagos: out });
+  } catch {
+    return res.status(500).json({ error: 'Error al obtener tus fichas' });
+  }
+});
+
+// GET /api/pagos-examen/gestor-detalle/:id — detalle de una ficha del gestor
+router.get('/gestor-detalle/:id', async (req, res) => {
+  if (req.user!.rol !== 'gestor') return res.status(403).json({ error: 'Solo gestor' });
+  try {
+    const det = await detallePago(Number(req.params.id));
+    if (!det || !(await tieneAcceso(det.pago, req.user!))) return res.status(404).json({ error: 'No existe' });
+    // Enriquecer los ítems con el alumno (para vista grupal)
+    const items = [];
+    for (const it of det.items) {
+      const [alu] = await db
+        .select({ nombre: estudiantes.nombreCompleto })
+        .from(examenesInscripciones)
+        .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
+        .where(eq(examenesInscripciones.id, it.inscripcionId)).limit(1);
+      items.push({ ...it, alumno: alu?.nombre ?? '' });
+    }
+    return res.json(vistaAlumno(det.pago, items));
+  } catch {
+    return res.status(500).json({ error: 'Error al obtener la ficha' });
   }
 });
 
@@ -227,7 +444,7 @@ router.get('/', async (req, res) => {
         curp: estudiantes.curp,
       })
       .from(pagosExamen)
-      .innerJoin(estudiantes, eq(pagosExamen.estudianteId, estudiantes.userId))
+      .leftJoin(estudiantes, eq(pagosExamen.estudianteId, estudiantes.userId))
       .orderBy(desc(pagosExamen.createdAt));
 
     const filas = estado
@@ -237,7 +454,7 @@ router.get('/', async (req, res) => {
     return res.json({
       pagos: filas.map((f) => ({
         ...vistaAdmin(f.pago, []),
-        alumno: f.alumno,
+        alumno: f.alumno ?? (f.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'),
         matricula: f.matricula,
         curp: f.curp,
       })),
@@ -253,12 +470,15 @@ router.get('/:id/detalle', async (req, res) => {
   try {
     const det = await detallePago(Number(req.params.id));
     if (!det) return res.status(404).json({ error: 'No existe' });
-    const [alu] = await db
-      .select({ nombre: estudiantes.nombreCompleto, matricula: estudiantes.matriculaOficialDGB, curp: estudiantes.curp })
-      .from(estudiantes)
-      .where(eq(estudiantes.userId, det.pago.estudianteId))
-      .limit(1);
-    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre, matricula: alu?.matricula, curp: alu?.curp });
+    let alu: { nombre: string; matricula: string | null; curp: string | null } | undefined;
+    if (det.pago.estudianteId != null) {
+      [alu] = await db
+        .select({ nombre: estudiantes.nombreCompleto, matricula: estudiantes.matriculaOficialDGB, curp: estudiantes.curp })
+        .from(estudiantes)
+        .where(eq(estudiantes.userId, det.pago.estudianteId))
+        .limit(1);
+    }
+    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp });
   } catch {
     return res.status(500).json({ error: 'Error al obtener detalle' });
   }
@@ -348,6 +568,7 @@ router.post('/', async (req, res) => {
       })
       .returning({ id: pagosExamen.id });
 
+    await db.update(pagosExamen).set({ folio: folioFicha(nuevo.id) }).where(eq(pagosExamen.id, nuevo.id));
     await db.insert(pagosExamenInscripciones).values(
       examenInscripcionIds.map((iid) => ({ pagoExamenId: nuevo.id, examenInscripcionId: iid }))
     );

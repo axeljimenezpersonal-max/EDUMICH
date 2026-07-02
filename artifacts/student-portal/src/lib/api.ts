@@ -793,16 +793,27 @@ export interface PagoExamenItem {
   folio: string;
   moduloNumero: number;
   moduloNombre: string;
+  alumno?: string;
 }
+
+// Método de pago declarado al subir el comprobante
+export type MetodoPago = 'banco' | 'tienda' | 'linea';
+export const METODOS_PAGO: { value: MetodoPago; label: string; ayuda: string }[] = [
+  { value: 'banco', label: 'Ventanilla bancaria', ayuda: 'Pagaste con la línea de captura en el banco.' },
+  { value: 'tienda', label: 'Tienda de conveniencia', ayuda: 'OXXO, 7-Eleven, etc., con la línea de captura.' },
+  { value: 'linea', label: 'Pago en línea', ayuda: 'Portal de pago del Estado con tarjeta.' },
+];
 
 /** Vista del alumno — nunca incluye el split 115/30. */
 export interface PagoExamenAlumno {
   id: number;
+  folio: string | null;
   estado: PagoExamenEstado;
   concepto: string;
   cantidadExamenes: number;
   montoTotal: number;
   referencia: string | null;
+  metodoPago: string | null;
   lineaCaptura: string | null;
   tieneOrden: boolean;
   linkPago: string | null;

@@ -14,6 +14,8 @@ import {
   type ConvocatoriaResponse,
   type GestorConfigPagoResponse,
   type PagoExamenAlumno,
+  type MetodoPago,
+  METODOS_PAGO,
 } from '../../lib/api';
 import DocumentoUploader from '../../components/DocumentoUploader';
 import PagoCard from '../../components/PagoCard';
@@ -822,6 +824,7 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
   const [ordenes, setOrdenes] = useState<PagoExamenAlumno[] | null>(null);
   const [subiendo, setSubiendo] = useState<number | null>(null);
   const [copiado, setCopiado] = useState(false);
+  const [metodoPorId, setMetodoPorId] = useState<Record<number, MetodoPago>>({});
 
   function cargar() {
     return api.get<{ pagos: PagoExamenAlumno[] }>('/pagos-examen/mios')
@@ -835,10 +838,13 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, []);
 
   async function subirComprobante(id: number, file: File) {
+    const metodo = metodoPorId[id];
+    if (!metodo) return;
     setSubiendo(id);
     try {
       const fd = new FormData();
       fd.append('comprobante', file);
+      fd.append('metodoPago', metodo);
       await api.post(`/pagos-examen/${id}/comprobante`, fd);
       await cargar();
     } catch { /* noop */ } finally { setSubiendo(null); }
@@ -921,14 +927,22 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
                 </div>
               )}
 
-              {/* Subir comprobante (ruta interina) — solo si emitida y sin comprobante */}
+              {/* Subir comprobante — solo si emitida. Elige método + archivo. */}
               {o.estado === 'emitida' && (
-                <div>
-                  <div className="text-xs font-semibold text-stone-600 mb-1.5">Ya pagaste? Sube tu comprobante</div>
-                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 cursor-pointer transition-colors ${subiendo === o.id ? 'opacity-60' : 'border-stone-300 hover:border-stone-400'}`}>
+                <div className="space-y-2.5">
+                  <div className="text-xs font-semibold text-stone-600">¿Ya pagaste? Indica cómo y sube tu comprobante</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {METODOS_PAGO.map((m) => (
+                      <button key={m.value} onClick={() => setMetodoPorId((s) => ({ ...s, [o.id]: m.value }))}
+                        className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodoPorId[o.id] === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>
+                        <div className="text-xs font-bold text-stone-800">{m.label}</div>
+                      </button>
+                    ))}
+                  </div>
+                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 transition-colors ${!metodoPorId[o.id] ? 'opacity-50 cursor-not-allowed border-stone-200' : subiendo === o.id ? 'opacity-60 border-stone-300' : 'border-stone-300 hover:border-stone-400 cursor-pointer'}`}>
                     {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
-                    <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : 'Seleccionar comprobante (PDF o imagen)'}</span>
-                    <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
+                    <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : !metodoPorId[o.id] ? 'Primero elige el método de pago' : 'Seleccionar comprobante (PDF o imagen)'}</span>
+                    <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id || !metodoPorId[o.id]} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
                   </label>
                 </div>
               )}

@@ -1,39 +1,42 @@
 /**
- * Pagos del gestor — pagos grupales de exámenes ante la Tesorería del Estado.
+ * Pagos del gestor — órdenes de pago del derecho de examen (Tesorería del Estado).
  *
- * Flujo: seleccionar exámenes pendientes (p. ej. 30 de módulo 1) → se genera
- * una ficha de depósito con FOLIO → el gestor paga en Tesorería → sube su
- * comprobante → la administración verifica → todos los alumnos quedan pagados.
+ * Flujo unificado:
+ *   1. El gestor SELECCIONA exámenes (individual o grupal) y SOLICITA la ficha.
+ *   2. La coordinación (admin) EMITE la ficha con su línea de captura.
+ *   3. El gestor PAGA ante la Tesorería, elige el método y sube el comprobante.
+ *   4. El admin CONCILIA → los alumnos quedan pagados.
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  CreditCard, Plus, Download, UploadCloud, Loader2, CheckCircle2, Clock,
-  AlertCircle, ChevronLeft, Trash2, FileText, Landmark, Copy, Check,
+  Plus, Download, UploadCloud, Loader2, CheckCircle2, Clock,
+  AlertCircle, ChevronLeft, FileText, Landmark, Copy, Check, ExternalLink, Ban,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import {
   api,
-  type PagoGrupalResumen,
-  type PagoGrupalDetalle,
+  type PagoExamenAlumno,
+  type PagoExamenEstado,
   type ExamenDisponible,
+  type MetodoPago,
+  METODOS_PAGO,
 } from '../../lib/api';
 
 type Vista = { t: 'lista' } | { t: 'nuevo' } | { t: 'detalle'; id: number };
 
-const ESTADO_CFG: Record<string, { label: string; bg: string; color: string; icon: React.ReactNode }> = {
-  pendiente_comprobante: { label: 'Falta comprobante', bg: '#fff7ed', color: '#b45309', icon: <UploadCloud size={12} /> },
-  en_revision: { label: 'En revisión', bg: '#eff6ff', color: '#1d4ed8', icon: <Clock size={12} /> },
-  verificado: { label: 'Verificado', bg: '#f0fdf4', color: '#15803d', icon: <CheckCircle2 size={12} /> },
-  rechazado: { label: 'Rechazado', bg: '#fef2f2', color: '#b91c1c', icon: <AlertCircle size={12} /> },
+const ESTADO_CFG: Record<PagoExamenEstado, { label: string; bg: string; color: string; icon: React.ReactNode }> = {
+  pendiente_emision: { label: 'Solicitada', bg: '#fff7ed', color: '#b45309', icon: <Clock size={12} /> },
+  emitida: { label: 'Lista para pagar', bg: '#eff6ff', color: '#1d4ed8', icon: <Landmark size={12} /> },
+  en_revision: { label: 'Comprobante en revisión', bg: '#fefce8', color: '#a16207', icon: <Clock size={12} /> },
+  pagado: { label: 'Pagado', bg: '#f0fdf4', color: '#15803d', icon: <CheckCircle2 size={12} /> },
+  vencido: { label: 'Vencido', bg: '#fef2f2', color: '#b91c1c', icon: <AlertCircle size={12} /> },
+  cancelado: { label: 'Cancelado', bg: '#f5f5f4', color: '#78716c', icon: <Ban size={12} /> },
 };
 
-function EstadoChip({ estado }: { estado: string }) {
-  const c = ESTADO_CFG[estado] ?? ESTADO_CFG.pendiente_comprobante;
+function EstadoChip({ estado }: { estado: PagoExamenEstado }) {
+  const c = ESTADO_CFG[estado] ?? ESTADO_CFG.pendiente_emision;
   return (
-    <span
-      className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide"
-      style={{ background: c.bg, color: c.color }}
-    >
+    <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide" style={{ background: c.bg, color: c.color }}>
       {c.icon} {c.label}
     </span>
   );
@@ -41,11 +44,11 @@ function EstadoChip({ estado }: { estado: string }) {
 
 const fmtMoney = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 const fmtFecha = (iso: string | null) =>
-  iso ? new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  iso ? new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
 
 export default function GestorPagos() {
   const [vista, setVista] = useState<Vista>({ t: 'lista' });
-  const [pagos, setPagos] = useState<PagoGrupalResumen[]>([]);
+  const [pagos, setPagos] = useState<PagoExamenAlumno[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
 
@@ -55,141 +58,104 @@ export default function GestorPagos() {
   }
 
   function cargarLista() {
+    setLoading(true);
     return api
-      .get<{ pagos: PagoGrupalResumen[] }>('/gestor/pagos-grupales')
+      .get<{ pagos: PagoExamenAlumno[] }>('/pagos-examen/gestor-mios')
       .then((r) => setPagos(r.pagos))
-      .catch(() => {});
+      .catch(() => showToast('Error al cargar', false))
+      .finally(() => setLoading(false));
   }
 
-  useEffect(() => {
-    cargarLista().finally(() => setLoading(false));
-  }, []);
+  useEffect(() => { if (vista.t === 'lista') cargarLista(); /* eslint-disable-next-line */ }, [vista.t]);
 
   return (
     <GestorLayout>
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 flex items-center gap-2 px-4 py-3 rounded-lg shadow-lg text-sm max-w-sm ${
-          toast.ok ? 'bg-emerald-50 border border-emerald-200 text-emerald-800' : 'bg-red-50 border border-red-200 text-red-800'
-        }`}>
-          {toast.ok ? <CheckCircle2 size={16} className="shrink-0" /> : <AlertCircle size={16} className="shrink-0" />}
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${toast.ok ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
           {toast.msg}
         </div>
       )}
 
       {vista.t === 'lista' && (
-        <ListaView
-          pagos={pagos}
-          loading={loading}
-          onNuevo={() => setVista({ t: 'nuevo' })}
-          onVer={(id) => setVista({ t: 'detalle', id })}
-        />
+        <ListaView pagos={pagos} loading={loading} onNuevo={() => setVista({ t: 'nuevo' })} onAbrir={(id) => setVista({ t: 'detalle', id })} />
       )}
       {vista.t === 'nuevo' && (
         <NuevoView
           onCancel={() => setVista({ t: 'lista' })}
-          onCreado={async (id) => {
-            await cargarLista();
-            setVista({ t: 'detalle', id });
-            showToast('Pago creado — descarga tu ficha');
-          }}
+          onCreado={(id) => { showToast('Ficha solicitada — la coordinación la emitirá'); setVista({ t: 'detalle', id }); }}
           onError={(m) => showToast(m, false)}
         />
       )}
       {vista.t === 'detalle' && (
-        <DetalleView
-          id={vista.id}
-          onBack={async () => { await cargarLista(); setVista({ t: 'lista' }); }}
-          onToast={showToast}
-        />
+        <DetalleView id={vista.id} onBack={() => setVista({ t: 'lista' })} onToast={showToast} />
       )}
     </GestorLayout>
   );
 }
 
-// ─── Vista: lista ──────────────────────────────────────────────────────────
-function ListaView({ pagos, loading, onNuevo, onVer }: {
-  pagos: PagoGrupalResumen[];
-  loading: boolean;
-  onNuevo: () => void;
-  onVer: (id: number) => void;
+// ─── Lista ───────────────────────────────────────────────────────────────
+function ListaView({ pagos, loading, onNuevo, onAbrir }: {
+  pagos: PagoExamenAlumno[]; loading: boolean; onNuevo: () => void; onAbrir: (id: number) => void;
 }) {
   return (
     <>
-      <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
+      <div className="flex items-start justify-between gap-4 mb-5">
         <div>
-          <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">PAGOS</div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">Pagos</h1>
-          <p className="text-stone-500 text-sm mt-1 max-w-xl">
-            Paga varios exámenes de tus alumnos de una sola vez ante la Tesorería del Estado:
-            genera tu ficha con folio, realiza el pago y sube el comprobante.
+          <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">Tesorería del Estado</div>
+          <h1 className="font-serif text-3xl font-bold text-stone-900">Pagos</h1>
+          <p className="text-stone-600 mt-1 text-sm max-w-2xl">
+            Solicita la ficha de pago de tus alumnos; la coordinación la emite y luego subes tu comprobante.
           </p>
         </div>
-        <button
-          onClick={onNuevo}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] transition-colors shrink-0"
-        >
-          <Plus size={15} /> Nuevo pago
+        <button onClick={onNuevo} className="gov-btn-primary inline-flex items-center gap-2 whitespace-nowrap">
+          <Plus size={16} /> Nuevo pago
         </button>
-      </div>
-
-      {/* Cómo funciona */}
-      <div className="bg-white border border-stone-200 rounded-xl p-4 mb-5 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-lg bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] flex items-center justify-center shrink-0">
-          <Landmark size={16} />
-        </div>
-        <div className="text-xs text-stone-600 leading-relaxed">
-          <strong className="text-stone-800">El pago se realiza ante la Tesorería / Secretaría de Finanzas del Estado de Michoacán.</strong>{' '}
-          Aquí solo generas la ficha de referencia (con folio) y subes tu comprobante; la administración lo
-          verifica y todos los exámenes incluidos quedan cubiertos.
-        </div>
       </div>
 
       {loading ? (
         <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>
       ) : pagos.length === 0 ? (
         <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
-          <CreditCard size={30} className="mx-auto text-stone-300 mb-3" />
-          <div className="font-bold text-stone-900 mb-1">Sin pagos aún</div>
-          <p className="text-sm text-stone-500 max-w-sm mx-auto">
-            Crea tu primer pago: selecciona los exámenes de tus alumnos (por ejemplo, 30 de Módulo 1) y genera la ficha.
-          </p>
+          <Landmark size={30} className="mx-auto text-stone-300 mb-3" />
+          <div className="font-bold text-stone-900 mb-1">Sin fichas aún</div>
+          <p className="text-sm text-stone-500 max-w-md mx-auto">Solicita una ficha de pago para cubrir los exámenes de tus alumnos.</p>
         </div>
       ) : (
         <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-          <div className="hidden sm:grid grid-cols-[1fr_110px_90px_110px_130px] gap-3 px-5 py-2.5 bg-[var(--color-crema-100)] text-[10px] font-bold text-stone-500 uppercase tracking-wider border-b border-stone-200">
-            <div>Folio</div>
-            <div className="text-right">Exámenes</div>
-            <div className="text-right">Total</div>
-            <div>Fecha pago</div>
-            <div className="text-center">Estado</div>
-          </div>
-          {pagos.map((p) => (
-            <button
-              key={p.id}
-              onClick={() => onVer(p.id)}
-              className="w-full grid grid-cols-1 sm:grid-cols-[1fr_110px_90px_110px_130px] gap-1 sm:gap-3 px-5 py-3.5 border-b border-stone-100 last:border-0 hover:bg-stone-50 items-center text-left"
-            >
-              <div className="font-mono text-sm font-bold text-[var(--color-guinda-700)]">{p.folio}</div>
-              <div className="sm:text-right text-sm text-stone-700">{p.cantidadExamenes}</div>
-              <div className="sm:text-right text-sm font-bold text-stone-900">{fmtMoney(p.montoTotal)}</div>
-              <div className="text-xs text-stone-500">{fmtFecha(p.fechaPago)}</div>
-              <div className="sm:text-center"><EstadoChip estado={p.estado} /></div>
-            </button>
-          ))}
+          <table className="w-full text-sm">
+            <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
+              <tr>
+                <th className="px-4 py-3 font-semibold">Folio</th>
+                <th className="px-4 py-3 font-semibold text-center">Exám.</th>
+                <th className="px-4 py-3 font-semibold text-right">Total</th>
+                <th className="px-4 py-3 font-semibold">Estado</th>
+                <th className="w-8"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagos.map((p) => (
+                <tr key={p.id} onClick={() => onAbrir(p.id)} className="border-b border-stone-100 last:border-0 hover:bg-[var(--color-crema-50)] cursor-pointer">
+                  <td className="px-4 py-3 font-mono text-xs text-stone-700">{p.folio ?? `#${p.id}`}</td>
+                  <td className="px-4 py-3 text-center text-stone-700">{p.cantidadExamenes}</td>
+                  <td className="px-4 py-3 text-right font-bold text-stone-800">{fmtMoney(p.montoTotal)}</td>
+                  <td className="px-4 py-3"><EstadoChip estado={p.estado} /></td>
+                  <td className="px-2 text-stone-300">›</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </>
   );
 }
 
-// ─── Vista: nuevo pago (selector de exámenes) ─────────────────────────────
+// ─── Nuevo (solicitar ficha) ───────────────────────────────────────────────
 function NuevoView({ onCancel, onCreado, onError }: {
-  onCancel: () => void;
-  onCreado: (id: number) => void;
-  onError: (m: string) => void;
+  onCancel: () => void; onCreado: (id: number) => void; onError: (m: string) => void;
 }) {
   const [examenes, setExamenes] = useState<ExamenDisponible[]>([]);
-  const [costo, setCosto] = useState(150);
+  const [costo, setCosto] = useState(145);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [creando, setCreando] = useState(false);
@@ -197,14 +163,12 @@ function NuevoView({ onCancel, onCreado, onError }: {
   const [alumnoSel, setAlumnoSel] = useState<number | null>(null);
 
   useEffect(() => {
-    api
-      .get<{ costoExamen: number; examenes: ExamenDisponible[] }>('/gestor/pagos-grupales/examenes-disponibles')
+    api.get<{ costoExamen: number; examenes: ExamenDisponible[] }>('/pagos-examen/gestor-candidatos')
       .then((r) => { setExamenes(r.examenes); setCosto(r.costoExamen); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
 
-  // Alumnos con exámenes pendientes (para el modo individual)
   const alumnos = useMemo(() => {
     const m = new Map<number, { id: number; nombre: string; count: number }>();
     for (const e of examenes) {
@@ -214,27 +178,10 @@ function NuevoView({ onCancel, onCreado, onError }: {
     return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
   }, [examenes]);
 
-  // Exámenes visibles según el modo/filtro seleccionado
   const visibles = useMemo(() => {
-    if (modo === 'individual') {
-      if (alumnoSel === null) return [];
-      return examenes.filter((e) => e.estudianteId === alumnoSel);
-    }
+    if (modo === 'individual') return alumnoSel === null ? [] : examenes.filter((e) => e.estudianteId === alumnoSel);
     return examenes;
   }, [examenes, modo, alumnoSel]);
-
-  // Al cambiar de modo, limpiar selección y alumno elegido
-  function cambiarModo(m: 'individual' | 'grupal') {
-    setModo(m);
-    setAlumnoSel(null);
-    setSel(new Set());
-  }
-
-  function elegirAlumno(id: number) {
-    setAlumnoSel(id);
-    // Al elegir un alumno, preseleccionar todos sus exámenes (pago individual completo)
-    setSel(new Set(examenes.filter((e) => e.estudianteId === id).map((e) => e.id)));
-  }
 
   const porModulo = useMemo(() => {
     const m = new Map<number, { numero: number; nombre: string; items: ExamenDisponible[] }>();
@@ -245,35 +192,21 @@ function NuevoView({ onCancel, onCreado, onError }: {
     return [...m.values()].sort((a, b) => a.numero - b.numero);
   }, [visibles]);
 
-  function toggle(id: number) {
-    setSel((s) => {
-      const n = new Set(s);
-      if (n.has(id)) n.delete(id); else n.add(id);
-      return n;
-    });
-  }
-
+  function cambiarModo(m: 'individual' | 'grupal') { setModo(m); setAlumnoSel(null); setSel(new Set()); }
+  function elegirAlumno(id: number) { setAlumnoSel(id); setSel(new Set(examenes.filter((e) => e.estudianteId === id).map((e) => e.id))); }
+  function toggle(id: number) { setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
   function toggleModulo(items: ExamenDisponible[]) {
-    const ids = items.map((i) => i.id);
-    const todos = ids.every((i) => sel.has(i));
-    setSel((s) => {
-      const n = new Set(s);
-      ids.forEach((i) => (todos ? n.delete(i) : n.add(i)));
-      return n;
-    });
+    const ids = items.map((i) => i.id); const todos = ids.every((i) => sel.has(i));
+    setSel((s) => { const n = new Set(s); ids.forEach((i) => (todos ? n.delete(i) : n.add(i))); return n; });
   }
 
-  async function crear() {
+  async function solicitar() {
     if (sel.size === 0) return;
     setCreando(true);
     try {
-      const r = await api.post<{ id: number }>('/gestor/pagos-grupales', { examenIds: [...sel] });
+      const r = await api.post<{ id: number }>('/pagos-examen/solicitar', { examenInscripcionIds: [...sel] });
       onCreado(r.id);
-    } catch (e) {
-      onError(e instanceof Error ? e.message : 'No se pudo crear el pago');
-    } finally {
-      setCreando(false);
-    }
+    } catch (e) { onError(e instanceof Error ? e.message : 'No se pudo solicitar la ficha'); } finally { setCreando(false); }
   }
 
   const total = sel.size * costo;
@@ -285,7 +218,7 @@ function NuevoView({ onCancel, onCreado, onError }: {
       </button>
       <h1 className="font-serif text-2xl font-bold text-stone-900 mb-1">Nuevo pago</h1>
       <p className="text-stone-500 text-sm mb-5">
-        Elige el tipo de pago y selecciona los exámenes a cubrir. Cada examen cuesta <strong>{fmtMoney(costo)} MXN</strong>.
+        Elige el tipo de pago y los exámenes. Se solicita la ficha a la coordinación, que la emitirá con su línea de captura. Cada examen cuesta <strong>{fmtMoney(costo)} MXN</strong>.
       </p>
 
       {loading ? (
@@ -294,74 +227,38 @@ function NuevoView({ onCancel, onCreado, onError }: {
         <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
           <FileText size={30} className="mx-auto text-stone-300 mb-3" />
           <div className="font-bold text-stone-900 mb-1">No hay exámenes pendientes de pago</div>
-          <p className="text-sm text-stone-500 max-w-md mx-auto">
-            Todos los exámenes inscritos de tus alumnos ya están cubiertos por un pago, o aún no hay inscripciones activas.
-          </p>
+          <p className="text-sm text-stone-500 max-w-md mx-auto">Todos los exámenes inscritos de tus alumnos ya tienen ficha, o aún no hay inscripciones activas.</p>
         </div>
       ) : (
         <div className="space-y-4 pb-24">
-          {/* ── Filtro: tipo de pago ── */}
           <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => cambiarModo('individual')}
-              className={`text-left rounded-xl border-2 p-4 transition-colors ${
-                modo === 'individual'
-                  ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                  : 'border-stone-200 bg-white hover:border-stone-300'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                  modo === 'individual' ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'
-                }`}>
-                  {modo === 'individual' && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
-                </span>
-                <span className="text-sm font-bold text-stone-900">Pago individual</span>
-              </div>
-              <p className="text-xs text-stone-500 leading-snug">Los exámenes de un solo alumno.</p>
-            </button>
-            <button
-              onClick={() => cambiarModo('grupal')}
-              className={`text-left rounded-xl border-2 p-4 transition-colors ${
-                modo === 'grupal'
-                  ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                  : 'border-stone-200 bg-white hover:border-stone-300'
-              }`}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                  modo === 'grupal' ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'
-                }`}>
-                  {modo === 'grupal' && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
-                </span>
-                <span className="text-sm font-bold text-stone-900">Pago grupal</span>
-              </div>
-              <p className="text-xs text-stone-500 leading-snug">Exámenes de varios alumnos en una sola ficha.</p>
-            </button>
+            {(['individual', 'grupal'] as const).map((m) => (
+              <button key={m} onClick={() => cambiarModo(m)}
+                className={`text-left rounded-xl border-2 p-4 transition-colors ${modo === m ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 bg-white hover:border-stone-300'}`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${modo === m ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
+                    {modo === m && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
+                  </span>
+                  <span className="text-sm font-bold text-stone-900">{m === 'individual' ? 'Pago individual' : 'Pago grupal'}</span>
+                </div>
+                <p className="text-xs text-stone-500 leading-snug">{m === 'individual' ? 'Los exámenes de un solo alumno.' : 'Exámenes de varios alumnos en una sola ficha.'}</p>
+              </button>
+            ))}
           </div>
 
-          {/* ── Selector de alumno (solo modo individual) ── */}
           {modo === 'individual' && (
             <div className="bg-white border border-stone-200 rounded-xl px-4 py-3">
-              <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wide mb-1.5">
-                Alumno
-              </label>
-              <select
-                value={alumnoSel ?? ''}
-                onChange={(e) => e.target.value ? elegirAlumno(Number(e.target.value)) : (setAlumnoSel(null), setSel(new Set()))}
-                className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[var(--color-guinda-700)]"
-              >
+              <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wide mb-1.5">Alumno</label>
+              <select value={alumnoSel ?? ''} onChange={(e) => e.target.value ? elegirAlumno(Number(e.target.value)) : (setAlumnoSel(null), setSel(new Set()))}
+                className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[var(--color-guinda-700)]">
                 <option value="">Elige un alumno…</option>
                 {alumnos.map((a) => (
-                  <option key={a.id} value={a.id}>
-                    {a.nombre} — {a.count} examen{a.count !== 1 ? 'es' : ''} pendiente{a.count !== 1 ? 's' : ''}
-                  </option>
+                  <option key={a.id} value={a.id}>{a.nombre} — {a.count} examen{a.count !== 1 ? 'es' : ''} pendiente{a.count !== 1 ? 's' : ''}</option>
                 ))}
               </select>
             </div>
           )}
 
-          {/* Estado vacío cuando el filtro no arroja exámenes */}
           {modo === 'individual' && alumnoSel === null ? (
             <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center">
               <FileText size={26} className="mx-auto text-stone-300 mb-2" />
@@ -369,15 +266,10 @@ function NuevoView({ onCancel, onCreado, onError }: {
             </div>
           ) : (
           <>
-          {/* Atajo: seleccionar / quitar todos los visibles */}
           <div className="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3">
-            <span className="text-sm text-stone-600">
-              {visibles.length} examen{visibles.length !== 1 ? 'es' : ''} pendiente{visibles.length !== 1 ? 's' : ''} de pago
-            </span>
-            <button
-              onClick={() => setSel((s) => (visibles.every((e) => s.has(e.id)) ? new Set() : new Set(visibles.map((e) => e.id))))}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors"
-            >
+            <span className="text-sm text-stone-600">{visibles.length} examen{visibles.length !== 1 ? 'es' : ''} pendiente{visibles.length !== 1 ? 's' : ''} de pago</span>
+            <button onClick={() => setSel((s) => (visibles.every((e) => s.has(e.id)) ? new Set() : new Set(visibles.map((e) => e.id))))}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors">
               <Check size={13} /> {visibles.length > 0 && visibles.every((e) => sel.has(e.id)) ? 'Quitar selección' : 'Seleccionar todos'}
             </button>
           </div>
@@ -387,37 +279,20 @@ function NuevoView({ onCancel, onCreado, onError }: {
             const algunos = g.items.some((i) => sel.has(i.id));
             return (
               <div key={g.numero} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-                <button
-                  onClick={() => toggleModulo(g.items)}
-                  className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-crema-100)] border-b border-stone-200 text-left"
-                >
+                <button onClick={() => toggleModulo(g.items)} className="w-full flex items-center justify-between gap-3 px-4 py-3 bg-[var(--color-crema-100)] border-b border-stone-200 text-left">
                   <div className="flex items-center gap-2">
-                    <span
-                      className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${
-                        todos ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]'
-                        : algunos ? 'border-[var(--color-guinda-700)]' : 'border-stone-300 bg-white'
-                      }`}
-                    >
+                    <span className={`w-5 h-5 rounded border-2 flex items-center justify-center shrink-0 ${todos ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : algunos ? 'border-[var(--color-guinda-700)]' : 'border-stone-300 bg-white'}`}>
                       {todos && <Check size={13} className="text-white" />}
                       {!todos && algunos && <span className="w-2 h-2 bg-[var(--color-guinda-700)] rounded-sm" />}
                     </span>
-                    <span className="text-sm font-bold text-stone-800">
-                      Módulo {g.numero} — {g.nombre}
-                    </span>
+                    <span className="text-sm font-bold text-stone-800">Módulo {g.numero} — {g.nombre}</span>
                   </div>
-                  <span className="text-xs text-stone-500 shrink-0">
-                    {g.items.filter((i) => sel.has(i.id)).length}/{g.items.length} seleccionados
-                  </span>
+                  <span className="text-xs text-stone-500 shrink-0">{g.items.filter((i) => sel.has(i.id)).length}/{g.items.length} seleccionados</span>
                 </button>
                 <div className="divide-y divide-stone-100">
                   {g.items.map((e) => (
                     <label key={e.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={sel.has(e.id)}
-                        onChange={() => toggle(e.id)}
-                        className="w-4 h-4 accent-[var(--color-guinda-700)]"
-                      />
+                      <input type="checkbox" checked={sel.has(e.id)} onChange={() => toggle(e.id)} className="w-4 h-4 accent-[var(--color-guinda-700)]" />
                       <span className="flex-1 text-sm text-stone-800">{e.alumno}</span>
                       <span className="font-mono text-[11px] text-stone-400">{e.folio}</span>
                       <span className="text-xs font-bold text-stone-600 w-20 text-right">{fmtMoney(costo)}</span>
@@ -432,21 +307,14 @@ function NuevoView({ onCancel, onCreado, onError }: {
         </div>
       )}
 
-      {/* Barra fija de total */}
       {sel.size > 0 && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-stone-200 shadow-[0_-4px_16px_rgba(0,0,0,0.06)]">
           <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4 md:pl-[248px]">
             <div className="text-sm text-stone-600">
-              <strong className="text-stone-900">{sel.size}</strong> examen{sel.size !== 1 ? 'es' : ''} × {fmtMoney(costo)} ={' '}
-              <strong className="text-[var(--color-guinda-700)] text-base">{fmtMoney(total)} MXN</strong>
+              <strong className="text-stone-900">{sel.size}</strong> examen{sel.size !== 1 ? 'es' : ''} × {fmtMoney(costo)} = <strong className="text-[var(--color-guinda-700)] text-base">{fmtMoney(total)} MXN</strong>
             </div>
-            <button
-              onClick={crear}
-              disabled={creando}
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-            >
-              {creando ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
-              Generar ficha de pago
+            <button onClick={solicitar} disabled={creando} className="inline-flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors">
+              {creando ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />} Solicitar ficha de pago
             </button>
           </div>
         </div>
@@ -455,59 +323,41 @@ function NuevoView({ onCancel, onCreado, onError }: {
   );
 }
 
-// ─── Vista: detalle ────────────────────────────────────────────────────────
-function DetalleView({ id, onBack, onToast }: {
-  id: number;
-  onBack: () => void;
-  onToast: (m: string, ok?: boolean) => void;
-}) {
-  const [pg, setPg] = useState<PagoGrupalDetalle | null>(null);
+// ─── Detalle ────────────────────────────────────────────────────────────────
+function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; onToast: (m: string, ok?: boolean) => void }) {
+  const [p, setP] = useState<PagoExamenAlumno | null>(null);
   const [loading, setLoading] = useState(true);
-  const [file, setFile] = useState<File | null>(null);
-  const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
-  const [subiendo, setSubiendo] = useState(false);
   const [copiado, setCopiado] = useState(false);
+  const [metodo, setMetodo] = useState<MetodoPago | ''>('');
+  const [file, setFile] = useState<File | null>(null);
+  const [subiendo, setSubiendo] = useState(false);
 
   function cargar() {
-    return api.get<PagoGrupalDetalle>(`/gestor/pagos-grupales/${id}`).then(setPg).catch(() => {});
+    setLoading(true);
+    return api.get<PagoExamenAlumno>(`/pagos-examen/gestor-detalle/${id}`)
+      .then((d) => { setP(d); setMetodo((d.metodoPago as MetodoPago) ?? ''); })
+      .catch(() => onToast('Error al cargar', false))
+      .finally(() => setLoading(false));
   }
+  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [id]);
 
-  useEffect(() => {
-    cargar().finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
-
-  async function subirComprobante() {
-    if (!file) return;
+  async function subir() {
+    if (!file || !metodo) { onToast('Elige el método y el comprobante', false); return; }
     setSubiendo(true);
     try {
       const fd = new FormData();
       fd.append('comprobante', file);
-      fd.append('fechaPago', fecha);
-      await api.post(`/gestor/pagos-grupales/${id}/comprobante`, fd);
+      fd.append('metodoPago', metodo);
+      await api.post(`/pagos-examen/${id}/comprobante`, fd);
+      onToast('Comprobante enviado — en revisión');
       setFile(null);
-      await cargar();
-      onToast('Comprobante enviado — en revisión por la administración');
-    } catch (e) {
-      onToast(e instanceof Error ? e.message : 'No se pudo subir el comprobante', false);
-    } finally {
-      setSubiendo(false);
-    }
+      cargar();
+    } catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); } finally { setSubiendo(false); }
   }
 
-  async function cancelar() {
-    if (!confirm('¿Cancelar este pago? Los exámenes volverán a estar disponibles para otro pago.')) return;
-    try {
-      await api.delete(`/gestor/pagos-grupales/${id}`);
-      onToast('Pago cancelado');
-      onBack();
-    } catch (e) {
-      onToast(e instanceof Error ? e.message : 'No se pudo cancelar', false);
-    }
-  }
+  if (loading || !p) return <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>;
 
-  if (loading) return <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>;
-  if (!pg) return <div className="text-center text-stone-400 py-16 text-sm">No encontrado.</div>;
+  const puedePagar = p.estado === 'emitida';
 
   return (
     <>
@@ -515,156 +365,116 @@ function DetalleView({ id, onBack, onToast }: {
         <ChevronLeft size={15} /> Volver a pagos
       </button>
 
-      {/* Encabezado con folio */}
-      <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 mb-5">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Folio de referencia</div>
-            <div className="flex items-center gap-2">
-              <span className="font-mono text-2xl font-bold">{pg.folio}</span>
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(pg.folio).then(() => {
-                    setCopiado(true);
-                    setTimeout(() => setCopiado(false), 1200);
-                  }).catch(() => {});
-                }}
-                className="p-1.5 rounded-lg bg-white/15 hover:bg-white/25 transition-colors"
-                title="Copiar folio"
-              >
-                {copiado ? <Check size={14} /> : <Copy size={14} />}
-              </button>
-            </div>
-            <div className="text-xs opacity-80 mt-1">
-              {pg.cantidadExamenes} exámenes × {fmtMoney(pg.montoUnitario)} · creado el {fmtFecha(pg.creadoEn)}
-            </div>
-          </div>
-          <div className="text-right">
-            <div className="text-3xl font-bold">{fmtMoney(pg.montoTotal)}</div>
-            <div className="text-[10px] uppercase tracking-wider opacity-80">MXN Total</div>
-            <div className="mt-2"><EstadoChip estado={pg.estado} /></div>
-          </div>
+      {/* Encabezado */}
+      <div className="rounded-2xl p-5 mb-5 text-white flex items-start justify-between gap-4" style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
+        <div>
+          <div className="text-[10px] uppercase tracking-widest opacity-80 mb-1">Folio de referencia</div>
+          <div className="text-2xl font-bold font-mono">{p.folio ?? `#${p.id}`}</div>
+          <div className="text-xs opacity-80 mt-1">{p.cantidadExamenes} examen{p.cantidadExamenes !== 1 ? 'es' : ''} × {fmtMoney(p.montoTotal / p.cantidadExamenes)}</div>
+        </div>
+        <div className="text-right">
+          <div className="text-3xl font-bold">{fmtMoney(p.montoTotal)}</div>
+          <div className="text-[10px] uppercase tracking-widest opacity-80">MXN total</div>
+          <div className="mt-2"><EstadoChip estado={p.estado} /></div>
         </div>
       </div>
 
-      {pg.estado === 'rechazado' && pg.motivoRechazo && (
-        <div className="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800 flex items-start gap-2">
-          <AlertCircle size={16} className="shrink-0 mt-0.5" />
-          <div><strong>Rechazado:</strong> {pg.motivoRechazo}. Corrige y vuelve a subir tu comprobante.</div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
-        {/* Columna izquierda: pasos */}
-        <div className="space-y-4">
-          {/* Paso 1: ficha */}
-          <div className="bg-white border border-stone-200 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">1</span>
-              <span className="text-sm font-bold text-stone-800">Descarga tu ficha de depósito</span>
+      <div className="grid md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 space-y-4">
+          {/* Estado por fase */}
+          {p.estado === 'pendiente_emision' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3 text-sm text-amber-800">
+              <Clock size={18} className="shrink-0 mt-0.5" />
+              <div>Ficha <strong>solicitada</strong>. La coordinación la revisará y emitirá con su línea de captura. Vuelve pronto para pagar.</div>
             </div>
-            <p className="text-xs text-stone-500 mb-3">
-              Contiene la lista de exámenes, el total y tu folio de referencia.
-            </p>
-            <a
-              href={`/api/gestor/pagos-grupales/${pg.id}/ficha`}
-              download=""
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors"
-            >
-              <Download size={13} /> Ficha de depósito (PDF)
-            </a>
-          </div>
+          )}
 
-          {/* Paso 2: pagar */}
-          <div className="bg-white border border-stone-200 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">2</span>
-              <span className="text-sm font-bold text-stone-800">Paga ante la Tesorería del Estado</span>
-            </div>
-            <p className="text-xs text-stone-500">
-              Realiza el pago de derechos en la Tesorería / Secretaría de Finanzas de Michoacán
-              (formato de pago). Conserva tu comprobante o línea de captura.
-            </p>
-          </div>
-
-          {/* Paso 3: comprobante */}
-          <div className="bg-white border border-stone-200 rounded-xl p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">3</span>
-              <span className="text-sm font-bold text-stone-800">Sube tu comprobante</span>
-            </div>
-
-            {pg.estado === 'verificado' ? (
-              <div className="flex items-center gap-2 text-sm text-emerald-700 font-semibold">
-                <CheckCircle2 size={16} /> Pago verificado — los {pg.cantidadExamenes} exámenes quedaron cubiertos.
+          {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'vencido') && p.lineaCaptura && (
+            <div className="bg-white border border-stone-200 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-3"><Landmark size={15} className="text-[var(--color-guinda-700)]" /><h3 className="text-sm font-bold text-stone-900">Ficha emitida por la coordinación</h3></div>
+              <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
+              <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 mb-3">
+                <code className="flex-1 text-sm font-mono text-stone-800 break-all">{p.lineaCaptura}</code>
+                <button onClick={() => { navigator.clipboard.writeText(p.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0">
+                  {copiado ? <Check size={15} /> : <Copy size={15} />}
+                </button>
               </div>
-            ) : (
-              <>
-                {pg.tieneComprobante && pg.estado === 'en_revision' && (
-                  <div className="mb-3 flex items-center justify-between gap-2 text-xs bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-blue-800">
-                    <span className="flex items-center gap-1.5"><Clock size={13} /> Comprobante en revisión por la administración.</span>
-                    <a href={`/api/gestor/pagos-grupales/${pg.id}/comprobante`} target="_blank" rel="noopener" className="font-semibold underline shrink-0">Ver</a>
-                  </div>
+              <div className="flex flex-wrap gap-2">
+                {p.tieneOrden && (
+                  <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]">
+                    <Download size={15} /> Descargar orden de pago
+                  </a>
                 )}
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-stone-600 mb-1">Fecha en que realizaste el pago</label>
-                    <input
-                      type="date"
-                      value={fecha}
-                      onChange={(e) => setFecha(e.target.value)}
-                      className="w-full border border-stone-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                    />
+                {p.linkPago && (
+                  <a href={p.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                    <ExternalLink size={15} /> Pagar en línea
+                  </a>
+                )}
+              </div>
+              {p.fechaVencimiento && <div className="text-xs text-stone-500 mt-2">Vence el <strong className="text-stone-700">{fmtFecha(p.fechaVencimiento)}</strong>.</div>}
+            </div>
+          )}
+
+          {/* Instrucciones + pago */}
+          {puedePagar && (
+            <div className="bg-white border border-stone-200 rounded-xl p-4 space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-2"><span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">1</span><span className="text-sm font-bold text-stone-800">Paga ante la Tesorería del Estado</span></div>
+                <p className="text-sm text-stone-600 leading-relaxed pl-8">Con la línea de captura, paga en <strong>ventanilla bancaria</strong>, <strong>tienda de conveniencia</strong> (OXXO, etc.) o <strong>en línea</strong> si hay link. Conserva tu comprobante o recibo oficial.</p>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-2"><span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">2</span><span className="text-sm font-bold text-stone-800">Indica cómo pagaste y sube el comprobante</span></div>
+                <div className="pl-8 space-y-3">
+                  <div className="grid grid-cols-3 gap-2">
+                    {METODOS_PAGO.map((m) => (
+                      <button key={m.value} onClick={() => setMetodo(m.value)}
+                        className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodo === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>
+                        <div className="text-xs font-bold text-stone-800">{m.label}</div>
+                      </button>
+                    ))}
                   </div>
-                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-4 cursor-pointer transition-colors ${
-                    file ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-stone-400 bg-white'
-                  }`}>
-                    <UploadCloud size={20} className={file ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
-                    <div className="flex-1 min-w-0">
-                      {file
-                        ? <span className="text-sm font-semibold text-[var(--color-guinda-700)] truncate block">{file.name}</span>
-                        : <span className="text-sm text-stone-500">Comprobante (PDF o imagen)</span>}
-                    </div>
-                    <input type="file" accept="application/pdf,image/jpeg,image/png" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 cursor-pointer transition-colors ${file ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-stone-400'}`}>
+                    <UploadCloud size={18} className={file ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
+                    <span className="flex-1 text-sm truncate">{file ? file.name : 'Comprobante (PDF o imagen)'}</span>
+                    <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                   </label>
-                  <button
-                    onClick={subirComprobante}
-                    disabled={!file || subiendo}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-                  >
-                    {subiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />}
-                    {pg.tieneComprobante ? 'Reemplazar comprobante' : 'Enviar comprobante'}
+                  <button onClick={subir} disabled={!file || !metodo || subiendo} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
+                    {subiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />} Enviar comprobante
                   </button>
                 </div>
-              </>
-            )}
-          </div>
+              </div>
+            </div>
+          )}
 
-          {pg.estado !== 'verificado' && (
-            <button
-              onClick={cancelar}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <Trash2 size={13} /> Cancelar este pago
-            </button>
+          {p.estado === 'en_revision' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 text-sm text-amber-800"><Clock size={16} className="shrink-0 mt-0.5" /> Tu comprobante está en revisión de la coordinación.</div>
+          )}
+          {p.motivoRechazo && p.estado === 'emitida' && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2 text-sm text-red-700"><AlertCircle size={16} className="shrink-0 mt-0.5" /> Comprobante rechazado: {p.motivoRechazo}</div>
+          )}
+          {p.estado === 'pagado' && (
+            <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2 text-sm text-green-700"><CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Pago confirmado{p.fechaPago ? ` el ${fmtFecha(p.fechaPago)}` : ''}. Alumnos inscritos oficialmente.</div>
+          )}
+          {p.estado === 'vencido' && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2 text-sm text-red-700"><AlertCircle size={16} className="shrink-0 mt-0.5" /> Esta ficha venció. Solicita una nueva a la coordinación.</div>
           )}
         </div>
 
-        {/* Columna derecha: exámenes incluidos */}
-        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-3 border-b border-stone-100 flex items-center justify-between">
-            <h3 className="text-sm font-bold text-stone-900">Exámenes incluidos</h3>
-            <span className="text-xs text-stone-500">{pg.examenes.length}</span>
+        {/* Exámenes incluidos */}
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden self-start">
+          <div className="px-4 py-3 bg-[var(--color-crema-100)] border-b border-stone-200 flex items-center justify-between">
+            <span className="text-xs font-bold uppercase tracking-wide text-stone-600">Exámenes incluidos</span>
+            <span className="text-xs text-stone-400">{p.examenes.length}</span>
           </div>
-          <div className="divide-y divide-stone-100 max-h-[480px] overflow-y-auto">
-            {pg.examenes.map((e, i) => (
-              <div key={i} className="px-5 py-2.5 flex items-center gap-3">
-                <span className="text-[11px] text-stone-400 w-5 shrink-0">{i + 1}</span>
+          <div className="divide-y divide-stone-100">
+            {p.examenes.map((e, i) => (
+              <div key={e.inscripcionId} className="px-4 py-2.5 flex items-center gap-3">
+                <span className="text-stone-300 text-xs w-4">{i + 1}</span>
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-stone-800 truncate">{e.alumno}</div>
-                  <div className="text-[11px] text-stone-400">M{e.moduloNumero} · {e.folioExamen}</div>
+                  <div className="text-sm text-stone-800 truncate">{e.alumno || `Módulo ${e.moduloNumero}`}</div>
+                  <div className="text-[11px] text-stone-400 font-mono">M{e.moduloNumero} · {e.folio}</div>
                 </div>
-                <span className="text-xs font-bold text-stone-600 shrink-0">{fmtMoney(e.monto)}</span>
+                <span className="text-sm font-semibold text-stone-600">{fmtMoney(p.montoTotal / p.cantidadExamenes)}</span>
               </div>
             ))}
           </div>
