@@ -141,15 +141,15 @@ router.get('/dashboard', async (req, res) => {
     .innerJoin(inscripciones, eq(inscripciones.estudianteId, estudiantes.userId))
     .where(eq(estudiantes.gestorId, userId));
 
+  // Documentos del EXPEDIENTE en revisión (fuente de verdad), no la tabla legacy.
   const docsPendientes = await db
     .select({ c: count() })
-    .from(documentos)
-    .innerJoin(inscripciones, eq(documentos.inscripcionId, inscripciones.id))
-    .innerJoin(estudiantes, eq(estudiantes.userId, inscripciones.estudianteId))
+    .from(expedienteDocumentos)
+    .innerJoin(estudiantes, eq(estudiantes.userId, expedienteDocumentos.estudianteId))
     .where(
       and(
         eq(estudiantes.gestorId, userId),
-        eq(documentos.estado, 'pendiente_revision')
+        eq(expedienteDocumentos.estado, 'pendiente_revision')
       )
     );
 
@@ -589,20 +589,19 @@ router.get('/alumnos-pendientes-docs', async (req, res) => {
     .where(eq(estudiantes.gestorId, userId))
     .orderBy(desc(estudiantes.createdAt));
 
+  // Documentos del EXPEDIENTE (fuente de verdad): obligatorios aprobados 0-5.
+  const OBLIG_LISTA = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
   const result = [];
   for (const r of rows) {
-    const [insc] = await db
-      .select({ id: inscripciones.id })
-      .from(inscripciones)
-      .where(eq(inscripciones.estudianteId, r.userId))
-      .orderBy(desc(inscripciones.createdAt))
-      .limit(1);
+    const docsRows = await db
+      .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado })
+      .from(expedienteDocumentos)
+      .where(eq(expedienteDocumentos.estudianteId, r.userId));
+    const obligAprobados = new Set(
+      docsRows.filter((d) => d.estado === 'aprobado' && OBLIG_LISTA.includes(d.tipo)).map((d) => d.tipo)
+    ).size;
 
-    const [{ c: docsCount }] = insc
-      ? await db.select({ c: count() }).from(documentos).where(eq(documentos.inscripcionId, insc.id))
-      : [{ c: 0 }];
-
-    if (docsCount < 5) {
+    if (obligAprobados < OBLIG_LISTA.length) {
       const creadoEn = new Date(r.createdAt as string | Date);
       const diasDesdeRegistro = Math.floor((Date.now() - creadoEn.getTime()) / 86400000);
       const parts = r.nombreCompleto.split(' ').filter(Boolean);
@@ -614,9 +613,9 @@ router.get('/alumnos-pendientes-docs', async (req, res) => {
         id: r.userId,
         nombreCompleto: r.nombreCompleto,
         iniciales,
-        docsAprobados: docsCount,
-        docsTotal: 4,
-        docsFaltantes: 4 - docsCount,
+        docsAprobados: obligAprobados,
+        docsTotal: OBLIG_LISTA.length,
+        docsFaltantes: OBLIG_LISTA.length - obligAprobados,
         creadoEn: creadoEn.toISOString(),
         diasDesdeRegistro,
       });

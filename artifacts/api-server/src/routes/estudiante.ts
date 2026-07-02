@@ -191,21 +191,19 @@ router.get('/dashboard', async (req, res) => {
     .orderBy(desc(inscripciones.createdAt))
     .limit(1);
 
-  // Documentos de la inscripción activa
-  let documentosAprobados = 0;
-  let documentosPendientes = 0;
-  let tieneRechazados = false;
+  // Documentos del EXPEDIENTE (fuente de verdad), no la tabla legacy.
+  // Aprobados = obligatorios aprobados (0-5); pendientes/rechazados en cualquier doc.
+  const OBLIG_EXP = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
+  const expDocs = await db
+    .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado })
+    .from(expedienteDocumentos)
+    .where(eq(expedienteDocumentos.estudianteId, userId));
 
-  if (insc) {
-    const docs = await db
-      .select({ estado: documentos.estado })
-      .from(documentos)
-      .where(eq(documentos.inscripcionId, insc.id));
-
-    documentosAprobados = docs.filter((d) => d.estado === 'aprobado').length;
-    documentosPendientes = docs.filter((d) => d.estado === 'pendiente_revision').length;
-    tieneRechazados = docs.some((d) => d.estado === 'rechazado');
-  }
+  const documentosAprobados = new Set(
+    expDocs.filter((d) => d.estado === 'aprobado' && OBLIG_EXP.includes(d.tipo)).map((d) => d.tipo)
+  ).size;
+  const documentosPendientes = expDocs.filter((d) => d.estado === 'pendiente_revision').length;
+  const tieneRechazados = expDocs.some((d) => d.estado === 'rechazado');
 
   // Avisos no leídos
   const [{ avisosNoLeidos }] = await db
