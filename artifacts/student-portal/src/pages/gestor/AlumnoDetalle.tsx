@@ -738,6 +738,24 @@ export default function AlumnoDetalle() {
               </div>
             </section>
           ))}
+
+          {/* Botón grande: armar la cédula de inscripción */}
+          <button
+            onClick={() => setActiveTab('cedula')}
+            className="w-full flex items-center gap-4 rounded-xl p-5 text-white transition-transform hover:scale-[1.01] shadow-sm text-left"
+            style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}
+          >
+            <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
+              <ClipboardList size={24} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-base font-bold">Armar cédula de inscripción</div>
+              <div className="text-xs opacity-80 mt-0.5">Llena los datos, firma como responsable y descarga la cédula.</div>
+            </div>
+            <span className="shrink-0 inline-flex items-center gap-1.5 bg-white text-[var(--color-guinda-700)] font-bold text-sm px-4 py-2 rounded-lg">
+              Armar →
+            </span>
+          </button>
         </>
       )}
 

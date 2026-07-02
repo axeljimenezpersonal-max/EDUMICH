@@ -194,54 +194,65 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
           return (
             <div
               key={n}
-              className={`border rounded-xl p-3 ${enUso ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 bg-white'}`}
+              className={`rounded-2xl overflow-hidden border-2 transition-all ${
+                enUso
+                  ? 'border-[var(--color-guinda-700)] shadow-md'
+                  : 'border-stone-200 bg-white'
+              }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-semibold text-stone-600">Firma {n}</span>
-                {enUso && (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-guinda-700)]">
-                    <CheckCircle2 size={12} /> En uso
-                  </span>
+              {/* Encabezado: nombre + acciones secundarias (editar / quitar) */}
+              <div className="flex items-center justify-between px-3 pt-2.5 pb-1.5">
+                <span className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Firma {n}</span>
+                {img && (
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      onClick={() => setDrawingSlot(n)}
+                      title="Volver a firmar"
+                      className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                    >
+                      <RotateCcw size={13} />
+                    </button>
+                    <button
+                      onClick={() => quitar(n)}
+                      disabled={guardando}
+                      title="Quitar firma"
+                      className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 )}
               </div>
 
               {img ? (
                 <>
-                  <div className="border border-dashed border-stone-200 rounded-lg bg-stone-50 flex items-center justify-center p-2 h-20">
+                  {/* Firma */}
+                  <div className="mx-3 border border-dashed border-stone-200 rounded-xl bg-stone-50/60 flex items-center justify-center p-2 h-20">
                     <img src={img} alt={`Firma ${n}`} className="max-h-16 object-contain" />
                   </div>
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {!enUso && (
-                      <button
-                        onClick={() => usar(n)}
-                        disabled={guardando}
-                        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors disabled:opacity-50"
-                      >
-                        <Check size={12} /> Usar esta
-                      </button>
-                    )}
+
+                  {/* Estado principal: EN USO grande, o botón para usarla */}
+                  {enUso ? (
+                    <div className="mt-2 mx-3 mb-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[var(--color-guinda-700)] text-white font-bold text-sm">
+                      <CheckCircle2 size={16} /> EN USO
+                    </div>
+                  ) : (
                     <button
-                      onClick={() => setDrawingSlot(n)}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
-                    >
-                      <RotateCcw size={12} /> Volver a firmar
-                    </button>
-                    <button
-                      onClick={() => quitar(n)}
+                      onClick={() => usar(n)}
                       disabled={guardando}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                      className="mt-2 mx-3 mb-3 w-[calc(100%-1.5rem)] flex items-center justify-center gap-1.5 py-2.5 rounded-xl border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] font-bold text-sm hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors disabled:opacity-50"
                     >
-                      <Trash2 size={12} /> Quitar
+                      <Check size={16} /> Usar esta firma
                     </button>
-                  </div>
+                  )}
                 </>
               ) : (
                 <button
                   onClick={() => setDrawingSlot(n)}
-                  className="w-full h-20 flex flex-col items-center justify-center gap-1 border border-dashed border-stone-300 rounded-lg text-stone-400 hover:border-[var(--color-guinda-700)] hover:text-[var(--color-guinda-700)] transition-colors"
+                  className="m-3 w-[calc(100%-1.5rem)] h-[104px] flex flex-col items-center justify-center gap-1.5 border-2 border-dashed border-stone-300 rounded-xl text-stone-400 hover:border-[var(--color-guinda-700)] hover:text-[var(--color-guinda-700)] transition-colors"
                 >
-                  <Pen size={16} />
-                  <span className="text-xs font-semibold">Agregar firma</span>
+                  <Pen size={18} />
+                  <span className="text-sm font-semibold">Agregar firma</span>
                 </button>
               )}
             </div>

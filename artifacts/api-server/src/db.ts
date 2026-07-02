@@ -9,6 +9,16 @@ export { db };
 const migrations = [
   `ALTER TABLE estudiantes_modulos_progreso
      ADD COLUMN IF NOT EXISTS temas_debiles jsonb`,
+  // Rol de dirección de programa (perfil ejecutivo solo-lectura)
+  `ALTER TYPE rol ADD VALUE IF NOT EXISTS 'direccion'`,
+  `CREATE TABLE IF NOT EXISTS directores (
+     user_id integer PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+     nombre_completo varchar(200) NOT NULL,
+     puesto varchar(120) DEFAULT 'Dirección de Programa',
+     email_publico varchar(255),
+     telefono_publico varchar(30),
+     created_at timestamp NOT NULL DEFAULT now()
+   )`,
 ];
 
 export async function runStartupMigrations() {

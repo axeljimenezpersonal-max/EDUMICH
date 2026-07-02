@@ -15,7 +15,7 @@ const COOKIE_NAME = 'pa_session';
 
 export interface SessionUser {
   userId: number;
-  rol: 'admin' | 'gestor' | 'estudiante';
+  rol: 'admin' | 'gestor' | 'estudiante' | 'direccion';
 }
 
 declare global {

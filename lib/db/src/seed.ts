@@ -22,6 +22,7 @@ import {
   gestores,
   estudiantes,
   administradores,
+  directores,
   convocatorias,
   avisos,
   anuncios,
@@ -340,6 +341,36 @@ async function main() {
     console.log(`   ✓ Admin: admin@michoacan.gob.mx / demo1234\n`);
   } else {
     console.log(`   ✓ Admin ya existía: admin@michoacan.gob.mx\n`);
+  }
+
+  // ── Dirección de programa demo ────────────────────────────────────
+  console.log('👤 Creando dirección de programa demo...');
+  const [existingDireccion] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, 'direccion@michoacan.gob.mx'));
+
+  if (!existingDireccion) {
+    const [direccionUser] = await db
+      .insert(users)
+      .values({
+        email: 'direccion@michoacan.gob.mx',
+        passwordHash,
+        rol: 'direccion',
+        privacidadAceptadaEn: new Date(),
+      })
+      .returning();
+
+    await db.insert(directores).values({
+      userId: direccionUser.id,
+      nombreCompleto: 'Dirección del Programa en Línea',
+      puesto: 'Dirección de Programa',
+      emailPublico: 'direccion@michoacan.gob.mx',
+      telefonoPublico: '443-322-9250',
+    });
+    console.log(`   ✓ Dirección: direccion@michoacan.gob.mx / demo1234\n`);
+  } else {
+    console.log(`   ✓ Dirección ya existía: direccion@michoacan.gob.mx\n`);
   }
 
   // ── Avisos seed ───────────────────────────────────────────────────

@@ -33,7 +33,7 @@ import { relations } from 'drizzle-orm';
 // Enums
 // ─────────────────────────────────────────────────────────────────────────
 
-export const rolEnum = pgEnum('rol', ['admin', 'gestor', 'estudiante']);
+export const rolEnum = pgEnum('rol', ['admin', 'gestor', 'estudiante', 'direccion']);
 
 export const estadoCuentaEnum = pgEnum('estado_cuenta', [
   'activa',
@@ -297,6 +297,20 @@ export const administradores = pgTable('administradores', {
     .references(() => users.id, { onDelete: 'cascade' }),
   nombreCompleto: varchar('nombre_completo', { length: 200 }).notNull(),
   puesto: varchar('puesto', { length: 120 }),
+  emailPublico: varchar('email_publico', { length: 255 }),
+  telefonoPublico: varchar('telefono_publico', { length: 30 }),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+// Dirección de programa — perfil ejecutivo de SOLO LECTURA sobre datos
+// agregados (indicadores, proyecciones, salud del sistema, reportes).
+// No opera alumnos ni ve expedientes individuales.
+export const directores = pgTable('directores', {
+  userId: integer('user_id')
+    .primaryKey()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  nombreCompleto: varchar('nombre_completo', { length: 200 }).notNull(),
+  puesto: varchar('puesto', { length: 120 }).default('Dirección de Programa'),
   emailPublico: varchar('email_publico', { length: 255 }),
   telefonoPublico: varchar('telefono_publico', { length: 30 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),

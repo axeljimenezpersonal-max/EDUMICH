@@ -14,7 +14,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../db'; // ajustar al path real del Replit
-import { users, gestores, estudiantes, administradores, municipios, auditLog, passwordResetTokens } from '@workspace/db/schema';
+import { users, gestores, estudiantes, administradores, directores, municipios, auditLog, passwordResetTokens } from '@workspace/db/schema';
 import {
   authRequired,
   setSessionCookie,
@@ -99,6 +99,9 @@ router.get('/me', authRequired, async (req, res) => {
   } else if (rol === 'admin') {
     const [ad] = await db.select().from(administradores).where(eq(administradores.userId, userId));
     perfil = ad ?? {};
+  } else if (rol === 'direccion') {
+    const [dir] = await db.select().from(directores).where(eq(directores.userId, userId));
+    perfil = dir ?? {};
   }
 
   res.json({
