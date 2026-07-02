@@ -34,9 +34,9 @@ export function AutoRegistroLayout({ children, paso }: Props) {
             />
             <div className="leading-tight">
               <div className="font-serif text-sm font-semibold text-stone-900">
-                Prepa Abierta · IEMSyS
+                EDUMICH · Plataforma Educativa Digital
               </div>
-              <div className="text-[10px] text-stone-500">Gobierno de Michoacán</div>
+              <div className="text-[10px] text-stone-500">Prepa Abierta · IEMSyS · Gobierno de Michoacán</div>
             </div>
           </div>
         </header>

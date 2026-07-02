@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
-import { GraduationCap, Lock, Mail, Loader2, Edit3, Zap } from 'lucide-react';
+import { GraduationCap, Lock, Mail, Loader2, Edit3, HelpCircle } from 'lucide-react';
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -89,7 +89,7 @@ export default function Login() {
             className="relative"
             style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 32, paddingBottom: 32 }}
           >
-            {/* EDUMICH pill */}
+            {/* Prepa Abierta pill (programa) — EDUMICH es la marca principal */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -98,15 +98,21 @@ export default function Login() {
                 fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
                 color: 'white', opacity: 0.9,
               }}>
-                <Zap size={10} />
-                EDUMICH
+                <GraduationCap size={10} />
+                Prepa Abierta
                 <span style={{ opacity: 0.5 }}>·</span>
-                Plataforma Educativa Digital
+                Michoacán
               </div>
             </div>
-            <h1 className="font-serif font-bold" style={{ fontSize: 52, lineHeight: 1.1, marginBottom: 16, textAlign: 'center' }}>
-              Prepa Abierta
+            <h1 className="font-serif font-bold" style={{ fontSize: 52, lineHeight: 1.1, marginBottom: 8, textAlign: 'center' }}>
+              EDUMICH
             </h1>
+            <div style={{
+              fontSize: 13, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase',
+              textAlign: 'center', marginBottom: 16, color: 'var(--color-dorado-soft)',
+            }}>
+              Plataforma Educativa Digital
+            </div>
             <p style={{ fontSize: 15, lineHeight: 1.55, opacity: 0.88, marginBottom: 28, textAlign: 'center' }}>
               Sistema de gestión institucional para la coordinación, gestores municipales y
               estudiantes del Plan Modular del Instituto de Educación Media Superior y Superior.
@@ -241,6 +247,22 @@ export default function Login() {
                 </div>
                 <div className="text-[10px] text-stone-400 leading-tight">
                   La secretaría te dará acceso
+                </div>
+              </div>
+            </a>
+
+            {/* ¿No recuerdas si tienes cuenta? */}
+            <a
+              href="/encontrar-cuenta"
+              className="mt-2 flex items-center gap-3 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group"
+            >
+              <HelpCircle size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors shrink-0" />
+              <div>
+                <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
+                  No recuerdo si tengo cuenta
+                </div>
+                <div className="text-[10px] text-stone-400 leading-tight">
+                  Búscala por CURP o por nombre
                 </div>
               </div>
             </a>

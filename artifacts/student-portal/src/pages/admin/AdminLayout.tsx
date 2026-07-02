@@ -370,7 +370,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
             <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
-              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Prepa Abierta</div>
+              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>EDUMICH</div>
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Sistema de Gestión · IEMSyS
                 <span style={{
@@ -379,7 +379,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   border: '1px solid #e8c4d4', borderRadius: 4,
                   padding: '1px 5px', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
                 }}>
-                  EDUMICH
+                  PREPA ABIERTA
                 </span>
               </div>
             </div>

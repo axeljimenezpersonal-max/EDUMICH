@@ -87,9 +87,9 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
             <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
-              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Prepa Abierta</div>
+              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>EDUMICH</div>
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Dirección de Programa · IEMSyS
+                Prepa Abierta · Dirección de Programa
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   background: '#eef4ee', color: '#166534',
