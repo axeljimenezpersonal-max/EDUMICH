@@ -536,6 +536,80 @@ export const pagosGrupalesExamenes = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// Pagos de examen (Tesorería del Estado) — modelo canónico "orden de pago con
+// línea de captura". EDUMICH NO cobra ni genera líneas de captura: la orden la
+// emite la plataforma del Estado (SFA); aquí solo se ALMACENA y se SIRVE.
+// El estado 'pagado' solo se setea por conciliación/verificación de un admin.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const pagoExamenEstadoEnum = pgEnum('pago_examen_estado', [
+  'pendiente_emision', // alumno inscrito, aún sin línea de captura
+  'emitida',           // admin/enlace cargó línea de captura + orden; ya se puede pagar
+  'en_revision',       // (ruta interina) alumno subió comprobante, falta verificación
+  'pagado',            // conciliado contra la plataforma del Estado / comprobante verificado
+  'vencido',           // pasó la fecha de vencimiento sin pago
+  'cancelado',         // anulado por admin
+]);
+
+export const pagosExamen = pgTable(
+  'pagos_examen',
+  {
+    id: serial('id').primaryKey(),
+    estudianteId: integer('estudiante_id')
+      .notNull()
+      .references(() => estudiantes.userId, { onDelete: 'cascade' }),
+    etapaId: integer('etapa_id').references(() => convocatoriasEtapas.id),
+    // Gestor que armó la orden (si la disparó un gestor por sus alumnos)
+    gestorId: integer('gestor_id').references(() => gestores.userId),
+    concepto: pagoConceptoEnum('concepto').notNull().default('derecho_examen'),
+    cantidadExamenes: integer('cantidad_examenes').notNull().default(1),
+    // $145 = $115 IEMSyS + $30 Synapsis. El split es INTERNO (solo reportes admin).
+    montoTotal: numeric('monto_total', { precision: 10, scale: 2 }).notNull().default('145.00'),
+    montoIemsys: numeric('monto_iemsys', { precision: 10, scale: 2 }).notNull().default('115.00'),
+    montoSynapsis: numeric('monto_synapsis', { precision: 10, scale: 2 }).notNull().default('30.00'),
+    // Referencia visible: CURP o matrícula MIC-AAAA-NNNNN (nunca datos bancarios)
+    referencia: varchar('referencia', { length: 40 }),
+    // Emitido por el Estado y capturado por el admin/enlace — nunca generado aquí
+    lineaCaptura: varchar('linea_captura', { length: 40 }),
+    ordenPagoPath: varchar('orden_pago_path', { length: 500 }),
+    ordenPagoNombre: varchar('orden_pago_nombre', { length: 240 }),
+    linkPago: varchar('link_pago', { length: 500 }),
+    fechaEmision: timestamp('fecha_emision'),
+    fechaVencimiento: date('fecha_vencimiento'),
+    fechaPago: date('fecha_pago'),
+    // Ruta interina: comprobante subido por el alumno mientras no haya conciliación
+    comprobantePath: varchar('comprobante_path', { length: 500 }),
+    comprobanteNombre: varchar('comprobante_nombre', { length: 240 }),
+    estado: pagoExamenEstadoEnum('estado').notNull().default('pendiente_emision'),
+    motivoRechazo: text('motivo_rechazo'),
+    verificadoPorUserId: integer('verificado_por_user_id').references(() => users.id),
+    verificadoEn: timestamp('verificado_en'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    estadoIdx: index('pagos_examen_estudiante_estado_idx').on(t.estudianteId, t.estado),
+  })
+);
+
+export const pagosExamenInscripciones = pgTable(
+  'pagos_examen_inscripciones',
+  {
+    id: serial('id').primaryKey(),
+    pagoExamenId: integer('pago_examen_id')
+      .notNull()
+      .references(() => pagosExamen.id, { onDelete: 'cascade' }),
+    examenInscripcionId: integer('examen_inscripcion_id')
+      .notNull()
+      .references(() => examenesInscripciones.id, { onDelete: 'cascade' }),
+  },
+  (t) => ({
+    uniq: uniqueIndex('pei_pago_examen_idx').on(t.pagoExamenId, t.examenInscripcionId),
+    examenIdx: index('pei_examen_idx').on(t.examenInscripcionId),
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Calificaciones — exámenes presenciales capturados por admin
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -1084,6 +1158,33 @@ export const pagosRelations = relations(pagos, ({ one }) => ({
   verificadoPor: one(users, {
     fields: [pagos.verificadoPorUserId],
     references: [users.id],
+  }),
+}));
+
+export const pagosExamenRelations = relations(pagosExamen, ({ one, many }) => ({
+  estudiante: one(estudiantes, {
+    fields: [pagosExamen.estudianteId],
+    references: [estudiantes.userId],
+  }),
+  etapa: one(convocatoriasEtapas, {
+    fields: [pagosExamen.etapaId],
+    references: [convocatoriasEtapas.id],
+  }),
+  verificadoPor: one(users, {
+    fields: [pagosExamen.verificadoPorUserId],
+    references: [users.id],
+  }),
+  inscripciones: many(pagosExamenInscripciones),
+}));
+
+export const pagosExamenInscripcionesRelations = relations(pagosExamenInscripciones, ({ one }) => ({
+  pago: one(pagosExamen, {
+    fields: [pagosExamenInscripciones.pagoExamenId],
+    references: [pagosExamen.id],
+  }),
+  inscripcion: one(examenesInscripciones, {
+    fields: [pagosExamenInscripciones.examenInscripcionId],
+    references: [examenesInscripciones.id],
   }),
 }));
 

@@ -778,3 +778,65 @@ export interface QuizResultado {
   aprobado: boolean;
   feedback: PreguntaFeedback[];
 }
+
+// ── Pagos de examen (orden de pago vía Tesorería del Estado) ────────────
+export type PagoExamenEstado =
+  | 'pendiente_emision'
+  | 'emitida'
+  | 'en_revision'
+  | 'pagado'
+  | 'vencido'
+  | 'cancelado';
+
+export interface PagoExamenItem {
+  inscripcionId: number;
+  folio: string;
+  moduloNumero: number;
+  moduloNombre: string;
+}
+
+/** Vista del alumno — nunca incluye el split 115/30. */
+export interface PagoExamenAlumno {
+  id: number;
+  estado: PagoExamenEstado;
+  concepto: string;
+  cantidadExamenes: number;
+  montoTotal: number;
+  referencia: string | null;
+  lineaCaptura: string | null;
+  tieneOrden: boolean;
+  linkPago: string | null;
+  fechaEmision: string | null;
+  fechaVencimiento: string | null;
+  fechaPago: string | null;
+  tieneComprobante: boolean;
+  motivoRechazo: string | null;
+  examenes: PagoExamenItem[];
+}
+
+/** Vista admin — incluye split interno + datos del alumno. */
+export interface PagoExamenAdmin extends PagoExamenAlumno {
+  estudianteId: number;
+  etapaId: number | null;
+  montoIemsys: number;
+  montoSynapsis: number;
+  verificadoPorUserId: number | null;
+  verificadoEn: string | null;
+  createdAt: string;
+  alumno?: string;
+  matricula?: string | null;
+  curp?: string | null;
+}
+
+export interface PagoExamenCandidato {
+  id: number;
+  folio: string;
+  etapaId: number;
+  moduloNumero: number;
+  moduloNombre: string;
+}
+
+export interface PagoExamenDesglose {
+  totales: { pagos: number; examenes: number; total: number; iemsys: number; synapsis: number };
+  porMunicipio: { municipio: string; pagos: number; total: number; iemsys: number; synapsis: number }[];
+}

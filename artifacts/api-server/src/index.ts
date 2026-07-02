@@ -20,6 +20,7 @@ import publicoRoutes from './routes/publico';
 import adminRoutes from './routes/admin';
 import direccionRoutes from './routes/direccion';
 import pagosRoutes from './routes/pagos';
+import pagosExamenRoutes, { vencerPagosExamen } from './routes/pagos-examen';
 import calificacionesRoutes from './routes/calificaciones';
 import anunciosRoutes from './routes/anuncios';
 import notificacionesRoutes from './routes/notificaciones';
@@ -102,6 +103,7 @@ app.use('/api/direccion', direccionRoutes);
 // de adminRoutes, que exige rol admin.
 app.use('/api/direccion/reportes', reportesRoutes);
 app.use('/api/pagos', pagosRoutes);
+app.use('/api/pagos-examen', pagosExamenRoutes);
 app.use('/api/calificaciones', calificacionesRoutes);
 app.use('/api/anuncios', anunciosRoutes);
 app.use('/api/notificaciones', notificacionesRoutes);
@@ -119,6 +121,13 @@ if (process.env.NODE_ENV !== 'production') {
 // Cron: check programmed reports every hour
 cron.schedule('0 * * * *', () => {
   ejecutarReportesProgramados().catch((e) => console.error('[Reportes Cron]', e));
+});
+
+// Cron: vencimiento de órdenes de pago de examen (cada hora)
+cron.schedule('15 * * * *', () => {
+  vencerPagosExamen()
+    .then((n) => { if (n > 0) console.log(`[Pagos examen] ${n} orden(es) vencida(s)`); })
+    .catch((e) => console.error('[Pagos examen Cron]', e));
 });
 
 // Cron: depuración automática de cuentas inactivas (03:00 AM Mexico City)

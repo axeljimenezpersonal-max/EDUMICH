@@ -1,8 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import {
   Pencil, AlertCircle, FileText, CreditCard, GraduationCap,
   Copy, CheckCircle2, UploadCloud, Loader2, Banknote, Building2,
-  Store, Download, Clock, Calendar, MapPin, ClipboardList,
+  Store, Download, Clock, Calendar, MapPin, ClipboardList, Landmark, Check, ExternalLink,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import {
@@ -13,6 +13,7 @@ import {
   type MeResponse,
   type ConvocatoriaResponse,
   type GestorConfigPagoResponse,
+  type PagoExamenAlumno,
 } from '../../lib/api';
 import DocumentoUploader from '../../components/DocumentoUploader';
 import PagoCard from '../../components/PagoCard';
@@ -564,6 +565,10 @@ function PagosTab({
   pagoSubiendo: boolean;
   onSubirPago: () => void;
 }) {
+  // Órdenes de pago (Tesorería del Estado). Si hay una activa, el flujo interino
+  // de "sube tu comprobante" se oculta para no duplicar.
+  const [ordenActiva, setOrdenActiva] = useState(false);
+
   if (pagosLoading) {
     return (
       <div className="flex items-center justify-center py-16 text-stone-400 gap-2 text-sm">
@@ -586,8 +591,8 @@ function PagosTab({
     (p) => p.concepto === 'derecho_examen' && p.estado !== 'rechazado'
   ) ?? null;
 
-  const showPaymentForm = inscripcionesActivas.length > 0 && !pagoVigente;
-  const showPaymentStatus = inscripcionesActivas.length > 0 && !!pagoVigente;
+  const showPaymentForm = inscripcionesActivas.length > 0 && !pagoVigente && !ordenActiva;
+  const showPaymentStatus = inscripcionesActivas.length > 0 && !!pagoVigente && !ordenActiva;
 
   function copyText(text: string) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -628,8 +633,11 @@ function PagosTab({
         </div>
       )}
 
+      {/* ── Órdenes de pago (Tesorería del Estado) ── */}
+      <OrdenesPagoExamen onEstado={setOrdenActiva} />
+
       {/* ── Sin inscripciones activas ── */}
-      {inscripcionesActivas.length === 0 && (
+      {inscripcionesActivas.length === 0 && !ordenActiva && (
         <div className="bg-stone-50 border border-stone-200 rounded-xl p-8 text-center">
           <CreditCard size={32} className="mx-auto text-stone-300 mb-3" />
           <div className="text-sm font-semibold text-stone-500">Sin inscripciones activas</div>
@@ -792,10 +800,163 @@ function PagosTab({
         </div>
       )}
 
-      {pagosData && pagosData.pagos.length === 0 && inscripcionesActivas.length === 0 && (
+      {pagosData && pagosData.pagos.length === 0 && inscripcionesActivas.length === 0 && !ordenActiva && (
         <div className="text-center text-stone-400 py-8 text-sm">Sin pagos registrados.</div>
       )}
 
+    </div>
+  );
+}
+
+// ─── Órdenes de pago de examen (Tesorería del Estado) ──────────────────────
+const OP_ESTADO: Record<string, { label: string; bg: string; color: string; icon: ReactNode }> = {
+  pendiente_emision: { label: 'Preparando tu orden', bg: '#fff7ed', color: '#b45309', icon: <Clock size={13} /> },
+  emitida: { label: 'Lista para pagar', bg: '#eff6ff', color: '#1d4ed8', icon: <Landmark size={13} /> },
+  en_revision: { label: 'Comprobante en revisión', bg: '#fefce8', color: '#a16207', icon: <Clock size={13} /> },
+  pagado: { label: 'Pagado', bg: '#f0fdf4', color: '#15803d', icon: <CheckCircle2 size={13} /> },
+  vencido: { label: 'Vencido', bg: '#fef2f2', color: '#b91c1c', icon: <AlertCircle size={13} /> },
+  cancelado: { label: 'Cancelado', bg: '#f5f5f4', color: '#78716c', icon: <AlertCircle size={13} /> },
+};
+
+function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }) {
+  const [ordenes, setOrdenes] = useState<PagoExamenAlumno[] | null>(null);
+  const [subiendo, setSubiendo] = useState<number | null>(null);
+  const [copiado, setCopiado] = useState(false);
+
+  function cargar() {
+    return api.get<{ pagos: PagoExamenAlumno[] }>('/pagos-examen/mios')
+      .then((r) => {
+        setOrdenes(r.pagos);
+        const activas = r.pagos.filter((p) => ['pendiente_emision', 'emitida', 'en_revision', 'pagado'].includes(p.estado));
+        onEstado(activas.length > 0);
+      })
+      .catch(() => { setOrdenes([]); onEstado(false); });
+  }
+  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, []);
+
+  async function subirComprobante(id: number, file: File) {
+    setSubiendo(id);
+    try {
+      const fd = new FormData();
+      fd.append('comprobante', file);
+      await api.post(`/pagos-examen/${id}/comprobante`, fd);
+      await cargar();
+    } catch { /* noop */ } finally { setSubiendo(null); }
+  }
+
+  const fmtMoney = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
+  const fmtFecha = (iso: string | null) =>
+    iso ? new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+
+  // Solo mostramos órdenes que no estén canceladas
+  const visibles = (ordenes ?? []).filter((o) => o.estado !== 'cancelado');
+  if (visibles.length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      {visibles.map((o) => {
+        const cfg = OP_ESTADO[o.estado] ?? OP_ESTADO.emitida;
+        return (
+          <div key={o.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+            <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Landmark size={16} className="text-[var(--color-guinda-700)]" />
+                <h3 className="text-sm font-bold text-stone-900">Orden de pago — Tesorería del Estado</h3>
+              </div>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
+                {cfg.icon} {cfg.label}
+              </span>
+            </div>
+
+            <div className="p-5 space-y-4">
+              {/* Total + exámenes */}
+              <div className="flex items-baseline justify-between">
+                <span className="text-sm text-stone-500">{o.cantidadExamenes} examen{o.cantidadExamenes !== 1 ? 'es' : ''} de derecho a examen</span>
+                <span className="text-2xl font-bold text-stone-900">{fmtMoney(o.montoTotal)} <span className="text-sm font-medium text-stone-400">MXN</span></span>
+              </div>
+              {o.examenes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {o.examenes.map((e) => (
+                    <span key={e.inscripcionId} className="text-[11px] bg-stone-100 text-stone-600 rounded-full px-2 py-0.5">
+                      Módulo {e.moduloNumero}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Emitida / en_revision / vencido: mostrar línea de captura + descarga */}
+              {(o.estado === 'emitida' || o.estado === 'en_revision' || o.estado === 'vencido') && (
+                <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-3">
+                  {o.lineaCaptura && (
+                    <div>
+                      <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
+                      <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-2">
+                        <code className="flex-1 text-sm font-mono text-stone-800 break-all">{o.lineaCaptura}</code>
+                        <button onClick={() => { navigator.clipboard.writeText(o.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0">
+                          {copiado ? <Check size={15} /> : <Copy size={15} />}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {o.tieneOrden && (
+                      <a href={`/api/pagos-examen/${o.id}/orden`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]">
+                        <Download size={15} /> Descargar orden de pago
+                      </a>
+                    )}
+                    {o.linkPago && (
+                      <a href={o.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-white">
+                        <ExternalLink size={15} /> Pagar en línea
+                      </a>
+                    )}
+                  </div>
+                  {o.fechaVencimiento && (
+                    <div className="text-xs text-stone-500">Vence el <strong className="text-stone-700">{fmtFecha(o.fechaVencimiento)}</strong>. Paga en banco, tienda de conveniencia o en línea.</div>
+                  )}
+                  {o.estado === 'vencido' && (
+                    <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2.5 flex gap-2">
+                      <AlertCircle size={14} className="shrink-0 mt-0.5" /> Esta orden venció. Solicita a tu gestor o a la coordinación una nueva orden de pago.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Subir comprobante (ruta interina) — solo si emitida y sin comprobante */}
+              {o.estado === 'emitida' && (
+                <div>
+                  <div className="text-xs font-semibold text-stone-600 mb-1.5">Ya pagaste? Sube tu comprobante</div>
+                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 cursor-pointer transition-colors ${subiendo === o.id ? 'opacity-60' : 'border-stone-300 hover:border-stone-400'}`}>
+                    {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
+                    <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : 'Seleccionar comprobante (PDF o imagen)'}</span>
+                    <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
+                  </label>
+                </div>
+              )}
+
+              {o.estado === 'en_revision' && (
+                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex gap-2">
+                  <Clock size={14} className="shrink-0 mt-0.5" /> Tu comprobante está en revisión. Te avisaremos cuando se confirme el pago.
+                </div>
+              )}
+              {o.motivoRechazo && o.estado === 'emitida' && (
+                <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2.5 flex gap-2">
+                  <AlertCircle size={14} className="shrink-0 mt-0.5" /> Tu comprobante anterior fue rechazado: {o.motivoRechazo}
+                </div>
+              )}
+              {o.estado === 'pagado' && (
+                <div className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg p-3 flex gap-2">
+                  <CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Pago confirmado{o.fechaPago ? ` el ${fmtFecha(o.fechaPago)}` : ''}. ¡Listo para tu examen!
+                </div>
+              )}
+              {o.estado === 'pendiente_emision' && (
+                <div className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-lg p-2.5 flex gap-2">
+                  <Clock size={14} className="shrink-0 mt-0.5" /> La coordinación está generando tu orden de pago ante la Tesorería. Vuelve pronto.
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
