@@ -498,10 +498,11 @@ export type CedulaDatosEditable = Pick<
   | 'cp' | 'ciudad' | 'estado' | 'ultimoEstudio' | 'observaciones'
 >;
 
-// ── Firma reutilizable ──────────────────────────────────────────────────────
+// ── Firmas reutilizables (hasta 2 + cuál está activa) ───────────────────────
 export interface FirmaResponse {
-  imagenDataUrl: string | null;
-  actualizadaEn: string | null;
+  firma1: string | null;
+  firma2: string | null;
+  activa: number; // 1 | 2
 }
 
 // ── Pagos ─────────────────────────────────────────────────────────────────

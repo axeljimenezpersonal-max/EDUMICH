@@ -257,8 +257,7 @@ export default function MiCedula() {
                 </button>
                 <a
                   href="/api/estudiante/cedula/pdf"
-                  target="_blank"
-                  rel="noopener"
+                  download={`${datos.apellidoPaterno || 'ALUMNO'} | ${datos.matricula || 'NA'} | CÉDULA DE INSCRIPCIÓN.pdf`}
                   className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
                 >
                   <Download size={13} /> Descargar PDF

@@ -1,39 +1,47 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pen, Eraser, Check, Trash2, Loader2, RotateCcw } from 'lucide-react';
+import { Pen, Eraser, Check, Trash2, Loader2, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { api, type FirmaResponse } from '../lib/api';
 
 /**
- * Firma reutilizable estilo "guardar firma" (Apple):
- *  - Si ya hay una firma guardada, se muestra y solo se ofrece "Volver a firmar" / "Quitar".
- *  - Si no hay, se abre un lienzo donde el usuario firma (dedo, mouse o stylus) y guarda.
- * La firma se guarda en el perfil del usuario autenticado (endpoint /firma).
+ * Firmas reutilizables estilo Apple: hasta 2 espacios guardados. El usuario
+ * dibuja una vez, se guarda, y luego solo elige con un clic cuál usar. Cada
+ * espacio se puede volver a firmar o quitar. La firma "en uso" (activa) es la
+ * que se estampa en la cédula.
  */
 export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean) => void }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dibujando = useRef(false);
   const huboTrazo = useRef(false);
 
-  const [firmaGuardada, setFirmaGuardada] = useState<string | null>(null);
-  const [modoDibujo, setModoDibujo] = useState(false);
+  const [firma1, setFirma1] = useState<string | null>(null);
+  const [firma2, setFirma2] = useState<string | null>(null);
+  const [activa, setActiva] = useState<number>(1);
+  const [drawingSlot, setDrawingSlot] = useState<1 | 2 | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    api
+  function cargar() {
+    return api
       .get<FirmaResponse>('/firma')
       .then((r) => {
-        setFirmaGuardada(r.imagenDataUrl);
-        onChange?.(r.imagenDataUrl !== null);
+        setFirma1(r.firma1);
+        setFirma2(r.firma2);
+        setActiva(r.activa);
+        const activaTiene = (r.activa === 2 ? r.firma2 : r.firma1) !== null;
+        onChange?.(activaTiene);
       })
-      .catch(() => {})
-      .finally(() => setCargando(false));
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    cargar().finally(() => setCargando(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Preparar el lienzo cuando entra en modo dibujo
+  // Preparar el lienzo al entrar en modo dibujo
   useEffect(() => {
-    if (!modoDibujo) return;
+    if (drawingSlot === null) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const dpr = window.devicePixelRatio || 1;
@@ -48,57 +56,49 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
     ctx.lineJoin = 'round';
     ctx.strokeStyle = '#1c1917';
     huboTrazo.current = false;
-  }, [modoDibujo]);
+  }, [drawingSlot]);
 
-  function posicion(e: React.PointerEvent<HTMLCanvasElement>) {
+  function pos(e: React.PointerEvent<HTMLCanvasElement>) {
     const rect = canvasRef.current!.getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   }
-
-  function onPointerDown(e: React.PointerEvent<HTMLCanvasElement>) {
+  function onDown(e: React.PointerEvent<HTMLCanvasElement>) {
     e.preventDefault();
     canvasRef.current!.setPointerCapture(e.pointerId);
     dibujando.current = true;
     const ctx = canvasRef.current!.getContext('2d')!;
-    const { x, y } = posicion(e);
+    const { x, y } = pos(e);
     ctx.beginPath();
     ctx.moveTo(x, y);
   }
-
-  function onPointerMove(e: React.PointerEvent<HTMLCanvasElement>) {
+  function onMove(e: React.PointerEvent<HTMLCanvasElement>) {
     if (!dibujando.current) return;
     const ctx = canvasRef.current!.getContext('2d')!;
-    const { x, y } = posicion(e);
+    const { x, y } = pos(e);
     ctx.lineTo(x, y);
     ctx.stroke();
     huboTrazo.current = true;
   }
-
-  function onPointerUp() {
+  function onUp() {
     dibujando.current = false;
   }
-
   function limpiar() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const c = canvasRef.current;
+    if (!c) return;
+    c.getContext('2d')!.clearRect(0, 0, c.width, c.height);
     huboTrazo.current = false;
   }
 
   async function guardar() {
-    if (!huboTrazo.current) {
-      setError('Dibuja tu firma antes de guardar.');
-      return;
-    }
+    if (drawingSlot === null) return;
+    if (!huboTrazo.current) { setError('Dibuja tu firma antes de guardar.'); return; }
     setGuardando(true);
     setError(null);
     try {
       const dataUrl = canvasRef.current!.toDataURL('image/png');
-      await api.put('/firma', { imagenDataUrl: dataUrl });
-      setFirmaGuardada(dataUrl);
-      setModoDibujo(false);
-      onChange?.(true);
+      await api.put(`/firma/${drawingSlot}`, { imagenDataUrl: dataUrl });
+      await cargar();
+      setDrawingSlot(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo guardar la firma');
     } finally {
@@ -106,13 +106,25 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
     }
   }
 
-  async function quitar() {
+  async function usar(slot: 1 | 2) {
     setGuardando(true);
     setError(null);
     try {
-      await api.delete('/firma');
-      setFirmaGuardada(null);
-      onChange?.(false);
+      await api.patch('/firma/activa', { activa: slot });
+      await cargar();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo cambiar la firma');
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function quitar(slot: 1 | 2) {
+    setGuardando(true);
+    setError(null);
+    try {
+      await api.delete(`/firma/${slot}`);
+      await cargar();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo quitar la firma');
     } finally {
@@ -123,34 +135,44 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
   if (cargando) {
     return (
       <div className="flex items-center gap-2 text-sm text-stone-400 py-4">
-        <Loader2 size={16} className="animate-spin" /> Cargando firma…
+        <Loader2 size={16} className="animate-spin" /> Cargando firmas…
       </div>
     );
   }
 
-  // ── Firma ya guardada ──
-  if (firmaGuardada && !modoDibujo) {
+  // ── Modo dibujo ──
+  if (drawingSlot !== null) {
     return (
       <div className="border border-stone-200 rounded-xl p-4 bg-white">
-        <div className="flex items-center gap-2 text-xs font-semibold text-emerald-700 mb-2">
-          <Check size={14} /> Firma guardada
-        </div>
-        <div className="border border-dashed border-stone-200 rounded-lg bg-stone-50 flex items-center justify-center p-3">
-          <img src={firmaGuardada} alt="Firma guardada" className="max-h-24 object-contain" />
-        </div>
+        <div className="text-xs font-semibold text-stone-500 mb-2">Firma {drawingSlot} — firma dentro del recuadro</div>
+        <canvas
+          ref={canvasRef}
+          className="w-full h-40 border border-stone-300 rounded-lg bg-white touch-none cursor-crosshair"
+          onPointerDown={onDown}
+          onPointerMove={onMove}
+          onPointerUp={onUp}
+          onPointerLeave={onUp}
+        />
         <div className="flex flex-wrap gap-2 mt-3">
           <button
-            onClick={() => setModoDibujo(true)}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
+            onClick={guardar}
+            disabled={guardando}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors disabled:opacity-50"
           >
-            <RotateCcw size={13} /> Volver a firmar
+            {guardando ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            Guardar firma {drawingSlot}
           </button>
           <button
-            onClick={quitar}
-            disabled={guardando}
-            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+            onClick={limpiar}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
           >
-            <Trash2 size={13} /> Quitar
+            <Eraser size={14} /> Limpiar
+          </button>
+          <button
+            onClick={() => { setDrawingSlot(null); setError(null); }}
+            className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg text-stone-500 hover:text-stone-700 transition-colors"
+          >
+            Cancelar
           </button>
         </div>
         {error && <div className="text-xs text-red-600 mt-2">{error}</div>}
@@ -158,56 +180,73 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
     );
   }
 
-  // ── Sin firma / modo dibujo ──
-  if (!modoDibujo) {
-    return (
-      <div className="border border-dashed border-stone-300 rounded-xl p-5 bg-stone-50 text-center">
-        <Pen size={22} className="mx-auto text-stone-400 mb-2" />
-        <div className="text-sm text-stone-600 mb-3">Aún no has agregado tu firma.</div>
-        <button
-          onClick={() => setModoDibujo(true)}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
-        >
-          <Pen size={14} /> Agregar firma
-        </button>
-      </div>
-    );
-  }
+  // ── Vista de los 2 espacios ──
+  const slots: { n: 1 | 2; img: string | null }[] = [
+    { n: 1, img: firma1 },
+    { n: 2, img: firma2 },
+  ];
 
   return (
-    <div className="border border-stone-200 rounded-xl p-4 bg-white">
-      <div className="text-xs font-semibold text-stone-500 mb-2">Firma dentro del recuadro</div>
-      <canvas
-        ref={canvasRef}
-        className="w-full h-40 border border-stone-300 rounded-lg bg-white touch-none cursor-crosshair"
-        onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerLeave={onPointerUp}
-      />
-      <div className="flex flex-wrap gap-2 mt-3">
-        <button
-          onClick={guardar}
-          disabled={guardando}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors disabled:opacity-50"
-        >
-          {guardando ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-          Guardar firma
-        </button>
-        <button
-          onClick={limpiar}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
-        >
-          <Eraser size={14} /> Limpiar
-        </button>
-        {firmaGuardada && (
-          <button
-            onClick={() => { setModoDibujo(false); setError(null); }}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg text-stone-500 hover:text-stone-700 transition-colors"
-          >
-            Cancelar
-          </button>
-        )}
+    <div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {slots.map(({ n, img }) => {
+          const enUso = activa === n && img !== null;
+          return (
+            <div
+              key={n}
+              className={`border rounded-xl p-3 ${enUso ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 bg-white'}`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-semibold text-stone-600">Firma {n}</span>
+                {enUso && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide text-[var(--color-guinda-700)]">
+                    <CheckCircle2 size={12} /> En uso
+                  </span>
+                )}
+              </div>
+
+              {img ? (
+                <>
+                  <div className="border border-dashed border-stone-200 rounded-lg bg-stone-50 flex items-center justify-center p-2 h-20">
+                    <img src={img} alt={`Firma ${n}`} className="max-h-16 object-contain" />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {!enUso && (
+                      <button
+                        onClick={() => usar(n)}
+                        disabled={guardando}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors disabled:opacity-50"
+                      >
+                        <Check size={12} /> Usar esta
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setDrawingSlot(n)}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
+                    >
+                      <RotateCcw size={12} /> Volver a firmar
+                    </button>
+                    <button
+                      onClick={() => quitar(n)}
+                      disabled={guardando}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 size={12} /> Quitar
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <button
+                  onClick={() => setDrawingSlot(n)}
+                  className="w-full h-20 flex flex-col items-center justify-center gap-1 border border-dashed border-stone-300 rounded-lg text-stone-400 hover:border-[var(--color-guinda-700)] hover:text-[var(--color-guinda-700)] transition-colors"
+                >
+                  <Pen size={16} />
+                  <span className="text-xs font-semibold">Agregar firma</span>
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
       {error && <div className="text-xs text-red-600 mt-2">{error}</div>}
     </div>

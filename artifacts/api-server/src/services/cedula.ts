@@ -110,6 +110,9 @@ async function reunirDatos(estudianteId: number): Promise<{
 
   const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, estudianteId));
 
+  const firmaActiva = (row: { imagenDataUrl: string | null; imagenDataUrl2: string | null; activa: number } | undefined) =>
+    row ? (row.activa === 2 ? row.imagenDataUrl2 : row.imagenDataUrl) ?? null : null;
+
   // Gestor responsable
   let responsableNombre = '';
   let firmaResponsable: string | null = null;
@@ -117,12 +120,12 @@ async function reunirDatos(estudianteId: number): Promise<{
     const [g] = await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, est.gestorId));
     responsableNombre = g?.nombre ?? '';
     const [fr] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, est.gestorId));
-    firmaResponsable = fr?.imagenDataUrl ?? null;
+    firmaResponsable = firmaActiva(fr);
   }
 
-  // Firma del alumno
+  // Firma del alumno (la activa)
   const [fa] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, estudianteId));
-  const firmaAlumno = fa?.imagenDataUrl ?? null;
+  const firmaAlumno = firmaActiva(fa);
 
   // Fotografía del expediente (tipo 'foto')
   const [foto] = await db
@@ -233,8 +236,24 @@ function dataUrlABytes(dataUrl: string): { bytes: Uint8Array; esPng: boolean } |
   return { bytes: Buffer.from(m[2], 'base64'), esPng };
 }
 
-/** Genera el PDF de la cédula rellenado y aplanado. */
-export async function generarCedulaPdf(estudianteId: number): Promise<Uint8Array> {
+/** Nombre de archivo de la cédula: "APELLIDO | MATRÍCULA (o NA) | CÉDULA DE INSCRIPCIÓN.pdf" */
+export function nombreArchivoCedula(apellidoPaterno: string, matricula: string): string {
+  const ap = (apellidoPaterno || 'ALUMNO').trim();
+  const mat = (matricula || '').trim() || 'NA';
+  return `${ap} | ${mat} | CÉDULA DE INSCRIPCIÓN.pdf`;
+}
+
+/** Header Content-Disposition con nombre en UTF-8 (soporta acentos y "|"). */
+export function dispositionCedula(nombreArchivo: string): string {
+  const ascii =
+    nombreArchivo.normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/"/g, '') || 'cedula-inscripcion.pdf';
+  return `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombreArchivo)}`;
+}
+
+/** Genera el PDF de la cédula rellenado y aplanado. Devuelve bytes + nombre de archivo. */
+export async function generarCedulaPdf(
+  estudianteId: number
+): Promise<{ pdf: Uint8Array; nombreArchivo: string }> {
   const { datos, fotoPath, firmaAlumno, firmaResponsable } = await reunirDatos(estudianteId);
 
   const doc = await PDFDocument.load(readFileSync(resolverPlantilla()), { ignoreEncryption: true });
@@ -324,5 +343,6 @@ export async function generarCedulaPdf(estudianteId: number): Promise<Uint8Array
   }
 
   form.flatten();
-  return await doc.save();
+  const pdf = await doc.save();
+  return { pdf, nombreArchivo: nombreArchivoCedula(datos.apellidoPaterno, datos.matricula) };
 }

@@ -414,12 +414,15 @@ export const expedienteDocumentos = pgTable(
   })
 );
 
-// Firma reutilizable por usuario (se guarda una vez y se reutiliza — estilo "agregar firma")
+// Firmas reutilizables por usuario: hasta 2 espacios + cuál está activa
+// (estilo "guardar firma" de Apple; se elige con un clic cuál usar).
 export const firmasUsuario = pgTable('firmas_usuario', {
   userId: integer('user_id')
     .primaryKey()
     .references(() => users.id, { onDelete: 'cascade' }),
-  imagenDataUrl: text('imagen_data_url').notNull(),
+  imagenDataUrl: text('imagen_data_url'), // firma 1 (nullable: puede tener solo la 2)
+  imagenDataUrl2: text('imagen_data_url_2'), // firma 2
+  activa: integer('activa').notNull().default(1), // 1 | 2 — cuál se usa en la cédula
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

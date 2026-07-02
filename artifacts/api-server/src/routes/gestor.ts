@@ -49,6 +49,7 @@ import {
   obtenerDatosCedula,
   guardarDatosCedula,
   generarCedulaPdf,
+  dispositionCedula,
   cedulaDatosSchema,
 } from '../services/cedula';
 import { tryAuditLog } from '../utils/audit';
@@ -1153,9 +1154,9 @@ router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
   const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
   if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
   try {
-    const pdf = await generarCedulaPdf(alumnoId);
+    const { pdf, nombreArchivo } = await generarCedulaPdf(alumnoId);
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline; filename="cedula-inscripcion.pdf"');
+    res.setHeader('Content-Disposition', dispositionCedula(nombreArchivo));
     res.send(Buffer.from(pdf));
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
