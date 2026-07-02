@@ -8,6 +8,9 @@ import { Router } from 'express';
 import { and, eq, sql, desc, gte, count, countDistinct, isNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { createReadStream, existsSync } from 'node:fs';
+import fsp from 'node:fs/promises';
+import path from 'node:path';
+import multer from 'multer';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
 import { db } from '../db';
@@ -3739,6 +3742,45 @@ router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
     res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
   }
 });
+
+// ─── PDF de calificaciones (lo sube la administración) ───────────────────────
+const CALIF_DIR = process.env.STORAGE_DIR
+  ? path.join(process.env.STORAGE_DIR, 'calificaciones')
+  : path.join(process.cwd(), 'storage', 'calificaciones');
+
+const uploadCalificaciones = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      await fsp.mkdir(CALIF_DIR, { recursive: true });
+      cb(null, CALIF_DIR);
+    },
+    filename: (req, _file, cb) => cb(null, `calif-${req.params.id}-${Date.now()}.pdf`),
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') { cb(new Error('Solo se acepta PDF')); return; }
+    cb(null, true);
+  },
+});
+
+// POST /admin/alumnos/:id/calificaciones-pdf — subir/reemplazar el PDF
+router.post('/alumnos/:id/calificaciones-pdf', uploadCalificaciones.single('archivo'), async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  if (!req.file) { res.status(400).json({ error: 'No se recibió archivo' }); return; }
+
+  // Borrar el anterior si existía
+  const [prev] = await db.select({ p: estudiantes.calificacionesPdfPath }).from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  if (prev?.p && existsSync(prev.p)) { try { await fsp.unlink(prev.p); } catch { /* noop */ } }
+
+  await db.update(estudiantes)
+    .set({ calificacionesPdfPath: req.file.path, calificacionesPdfSubidoEn: new Date(), updatedAt: new Date() })
+    .where(eq(estudiantes.userId, alumnoId));
+  res.json({ ok: true });
+});
+
+// (El PDF se sirve desde /api/calificaciones/estudiantes/:id/pdf-oficial — compartido.)
 
 // ─── POST /admin/alumnos/:id/matricula ───────────────────────────────────────
 const adminMatriculaSchema = z.object({

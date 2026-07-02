@@ -9,6 +9,7 @@ import {
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
+import { CalificacionesAdminTab } from '../../components/CalificacionesAdminTab';
 import { CedulaEditor } from '../../components/CedulaEditor';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -868,11 +869,8 @@ export default function AdminAlumnoDetalle() {
             </button>
           </div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href={`/api/admin/alumnos/${alumnoId}/ficha-registro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-              <Download size={12} /> Ficha de registro PDF
-            </a>
-            <a href={`/api/admin/alumnos/${alumnoId}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #eadfd7', borderRadius: 8, fontSize: 12, color: '#443e39', textDecoration: 'none' }}>
-              <FileText size={12} /> Ficha de pre-registro
+            <a href={`/api/admin/alumnos/${alumnoId}/cedula/pdf`} download="" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--color-guinda-700)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
+              <ClipboardList size={12} /> Cédula de inscripción
             </a>
           </div>
         </div>
@@ -1021,15 +1019,13 @@ export default function AdminAlumnoDetalle() {
               : pagosData.map((p) => <PagoRow key={p.id} pago={p} />)
           )}
           {activeTab === 'examenes' && (
-            examenes.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay evaluaciones registradas</p>
-              : examenes.map((e) => <ExamenRow key={e.id} examen={e} />)
+            <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
           )}
           {activeTab === 'cedula' && (
             <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} />
           )}
           {activeTab === 'calificaciones' && (
-            <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
+            <CalificacionesAdminTab estudianteId={alumnoId} />
           )}
         </div>
       </div>

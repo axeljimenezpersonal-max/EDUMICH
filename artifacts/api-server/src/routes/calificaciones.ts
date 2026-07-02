@@ -4,6 +4,7 @@
  */
 import { Router } from 'express';
 import { and, desc, eq } from 'drizzle-orm';
+import { createReadStream, existsSync } from 'node:fs';
 import { db } from '../db';
 import {
   calificaciones,
@@ -85,11 +86,32 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
       : 0;
   const porcentajeAvance = Math.round((totalAprobados / 21) * 100);
 
+  const [estPdf] = await db
+    .select({ p: estudiantes.calificacionesPdfPath, en: estudiantes.calificacionesPdfSubidoEn })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, estudianteId));
+
   res.json({
     modulosAprobados,
     historial: rows,
     resumen: { totalAprobados, promedioGlobal, examenesPresentados, porcentajeAvance },
+    pdfOficial: {
+      disponible: !!estPdf?.p,
+      subidoEn: estPdf?.en ?? null,
+    },
   });
+});
+
+// GET /calificaciones/estudiantes/:id/pdf-oficial → PDF de calificaciones subido por admin
+router.get('/estudiantes/:estudianteId/pdf-oficial', async (req, res) => {
+  const estudianteId = Number(req.params.estudianteId);
+  if (!estudianteId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await canAccessStudent(req.user!, estudianteId))) { res.status(403).json({ error: 'Sin acceso' }); return; }
+  const [est] = await db.select({ p: estudiantes.calificacionesPdfPath }).from(estudiantes).where(eq(estudiantes.userId, estudianteId));
+  if (!est?.p || !existsSync(est.p)) { res.status(404).json({ error: 'Sin PDF de calificaciones' }); return; }
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', 'inline; filename="calificaciones.pdf"');
+  createReadStream(est.p).pipe(res);
 });
 
 // GET /calificaciones/estudiantes/:estudianteId/pdf → historial académico en PDF

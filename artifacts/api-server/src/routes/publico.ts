@@ -24,10 +24,11 @@ import {
   solicitudesCuenta,
   auditLog,
   modulos,
+  passwordResetTokens,
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
-import { sendVerificationCode, sendEmail } from '../services/email';
+import { sendVerificationCode, sendEmail, sendRecuperarPassword } from '../services/email';
 import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
 import { tryAuditLog } from '../utils/audit';
@@ -66,6 +67,147 @@ async function curpOcupada(curp: string): Promise<string | null> {
   }
   return null;
 }
+
+// ─── Buscar cuenta ("no recuerdo si tengo cuenta") ────────────────────────
+// Política híbrida de privacidad:
+//  · Búsqueda por CURP (exacta, 18 chars — difícil de adivinar) → correo completo.
+//  · Búsqueda por nombre → correo ENMASCARADO + token firmado para disparar
+//    la recuperación sin revelar el correo (evita cosechar emails por nombre).
+const buscarCuentaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas búsquedas. Intenta de nuevo en unos minutos.' },
+});
+
+function enmascararEmail(email: string): string {
+  const [local, dominio] = email.split('@');
+  const [dom, ...tld] = dominio.split('.');
+  const ocultar = (s: string) =>
+    s.length <= 2 ? s[0] + '*' : s[0] + '*'.repeat(Math.min(s.length - 2, 5)) + s[s.length - 1];
+  return `${ocultar(local)}@${ocultar(dom)}.${tld.join('.')}`;
+}
+
+const buscarCuentaSchema = z
+  .object({
+    curp: z.string().length(18).optional(),
+    nombres: z.string().min(2).max(120).optional(),
+    apellidoPaterno: z.string().min(2).max(100).optional(),
+    apellidoMaterno: z.string().max(100).optional(),
+  })
+  .refine((d) => d.curp || (d.nombres && d.apellidoPaterno), {
+    message: 'Proporciona tu CURP, o tu nombre y apellido paterno.',
+  });
+
+router.post('/buscar-cuenta', buscarCuentaLimiter, async (req, res) => {
+  const parse = buscarCuentaSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
+    return;
+  }
+  const { curp, nombres, apellidoPaterno, apellidoMaterno } = parse.data;
+
+  try {
+    if (curp) {
+      const [fila] = await db
+        .select({ email: users.email, nombreCompleto: estudiantes.nombreCompleto, activo: users.activo })
+        .from(estudiantes)
+        .innerJoin(users, eq(users.id, estudiantes.userId))
+        .where(eq(estudiantes.curp, curp.toUpperCase().trim()));
+
+      await tryAuditLog({
+        accion: 'buscar_cuenta',
+        entidad: 'estudiantes',
+        detalle: `Búsqueda pública de cuenta por CURP (${fila ? 'encontrada' : 'sin resultado'})`,
+        metadata: { via: 'curp' },
+        req,
+      });
+
+      if (!fila || !fila.activo) {
+        res.json({ encontrada: false });
+        return;
+      }
+      res.json({
+        encontrada: true,
+        via: 'curp',
+        nombre: fila.nombreCompleto,
+        email: fila.email,
+        recuperacionToken: signEmailToken(fila.email, 'recuperar_busqueda'),
+      });
+      return;
+    }
+
+    // Por nombre: todas las palabras deben aparecer en el nombre completo.
+    const palabras = [nombres, apellidoPaterno, apellidoMaterno]
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+      .split(/\s+/);
+    const condiciones = palabras.map((p) => sql`unaccent(lower(${estudiantes.nombreCompleto})) LIKE unaccent(lower(${'%' + p + '%'}))`);
+    const filas = await db
+      .select({ email: users.email, nombreCompleto: estudiantes.nombreCompleto, activo: users.activo })
+      .from(estudiantes)
+      .innerJoin(users, eq(users.id, estudiantes.userId))
+      .where(and(...condiciones))
+      .limit(3);
+
+    await tryAuditLog({
+      accion: 'buscar_cuenta',
+      entidad: 'estudiantes',
+      detalle: `Búsqueda pública de cuenta por nombre (${filas.length} coincidencias)`,
+      metadata: { via: 'nombre' },
+      req,
+    });
+
+    const activas = filas.filter((f) => f.activo);
+    if (activas.length === 0) {
+      res.json({ encontrada: false });
+      return;
+    }
+    if (activas.length > 1) {
+      res.json({ encontrada: false, multiple: true });
+      return;
+    }
+    res.json({
+      encontrada: true,
+      via: 'nombre',
+      nombre: activas[0].nombreCompleto,
+      emailEnmascarado: enmascararEmail(activas[0].email),
+      recuperacionToken: signEmailToken(activas[0].email, 'recuperar_busqueda'),
+    });
+  } catch (e) {
+    console.error('[publico/buscar-cuenta]', e);
+    res.status(500).json({ error: 'Error al buscar la cuenta' });
+  }
+});
+
+// Dispara el correo de recuperación de contraseña a la cuenta encontrada,
+// sin que el solicitante necesite conocer el correo completo.
+router.post('/buscar-cuenta/recuperar', buscarCuentaLimiter, async (req, res) => {
+  const token = typeof req.body?.recuperacionToken === 'string' ? req.body.recuperacionToken : '';
+  const datos = verifyEmailToken(token);
+  if (!datos || datos.tipo !== 'recuperar_busqueda') {
+    res.status(400).json({ error: 'La búsqueda expiró. Vuelve a buscar tu cuenta.' });
+    return;
+  }
+  try {
+    const [user] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.email, datos.email));
+    if (user && user.activo) {
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
+      const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+      await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiraEn });
+      const portalBase = process.env.PUBLIC_PORTAL_URL || process.env.PORTAL_URL || 'http://localhost:5173';
+      const resetUrl = `${portalBase}/reset-password?token=${resetToken}`;
+      await sendRecuperarPassword(datos.email, { nombre: datos.email.split('@')[0], resetUrl, token: resetToken });
+    }
+    // Respuesta genérica siempre (no confirma si la cuenta existe).
+    res.json({ ok: true, mensaje: 'Si la cuenta existe, enviamos el correo de recuperación.' });
+  } catch {
+    res.json({ ok: true, mensaje: 'Si la cuenta existe, enviamos el correo de recuperación.' });
+  }
+});
 
 const validarCurpSchema = z.object({
   curp: z.string().min(1).max(18),

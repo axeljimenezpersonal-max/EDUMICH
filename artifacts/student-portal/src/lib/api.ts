@@ -613,6 +613,7 @@ export interface CalificacionesResponse {
     examenesPresentados: number;
     porcentajeAvance: number;
   };
+  pdfOficial?: { disponible: boolean; subidoEn: string | null };
 }
 
 // ── Config pago gestor ────────────────────────────────────────────────────

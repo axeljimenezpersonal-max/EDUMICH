@@ -9,6 +9,8 @@ export { db };
 const migrations = [
   `ALTER TABLE estudiantes_modulos_progreso
      ADD COLUMN IF NOT EXISTS temas_debiles jsonb`,
+  // Búsqueda de cuenta por nombre sin sensibilidad a acentos
+  `CREATE EXTENSION IF NOT EXISTS unaccent`,
   // Rol de dirección de programa (perfil ejecutivo solo-lectura)
   `ALTER TYPE rol ADD VALUE IF NOT EXISTS 'direccion'`,
   `CREATE TABLE IF NOT EXISTS directores (

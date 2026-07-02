@@ -257,6 +257,9 @@ export const estudiantes = pgTable(
     ciudad: varchar('ciudad', { length: 120 }),
     estadoDomicilio: varchar('estado_domicilio', { length: 80 }),
     observaciones: text('observaciones'), // opcional — se imprime en la cédula
+    // PDF de calificaciones que sube la administración (preview + descarga)
+    calificacionesPdfPath: varchar('calificaciones_pdf_path', { length: 500 }),
+    calificacionesPdfSubidoEn: timestamp('calificaciones_pdf_subido_en'),
     municipioId: integer('municipio_id').references(() => municipios.id),
     gestorId: integer('gestor_id').references(() => users.id),
     emailVerificado: boolean('email_verificado').notNull().default(false),
