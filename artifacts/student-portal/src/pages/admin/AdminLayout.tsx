@@ -325,11 +325,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const personasItems = [
     { href: '/admin/alumnos',    icon: Users,    label: 'Alumnos',    badge: sidebar.totalAlumnos,    muted: true },
     { href: '/admin/gestores',   icon: UserCheck, label: 'Gestores',  badge: sidebar.totalGestores,   muted: true },
-    { href: '/admin/pagos',      icon: CreditCard, label: 'Pagos',   badge: sidebar.pagosPendientes, muted: false },
     { href: '/admin/solicitudes', icon: Inbox,   label: 'Solicitudes', badge: sidebar.solicitudesPendientes, muted: false },
   ];
 
   const otrosItems = [
+    { href: '/admin/pagos',      icon: CreditCard, label: 'Pagos',   badge: sidebar.pagosPendientes, muted: false },
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación de pase' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },

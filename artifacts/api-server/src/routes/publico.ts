@@ -32,8 +32,68 @@ import { autoregistroConfirmacionTemplate } from '../services/templates/autoregi
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
+import { validarCurp } from '../utils/curp';
+import rateLimit from 'express-rate-limit';
 
 const router = Router();
+
+// ─── Validación de CURP (filtro de auditoría) ────────────────────────────
+// Limitada por IP para impedir que alguien enumere CURPs registradas.
+const curpLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas consultas. Intenta de nuevo en unos minutos.' },
+});
+
+/** ¿La CURP ya está ocupada por un alumno o una solicitud activa? */
+async function curpOcupada(curp: string): Promise<string | null> {
+  const [alumno] = await db
+    .select({ userId: estudiantes.userId })
+    .from(estudiantes)
+    .where(eq(estudiantes.curp, curp));
+  if (alumno) return 'Ya existe un alumno registrado con esa CURP.';
+
+  const [solicitud] = await db
+    .select({ id: solicitudesCuenta.id, estado: solicitudesCuenta.estado })
+    .from(solicitudesCuenta)
+    .where(and(eq(solicitudesCuenta.curp, curp), sql`${solicitudesCuenta.estado} IN ('pendiente','aprobada')`));
+  if (solicitud) {
+    return solicitud.estado === 'pendiente'
+      ? 'Ya hay una solicitud en revisión con esa CURP. Espera la respuesta de la administración.'
+      : 'Esa CURP ya tiene una solicitud aprobada.';
+  }
+  return null;
+}
+
+const validarCurpSchema = z.object({
+  curp: z.string().min(1).max(18),
+  nombres: z.string().max(120).optional(),
+  apellidoPaterno: z.string().max(100).optional(),
+  apellidoMaterno: z.string().max(100).optional(),
+  fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  sexo: z.string().max(20).optional(),
+});
+
+router.post('/validar-curp', curpLimiter, async (req, res) => {
+  const parse = validarCurpSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ valida: false, errores: ['Datos inválidos.'] });
+    return;
+  }
+  const { curp, ...datos } = parse.data;
+  const resultado = validarCurp(curp, datos);
+
+  if (resultado.valida) {
+    const ocupada = await curpOcupada(curp.toUpperCase().trim());
+    if (ocupada) {
+      res.json({ valida: false, errores: [ocupada], entidadNacimiento: resultado.entidadNacimiento });
+      return;
+    }
+  }
+  res.json(resultado);
+});
 
 // ─── GET /publico/modulos ─────────────────────────────────────────────────
 router.get('/modulos', async (_req, res) => {
@@ -367,16 +427,27 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     return;
   }
 
-  // CURP único entre estudiantes existentes
-  if (data.curp) {
-    const [curpExist] = await db
-      .select()
-      .from(estudiantes)
-      .where(eq(estudiantes.curp, data.curp.toUpperCase()));
-    if (curpExist) {
-      res.status(409).json({ error: 'Ya existe un alumno registrado con esa CURP.' });
-      return;
-    }
+  // Filtro de auditoría de CURP (servidor = autoridad final, aunque el
+  // frontend ya haya validado): estructura + dígito verificador + cruce
+  // contra los datos declarados.
+  const curpNormalizada = data.curp.toUpperCase().trim();
+  const resultadoCurp = validarCurp(curpNormalizada, {
+    nombres: data.nombres,
+    apellidoPaterno: data.apellidoPaterno,
+    apellidoMaterno: data.apellidoMaterno,
+    fechaNacimiento: data.fechaNacimiento,
+    sexo: data.sexo,
+  });
+  if (!resultadoCurp.valida) {
+    res.status(400).json({ error: resultadoCurp.errores[0] ?? 'CURP inválida.' });
+    return;
+  }
+
+  // Unicidad: ni alumnos existentes ni solicitudes activas.
+  const ocupada = await curpOcupada(curpNormalizada);
+  if (ocupada) {
+    res.status(409).json({ error: ocupada });
+    return;
   }
 
   await db.insert(solicitudesCuenta).values({
@@ -384,7 +455,7 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     nombres: data.nombres,
     apellidoPaterno: data.apellidoPaterno,
     apellidoMaterno: data.apellidoMaterno,
-    curp: data.curp.toUpperCase(),
+    curp: curpNormalizada,
     fechaNacimiento: data.fechaNacimiento,
     sexo: data.sexo,
     lugarNacimiento: data.lugarNacimiento,

@@ -176,12 +176,48 @@ export default function SolicitarCuenta() {
     return null;
   }
 
-  function avanzar() {
+  const [validandoCurp, setValidandoCurp] = useState(false);
+
+  async function avanzar() {
     const error = validarPaso(paso);
     if (error) {
       setFormError(error);
       return;
     }
+
+    // Filtro de auditoría de CURP al salir del paso 1: estructura oficial,
+    // dígito verificador, cruce contra los datos capturados y unicidad.
+    if (paso === 1) {
+      setValidandoCurp(true);
+      setFormError(null);
+      try {
+        const r = await api.post<{ valida: boolean; errores: string[]; entidadNacimiento?: string }>(
+          '/publico/validar-curp',
+          {
+            curp: form.curp,
+            nombres: form.nombres,
+            apellidoPaterno: form.apellidoPaterno,
+            apellidoMaterno: form.apellidoMaterno,
+            fechaNacimiento: fechaNacimiento ? format(fechaNacimiento, 'yyyy-MM-dd') : undefined,
+            sexo: form.sexo || undefined,
+          }
+        );
+        if (!r.valida) {
+          setFormError(r.errores[0] ?? 'La CURP no es válida.');
+          return;
+        }
+        // Autollenar la entidad de nacimiento con la que codifica la CURP.
+        if (r.entidadNacimiento && !form.entidadNacimiento) {
+          setForm((prev) => ({ ...prev, entidadNacimiento: r.entidadNacimiento! }));
+        }
+      } catch (err) {
+        setFormError((err as Error).message || 'No se pudo validar la CURP. Intenta de nuevo.');
+        return;
+      } finally {
+        setValidandoCurp(false);
+      }
+    }
+
     setFormError(null);
     setPaso((p) => Math.min(3, p + 1));
   }
@@ -674,9 +710,18 @@ export default function SolicitarCuenta() {
               <button
                 type="button"
                 onClick={avanzar}
-                className="gov-btn-primary flex-1 flex items-center justify-center gap-2"
+                disabled={validandoCurp}
+                className="gov-btn-primary flex-1 flex items-center justify-center gap-2 disabled:opacity-60"
               >
-                Continuar <ArrowRight size={15} />
+                {validandoCurp ? (
+                  <>
+                    <Loader2 className="animate-spin" size={15} /> Validando CURP…
+                  </>
+                ) : (
+                  <>
+                    Continuar <ArrowRight size={15} />
+                  </>
+                )}
               </button>
             ) : (
               <button
