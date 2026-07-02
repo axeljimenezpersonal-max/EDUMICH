@@ -113,7 +113,7 @@ export default function AlumnosList() {
                 <tr
                   key={a.userId}
                   className="border-b border-stone-100 last:border-b-0 hover:bg-[var(--color-crema-50)] transition-colors"
-                  style={a.docsCount < 4 ? { borderLeft: '3px solid #f59e0b' } : undefined}
+                  style={a.obligAprobados < a.obligTotal ? { borderLeft: '3px solid #f59e0b' } : undefined}
                 >
                   <td className="px-4 py-3">
                     <Link
@@ -136,20 +136,26 @@ export default function AlumnosList() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {a.docsCount < 4 ? (
+                    {a.obligAprobados < a.obligTotal ? (
                       <span className="inline-flex items-center gap-2">
                         <span className="inline-flex items-center gap-1 text-stone-700">
                           <FileText size={14} className="text-stone-400" />
-                          {a.docsCount}
+                          {a.obligAprobados}/{a.obligTotal}
                         </span>
                         <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold">
-                          Faltan {4 - a.docsCount}
+                          Faltan {a.obligTotal - a.obligAprobados}
                         </span>
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-stone-700">
-                        <FileText size={14} className="text-stone-400" />
-                        {a.docsCount}
+                      <span className="inline-flex flex-col items-end gap-0.5">
+                        <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold inline-flex items-center gap-1">
+                          <FileText size={12} /> Obligatorios listos
+                        </span>
+                        {a.opcionalesFaltantes > 0 && (
+                          <span className="text-[10px] text-stone-400">
+                            {a.opcionalesFaltantes} opcional{a.opcionalesFaltantes !== 1 ? 'es' : ''} faltante{a.opcionalesFaltantes !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </span>
                     )}
                   </td>

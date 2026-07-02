@@ -194,14 +194,25 @@ router.get('/alumnos', async (req, res) => {
         .orderBy(desc(inscripciones.createdAt))
         .limit(1);
 
-      const [{ docs }] = insc
-        ? await db
-            .select({ docs: count() })
-            .from(documentos)
-            .where(eq(documentos.inscripcionId, insc.id))
-        : [{ docs: 0 }];
+      // Documentos del EXPEDIENTE: obligatorios aprobados (0-5) + opcionales faltantes
+      const OBLIG_LISTA = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
+      const OPCIONALES_LISTA = ['foto', 'comprobante_pago'];
+      const docsRows = await db
+        .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado })
+        .from(expedienteDocumentos)
+        .where(eq(expedienteDocumentos.estudianteId, r.userId));
+      const obligAprobados = new Set(
+        docsRows.filter((d) => d.estado === 'aprobado' && OBLIG_LISTA.includes(d.tipo)).map((d) => d.tipo)
+      ).size;
+      const opcSubidos = new Set(docsRows.filter((d) => OPCIONALES_LISTA.includes(d.tipo)).map((d) => d.tipo)).size;
 
-      return { ...r, inscripcion: insc ?? null, docsCount: docs };
+      return {
+        ...r,
+        inscripcion: insc ?? null,
+        obligAprobados,
+        obligTotal: OBLIG_LISTA.length,
+        opcionalesFaltantes: OPCIONALES_LISTA.length - opcSubidos,
+      };
     })
   );
 

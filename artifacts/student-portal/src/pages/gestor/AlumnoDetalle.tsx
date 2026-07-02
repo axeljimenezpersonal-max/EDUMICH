@@ -702,6 +702,21 @@ export default function AlumnoDetalle() {
             Tú y el alumno comparten el mismo expediente. Si el alumno trae documentos físicamente, los puedes subir tú; él también puede subirlos desde su portal.
           </div>
 
+          {/* Inscribir exámenes — arriba de los documentos */}
+          <button
+            onClick={() => setActiveTab('plan')}
+            className="w-full mb-5 bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 hover:border-[var(--color-guinda-700)] transition-colors group text-left"
+          >
+            <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+              <CalendarCheck size={18} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-semibold text-stone-900">Inscribir exámenes</div>
+              <div className="text-xs text-stone-500">Inscribe al alumno a los módulos de la convocatoria activa.</div>
+            </div>
+            <span className="shrink-0 text-xs font-semibold text-[var(--color-guinda-700)] group-hover:underline">Inscribir →</span>
+          </button>
+
           {[
             { title: 'Documentos obligatorios', defs: obligatorios, isRequired: true },
             { title: 'Documentos opcionales', defs: opcionales, isRequired: false },
@@ -759,23 +774,6 @@ export default function AlumnoDetalle() {
                 <Download size={13} /> Descargar
               </a>
             </div>
-          </section>
-
-          {/* Acceso a inscribir exámenes */}
-          <section className="mb-2">
-            <button
-              onClick={() => setActiveTab('plan')}
-              className="w-full bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 hover:border-[var(--color-guinda-700)] transition-colors group text-left"
-            >
-              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
-                <CalendarCheck size={18} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-stone-900">Inscribir exámenes</div>
-                <div className="text-xs text-stone-500">Inscribe al alumno a los módulos de la convocatoria activa.</div>
-              </div>
-              <span className="shrink-0 text-xs font-semibold text-[var(--color-guinda-700)] group-hover:underline">Inscribir →</span>
-            </button>
           </section>
         </>
       )}

@@ -90,7 +90,7 @@ export default function GestorPagos() {
           onCreado={async (id) => {
             await cargarLista();
             setVista({ t: 'detalle', id });
-            showToast('Pago grupal creado — descarga tu ficha');
+            showToast('Pago creado — descarga tu ficha');
           }}
           onError={(m) => showToast(m, false)}
         />
@@ -118,7 +118,7 @@ function ListaView({ pagos, loading, onNuevo, onVer }: {
       <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
           <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">PAGOS</div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">Pagos grupales de exámenes</h1>
+          <h1 className="font-serif text-2xl font-bold text-stone-900">Pagos</h1>
           <p className="text-stone-500 text-sm mt-1 max-w-xl">
             Paga varios exámenes de tus alumnos de una sola vez ante la Tesorería del Estado:
             genera tu ficha con folio, realiza el pago y sube el comprobante.
@@ -128,7 +128,7 @@ function ListaView({ pagos, loading, onNuevo, onVer }: {
           onClick={onNuevo}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] transition-colors shrink-0"
         >
-          <Plus size={15} /> Nuevo pago grupal
+          <Plus size={15} /> Nuevo pago
         </button>
       </div>
 
@@ -149,9 +149,9 @@ function ListaView({ pagos, loading, onNuevo, onVer }: {
       ) : pagos.length === 0 ? (
         <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
           <CreditCard size={30} className="mx-auto text-stone-300 mb-3" />
-          <div className="font-bold text-stone-900 mb-1">Sin pagos grupales aún</div>
+          <div className="font-bold text-stone-900 mb-1">Sin pagos aún</div>
           <p className="text-sm text-stone-500 max-w-sm mx-auto">
-            Crea tu primer pago grupal: selecciona los exámenes de tus alumnos (por ejemplo, 30 de Módulo 1) y genera la ficha.
+            Crea tu primer pago: selecciona los exámenes de tus alumnos (por ejemplo, 30 de Módulo 1) y genera la ficha.
           </p>
         </div>
       ) : (
@@ -249,7 +249,7 @@ function NuevoView({ onCancel, onCreado, onError }: {
       <button onClick={onCancel} className="text-sm text-stone-600 hover:text-[var(--color-guinda-700)] inline-flex items-center gap-1.5 mb-5">
         <ChevronLeft size={15} /> Volver a pagos
       </button>
-      <h1 className="font-serif text-2xl font-bold text-stone-900 mb-1">Nuevo pago grupal</h1>
+      <h1 className="font-serif text-2xl font-bold text-stone-900 mb-1">Nuevo pago</h1>
       <p className="text-stone-500 text-sm mb-5">
         Selecciona los exámenes a cubrir. Cada examen cuesta <strong>{fmtMoney(costo)} MXN</strong>.
       </p>
@@ -391,10 +391,10 @@ function DetalleView({ id, onBack, onToast }: {
   }
 
   async function cancelar() {
-    if (!confirm('¿Cancelar este pago grupal? Los exámenes volverán a estar disponibles para otro pago.')) return;
+    if (!confirm('¿Cancelar este pago? Los exámenes volverán a estar disponibles para otro pago.')) return;
     try {
       await api.delete(`/gestor/pagos-grupales/${id}`);
-      onToast('Pago grupal cancelado');
+      onToast('Pago cancelado');
       onBack();
     } catch (e) {
       onToast(e instanceof Error ? e.message : 'No se pudo cancelar', false);
@@ -540,7 +540,7 @@ function DetalleView({ id, onBack, onToast }: {
               onClick={cancelar}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors"
             >
-              <Trash2 size={13} /> Cancelar este pago grupal
+              <Trash2 size={13} /> Cancelar este pago
             </button>
           )}
         </div>

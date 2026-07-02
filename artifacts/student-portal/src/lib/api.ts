@@ -119,7 +119,9 @@ export interface AlumnoListItem {
     estado: string;
     convocatoriaNombre: string | null;
   } | null;
-  docsCount: number;
+  obligAprobados: number;
+  obligTotal: number;
+  opcionalesFaltantes: number;
 }
 
 export interface DocumentoItem {
