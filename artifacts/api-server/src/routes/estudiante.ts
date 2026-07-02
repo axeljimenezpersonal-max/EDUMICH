@@ -57,6 +57,7 @@ import {
   generarCedulaPdf,
   cedulaDatosSchema,
 } from '../services/cedula';
+import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { tryAuditLog } from '../utils/audit';
 import { QR_SECRET } from '../config/env';
 
@@ -810,14 +811,27 @@ router.get('/expediente', async (req, res) => {
 // ─── PATCH /estudiante/datos-personales ───────────────────────────────────
 const datosPersonalesSchema = z.object({
   nombreCompleto: z.string().min(3).max(200).optional(),
+  nombres: z.string().max(120).optional(),
+  apellidoPaterno: z.string().max(100).optional(),
+  apellidoMaterno: z.string().max(100).optional(),
   curp: z
     .string()
     .regex(/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$/, 'CURP inválida')
     .optional()
     .or(z.literal('')),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().nullable(),
+  sexo: z.string().max(20).optional(),
+  lugarNacimiento: z.string().max(120).optional(),
+  entidadNacimiento: z.string().max(80).optional(),
+  estadoCivil: z.string().max(30).optional(),
+  ultimoEstudio: z.string().max(120).optional(),
   telefono: z.string().max(30).optional(),
   direccion: z.string().max(500).optional(),
+  calleNumero: z.string().max(200).optional(),
+  colonia: z.string().max(120).optional(),
+  cp: z.string().max(10).optional(),
+  ciudad: z.string().max(120).optional(),
+  estadoDomicilio: z.string().max(80).optional(),
 });
 
 router.patch('/datos-personales', async (req, res) => {
@@ -830,12 +844,46 @@ router.patch('/datos-personales', async (req, res) => {
   }
 
   const data = parse.data;
+  const [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, userId));
+  if (!est) { res.status(404).json({ error: 'Estudiante no encontrado' }); return; }
+
   const set: Partial<typeof estudiantes.$inferInsert> = { updatedAt: new Date() };
-  if (data.nombreCompleto !== undefined) set.nombreCompleto = data.nombreCompleto;
+  if (data.nombres !== undefined) set.nombres = data.nombres;
+  if (data.apellidoPaterno !== undefined) set.apellidoPaterno = data.apellidoPaterno;
+  if (data.apellidoMaterno !== undefined) set.apellidoMaterno = data.apellidoMaterno;
   if (data.curp !== undefined) set.curp = data.curp || null;
   if (data.fechaNacimiento !== undefined) set.fechaNacimiento = data.fechaNacimiento ?? null;
+  if (data.sexo !== undefined) set.sexo = data.sexo;
+  if (data.lugarNacimiento !== undefined) set.lugarNacimiento = data.lugarNacimiento;
+  if (data.entidadNacimiento !== undefined) set.entidadNacimiento = data.entidadNacimiento;
+  if (data.estadoCivil !== undefined) set.estadoCivil = data.estadoCivil;
+  if (data.ultimoEstudio !== undefined) set.ultimoEstudio = data.ultimoEstudio;
   if (data.telefono !== undefined) set.telefono = data.telefono;
-  if (data.direccion !== undefined) set.direccion = data.direccion;
+  if (data.calleNumero !== undefined) set.calleNumero = data.calleNumero;
+  if (data.colonia !== undefined) set.colonia = data.colonia;
+  if (data.cp !== undefined) set.cp = data.cp;
+  if (data.ciudad !== undefined) set.ciudad = data.ciudad;
+  if (data.estadoDomicilio !== undefined) set.estadoDomicilio = data.estadoDomicilio;
+
+  // Derivar nombreCompleto: preferir las partes; si no, respetar el enviado directo
+  const nc = armarNombreCompleto({
+    nombres: data.nombres ?? est.nombres,
+    apellidoPaterno: data.apellidoPaterno ?? est.apellidoPaterno,
+    apellidoMaterno: data.apellidoMaterno ?? est.apellidoMaterno,
+  });
+  if (nc) set.nombreCompleto = nc;
+  else if (data.nombreCompleto !== undefined) set.nombreCompleto = data.nombreCompleto;
+
+  // Derivar direccion: preferir las partes; si no, respetar la enviada directa
+  const dir = armarDireccion({
+    calleNumero: data.calleNumero ?? est.calleNumero,
+    colonia: data.colonia ?? est.colonia,
+    cp: data.cp ?? est.cp,
+    ciudad: data.ciudad ?? est.ciudad,
+    estadoDomicilio: data.estadoDomicilio ?? est.estadoDomicilio,
+  });
+  if (dir) set.direccion = dir;
+  else if (data.direccion !== undefined) set.direccion = data.direccion;
 
   await db.update(estudiantes).set(set).where(eq(estudiantes.userId, userId));
 

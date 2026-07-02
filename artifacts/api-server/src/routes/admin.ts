@@ -39,6 +39,7 @@ import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { tryAuditLog } from '../utils/audit';
+import { armarDireccion } from '../utils/estudianteDatos';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 
@@ -746,9 +747,23 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
     await tx.insert(estudiantes).values({
       userId: user.id,
       nombreCompleto: solicitud.nombreCompleto,
+      nombres: solicitud.nombres,
+      apellidoPaterno: solicitud.apellidoPaterno,
+      apellidoMaterno: solicitud.apellidoMaterno,
       curp: solicitud.curp,
       fechaNacimiento: solicitud.fechaNacimiento,
+      sexo: solicitud.sexo,
+      lugarNacimiento: solicitud.lugarNacimiento,
+      entidadNacimiento: solicitud.entidadNacimiento,
+      estadoCivil: solicitud.estadoCivil,
+      ultimoEstudio: solicitud.ultimoEstudio,
       telefono: solicitud.telefono,
+      direccion: armarDireccion(solicitud) || null,
+      calleNumero: solicitud.calleNumero,
+      colonia: solicitud.colonia,
+      cp: solicitud.cp,
+      ciudad: solicitud.ciudad,
+      estadoDomicilio: solicitud.estadoDomicilio,
       municipioId: solicitud.municipioId,
       gestorId: asignarGestorId ?? null,
       emailVerificado: true,
@@ -2964,9 +2979,23 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
     await tx.insert(estudiantes).values({
       userId: user.id,
       nombreCompleto: solicitud.nombreCompleto,
+      nombres: solicitud.nombres,
+      apellidoPaterno: solicitud.apellidoPaterno,
+      apellidoMaterno: solicitud.apellidoMaterno,
       curp: solicitud.curp,
       fechaNacimiento: solicitud.fechaNacimiento,
+      sexo: solicitud.sexo,
+      lugarNacimiento: solicitud.lugarNacimiento,
+      entidadNacimiento: solicitud.entidadNacimiento,
+      estadoCivil: solicitud.estadoCivil,
+      ultimoEstudio: solicitud.ultimoEstudio,
       telefono: solicitud.telefono,
+      direccion: armarDireccion(solicitud) || null,
+      calleNumero: solicitud.calleNumero,
+      colonia: solicitud.colonia,
+      cp: solicitud.cp,
+      ciudad: solicitud.ciudad,
+      estadoDomicilio: solicitud.estadoDomicilio,
       municipioId: solicitud.municipioId,
       gestorId: gestorAsignadoId ?? null,
       emailVerificado: true,

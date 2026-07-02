@@ -235,11 +235,27 @@ export const estudiantes = pgTable(
     userId: integer('user_id')
       .primaryKey()
       .references(() => users.id, { onDelete: 'cascade' }),
+    // nombreCompleto y direccion se MANTIENEN pero son DERIVADOS de las partes
+    // (se arman al guardar). La fuente de verdad son los campos desglosados.
     nombreCompleto: varchar('nombre_completo', { length: 200 }).notNull(),
+    nombres: varchar('nombres', { length: 120 }),
+    apellidoPaterno: varchar('apellido_paterno', { length: 100 }),
+    apellidoMaterno: varchar('apellido_materno', { length: 100 }),
     curp: varchar('curp', { length: 18 }),
     fechaNacimiento: date('fecha_nacimiento'),
+    sexo: varchar('sexo', { length: 20 }), // 'hombre' | 'mujer' | 'no_definir'
+    lugarNacimiento: varchar('lugar_nacimiento', { length: 120 }),
+    entidadNacimiento: varchar('entidad_nacimiento', { length: 80 }),
+    estadoCivil: varchar('estado_civil', { length: 30 }),
+    ultimoEstudio: varchar('ultimo_estudio', { length: 120 }),
     telefono: varchar('telefono', { length: 30 }),
     direccion: text('direccion'),
+    // dirección desglosada (fuente de verdad; direccion se deriva de estas)
+    calleNumero: varchar('calle_numero', { length: 200 }),
+    colonia: varchar('colonia', { length: 120 }),
+    cp: varchar('cp', { length: 10 }),
+    ciudad: varchar('ciudad', { length: 120 }),
+    estadoDomicilio: varchar('estado_domicilio', { length: 80 }),
     municipioId: integer('municipio_id').references(() => municipios.id),
     gestorId: integer('gestor_id').references(() => users.id),
     emailVerificado: boolean('email_verificado').notNull().default(false),
@@ -397,30 +413,6 @@ export const expedienteDocumentos = pgTable(
   })
 );
 
-// ─────────────────────────────────────────────────────────────────────────
-// Cédula de inscripción — datos adicionales que no caben en `estudiantes`
-// ─────────────────────────────────────────────────────────────────────────
-
-export const cedulaDatos = pgTable('cedula_datos', {
-  estudianteId: integer('estudiante_id')
-    .primaryKey()
-    .references(() => estudiantes.userId, { onDelete: 'cascade' }),
-  apellidoPaterno: varchar('apellido_paterno', { length: 100 }),
-  apellidoMaterno: varchar('apellido_materno', { length: 100 }),
-  nombres: varchar('nombres', { length: 120 }),
-  sexo: varchar('sexo', { length: 20 }),
-  estadoCivil: varchar('estado_civil', { length: 30 }),
-  lugarNacimiento: varchar('lugar_nacimiento', { length: 120 }),
-  entidadNacimiento: varchar('entidad_nacimiento', { length: 80 }),
-  calleNumero: varchar('calle_numero', { length: 200 }),
-  colonia: varchar('colonia', { length: 120 }),
-  cp: varchar('cp', { length: 10 }),
-  ciudad: varchar('ciudad', { length: 120 }),
-  estado: varchar('estado', { length: 80 }),
-  ultimoEstudio: varchar('ultimo_estudio', { length: 120 }),
-  updatedAt: timestamp('updated_at').notNull().defaultNow(),
-});
-
 // Firma reutilizable por usuario (se guarda una vez y se reutiliza — estilo "agregar firma")
 export const firmasUsuario = pgTable('firmas_usuario', {
   userId: integer('user_id')
@@ -531,10 +523,23 @@ export const solicitudesCuenta = pgTable('solicitudes_cuenta', {
   id: serial('id').primaryKey(),
   folio: varchar('folio', { length: 20 }).unique(),
   nombreCompleto: varchar('nombre_completo', { length: 200 }).notNull(),
+  nombres: varchar('nombres', { length: 120 }),
+  apellidoPaterno: varchar('apellido_paterno', { length: 100 }),
+  apellidoMaterno: varchar('apellido_materno', { length: 100 }),
   curp: varchar('curp', { length: 18 }).notNull(),
   fechaNacimiento: date('fecha_nacimiento').notNull(),
+  sexo: varchar('sexo', { length: 20 }),
+  lugarNacimiento: varchar('lugar_nacimiento', { length: 120 }),
+  entidadNacimiento: varchar('entidad_nacimiento', { length: 80 }),
+  estadoCivil: varchar('estado_civil', { length: 30 }),
+  ultimoEstudio: varchar('ultimo_estudio', { length: 120 }),
   email: varchar('email', { length: 255 }).notNull(),
   telefono: varchar('telefono', { length: 30 }).notNull(),
+  calleNumero: varchar('calle_numero', { length: 200 }),
+  colonia: varchar('colonia', { length: 120 }),
+  cp: varchar('cp', { length: 10 }),
+  ciudad: varchar('ciudad', { length: 120 }),
+  estadoDomicilio: varchar('estado_domicilio', { length: 80 }),
   municipioId: integer('municipio_id')
     .notNull()
     .references(() => municipios.id),

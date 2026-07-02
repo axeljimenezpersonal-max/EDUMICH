@@ -2,9 +2,12 @@
  * Generador de la Cédula de Inscripción (Prepa Abierta Michoacán).
  *
  * Carga la plantilla AcroForm `assets/cedula-inscripcion.pdf`, autollena los
- * campos con los datos del alumno (+ deducciones de la CURP), incrusta la
- * fotografía del expediente y las firmas guardadas del alumno y del gestor,
- * aplana el formulario y devuelve los bytes del PDF final listo para descargar.
+ * campos con los datos del alumno (que ahora viven desglosados en `estudiantes`),
+ * incrusta la fotografía del expediente y las firmas guardadas del alumno y del
+ * gestor, aplana el formulario y devuelve los bytes del PDF final.
+ *
+ * IMPORTANTE: la cédula ya NO tiene datos propios; jala todo de `estudiantes`.
+ * "Completar la cédula" = completar los datos del alumno.
  */
 
 import { PDFDocument } from 'pdf-lib';
@@ -13,14 +16,8 @@ import path from 'path';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
-import {
-  estudiantes,
-  users,
-  gestores,
-  cedulaDatos,
-  firmasUsuario,
-  expedienteDocumentos,
-} from '@workspace/db/schema';
+import { estudiantes, users, gestores, firmasUsuario, expedienteDocumentos } from '@workspace/db/schema';
+import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 
 // ── Resolución de la plantilla (funciona en dev y en Docker/Railway) ────────
 function resolverPlantilla(): string {
@@ -54,6 +51,16 @@ function entidadDesdeCurp(curp?: string | null): string {
   return ENTIDADES_CURP[curp.slice(11, 13).toUpperCase()] ?? '';
 }
 
+/** Etiqueta legible del sexo guardado ('hombre'|'mujer'|'no_definir'). */
+function sexoLabel(sexo?: string | null): string {
+  switch ((sexo ?? '').toLowerCase()) {
+    case 'hombre': return 'Hombre';
+    case 'mujer': return 'Mujer';
+    case 'no_definir': return 'No definir';
+    default: return sexo ?? '';
+  }
+}
+
 function fmtFechaCorta(d: Date | string | null | undefined): string {
   if (!d) return '';
   const dt = typeof d === 'string' ? new Date(d + (d.length === 10 ? 'T00:00:00' : '')) : d;
@@ -63,7 +70,7 @@ function fmtFechaCorta(d: Date | string | null | undefined): string {
   return `${dd}/${mm}/${dt.getFullYear()}`;
 }
 
-// ── Datos consolidados de la cédula (para autollenar el formulario web) ──────
+// ── Datos consolidados de la cédula (para autollenar la vista previa) ────────
 export interface CedulaDatosResueltos {
   matricula: string;
   apellidoPaterno: string;
@@ -100,7 +107,6 @@ async function reunirDatos(estudianteId: number): Promise<{
   if (!est) throw new Error('Estudiante no encontrado');
 
   const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, estudianteId));
-  const [cd] = await db.select().from(cedulaDatos).where(eq(cedulaDatos.estudianteId, estudianteId));
 
   // Gestor responsable
   let responsableNombre = '';
@@ -125,24 +131,24 @@ async function reunirDatos(estudianteId: number): Promise<{
 
   const datos: CedulaDatosResueltos = {
     matricula: est.matriculaOficialDGB ?? '',
-    apellidoPaterno: cd?.apellidoPaterno ?? '',
-    apellidoMaterno: cd?.apellidoMaterno ?? '',
-    nombres: cd?.nombres ?? '',
+    apellidoPaterno: est.apellidoPaterno ?? '',
+    apellidoMaterno: est.apellidoMaterno ?? '',
+    nombres: est.nombres ?? '',
     nombreCompleto: est.nombreCompleto,
     curp: est.curp ?? '',
     fechaNacimiento: fmtFechaCorta(est.fechaNacimiento),
-    sexo: cd?.sexo || sexoDesdeCurp(est.curp),
-    estadoCivil: cd?.estadoCivil ?? '',
-    lugarNacimiento: cd?.lugarNacimiento ?? '',
-    entidadNacimiento: cd?.entidadNacimiento || entidadDesdeCurp(est.curp),
-    calleNumero: cd?.calleNumero || (est.direccion ?? ''),
-    colonia: cd?.colonia ?? '',
-    cp: cd?.cp ?? '',
-    ciudad: cd?.ciudad ?? '',
-    estado: cd?.estado ?? '',
+    sexo: sexoLabel(est.sexo) || sexoDesdeCurp(est.curp),
+    estadoCivil: est.estadoCivil ?? '',
+    lugarNacimiento: est.lugarNacimiento ?? '',
+    entidadNacimiento: est.entidadNacimiento || entidadDesdeCurp(est.curp),
+    calleNumero: est.calleNumero || (est.direccion ?? ''),
+    colonia: est.colonia ?? '',
+    cp: est.cp ?? '',
+    ciudad: est.ciudad ?? '',
+    estado: est.estadoDomicilio ?? '',
     telefono: est.telefono ?? '',
     correo: userRow?.email ?? '',
-    ultimoEstudio: cd?.ultimoEstudio || 'Secundaria',
+    ultimoEstudio: est.ultimoEstudio || 'Secundaria',
     responsableNombre,
     tieneFoto: fotoPath !== null,
     tieneFirmaAlumno: firmaAlumno !== null,
@@ -152,12 +158,12 @@ async function reunirDatos(estudianteId: number): Promise<{
   return { datos, fotoPath, firmaAlumno, firmaResponsable };
 }
 
-/** Devuelve los datos consolidados (para el formulario web). */
+/** Devuelve los datos consolidados (para la vista previa web). */
 export async function obtenerDatosCedula(estudianteId: number): Promise<CedulaDatosResueltos> {
   return (await reunirDatos(estudianteId)).datos;
 }
 
-// ── Guardar campos editables de la cédula ────────────────────────────────────
+// ── Guardar/completar los datos de la cédula = actualizar los datos del alumno ─
 export const cedulaDatosSchema = z.object({
   apellidoPaterno: z.string().max(100).optional(),
   apellidoMaterno: z.string().max(100).optional(),
@@ -170,20 +176,49 @@ export const cedulaDatosSchema = z.object({
   colonia: z.string().max(120).optional(),
   cp: z.string().max(10).optional(),
   ciudad: z.string().max(120).optional(),
-  estado: z.string().max(80).optional(),
+  estado: z.string().max(80).optional(), // → estado_domicilio
   ultimoEstudio: z.string().max(120).optional(),
 });
 
 export type CedulaDatosInput = z.infer<typeof cedulaDatosSchema>;
 
+/** Escribe los campos desglosados en `estudiantes` y re-deriva nombreCompleto/direccion. */
 export async function guardarDatosCedula(estudianteId: number, data: CedulaDatosInput): Promise<void> {
-  await db
-    .insert(cedulaDatos)
-    .values({ estudianteId, ...data })
-    .onConflictDoUpdate({
-      target: cedulaDatos.estudianteId,
-      set: { ...data, updatedAt: new Date() },
-    });
+  const [est] = await db.select().from(estudiantes).where(eq(estudiantes.userId, estudianteId));
+  if (!est) throw new Error('Estudiante no encontrado');
+
+  const set: Partial<typeof estudiantes.$inferInsert> = { updatedAt: new Date() };
+  if (data.apellidoPaterno !== undefined) set.apellidoPaterno = data.apellidoPaterno;
+  if (data.apellidoMaterno !== undefined) set.apellidoMaterno = data.apellidoMaterno;
+  if (data.nombres !== undefined) set.nombres = data.nombres;
+  if (data.sexo !== undefined) set.sexo = data.sexo;
+  if (data.estadoCivil !== undefined) set.estadoCivil = data.estadoCivil;
+  if (data.lugarNacimiento !== undefined) set.lugarNacimiento = data.lugarNacimiento;
+  if (data.entidadNacimiento !== undefined) set.entidadNacimiento = data.entidadNacimiento;
+  if (data.calleNumero !== undefined) set.calleNumero = data.calleNumero;
+  if (data.colonia !== undefined) set.colonia = data.colonia;
+  if (data.cp !== undefined) set.cp = data.cp;
+  if (data.ciudad !== undefined) set.ciudad = data.ciudad;
+  if (data.estado !== undefined) set.estadoDomicilio = data.estado;
+  if (data.ultimoEstudio !== undefined) set.ultimoEstudio = data.ultimoEstudio;
+
+  // Re-derivar nombreCompleto y direccion desde las partes (mezclando lo nuevo con lo existente)
+  const nombres = data.nombres ?? est.nombres;
+  const apellidoPaterno = data.apellidoPaterno ?? est.apellidoPaterno;
+  const apellidoMaterno = data.apellidoMaterno ?? est.apellidoMaterno;
+  const nc = armarNombreCompleto({ nombres, apellidoPaterno, apellidoMaterno });
+  if (nc) set.nombreCompleto = nc;
+
+  const dir = armarDireccion({
+    calleNumero: data.calleNumero ?? est.calleNumero,
+    colonia: data.colonia ?? est.colonia,
+    cp: data.cp ?? est.cp,
+    ciudad: data.ciudad ?? est.ciudad,
+    estadoDomicilio: data.estado ?? est.estadoDomicilio,
+  });
+  if (dir) set.direccion = dir;
+
+  await db.update(estudiantes).set(set).where(eq(estudiantes.userId, estudianteId));
 }
 
 function dataUrlABytes(dataUrl: string): { bytes: Uint8Array; esPng: boolean } | null {

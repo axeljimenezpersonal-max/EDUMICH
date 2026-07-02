@@ -19,10 +19,21 @@ export default function AutoRegistroDatos() {
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
   const [form, setForm] = useState({
-    nombreCompleto: '',
+    nombres: '',
+    apellidoPaterno: '',
+    apellidoMaterno: '',
     telefono: '',
     municipioId: '',
-    direccion: '',
+    sexo: '',
+    lugarNacimiento: '',
+    entidadNacimiento: '',
+    estadoCivil: '',
+    ultimoEstudio: '',
+    calleNumero: '',
+    colonia: '',
+    cp: '',
+    ciudad: '',
+    estadoDomicilio: '',
     password: '',
     confirmPassword: '',
   });
@@ -59,11 +70,23 @@ export default function AutoRegistroDatos() {
       await api.post('/publico/auto-registro', {
         emailVerificadoToken: token,
         email,
-        nombreCompleto: form.nombreCompleto,
+        nombreCompleto: [form.nombres, form.apellidoPaterno, form.apellidoMaterno].filter(Boolean).join(' '),
+        nombres: form.nombres,
+        apellidoPaterno: form.apellidoPaterno,
+        apellidoMaterno: form.apellidoMaterno,
         fechaNacimiento: fechaNacimiento ? format(fechaNacimiento, 'yyyy-MM-dd') : undefined,
+        sexo: form.sexo || undefined,
+        lugarNacimiento: form.lugarNacimiento || undefined,
+        entidadNacimiento: form.entidadNacimiento || undefined,
+        estadoCivil: form.estadoCivil || undefined,
+        ultimoEstudio: form.ultimoEstudio || undefined,
         telefono: form.telefono,
         municipioId: Number(form.municipioId),
-        direccion: form.direccion || undefined,
+        calleNumero: form.calleNumero || undefined,
+        colonia: form.colonia || undefined,
+        cp: form.cp || undefined,
+        ciudad: form.ciudad || undefined,
+        estadoDomicilio: form.estadoDomicilio || undefined,
         password: form.password,
       });
       setLocation('/registro/exito');
@@ -100,19 +123,19 @@ export default function AutoRegistroDatos() {
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="gov-label" htmlFor="nombre">
-              Nombre completo
-            </label>
-            <input
-              id="nombre"
-              type="text"
-              required
-              value={form.nombreCompleto}
-              onChange={set('nombreCompleto')}
-              className="gov-input"
-              autoComplete="name"
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="gov-label" htmlFor="nombres">Nombre(s)</label>
+              <input id="nombres" type="text" required value={form.nombres} onChange={set('nombres')} className="gov-input" autoComplete="given-name" placeholder="Axel Eduardo" />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="apP">Apellido paterno</label>
+              <input id="apP" type="text" required value={form.apellidoPaterno} onChange={set('apellidoPaterno')} className="gov-input" placeholder="González" />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="apM">Apellido materno</label>
+              <input id="apM" type="text" value={form.apellidoMaterno} onChange={set('apellidoMaterno')} className="gov-input" placeholder="Pérez" />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -163,18 +186,55 @@ export default function AutoRegistroDatos() {
             </select>
           </div>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="gov-label" htmlFor="sexo">Sexo</label>
+              <select id="sexo" value={form.sexo} onChange={set('sexo')} className="gov-input">
+                <option value="">Selecciona…</option>
+                <option value="hombre">Hombre</option>
+                <option value="mujer">Mujer</option>
+                <option value="no_definir">No definir</option>
+              </select>
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="ecivil">Estado civil</label>
+              <select id="ecivil" value={form.estadoCivil} onChange={set('estadoCivil')} className="gov-input">
+                <option value="">Selecciona…</option>
+                <option value="Soltero(a)">Soltero(a)</option>
+                <option value="Casado(a)">Casado(a)</option>
+                <option value="Unión libre">Unión libre</option>
+                <option value="Divorciado(a)">Divorciado(a)</option>
+                <option value="Viudo(a)">Viudo(a)</option>
+              </select>
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="ultest">Último estudio</label>
+              <input id="ultest" type="text" value={form.ultimoEstudio} onChange={set('ultimoEstudio')} className="gov-input" placeholder="Secundaria" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="gov-label" htmlFor="lugarNac">Lugar de nacimiento (ciudad)</label>
+              <input id="lugarNac" type="text" value={form.lugarNacimiento} onChange={set('lugarNacimiento')} className="gov-input" placeholder="Morelia" />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="entNac">Entidad donde nació</label>
+              <input id="entNac" type="text" value={form.entidadNacimiento} onChange={set('entidadNacimiento')} className="gov-input" placeholder="Michoacán" />
+            </div>
+          </div>
+
           <div>
-            <label className="gov-label" htmlFor="direccion">
-              Dirección (opcional)
-            </label>
-            <input
-              id="direccion"
-              type="text"
-              value={form.direccion}
-              onChange={set('direccion')}
-              className="gov-input"
-              placeholder="Calle, número, colonia"
-            />
+            <label className="gov-label">Domicilio (opcional)</label>
+            <div className="space-y-2">
+              <input value={form.calleNumero} onChange={set('calleNumero')} className="gov-input" placeholder="Calle y número" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input value={form.colonia} onChange={set('colonia')} className="gov-input" placeholder="Colonia" />
+                <input value={form.cp} onChange={set('cp')} className="gov-input" placeholder="Código postal" />
+                <input value={form.ciudad} onChange={set('ciudad')} className="gov-input" placeholder="Ciudad / municipio" />
+                <input value={form.estadoDomicilio} onChange={set('estadoDomicilio')} className="gov-input" placeholder="Estado" />
+              </div>
+            </div>
           </div>
 
           <div className="border-t border-stone-100 pt-4">

@@ -21,12 +21,23 @@ import { api, type Convocatoria } from '../../lib/api';
 // ── Types ──────────────────────────────────────────────────────────────────
 
 interface DatosPersonales {
-  nombreCompleto: string;
+  nombres: string;
+  apellidoPaterno: string;
+  apellidoMaterno: string;
   curp: string;
   email: string;
   telefono: string;
   fechaNacimiento: Date | undefined;
-  direccion: string;
+  sexo: string;
+  lugarNacimiento: string;
+  entidadNacimiento: string;
+  estadoCivil: string;
+  ultimoEstudio: string;
+  calleNumero: string;
+  colonia: string;
+  cp: string;
+  ciudad: string;
+  estadoDomicilio: string;
 }
 
 type DocKey = 'curp' | 'acta' | 'ine' | 'domicilio' | 'certificado';
@@ -91,12 +102,23 @@ const DOC_DEFS: Array<{
 ];
 
 const DATOS_INIT: DatosPersonales = {
-  nombreCompleto: '',
+  nombres: '',
+  apellidoPaterno: '',
+  apellidoMaterno: '',
   curp: '',
   email: '',
   telefono: '',
   fechaNacimiento: undefined,
-  direccion: '',
+  sexo: '',
+  lugarNacimiento: '',
+  entidadNacimiento: '',
+  estadoCivil: '',
+  ultimoEstudio: '',
+  calleNumero: '',
+  colonia: '',
+  cp: '',
+  ciudad: '',
+  estadoDomicilio: '',
 };
 
 const ARCHIVOS_INIT: Archivos = { curp: null, acta: null, ine: null, domicilio: null, certificado: null };
@@ -187,7 +209,8 @@ export default function NuevoAlumno() {
 
   // ── Beforeunload ─────────────────────────────────────────────────────
   const hayProgreso =
-    datos.nombreCompleto.trim() !== '' ||
+    datos.nombres.trim() !== '' ||
+    datos.apellidoPaterno.trim() !== '' ||
     datos.curp !== '' ||
     archivos.curp !== null ||
     archivos.acta !== null ||
@@ -237,7 +260,8 @@ export default function NuevoAlumno() {
 
   // ── Step 1 validation ────────────────────────────────────────────────
   const paso1Valid =
-    datos.nombreCompleto.trim().length > 0 &&
+    datos.nombres.trim().length > 0 &&
+    datos.apellidoPaterno.trim().length > 0 &&
     datos.curp.length === 18 &&
     emailValido(datos.email) &&
     conv !== null &&
@@ -277,12 +301,23 @@ export default function NuevoAlumno() {
     setFieldErrors({});
 
     const fd = new FormData();
-    fd.append('nombreCompleto', datos.nombreCompleto.trim());
+    fd.append('nombres', datos.nombres.trim());
+    fd.append('apellidoPaterno', datos.apellidoPaterno.trim());
+    fd.append('apellidoMaterno', datos.apellidoMaterno.trim());
     fd.append('curp', datos.curp.toUpperCase());
     fd.append('email', datos.email.toLowerCase());
     fd.append('telefono', datos.telefono);
     if (datos.fechaNacimiento) fd.append('fechaNacimiento', format(datos.fechaNacimiento, 'yyyy-MM-dd'));
-    fd.append('direccion', datos.direccion);
+    fd.append('sexo', datos.sexo);
+    fd.append('lugarNacimiento', datos.lugarNacimiento);
+    fd.append('entidadNacimiento', datos.entidadNacimiento);
+    fd.append('estadoCivil', datos.estadoCivil);
+    fd.append('ultimoEstudio', datos.ultimoEstudio);
+    fd.append('calleNumero', datos.calleNumero);
+    fd.append('colonia', datos.colonia);
+    fd.append('cp', datos.cp);
+    fd.append('ciudad', datos.ciudad);
+    fd.append('estadoDomicilio', datos.estadoDomicilio);
     fd.append('convocatoriaId', String(conv.id));
     fd.append('doc_curp', archivos.curp!);
     fd.append('doc_acta', archivos.acta!);
@@ -309,12 +344,23 @@ export default function NuevoAlumno() {
     setFieldErrors({});
 
     const fd = new FormData();
-    fd.append('nombreCompleto', datos.nombreCompleto.trim());
+    fd.append('nombres', datos.nombres.trim());
+    fd.append('apellidoPaterno', datos.apellidoPaterno.trim());
+    fd.append('apellidoMaterno', datos.apellidoMaterno.trim());
     fd.append('curp', datos.curp.toUpperCase());
     fd.append('email', datos.email.toLowerCase());
     fd.append('telefono', datos.telefono);
     if (datos.fechaNacimiento) fd.append('fechaNacimiento', format(datos.fechaNacimiento, 'yyyy-MM-dd'));
-    fd.append('direccion', datos.direccion);
+    fd.append('sexo', datos.sexo);
+    fd.append('lugarNacimiento', datos.lugarNacimiento);
+    fd.append('entidadNacimiento', datos.entidadNacimiento);
+    fd.append('estadoCivil', datos.estadoCivil);
+    fd.append('ultimoEstudio', datos.ultimoEstudio);
+    fd.append('calleNumero', datos.calleNumero);
+    fd.append('colonia', datos.colonia);
+    fd.append('cp', datos.cp);
+    fd.append('ciudad', datos.ciudad);
+    fd.append('estadoDomicilio', datos.estadoDomicilio);
     fd.append('convocatoriaId', String(conv.id));
     if (archivos.curp) fd.append('doc_curp', archivos.curp);
     if (archivos.acta) fd.append('doc_acta', archivos.acta);
@@ -478,17 +524,43 @@ export default function NuevoAlumno() {
       {/* ── PASO 1: Datos personales ─────────────────────────────────── */}
       {paso === 1 && (
         <div className="gov-card p-6 max-w-3xl space-y-5">
-          <div>
-            <label className="gov-label" htmlFor="nombre">
-              Nombre completo <span className="text-red-600">*</span>
-            </label>
-            <input
-              id="nombre"
-              value={datos.nombreCompleto}
-              onChange={(e) => setDatos((d) => ({ ...d, nombreCompleto: e.target.value }))}
-              className="gov-input"
-              placeholder="Ej. Ana María González Pérez"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="gov-label" htmlFor="nombres">
+                Nombre(s) <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="nombres"
+                value={datos.nombres}
+                onChange={(e) => setDatos((d) => ({ ...d, nombres: e.target.value }))}
+                className="gov-input"
+                placeholder="Ej. Axel Eduardo"
+              />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="apP">
+                Apellido paterno <span className="text-red-600">*</span>
+              </label>
+              <input
+                id="apP"
+                value={datos.apellidoPaterno}
+                onChange={(e) => setDatos((d) => ({ ...d, apellidoPaterno: e.target.value }))}
+                className="gov-input"
+                placeholder="Ej. González"
+              />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="apM">
+                Apellido materno
+              </label>
+              <input
+                id="apM"
+                value={datos.apellidoMaterno}
+                onChange={(e) => setDatos((d) => ({ ...d, apellidoMaterno: e.target.value }))}
+                className="gov-input"
+                placeholder="Ej. Pérez"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -577,18 +649,108 @@ export default function NuevoAlumno() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="gov-label" htmlFor="sexo">Sexo</label>
+              <select
+                id="sexo"
+                value={datos.sexo}
+                onChange={(e) => setDatos((d) => ({ ...d, sexo: e.target.value }))}
+                className="gov-input"
+              >
+                <option value="">Selecciona…</option>
+                <option value="hombre">Hombre</option>
+                <option value="mujer">Mujer</option>
+                <option value="no_definir">No definir</option>
+              </select>
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="ecivil">Estado civil</label>
+              <select
+                id="ecivil"
+                value={datos.estadoCivil}
+                onChange={(e) => setDatos((d) => ({ ...d, estadoCivil: e.target.value }))}
+                className="gov-input"
+              >
+                <option value="">Selecciona…</option>
+                <option value="Soltero(a)">Soltero(a)</option>
+                <option value="Casado(a)">Casado(a)</option>
+                <option value="Unión libre">Unión libre</option>
+                <option value="Divorciado(a)">Divorciado(a)</option>
+                <option value="Viudo(a)">Viudo(a)</option>
+              </select>
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="ultest">Último estudio</label>
+              <input
+                id="ultest"
+                value={datos.ultimoEstudio}
+                onChange={(e) => setDatos((d) => ({ ...d, ultimoEstudio: e.target.value }))}
+                className="gov-input"
+                placeholder="Secundaria"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="gov-label" htmlFor="lugarNac">Lugar de nacimiento (ciudad)</label>
+              <input
+                id="lugarNac"
+                value={datos.lugarNacimiento}
+                onChange={(e) => setDatos((d) => ({ ...d, lugarNacimiento: e.target.value }))}
+                className="gov-input"
+                placeholder="Ej. Morelia"
+              />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="entNac">Entidad donde nació</label>
+              <input
+                id="entNac"
+                value={datos.entidadNacimiento}
+                onChange={(e) => setDatos((d) => ({ ...d, entidadNacimiento: e.target.value }))}
+                className="gov-input"
+                placeholder="Ej. Michoacán (se deduce de la CURP si se deja vacío)"
+              />
+            </div>
+          </div>
+
           <div>
-            <label className="gov-label" htmlFor="dir">
-              Dirección
-            </label>
-            <textarea
-              id="dir"
-              rows={2}
-              value={datos.direccion}
-              onChange={(e) => setDatos((d) => ({ ...d, direccion: e.target.value }))}
-              className="gov-input"
-              placeholder="Calle, número, colonia..."
-            />
+            <label className="gov-label">Domicilio</label>
+            <div className="space-y-3">
+              <input
+                value={datos.calleNumero}
+                onChange={(e) => setDatos((d) => ({ ...d, calleNumero: e.target.value }))}
+                className="gov-input"
+                placeholder="Calle y número"
+              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <input
+                  value={datos.colonia}
+                  onChange={(e) => setDatos((d) => ({ ...d, colonia: e.target.value }))}
+                  className="gov-input"
+                  placeholder="Colonia"
+                />
+                <input
+                  value={datos.cp}
+                  onChange={(e) => setDatos((d) => ({ ...d, cp: e.target.value }))}
+                  className="gov-input"
+                  placeholder="Código postal"
+                />
+                <input
+                  value={datos.ciudad}
+                  onChange={(e) => setDatos((d) => ({ ...d, ciudad: e.target.value }))}
+                  className="gov-input"
+                  placeholder="Ciudad / municipio"
+                />
+                <input
+                  value={datos.estadoDomicilio}
+                  onChange={(e) => setDatos((d) => ({ ...d, estadoDomicilio: e.target.value }))}
+                  className="gov-input"
+                  placeholder="Estado"
+                />
+              </div>
+            </div>
           </div>
 
           <div className="pt-2">
@@ -599,7 +761,7 @@ export default function NuevoAlumno() {
             >
               Continuar →
             </button>
-            {!paso1Valid && datos.nombreCompleto.trim().length > 0 && (
+            {!paso1Valid && (datos.nombres.trim().length > 0 || datos.apellidoPaterno.trim().length > 0) && (
               <span className="ml-3 text-xs text-stone-500">
                 {fieldErrors.curp
                   ? 'Corrige el CURP antes de continuar'
@@ -624,7 +786,7 @@ export default function NuevoAlumno() {
           {/* Resumen paso 1 */}
           <div className="gov-card p-4 flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
-              <div className="font-semibold text-stone-900">{datos.nombreCompleto}</div>
+              <div className="font-semibold text-stone-900">{[datos.nombres, datos.apellidoPaterno, datos.apellidoMaterno].filter(Boolean).join(' ')}</div>
               <div className="font-mono text-sm text-stone-600 tracking-wide">
                 {datos.curp}
               </div>

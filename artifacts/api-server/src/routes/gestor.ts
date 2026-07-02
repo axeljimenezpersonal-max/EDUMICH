@@ -53,6 +53,7 @@ import {
 } from '../services/cedula';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
+import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 
 const router = Router();
 
@@ -204,13 +205,29 @@ router.get('/alumnos', async (req, res) => {
 
 // ─── POST /gestor/alumnos ────────────────────────────────────────────
 const crearAlumnoSchema = z.object({
-  nombreCompleto: z.string().min(3).max(200),
+  // nombreCompleto sigue aceptándose (compat) pero si vienen las partes se deriva
+  nombreCompleto: z.string().min(3).max(200).optional(),
+  nombres: z.string().max(120).optional(),
+  apellidoPaterno: z.string().max(100).optional(),
+  apellidoMaterno: z.string().max(100).optional(),
   curp: z.string().length(18),
   email: z.string().email(),
   telefono: z.string().min(7).max(30).optional(),
   fechaNacimiento: z.string().optional(),
+  sexo: z.string().max(20).optional(),
+  lugarNacimiento: z.string().max(120).optional(),
+  entidadNacimiento: z.string().max(80).optional(),
+  estadoCivil: z.string().max(30).optional(),
+  ultimoEstudio: z.string().max(120).optional(),
   direccion: z.string().optional(),
+  calleNumero: z.string().max(200).optional(),
+  colonia: z.string().max(120).optional(),
+  cp: z.string().max(10).optional(),
+  ciudad: z.string().max(120).optional(),
+  estadoDomicilio: z.string().max(80).optional(),
   convocatoriaId: z.number().int().positive(),
+}).refine((d) => (d.nombreCompleto && d.nombreCompleto.trim()) || (d.nombres && d.apellidoPaterno), {
+  message: 'Falta el nombre del alumno (nombres y apellido paterno)',
 });
 
 router.post('/alumnos', async (req, res) => {
@@ -262,11 +279,24 @@ router.post('/alumnos', async (req, res) => {
 
   await db.insert(estudiantes).values({
     userId: user.id,
-    nombreCompleto: data.nombreCompleto,
+    nombreCompleto: armarNombreCompleto(data) || data.nombreCompleto || '',
+    nombres: data.nombres,
+    apellidoPaterno: data.apellidoPaterno,
+    apellidoMaterno: data.apellidoMaterno,
     curp: data.curp.toUpperCase(),
     fechaNacimiento: data.fechaNacimiento,
+    sexo: data.sexo,
+    lugarNacimiento: data.lugarNacimiento,
+    entidadNacimiento: data.entidadNacimiento,
+    estadoCivil: data.estadoCivil,
+    ultimoEstudio: data.ultimoEstudio,
     telefono: data.telefono,
-    direccion: data.direccion,
+    direccion: armarDireccion(data) || data.direccion,
+    calleNumero: data.calleNumero,
+    colonia: data.colonia,
+    cp: data.cp,
+    ciudad: data.ciudad,
+    estadoDomicilio: data.estadoDomicilio,
     municipioId: ctx.municipioId,
     gestorId: userId,
     folioPreregistro: folio,
@@ -289,7 +319,7 @@ router.post('/alumnos', async (req, res) => {
   let modoEmail: 'dev' | 'production' = 'dev';
   try {
     const result = await sendBienvenidaCredenciales(data.email.toLowerCase(), {
-      nombreAlumno: data.nombreCompleto,
+      nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
       email: data.email.toLowerCase(),
       passwordTemporal: tempPassword,
       portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
@@ -411,11 +441,24 @@ router.post(
 
         await tx.insert(estudiantes).values({
           userId: user.id,
-          nombreCompleto: data.nombreCompleto,
+          nombreCompleto: armarNombreCompleto(data) || data.nombreCompleto || '',
+          nombres: data.nombres,
+          apellidoPaterno: data.apellidoPaterno,
+          apellidoMaterno: data.apellidoMaterno,
           curp: data.curp.toUpperCase(),
           fechaNacimiento: data.fechaNacimiento,
+          sexo: data.sexo,
+          lugarNacimiento: data.lugarNacimiento,
+          entidadNacimiento: data.entidadNacimiento,
+          estadoCivil: data.estadoCivil,
+          ultimoEstudio: data.ultimoEstudio,
           telefono: data.telefono,
-          direccion: data.direccion,
+          direccion: armarDireccion(data) || data.direccion,
+          calleNumero: data.calleNumero,
+          colonia: data.colonia,
+          cp: data.cp,
+          ciudad: data.ciudad,
+          estadoDomicilio: data.estadoDomicilio,
           municipioId: ctx.municipioId,
           gestorId: userId,
           folioPreregistro: folioRC,
@@ -486,7 +529,7 @@ router.post(
       let modoEmail: 'dev' | 'production' = 'dev';
       try {
         const emailResult = await sendBienvenidaCredenciales(data.email.toLowerCase(), {
-          nombreAlumno: data.nombreCompleto,
+          nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
           email: data.email.toLowerCase(),
           passwordTemporal: result.credencialTemporal,
           portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',

@@ -19,11 +19,23 @@ export default function SolicitarCuenta() {
 
   const [fechaNacimiento, setFechaNacimiento] = useState<Date | undefined>(undefined);
   const [form, setForm] = useState({
-    nombreCompleto: '',
+    nombres: '',
+    apellidoPaterno: '',
+    apellidoMaterno: '',
     curp: '',
     email: '',
     telefono: '',
     municipioId: '',
+    sexo: '',
+    lugarNacimiento: '',
+    entidadNacimiento: '',
+    estadoCivil: '',
+    ultimoEstudio: '',
+    calleNumero: '',
+    colonia: '',
+    cp: '',
+    ciudad: '',
+    estadoDomicilio: '',
     mensaje: '',
   });
   const [formLoading, setFormLoading] = useState(false);
@@ -123,11 +135,24 @@ export default function SolicitarCuenta() {
       // Enviar solicitud inmediatamente
       await api.post('/publico/solicitudes-cuenta', {
         emailVerificadoToken: r.token,
-        nombreCompleto: form.nombreCompleto,
+        nombreCompleto: [form.nombres, form.apellidoPaterno, form.apellidoMaterno].filter(Boolean).join(' '),
+        nombres: form.nombres,
+        apellidoPaterno: form.apellidoPaterno,
+        apellidoMaterno: form.apellidoMaterno,
         curp: form.curp.toUpperCase(),
         fechaNacimiento: fechaNacimiento ? format(fechaNacimiento, 'yyyy-MM-dd') : '',
+        sexo: form.sexo || undefined,
+        lugarNacimiento: form.lugarNacimiento || undefined,
+        entidadNacimiento: form.entidadNacimiento || undefined,
+        estadoCivil: form.estadoCivil || undefined,
+        ultimoEstudio: form.ultimoEstudio || undefined,
         email: form.email,
         telefono: form.telefono,
+        calleNumero: form.calleNumero || undefined,
+        colonia: form.colonia || undefined,
+        cp: form.cp || undefined,
+        ciudad: form.ciudad || undefined,
+        estadoDomicilio: form.estadoDomicilio || undefined,
         municipioId: Number(form.municipioId),
         mensaje: form.mensaje || undefined,
       });
@@ -309,18 +334,70 @@ export default function SolicitarCuenta() {
         </p>
 
         <form onSubmit={handleSolicitarCodigo} className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="gov-label" htmlFor="sc-nombres">Nombre(s)</label>
+              <input id="sc-nombres" type="text" required value={form.nombres} onChange={setField('nombres')} className="gov-input" placeholder="Axel Eduardo" />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="sc-apP">Apellido paterno</label>
+              <input id="sc-apP" type="text" required value={form.apellidoPaterno} onChange={setField('apellidoPaterno')} className="gov-input" placeholder="González" />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="sc-apM">Apellido materno</label>
+              <input id="sc-apM" type="text" value={form.apellidoMaterno} onChange={setField('apellidoMaterno')} className="gov-input" placeholder="Pérez" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="gov-label" htmlFor="sc-sexo">Sexo</label>
+              <select id="sc-sexo" value={form.sexo} onChange={setField('sexo')} className="gov-input">
+                <option value="">Selecciona…</option>
+                <option value="hombre">Hombre</option>
+                <option value="mujer">Mujer</option>
+                <option value="no_definir">No definir</option>
+              </select>
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="sc-ecivil">Estado civil</label>
+              <select id="sc-ecivil" value={form.estadoCivil} onChange={setField('estadoCivil')} className="gov-input">
+                <option value="">Selecciona…</option>
+                <option value="Soltero(a)">Soltero(a)</option>
+                <option value="Casado(a)">Casado(a)</option>
+                <option value="Unión libre">Unión libre</option>
+                <option value="Divorciado(a)">Divorciado(a)</option>
+                <option value="Viudo(a)">Viudo(a)</option>
+              </select>
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="sc-ultest">Último estudio</label>
+              <input id="sc-ultest" type="text" value={form.ultimoEstudio} onChange={setField('ultimoEstudio')} className="gov-input" placeholder="Secundaria" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="gov-label" htmlFor="sc-lugarNac">Lugar de nacimiento (ciudad)</label>
+              <input id="sc-lugarNac" type="text" value={form.lugarNacimiento} onChange={setField('lugarNacimiento')} className="gov-input" placeholder="Morelia" />
+            </div>
+            <div>
+              <label className="gov-label" htmlFor="sc-entNac">Entidad donde nació</label>
+              <input id="sc-entNac" type="text" value={form.entidadNacimiento} onChange={setField('entidadNacimiento')} className="gov-input" placeholder="Michoacán" />
+            </div>
+          </div>
+
           <div>
-            <label className="gov-label" htmlFor="sc-nombre">
-              Nombre completo
-            </label>
-            <input
-              id="sc-nombre"
-              type="text"
-              required
-              value={form.nombreCompleto}
-              onChange={setField('nombreCompleto')}
-              className="gov-input"
-            />
+            <label className="gov-label">Domicilio</label>
+            <div className="space-y-2">
+              <input value={form.calleNumero} onChange={setField('calleNumero')} className="gov-input" placeholder="Calle y número" />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <input value={form.colonia} onChange={setField('colonia')} className="gov-input" placeholder="Colonia" />
+                <input value={form.cp} onChange={setField('cp')} className="gov-input" placeholder="Código postal" />
+                <input value={form.ciudad} onChange={setField('ciudad')} className="gov-input" placeholder="Ciudad / municipio" />
+                <input value={form.estadoDomicilio} onChange={setField('estadoDomicilio')} className="gov-input" placeholder="Estado" />
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

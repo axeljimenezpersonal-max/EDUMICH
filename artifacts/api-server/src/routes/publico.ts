@@ -26,6 +26,7 @@ import {
   modulos,
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
+import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { sendVerificationCode, sendEmail } from '../services/email';
 import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
@@ -208,6 +209,23 @@ router.post('/email/verificar-codigo', async (req, res) => {
   res.json({ ok: true, token });
 });
 
+// Campos desglosados opcionales (compartidos por auto-registro y solicitud)
+const camposDesglosados = {
+  nombres: z.string().max(120).optional(),
+  apellidoPaterno: z.string().max(100).optional(),
+  apellidoMaterno: z.string().max(100).optional(),
+  sexo: z.string().max(20).optional(),
+  lugarNacimiento: z.string().max(120).optional(),
+  entidadNacimiento: z.string().max(80).optional(),
+  estadoCivil: z.string().max(30).optional(),
+  ultimoEstudio: z.string().max(120).optional(),
+  calleNumero: z.string().max(200).optional(),
+  colonia: z.string().max(120).optional(),
+  cp: z.string().max(10).optional(),
+  ciudad: z.string().max(120).optional(),
+  estadoDomicilio: z.string().max(80).optional(),
+};
+
 // ─── POST /publico/auto-registro ──────────────────────────────────────────
 const autoRegistroSchema = z.object({
   emailVerificadoToken: z.string(),
@@ -218,6 +236,7 @@ const autoRegistroSchema = z.object({
   municipioId: z.number().int().positive(),
   direccion: z.string().optional(),
   password: z.string().min(8),
+  ...camposDesglosados,
 });
 
 router.post('/auto-registro', async (req, res) => {
@@ -261,11 +280,24 @@ router.post('/auto-registro', async (req, res) => {
 
     await tx.insert(estudiantes).values({
       userId: user.id,
-      nombreCompleto: data.nombreCompleto,
+      nombreCompleto: armarNombreCompleto(data) || data.nombreCompleto,
+      nombres: data.nombres,
+      apellidoPaterno: data.apellidoPaterno,
+      apellidoMaterno: data.apellidoMaterno,
       curp: null,
       fechaNacimiento: data.fechaNacimiento,
+      sexo: data.sexo,
+      lugarNacimiento: data.lugarNacimiento,
+      entidadNacimiento: data.entidadNacimiento,
+      estadoCivil: data.estadoCivil,
+      ultimoEstudio: data.ultimoEstudio,
       telefono: data.telefono,
-      direccion: data.direccion ?? null,
+      direccion: armarDireccion(data) || data.direccion || null,
+      calleNumero: data.calleNumero,
+      colonia: data.colonia,
+      cp: data.cp,
+      ciudad: data.ciudad,
+      estadoDomicilio: data.estadoDomicilio,
       municipioId: data.municipioId,
       gestorId: null,
       emailVerificado: true,
@@ -315,6 +347,7 @@ const solicitudSchema = z.object({
   telefono: z.string().min(7).max(30),
   municipioId: z.number().int().positive(),
   mensaje: z.string().optional(),
+  ...camposDesglosados,
 });
 
 router.post('/solicitudes-cuenta', async (req, res) => {
@@ -347,11 +380,24 @@ router.post('/solicitudes-cuenta', async (req, res) => {
   }
 
   await db.insert(solicitudesCuenta).values({
-    nombreCompleto: data.nombreCompleto,
+    nombreCompleto: armarNombreCompleto(data) || data.nombreCompleto,
+    nombres: data.nombres,
+    apellidoPaterno: data.apellidoPaterno,
+    apellidoMaterno: data.apellidoMaterno,
     curp: data.curp.toUpperCase(),
     fechaNacimiento: data.fechaNacimiento,
+    sexo: data.sexo,
+    lugarNacimiento: data.lugarNacimiento,
+    entidadNacimiento: data.entidadNacimiento,
+    estadoCivil: data.estadoCivil,
+    ultimoEstudio: data.ultimoEstudio,
     email: data.email.toLowerCase(),
     telefono: data.telefono,
+    calleNumero: data.calleNumero,
+    colonia: data.colonia,
+    cp: data.cp,
+    ciudad: data.ciudad,
+    estadoDomicilio: data.estadoDomicilio,
     municipioId: data.municipioId,
     mensaje: data.mensaje ?? null,
     emailVerificado: true,
