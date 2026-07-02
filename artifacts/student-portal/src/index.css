@@ -31,17 +31,36 @@
   --color-crema-50: #fcfaf7;   /* crema base (cream del manual) */
   --color-crema-100: #f7f2ed;  /* fondo cálido (paper del manual) */
   --color-crema-200: #eadfd7;  /* líneas / bordes cálidos (line del manual) */
-  --color-piedra-700: #44403c;
-  --color-piedra-900: #2a2a2a;
+  --color-piedra-700: #443e39;
+  --color-piedra-900: #221c1a;
+
+  /* ── Escala `stone` re-entonada a los cálidos del manual ─────────────
+     Toda la app usa clases stone-*; al redefinirlas aquí, el gris frío de
+     Tailwind se convierte en los beiges/cafés del manual sin tocar cada
+     componente. Extremos: cream #FCFAF7 · line #EADFD7 · gray #6B635E ·
+     ink #221C1A. */
+  --color-stone-50: #fcfaf7;
+  --color-stone-100: #f7f2ed;
+  --color-stone-200: #eadfd7;
+  --color-stone-300: #ddd0c5;
+  --color-stone-400: #a89a8e;
+  --color-stone-500: #6b635e;
+  --color-stone-600: #57504a;
+  --color-stone-700: #443e39;
+  --color-stone-800: #2b2523;
+  --color-stone-900: #221c1a;
+  --color-stone-950: #17110f;
 
   /* ── Estados ─────────────────────────────────────────── */
   --color-aprobado: #2d7d46;
   --color-pendiente: #c77700;
   --color-rechazado: #b91c1c;
 
-  /* ── Tipografía ──────────────────────────────────────── */
-  --font-serif: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
-  --font-sans: "Inter", system-ui, sans-serif;   /* cuerpo */
+  /* ── Tipografía ──────────────────────────────────────────
+     Poppins en todo, como los manuales EDUMICH: títulos con peso 600 y
+     cuerpo ligero. (Plus Jakarta Sans e Inter quedan de respaldo.) */
+  --font-serif: "Poppins", "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-sans: "Poppins", "Inter", system-ui, sans-serif;   /* cuerpo */
 }
 
 /* ── Tokens siempre disponibles como CSS vars ─────────────

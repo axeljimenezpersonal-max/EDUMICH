@@ -62,7 +62,7 @@ export default function CambiarPasswordPrimerLogin() {
           {/* Bienvenida EDUMICH */}
           <div className="text-center mb-5">
             <div style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontWeight: 900, fontSize: 24, letterSpacing: '-0.03em',
               color: 'var(--color-guinda-700)', marginBottom: 4,
             }}>

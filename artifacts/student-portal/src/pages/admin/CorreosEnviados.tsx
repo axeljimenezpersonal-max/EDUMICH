@@ -102,13 +102,13 @@ export default function CorreosEnviados() {
 
   return (
     <AdminLayout>
-      <div style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ fontFamily: "'Poppins', sans-serif" }}>
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
           <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1c1917', margin: 0, fontFamily: "'Lora', Georgia, serif" }}>
             Correos enviados
           </h1>
-          <p style={{ fontSize: 13, color: '#78716c', margin: '4px 0 0 0' }}>
+          <p style={{ fontSize: 13, color: '#6b635e', margin: '4px 0 0 0' }}>
             Historial de notificaciones enviadas o guardadas en modo demo
           </p>
         </div>
@@ -118,7 +118,7 @@ export default function CorreosEnviados() {
           <select
             value={evento}
             onChange={e => handleEvento(e.target.value)}
-            style={{ fontSize: 13, padding: '6px 10px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', color: '#44403c' }}
+            style={{ fontSize: 13, padding: '6px 10px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', color: '#443e39' }}
           >
             <option value="">Todos los eventos</option>
             {Object.entries(EVENTO_LABELS).map(([k, v]) => (
@@ -128,7 +128,7 @@ export default function CorreosEnviados() {
           <select
             value={estado}
             onChange={e => handleEstado(e.target.value)}
-            style={{ fontSize: 13, padding: '6px 10px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', color: '#44403c' }}
+            style={{ fontSize: 13, padding: '6px 10px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', color: '#443e39' }}
           >
             <option value="">Todos los estados</option>
             <option value="demo_mode">Demo</option>
@@ -137,13 +137,13 @@ export default function CorreosEnviados() {
             <option value="pendiente">Pendiente</option>
           </select>
           <div style={{ position: 'relative', flex: 1, minWidth: 180 }}>
-            <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#a8a29e' }} />
+            <Search size={14} style={{ position: 'absolute', left: 9, top: '50%', transform: 'translateY(-50%)', color: '#a89a8e' }} />
             <input
               type="text"
               placeholder="Buscar por email o asunto..."
               value={qInput}
               onChange={e => handleSearch(e.target.value)}
-              style={{ width: '100%', fontSize: 13, padding: '6px 10px 6px 30px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', boxSizing: 'border-box' }}
+              style={{ width: '100%', fontSize: 13, padding: '6px 10px 6px 30px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', boxSizing: 'border-box' }}
             />
           </div>
         </div>
@@ -152,12 +152,12 @@ export default function CorreosEnviados() {
         <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
           {/* Lista */}
           <div style={{ width: '40%', flexShrink: 0 }}>
-            <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 8, overflow: 'hidden' }}>
+            <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 8, overflow: 'hidden' }}>
               {loading ? (
-                <div style={{ padding: '40px 0', textAlign: 'center', color: '#a8a29e', fontSize: 13 }}>Cargando...</div>
+                <div style={{ padding: '40px 0', textAlign: 'center', color: '#a89a8e', fontSize: 13 }}>Cargando...</div>
               ) : rows.length === 0 ? (
-                <div style={{ padding: '40px 0', textAlign: 'center', color: '#a8a29e', fontSize: 13 }}>
-                  <Mail size={32} style={{ color: '#d6d3d1', marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
+                <div style={{ padding: '40px 0', textAlign: 'center', color: '#a89a8e', fontSize: 13 }}>
+                  <Mail size={32} style={{ color: '#ddd0c5', marginBottom: 8, display: 'block', margin: '0 auto 8px' }} />
                   Sin correos
                 </div>
               ) : (
@@ -171,7 +171,7 @@ export default function CorreosEnviados() {
                         onClick={() => setSelected(row)}
                         style={{
                           padding: '12px 14px',
-                          borderBottom: i < rows.length - 1 ? '1px solid #f5f5f4' : 'none',
+                          borderBottom: i < rows.length - 1 ? '1px solid #f7f2ed' : 'none',
                           borderLeft: isSelected ? `3px solid ${GUINDA}` : '3px solid transparent',
                           background: isSelected ? '#fdf6fa' : '#fff',
                           cursor: 'pointer',
@@ -183,7 +183,7 @@ export default function CorreosEnviados() {
                             <div style={{ fontSize: 12, fontWeight: 600, color: '#1c1917', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {row.toName || row.toEmail}
                             </div>
-                            <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: 11, color: '#6b635e', marginBottom: 4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {row.toEmail}
                             </div>
                             <div style={{ fontSize: 11, color: GUINDA, fontWeight: 600 }}>
@@ -194,7 +194,7 @@ export default function CorreosEnviados() {
                             <span style={{ fontSize: 10, background: estadoStyle.bg, color: estadoStyle.color, border: `1px solid ${estadoStyle.border}`, padding: '2px 6px', borderRadius: 4, fontWeight: 600, display: 'block', marginBottom: 4 }}>
                               {estadoStyle.label}
                             </span>
-                            <span style={{ fontSize: 10, color: '#a8a29e' }}>
+                            <span style={{ fontSize: 10, color: '#a89a8e' }}>
                               {tiempoRelativo(row.createdAt)}
                             </span>
                           </div>
@@ -208,20 +208,20 @@ export default function CorreosEnviados() {
 
             {/* Paginación */}
             {pagination && pagination.totalPages > 1 && (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, fontSize: 12, color: '#78716c' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, fontSize: 12, color: '#6b635e' }}>
                 <span>{pagination.total} correos · Pág. {pagination.page}/{pagination.totalPages}</span>
                 <div style={{ display: 'flex', gap: 4 }}>
                   <button
                     onClick={() => handlePage(page - 1)}
                     disabled={page === 1}
-                    style={{ padding: '4px 8px', border: '1px solid #e7e5e4', borderRadius: 4, background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? '#d6d3d1' : '#44403c' }}
+                    style={{ padding: '4px 8px', border: '1px solid #eadfd7', borderRadius: 4, background: '#fff', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? '#ddd0c5' : '#443e39' }}
                   >
                     <ChevronLeft size={13} />
                   </button>
                   <button
                     onClick={() => handlePage(page + 1)}
                     disabled={page >= (pagination.totalPages ?? 1)}
-                    style={{ padding: '4px 8px', border: '1px solid #e7e5e4', borderRadius: 4, background: '#fff', cursor: page >= pagination.totalPages ? 'not-allowed' : 'pointer', color: page >= pagination.totalPages ? '#d6d3d1' : '#44403c' }}
+                    style={{ padding: '4px 8px', border: '1px solid #eadfd7', borderRadius: 4, background: '#fff', cursor: page >= pagination.totalPages ? 'not-allowed' : 'pointer', color: page >= pagination.totalPages ? '#ddd0c5' : '#443e39' }}
                   >
                     <ChevronRight size={13} />
                   </button>
@@ -233,9 +233,9 @@ export default function CorreosEnviados() {
           {/* Preview */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {selected ? (
-              <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 8, overflow: 'hidden' }}>
+              <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 8, overflow: 'hidden' }}>
                 {/* Meta del correo */}
-                <div style={{ padding: '14px 18px', borderBottom: '1px solid #f5f5f4', background: '#fafaf9' }}>
+                <div style={{ padding: '14px 18px', borderBottom: '1px solid #f7f2ed', background: '#fafaf9' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
                     <tbody>
                       {[
@@ -247,7 +247,7 @@ export default function CorreosEnviados() {
                         ['Fecha', new Date(selected.createdAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })],
                       ].map(([label, value]) => (
                         <tr key={label}>
-                          <td style={{ color: '#78716c', fontWeight: 700, paddingRight: 12, paddingBottom: 4, whiteSpace: 'nowrap', width: 60, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>{label}</td>
+                          <td style={{ color: '#6b635e', fontWeight: 700, paddingRight: 12, paddingBottom: 4, whiteSpace: 'nowrap', width: 60, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>{label}</td>
                           <td style={{ color: '#1c1917', paddingBottom: 4 }}>{value}</td>
                         </tr>
                       ))}
@@ -269,8 +269,8 @@ export default function CorreosEnviados() {
                 />
               </div>
             ) : (
-              <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 400, color: '#a8a29e' }}>
-                <Mail size={40} style={{ color: '#e7e5e4', marginBottom: 12 }} />
+              <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 400, color: '#a89a8e' }}>
+                <Mail size={40} style={{ color: '#eadfd7', marginBottom: 12 }} />
                 <p style={{ fontSize: 14, margin: 0 }}>Selecciona un correo para ver el preview</p>
               </div>
             )}

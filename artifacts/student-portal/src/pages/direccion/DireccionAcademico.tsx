@@ -51,10 +51,10 @@ export default function DireccionAcademico() {
   return (
     <DireccionLayout>
       <div className="mb-5">
-        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
           Indicadores académicos
         </h1>
-        <p className="text-[13px]" style={{ color: '#78716c' }}>
+        <p className="text-[13px]" style={{ color: '#6b635e' }}>
           Desempeño en exámenes DGB y avance del plan modular (21 módulos)
         </p>
       </div>
@@ -84,7 +84,7 @@ export default function DireccionAcademico() {
 
         <SeccionCard titulo="Riesgo por municipio" sub="Alumnos activos con 90+ días sin actividad">
           {data.riesgo.porMunicipio.length === 0 ? (
-            <div className="text-[13px] py-8 text-center" style={{ color: '#a8a29e' }}>Sin alumnos en riesgo 🎉</div>
+            <div className="text-[13px] py-8 text-center" style={{ color: '#a89a8e' }}>Sin alumnos en riesgo 🎉</div>
           ) : (
             <div className="space-y-2.5 pt-1">
               {data.riesgo.porMunicipio.map((m) => {
@@ -92,8 +92,8 @@ export default function DireccionAcademico() {
                 return (
                   <div key={m.nombre} className="flex items-center gap-3">
                     <AlertTriangle size={12} style={{ color: '#b45309', flexShrink: 0 }} />
-                    <div className="text-[12px] w-32 truncate" style={{ color: '#44403c' }}>{m.nombre}</div>
-                    <div className="flex-1 h-[8px] rounded-full" style={{ background: '#f5f5f4' }}>
+                    <div className="text-[12px] w-32 truncate" style={{ color: '#443e39' }}>{m.nombre}</div>
+                    <div className="flex-1 h-[8px] rounded-full" style={{ background: '#f7f2ed' }}>
                       <div
                         className="h-full rounded-full"
                         style={{ width: `${Math.max(Math.round((m.total / max) * 100), 3)}%`, background: '#d97706' }}
@@ -112,7 +112,7 @@ export default function DireccionAcademico() {
         <div style={{ overflowX: 'auto' }}>
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="text-left" style={{ color: '#78716c' }}>
+              <tr className="text-left" style={{ color: '#6b635e' }}>
                 <th className="py-2 pr-3 font-semibold">#</th>
                 <th className="py-2 pr-3 font-semibold">Módulo</th>
                 <th className="py-2 pr-3 font-semibold text-center">Nivel</th>
@@ -133,7 +133,7 @@ export default function DireccionAcademico() {
                   <td className="py-2 pr-3 text-right">{m.promedio || '—'}</td>
                   <td className="py-2">
                     <div className="flex items-center gap-2">
-                      <div className="flex-1 h-[6px] rounded-full" style={{ background: '#f5f5f4' }}>
+                      <div className="flex-1 h-[6px] rounded-full" style={{ background: '#f7f2ed' }}>
                         <div
                           className="h-full rounded-full"
                           style={{

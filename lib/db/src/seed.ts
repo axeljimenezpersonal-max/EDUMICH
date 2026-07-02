@@ -343,18 +343,20 @@ async function main() {
     console.log(`   ✓ Admin ya existía: admin@michoacan.gob.mx\n`);
   }
 
-  // ── Dirección de programa demo ────────────────────────────────────
-  console.log('👤 Creando dirección de programa demo...');
+  // ── Dirección de programa (cuenta oficial) ───────────────────────
+  // En producción la contraseña ya fue cambiada por la dirección; este seed
+  // solo aplica a instalaciones nuevas (password temporal demo).
+  console.log('👤 Creando dirección de programa...');
   const [existingDireccion] = await db
     .select()
     .from(users)
-    .where(eq(users.email, 'direccion@michoacan.gob.mx'));
+    .where(eq(users.email, 'sinapsys@michoacan.gob.mx'));
 
   if (!existingDireccion) {
     const [direccionUser] = await db
       .insert(users)
       .values({
-        email: 'direccion@michoacan.gob.mx',
+        email: 'sinapsys@michoacan.gob.mx',
         passwordHash,
         rol: 'direccion',
         privacidadAceptadaEn: new Date(),
@@ -365,12 +367,12 @@ async function main() {
       userId: direccionUser.id,
       nombreCompleto: 'Dirección del Programa en Línea',
       puesto: 'Dirección de Programa',
-      emailPublico: 'direccion@michoacan.gob.mx',
+      emailPublico: 'sinapsys@michoacan.gob.mx',
       telefonoPublico: '443-322-9250',
     });
-    console.log(`   ✓ Dirección: direccion@michoacan.gob.mx / demo1234\n`);
+    console.log(`   ✓ Dirección: sinapsys@michoacan.gob.mx / demo1234\n`);
   } else {
-    console.log(`   ✓ Dirección ya existía: direccion@michoacan.gob.mx\n`);
+    console.log(`   ✓ Dirección ya existía: sinapsys@michoacan.gob.mx\n`);
   }
 
   // ── Avisos seed ───────────────────────────────────────────────────

@@ -280,7 +280,7 @@ function IntegracionCard({
         {/* Avatar */}
         <div
           className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0 text-white text-sm font-bold"
-          style={{ background: isSepDgb ? '#78716c' : '#6B1530' }}
+          style={{ background: isSepDgb ? '#6b635e' : '#6B1530' }}
         >
           {providerInitials(integracion.nombre)}
         </div>
@@ -316,7 +316,7 @@ function IntegracionCard({
           style={
             integracion.conectada
               ? { background: '#d1fae5', color: '#2d7d46' }
-              : { background: '#f5f5f4', color: '#78716c' }
+              : { background: '#f7f2ed', color: '#6b635e' }
           }
         >
           {integracion.conectada ? (

@@ -103,7 +103,7 @@ function EditarBancariosModal({
           className="flex items-center justify-between px-6 py-4"
           style={{ background: '#6B1530', color: 'white' }}
         >
-          <h3 className="font-semibold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h3 className="font-semibold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Editar datos bancarios
           </h3>
           <button
@@ -172,7 +172,7 @@ function EditarBancariosModal({
               type="button"
               onClick={onClose}
               className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               Cancelar
             </button>
@@ -236,7 +236,7 @@ function CuentaBancaria({ onDirty }: { onDirty: (d: boolean) => void }) {
               <div className="flex items-start justify-between mb-4">
                 <div>
                   <div className="text-[10px] uppercase tracking-widest opacity-70 mb-0.5">Banco</div>
-                  <div className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                  <div className="text-base font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
                     {datos?.banco || <span style={{ opacity: 0.5 }}>Sin configurar</span>}
                   </div>
                 </div>
@@ -394,7 +394,7 @@ function MontoCell({
         type="button"
         onClick={handleCancel}
         className="w-6 h-6 flex items-center justify-center rounded"
-        style={{ background: '#f5f5f4', color: '#44403c', border: 'none', cursor: 'pointer' }}
+        style={{ background: '#f7f2ed', color: '#443e39', border: 'none', cursor: 'pointer' }}
       >
         <X size={11} strokeWidth={2} />
       </button>
@@ -434,7 +434,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
           <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
         </div>
       ) : conceptos.length === 0 ? (
-        <div className="p-6 text-sm text-center" style={{ color: '#78716c' }}>
+        <div className="p-6 text-sm text-center" style={{ color: '#6b635e' }}>
           No hay conceptos de pago configurados.
         </div>
       ) : (
@@ -442,16 +442,16 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-stone-100" style={{ background: '#fafaf9' }}>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>
                   Concepto
                 </th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>
                   Monto MXN
                 </th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>
                   Vigencia
                 </th>
-                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>
+                <th className="text-left px-5 py-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>
                   Activo
                 </th>
               </tr>
@@ -465,7 +465,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
                   <td className="px-5 py-3">
                     <MontoCell concepto={c} onSaved={handleSaved} />
                   </td>
-                  <td className="px-5 py-3 text-sm" style={{ color: '#78716c' }}>
+                  <td className="px-5 py-3 text-sm" style={{ color: '#6b635e' }}>
                     {formatFecha(c.vigencia)}
                   </td>
                   <td className="px-5 py-3">
@@ -474,7 +474,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
                       style={
                         c.activo
                           ? { background: '#d1fae5', color: '#2d7d46' }
-                          : { background: '#f5f5f4', color: '#78716c' }
+                          : { background: '#f7f2ed', color: '#6b635e' }
                       }
                     >
                       {c.activo ? 'Activo' : 'Inactivo'}
@@ -484,7 +484,7 @@ function ConceptosPago({ onDirty }: { onDirty: (d: boolean) => void }) {
               ))}
             </tbody>
           </table>
-          <p className="px-5 py-3 text-[11px]" style={{ color: '#a8a29e' }}>
+          <p className="px-5 py-3 text-[11px]" style={{ color: '#a89a8e' }}>
             Haz clic en el monto para editarlo directamente. Presiona Enter para guardar o Escape para cancelar.
           </p>
         </div>
@@ -506,9 +506,9 @@ function HistorialCambios() {
       <div className="p-5">
         <div
           className="flex items-center gap-2.5 px-4 py-3 rounded-lg text-sm"
-          style={{ background: '#f5f5f4', color: '#78716c' }}
+          style={{ background: '#f7f2ed', color: '#6b635e' }}
         >
-          <History size={14} strokeWidth={2} style={{ flexShrink: 0, color: '#a8a29e' }} />
+          <History size={14} strokeWidth={2} style={{ flexShrink: 0, color: '#a89a8e' }} />
           El historial de cambios en conceptos de pago se registra en la bitacora del sistema. Consulta la seccion
           de reportes o exporta la bitacora desde el modulo de administracion para ver el registro completo.
         </div>

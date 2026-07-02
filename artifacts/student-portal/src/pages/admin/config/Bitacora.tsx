@@ -76,13 +76,13 @@ function accionStyle(accion: Accion): React.CSSProperties {
     case 'UPDATE': return { background: '#e0f2fe', color: '#075985' };
     case 'DELETE': return { background: '#fee2e2', color: '#991b1b' };
     case 'LOGIN':
-    case 'LOGOUT': return { background: '#f5f5f4', color: '#44403c' };
+    case 'LOGOUT': return { background: '#f7f2ed', color: '#443e39' };
     case 'APROBAR': return { background: '#dcfce7', color: '#166534' };
     case 'RECHAZAR': return { background: '#fee2e2', color: '#991b1b' };
     case 'PUBLICAR':
     case 'ARCHIVAR': return { background: '#fef9c3', color: '#92400e' };
     case 'EXPORTAR': return { background: '#ede9fe', color: '#5b21b6' };
-    default: return { background: '#f5f5f4', color: '#44403c' };
+    default: return { background: '#f7f2ed', color: '#443e39' };
   }
 }
 
@@ -172,7 +172,7 @@ function DetailModal({ row, onClose }: { row: BitacoraRow; onClose: () => void }
               <div className="text-[10px] font-bold uppercase tracking-wider text-stone-400 mb-1">Entidad</div>
               <span
                 className="inline-block px-2 py-0.5 rounded text-[11px] font-medium"
-                style={{ background: '#f5f5f4', color: '#44403c' }}
+                style={{ background: '#f7f2ed', color: '#443e39' }}
               >
                 {row.entidad}
               </span>
@@ -480,7 +480,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
                       <td className="px-4 py-2.5 whitespace-nowrap">
                         <span
                           className="inline-block px-2 py-0.5 rounded font-medium"
-                          style={{ fontSize: 10, background: '#f5f5f4', color: '#44403c' }}
+                          style={{ fontSize: 10, background: '#f7f2ed', color: '#443e39' }}
                         >
                           {row.entidad}
                         </span>

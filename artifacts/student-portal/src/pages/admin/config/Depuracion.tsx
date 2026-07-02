@@ -63,7 +63,7 @@ function tipoLabel(tipo: string) {
     case 'soft_delete': return { label: 'Soft delete', bg: '#fee2e2', color: '#991b1b' };
     case 'hard_delete': return { label: 'Hard delete', bg: '#fce7f3', color: '#9d174d' };
     case 'restauracion': return { label: 'Restauración', bg: '#d1fae5', color: '#065f46' };
-    default: return { label: tipo, bg: '#f5f5f4', color: '#44403c' };
+    default: return { label: tipo, bg: '#f7f2ed', color: '#443e39' };
   }
 }
 
@@ -96,15 +96,15 @@ function ConfirmModal({
         <h3 style={{ margin: '0 0 12px', fontSize: 16, fontWeight: 700, color: '#1c1917' }}>
           {titulo}
         </h3>
-        <p style={{ margin: '0 0 24px', fontSize: 14, color: '#44403c', lineHeight: 1.6 }}>
+        <p style={{ margin: '0 0 24px', fontSize: 14, color: '#443e39', lineHeight: 1.6 }}>
           {mensaje}
         </p>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
           <button
             onClick={onCancel}
             style={{
-              padding: '8px 18px', borderRadius: 8, border: '1px solid #e7e5e4',
-              background: 'white', fontSize: 13, cursor: 'pointer', color: '#44403c',
+              padding: '8px 18px', borderRadius: 8, border: '1px solid #eadfd7',
+              background: 'white', fontSize: 13, cursor: 'pointer', color: '#443e39',
             }}
           >
             Cancelar
@@ -133,7 +133,7 @@ function KpiCard({ label, value, color, icon: Icon }: {
 }) {
   return (
     <div style={{
-      background: 'white', border: '1px solid #e7e5e4', borderRadius: 10,
+      background: 'white', border: '1px solid #eadfd7', borderRadius: 10,
       padding: '18px 20px', display: 'flex', alignItems: 'center', gap: 14,
     }}>
       <div style={{
@@ -144,7 +144,7 @@ function KpiCard({ label, value, color, icon: Icon }: {
       </div>
       <div>
         <div style={{ fontSize: 26, fontWeight: 800, color: '#1c1917', lineHeight: 1 }}>{value}</div>
-        <div style={{ fontSize: 12, color: '#78716c', marginTop: 3 }}>{label}</div>
+        <div style={{ fontSize: 12, color: '#6b635e', marginTop: 3 }}>{label}</div>
       </div>
     </div>
   );
@@ -239,7 +239,7 @@ export default function Depuracion() {
   const GUINDA = '#6B1530';
 
   return (
-    <div style={{ fontFamily: "'Inter', sans-serif", maxWidth: 900 }}>
+    <div style={{ fontFamily: "'Poppins', sans-serif", maxWidth: 900 }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', color: GUINDA, textTransform: 'uppercase', marginBottom: 6 }}>
@@ -248,21 +248,21 @@ export default function Depuracion() {
         <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1c1917', margin: 0 }}>
           Depuración de cuentas
         </h1>
-        <p style={{ fontSize: 13, color: '#78716c', marginTop: 6, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13, color: '#6b635e', marginTop: 6, lineHeight: 1.6 }}>
           Gestión automática de cuentas inactivas conforme a la política institucional y LGPDPPSO.
         </p>
       </div>
 
       {/* Card de política */}
       <div style={{
-        background: 'white', border: '1px solid #e7e5e4', borderRadius: 12,
+        background: 'white', border: '1px solid #eadfd7', borderRadius: 12,
         padding: '20px 24px', marginBottom: 24,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
           <ShieldCheck size={18} color={GUINDA} />
           <div>
             <div style={{ fontSize: 14, fontWeight: 700, color: '#1c1917' }}>Política institucional de depuración</div>
-            <div style={{ fontSize: 12, color: '#78716c' }}>Aprobada por la Dirección del IEMSyS · Solo lectura</div>
+            <div style={{ fontSize: 12, color: '#6b635e' }}>Aprobada por la Dirección del IEMSyS · Solo lectura</div>
           </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
@@ -273,7 +273,7 @@ export default function Depuracion() {
             ['Cuenta como actividad', 'Subir documentos o comprobantes de pago'],
           ].map(([label, value]) => (
             <div key={label} style={{ background: '#fafaf9', borderRadius: 8, padding: '12px 16px' }}>
-              <div style={{ fontSize: 11, color: '#78716c', marginBottom: 4, fontWeight: 600 }}>{label}</div>
+              <div style={{ fontSize: 11, color: '#6b635e', marginBottom: 4, fontWeight: 600 }}>{label}</div>
               <div style={{ fontSize: 13, color: '#1c1917', fontWeight: 600 }}>{value}</div>
             </div>
           ))}
@@ -292,7 +292,7 @@ export default function Depuracion() {
 
       {/* KPIs */}
       {loading && !stats ? (
-        <div style={{ textAlign: 'center', padding: 40, color: '#78716c' }}>Cargando...</div>
+        <div style={{ textAlign: 'center', padding: 40, color: '#6b635e' }}>Cargando...</div>
       ) : (
         <>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 28 }}>
@@ -307,8 +307,8 @@ export default function Depuracion() {
               onClick={cargar}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px',
-                borderRadius: 8, border: '1px solid #e7e5e4', background: 'white',
-                fontSize: 12, cursor: 'pointer', color: '#44403c',
+                borderRadius: 8, border: '1px solid #eadfd7', background: 'white',
+                fontSize: 12, cursor: 'pointer', color: '#443e39',
               }}
             >
               <RefreshCw size={12} /> Actualizar
@@ -317,10 +317,10 @@ export default function Depuracion() {
 
           {/* Cuentas en riesgo */}
           <div style={{
-            background: 'white', border: '1px solid #e7e5e4', borderRadius: 12,
+            background: 'white', border: '1px solid #eadfd7', borderRadius: 12,
             overflow: 'hidden', marginBottom: 24,
           }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f7f2ed', display: 'flex', alignItems: 'center', gap: 8 }}>
               <AlertTriangle size={16} color='#d97706' />
               <span style={{ fontSize: 14, fontWeight: 700, color: '#1c1917' }}>
                 Cuentas en riesgo de eliminación
@@ -333,7 +333,7 @@ export default function Depuracion() {
               </span>
             </div>
             {enRiesgo.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: '#78716c', fontSize: 13 }}>
+              <div style={{ padding: '32px 20px', textAlign: 'center', color: '#6b635e', fontSize: 13 }}>
                 Sin cuentas en riesgo
               </div>
             ) : (
@@ -341,7 +341,7 @@ export default function Depuracion() {
                 <thead>
                   <tr style={{ background: '#fafaf9' }}>
                     {['Alumno', 'Municipio', 'Días inactivo', 'Aviso enviado', 'Eliminación en', 'Acciones'].map((h) => (
-                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: '#78716c', borderBottom: '1px solid #f5f5f4' }}>
+                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: '#6b635e', borderBottom: '1px solid #f7f2ed' }}>
                         {h}
                       </th>
                     ))}
@@ -349,12 +349,12 @@ export default function Depuracion() {
                 </thead>
                 <tbody>
                   {enRiesgo.map((r) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid #f5f5f4' }}>
+                    <tr key={r.id} style={{ borderBottom: '1px solid #f7f2ed' }}>
                       <td style={{ padding: '12px 16px' }}>
                         <div style={{ fontWeight: 600, color: '#1c1917' }}>{r.nombreCompleto}</div>
-                        <div style={{ fontSize: 11, color: '#78716c' }}>{r.email}</div>
+                        <div style={{ fontSize: 11, color: '#6b635e' }}>{r.email}</div>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#44403c' }}>{r.municipio ?? '—'}</td>
+                      <td style={{ padding: '12px 16px', color: '#443e39' }}>{r.municipio ?? '—'}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
                           background: r.diasInactivo >= 28 ? '#fee2e2' : '#fef3c7',
@@ -364,7 +364,7 @@ export default function Depuracion() {
                           {r.diasInactivo} días
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#78716c', fontSize: 12 }}>
+                      <td style={{ padding: '12px 16px', color: '#6b635e', fontSize: 12 }}>
                         {fechaCorta(r.avisoEnviadoEn)}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -407,10 +407,10 @@ export default function Depuracion() {
 
           {/* Cuentas en soft delete */}
           <div style={{
-            background: 'white', border: '1px solid #e7e5e4', borderRadius: 12,
+            background: 'white', border: '1px solid #eadfd7', borderRadius: 12,
             overflow: 'hidden', marginBottom: 24,
           }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid #f7f2ed', display: 'flex', alignItems: 'center', gap: 8 }}>
               <Trash2 size={16} color='#dc2626' />
               <span style={{ fontSize: 14, fontWeight: 700, color: '#1c1917' }}>
                 Cuentas en soft delete (recuperables)
@@ -423,7 +423,7 @@ export default function Depuracion() {
               </span>
             </div>
             {softDeleted.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: '#78716c', fontSize: 13 }}>
+              <div style={{ padding: '32px 20px', textAlign: 'center', color: '#6b635e', fontSize: 13 }}>
                 Sin cuentas en soft delete
               </div>
             ) : (
@@ -431,7 +431,7 @@ export default function Depuracion() {
                 <thead>
                   <tr style={{ background: '#fafaf9' }}>
                     {['Folio', 'Municipio', 'Eliminada el', 'Hard delete en', 'Motivo', 'Acción'].map((h) => (
-                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: '#78716c', borderBottom: '1px solid #f5f5f4' }}>
+                      <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: '#6b635e', borderBottom: '1px solid #f7f2ed' }}>
                         {h}
                       </th>
                     ))}
@@ -439,22 +439,22 @@ export default function Depuracion() {
                 </thead>
                 <tbody>
                   {softDeleted.map((r) => (
-                    <tr key={r.id} style={{ borderBottom: '1px solid #f5f5f4' }}>
-                      <td style={{ padding: '12px 16px', color: '#44403c', fontFamily: 'monospace', fontSize: 12 }}>
+                    <tr key={r.id} style={{ borderBottom: '1px solid #f7f2ed' }}>
+                      <td style={{ padding: '12px 16px', color: '#443e39', fontFamily: 'monospace', fontSize: 12 }}>
                         {r.folio}
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#44403c' }}>{r.municipio ?? '—'}</td>
-                      <td style={{ padding: '12px 16px', color: '#78716c', fontSize: 12 }}>{fechaCorta(r.softDeletedEn)}</td>
+                      <td style={{ padding: '12px 16px', color: '#443e39' }}>{r.municipio ?? '—'}</td>
+                      <td style={{ padding: '12px 16px', color: '#6b635e', fontSize: 12 }}>{fechaCorta(r.softDeletedEn)}</td>
                       <td style={{ padding: '12px 16px' }}>
                         <span style={{
-                          background: r.diasParaHardDelete <= 7 ? '#fee2e2' : '#f5f5f4',
-                          color: r.diasParaHardDelete <= 7 ? '#991b1b' : '#44403c',
+                          background: r.diasParaHardDelete <= 7 ? '#fee2e2' : '#f7f2ed',
+                          color: r.diasParaHardDelete <= 7 ? '#991b1b' : '#443e39',
                           padding: '2px 8px', borderRadius: 8, fontSize: 12, fontWeight: 600,
                         }}>
                           {r.diasParaHardDelete} días ({fechaCorta(r.hardDeleteEn)})
                         </span>
                       </td>
-                      <td style={{ padding: '12px 16px', color: '#78716c', fontSize: 12, maxWidth: 200 }}>
+                      <td style={{ padding: '12px 16px', color: '#6b635e', fontSize: 12, maxWidth: 200 }}>
                         {r.motivo ?? '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>
@@ -478,23 +478,23 @@ export default function Depuracion() {
 
           {/* Historial */}
           <div style={{
-            background: 'white', border: '1px solid #e7e5e4', borderRadius: 12,
+            background: 'white', border: '1px solid #eadfd7', borderRadius: 12,
             overflow: 'hidden',
           }}>
             <div style={{
-              padding: '16px 20px', borderBottom: '1px solid #f5f5f4',
+              padding: '16px 20px', borderBottom: '1px solid #f7f2ed',
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Clock size={16} color='#78716c' />
+                <Clock size={16} color='#6b635e' />
                 <span style={{ fontSize: 14, fontWeight: 700, color: '#1c1917' }}>Historial de eliminaciones</span>
               </div>
               <select
                 value={histTipo}
                 onChange={(e) => { setHistTipo(e.target.value); setHistPage(1); }}
                 style={{
-                  padding: '5px 10px', borderRadius: 6, border: '1px solid #e7e5e4',
-                  fontSize: 12, color: '#44403c', background: 'white',
+                  padding: '5px 10px', borderRadius: 6, border: '1px solid #eadfd7',
+                  fontSize: 12, color: '#443e39', background: 'white',
                 }}
               >
                 <option value="">Todos los tipos</option>
@@ -504,7 +504,7 @@ export default function Depuracion() {
               </select>
             </div>
             {historial.length === 0 ? (
-              <div style={{ padding: '32px 20px', textAlign: 'center', color: '#78716c', fontSize: 13 }}>
+              <div style={{ padding: '32px 20px', textAlign: 'center', color: '#6b635e', fontSize: 13 }}>
                 Sin registros
               </div>
             ) : (
@@ -513,7 +513,7 @@ export default function Depuracion() {
                   <thead>
                     <tr style={{ background: '#fafaf9' }}>
                       {['Fecha', 'Tipo', 'Alumno / Folio', 'Municipio', 'Motivo', 'Días inactivo'].map((h) => (
-                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: '#78716c', borderBottom: '1px solid #f5f5f4' }}>
+                        <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 600, fontSize: 11, color: '#6b635e', borderBottom: '1px solid #f7f2ed' }}>
                           {h}
                         </th>
                       ))}
@@ -523,19 +523,19 @@ export default function Depuracion() {
                     {historial.map((r) => {
                       const { label, bg, color } = tipoLabel(r.tipo);
                       return (
-                        <tr key={r.id} style={{ borderBottom: '1px solid #f5f5f4' }}>
-                          <td style={{ padding: '10px 16px', color: '#78716c', fontSize: 12 }}>{fechaCorta(r.creadoEn)}</td>
+                        <tr key={r.id} style={{ borderBottom: '1px solid #f7f2ed' }}>
+                          <td style={{ padding: '10px 16px', color: '#6b635e', fontSize: 12 }}>{fechaCorta(r.creadoEn)}</td>
                           <td style={{ padding: '10px 16px' }}>
                             <span style={{ background: bg, color, padding: '2px 8px', borderRadius: 8, fontSize: 11, fontWeight: 700 }}>
                               {label}
                             </span>
                           </td>
-                          <td style={{ padding: '10px 16px', color: '#44403c' }}>
+                          <td style={{ padding: '10px 16px', color: '#443e39' }}>
                             {r.nombreCompleto ?? r.folioPreregistro ?? `ID ${r.estudianteId}`}
                           </td>
-                          <td style={{ padding: '10px 16px', color: '#78716c' }}>{r.municipioNombre ?? '—'}</td>
-                          <td style={{ padding: '10px 16px', color: '#78716c', maxWidth: 200, fontSize: 12 }}>{r.motivo}</td>
-                          <td style={{ padding: '10px 16px', color: '#44403c' }}>
+                          <td style={{ padding: '10px 16px', color: '#6b635e' }}>{r.municipioNombre ?? '—'}</td>
+                          <td style={{ padding: '10px 16px', color: '#6b635e', maxWidth: 200, fontSize: 12 }}>{r.motivo}</td>
+                          <td style={{ padding: '10px 16px', color: '#443e39' }}>
                             {r.diasSinActividad !== null ? `${r.diasSinActividad} días` : '—'}
                           </td>
                         </tr>
@@ -546,22 +546,22 @@ export default function Depuracion() {
 
                 {/* Paginación */}
                 {histTotal > 20 && (
-                  <div style={{ padding: '12px 20px', borderTop: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 12, color: '#78716c' }}>
+                  <div style={{ padding: '12px 20px', borderTop: '1px solid #f7f2ed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 12, color: '#6b635e' }}>
                       {histTotal} registros · Página {histPage}
                     </span>
                     <div style={{ display: 'flex', gap: 6 }}>
                       <button
                         onClick={() => setHistPage((p) => Math.max(1, p - 1))}
                         disabled={histPage === 1}
-                        style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e7e5e4', background: 'white', cursor: histPage === 1 ? 'not-allowed' : 'pointer', opacity: histPage === 1 ? 0.5 : 1 }}
+                        style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #eadfd7', background: 'white', cursor: histPage === 1 ? 'not-allowed' : 'pointer', opacity: histPage === 1 ? 0.5 : 1 }}
                       >
                         <ChevronLeft size={14} />
                       </button>
                       <button
                         onClick={() => setHistPage((p) => p + 1)}
                         disabled={histPage * 20 >= histTotal}
-                        style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #e7e5e4', background: 'white', cursor: histPage * 20 >= histTotal ? 'not-allowed' : 'pointer', opacity: histPage * 20 >= histTotal ? 0.5 : 1 }}
+                        style={{ padding: '4px 10px', borderRadius: 6, border: '1px solid #eadfd7', background: 'white', cursor: histPage * 20 >= histTotal ? 'not-allowed' : 'pointer', opacity: histPage * 20 >= histTotal ? 0.5 : 1 }}
                       >
                         <ChevronRight size={14} />
                       </button>

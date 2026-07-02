@@ -189,7 +189,7 @@ export default function Solicitudes() {
       ) : solicitudes.length === 0 ? (
         <div className="bg-white border border-stone-200 rounded-xl p-12 text-center">
           <CheckCircle2 size={36} className="mx-auto text-emerald-400 mb-3" />
-          <div className="text-sm font-semibold text-stone-600" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <div className="text-sm font-semibold text-stone-600" style={{ fontFamily: "'Poppins', sans-serif" }}>
             No hay solicitudes pendientes
           </div>
           <div className="text-xs text-stone-400 mt-1">Todas las solicitudes han sido procesadas.</div>
@@ -254,7 +254,7 @@ export default function Solicitudes() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 bg-emerald-50">
-              <div className="font-semibold text-stone-900 flex items-center gap-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <div className="font-semibold text-stone-900 flex items-center gap-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
                 <CheckCircle2 size={16} className="text-emerald-600" />
                 Aprobar solicitud
               </div>
@@ -395,7 +395,7 @@ export default function Solicitudes() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200 bg-red-50">
-              <div className="font-semibold text-stone-900 flex items-center gap-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <div className="font-semibold text-stone-900 flex items-center gap-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
                 <XCircle size={16} className="text-red-500" />
                 Rechazar solicitud
               </div>

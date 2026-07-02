@@ -262,7 +262,7 @@ export default function Municipios({ onDirty: _onDirty }: { onDirty?: (d: boolea
               <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">DISPONIBLES</h3>
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-bold"
-                style={{ background: '#f5f5f4', color: '#78716c' }}
+                style={{ background: '#f7f2ed', color: '#6b635e' }}
               >
                 {disponibles.length}
               </span>

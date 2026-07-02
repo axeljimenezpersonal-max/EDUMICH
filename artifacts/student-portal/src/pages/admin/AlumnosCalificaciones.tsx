@@ -92,7 +92,7 @@ export default function AlumnosCalificaciones() {
     <AdminLayout>
       <div className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">Admin</div>
-        <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-2xl font-bold text-stone-900">
+        <h1 style={{ fontFamily: "'Poppins', sans-serif" }} className="text-2xl font-bold text-stone-900">
           Captura de calificaciones
         </h1>
       </div>
@@ -148,7 +148,7 @@ export default function AlumnosCalificaciones() {
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="text-xs text-[var(--color-guinda-700)] font-semibold uppercase tracking-widest mb-0.5">Alumno seleccionado</div>
-                    <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-xl font-bold text-stone-900">
+                    <div style={{ fontFamily: "'Poppins', sans-serif" }} className="text-xl font-bold text-stone-900">
                       {selected.nombreCompleto}
                     </div>
                     <div className="text-sm font-mono text-stone-500">{selected.curp}</div>
@@ -187,14 +187,14 @@ export default function AlumnosCalificaciones() {
                         }`}
                       >
                         <div className="flex-1 min-w-0">
-                          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-semibold text-stone-900 text-sm">
+                          <div style={{ fontFamily: "'Poppins', sans-serif" }} className="font-semibold text-stone-900 text-sm">
                             M{row.moduloNumero} — {row.moduloNombre}
                           </div>
                           <div className="text-xs text-stone-500 mt-0.5">
                             Etapa {row.etapaClave} · {row.intento}º intento · {new Date(row.fechaExamen + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
                           </div>
                         </div>
-                        <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className={`text-2xl font-bold ${row.aprobado ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <div style={{ fontFamily: "'Poppins', sans-serif" }} className={`text-2xl font-bold ${row.aprobado ? 'text-emerald-600' : 'text-red-600'}`}>
                           {row.calificacion}
                         </div>
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${row.aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
@@ -215,7 +215,7 @@ export default function AlumnosCalificaciones() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
             <div className="flex items-center justify-between px-6 py-4 bg-[var(--color-guinda-700)] text-white rounded-t-xl">
-              <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base font-semibold">
+              <h3 style={{ fontFamily: "'Poppins', sans-serif" }} className="text-base font-semibold">
                 Capturar calificación — {selected.nombreCompleto}
               </h3>
             </div>
@@ -223,7 +223,7 @@ export default function AlumnosCalificaciones() {
               {submitSuccess ? (
                 <div className="flex flex-col items-center py-6 gap-3">
                   <Check size={40} className="text-emerald-500" />
-                  <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-bold text-stone-900">¡Calificación guardada!</div>
+                  <div style={{ fontFamily: "'Poppins', sans-serif" }} className="font-bold text-stone-900">¡Calificación guardada!</div>
                 </div>
               ) : (
                 <>

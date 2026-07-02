@@ -29,7 +29,7 @@ export default function RecuperarPassword() {
 
   const panelIzquierdo = (
     <div
-      className="bg-[var(--color-guinda-700)] text-white relative overflow-hidden"
+      className="bg-[var(--color-guinda-800)] text-white relative overflow-hidden"
       style={{ display: 'flex', flexDirection: 'column', padding: '48px 60px' }}
     >
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 40%)' }} />
@@ -57,7 +57,7 @@ export default function RecuperarPassword() {
   if (metodo === null) {
     return (
       <div className="min-h-screen flex flex-col">
-        <div className="bg-[var(--color-guinda-700)] text-white text-xs">
+        <div className="bg-[var(--color-guinda-800)] text-white text-xs">
           <div className="max-w-7xl mx-auto px-4 py-1.5">
             <span className="font-medium tracking-wide">GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
           </div>
@@ -79,7 +79,7 @@ export default function RecuperarPassword() {
                 className="w-full text-left mb-3 transition-all"
                 style={{
                   background: 'white',
-                  border: '1px solid #e7e5e4',
+                  border: '1px solid #eadfd7',
                   borderRadius: 12,
                   padding: '18px 22px',
                   display: 'flex',
@@ -88,7 +88,7 @@ export default function RecuperarPassword() {
                   cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => { const el = e.currentTarget; el.style.borderColor = 'var(--color-guinda-500)'; el.style.background = 'var(--color-crema-50)'; el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.04)'; el.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { const el = e.currentTarget; el.style.borderColor = '#e7e5e4'; el.style.background = 'white'; el.style.boxShadow = 'none'; el.style.transform = 'none'; }}
+                onMouseLeave={(e) => { const el = e.currentTarget; el.style.borderColor = '#eadfd7'; el.style.background = 'white'; el.style.boxShadow = 'none'; el.style.transform = 'none'; }}
               >
                 <div style={{ width: 44, height: 44, background: 'var(--color-guinda-100)', color: 'var(--color-guinda-700)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Mail size={20} />
@@ -106,7 +106,7 @@ export default function RecuperarPassword() {
                 className="w-full text-left mb-6 transition-all"
                 style={{
                   background: 'white',
-                  border: '1px solid #e7e5e4',
+                  border: '1px solid #eadfd7',
                   borderRadius: 12,
                   padding: '18px 22px',
                   display: 'flex',
@@ -115,7 +115,7 @@ export default function RecuperarPassword() {
                   cursor: 'pointer',
                 }}
                 onMouseEnter={(e) => { const el = e.currentTarget; el.style.borderColor = 'var(--color-guinda-500)'; el.style.background = 'var(--color-crema-50)'; el.style.boxShadow = '0 4px 12px rgba(0,0,0,0.04)'; el.style.transform = 'translateY(-1px)'; }}
-                onMouseLeave={(e) => { const el = e.currentTarget; el.style.borderColor = '#e7e5e4'; el.style.background = 'white'; el.style.boxShadow = 'none'; el.style.transform = 'none'; }}
+                onMouseLeave={(e) => { const el = e.currentTarget; el.style.borderColor = '#eadfd7'; el.style.background = 'white'; el.style.boxShadow = 'none'; el.style.transform = 'none'; }}
               >
                 <div style={{ width: 44, height: 44, background: 'var(--color-guinda-100)', color: 'var(--color-guinda-700)', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <HelpCircle size={20} />
@@ -145,7 +145,7 @@ export default function RecuperarPassword() {
   if (metodo === 'correo') {
     return (
       <div className="min-h-screen flex flex-col">
-        <div className="bg-[var(--color-guinda-700)] text-white text-xs">
+        <div className="bg-[var(--color-guinda-800)] text-white text-xs">
           <div className="max-w-7xl mx-auto px-4 py-1.5">
             <span className="font-medium tracking-wide">GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
           </div>
@@ -256,7 +256,7 @@ export default function RecuperarPassword() {
   // ── Vista: contactar administrador ──────────────────────────────────
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="bg-[var(--color-guinda-700)] text-white text-xs">
+      <div className="bg-[var(--color-guinda-800)] text-white text-xs">
         <div className="max-w-7xl mx-auto px-4 py-1.5">
           <span className="font-medium tracking-wide">GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
         </div>
@@ -282,22 +282,22 @@ export default function RecuperarPassword() {
             </p>
 
             {/* Card de contacto */}
-            <div className="mb-4" style={{ background: 'var(--color-crema-50)', border: '1px solid #e7e5e4', borderRadius: 12 }}>
+            <div className="mb-4" style={{ background: 'var(--color-crema-50)', border: '1px solid #eadfd7', borderRadius: 12 }}>
               {/* Correo */}
               <div style={{ padding: '16px 22px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
                 <div style={{ width: 40, height: 40, background: 'var(--color-guinda-100)', color: 'var(--color-guinda-700)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <Mail size={18} />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#78716c' }}>Correo de soporte</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b635e' }}>Correo de soporte</div>
                   <a href="mailto:soporte.prepaabierta@michoacan.gob.mx" className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
                     soporte.prepaabierta@michoacan.gob.mx
                   </a>
-                  <div className="text-xs mt-1" style={{ color: '#78716c' }}>Respuesta en 24-48 horas hábiles</div>
+                  <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Respuesta en 24-48 horas hábiles</div>
                 </div>
               </div>
 
-              <div style={{ height: 1, background: '#e7e5e4', margin: '0 22px' }} />
+              <div style={{ height: 1, background: '#eadfd7', margin: '0 22px' }} />
 
               {/* Teléfono */}
               <div style={{ padding: '16px 22px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -305,15 +305,15 @@ export default function RecuperarPassword() {
                   <Phone size={18} />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#78716c' }}>Teléfono de atención</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b635e' }}>Teléfono de atención</div>
                   <a href="tel:4433223456" className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
                     (443) 322-3456
                   </a>
-                  <div className="text-xs mt-1" style={{ color: '#78716c' }}>Lunes a viernes · 9:00 a 17:00 hrs</div>
+                  <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Lunes a viernes · 9:00 a 17:00 hrs</div>
                 </div>
               </div>
 
-              <div style={{ height: 1, background: '#e7e5e4', margin: '0 22px' }} />
+              <div style={{ height: 1, background: '#eadfd7', margin: '0 22px' }} />
 
               {/* Presencial */}
               <div style={{ padding: '16px 22px', display: 'flex', gap: 14, alignItems: 'flex-start' }}>
@@ -321,9 +321,9 @@ export default function RecuperarPassword() {
                   <MapPin size={18} />
                 </div>
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#78716c' }}>Atención presencial</div>
+                  <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b635e' }}>Atención presencial</div>
                   <div className="font-serif font-bold" style={{ fontSize: 14, color: '#1c1917' }}>IEMSyS · Edificio Sentimientos de la Nación</div>
-                  <div className="text-xs mt-1" style={{ color: '#78716c' }}>Av. Madero Pte. 401, Centro Histórico, Morelia, Mich.</div>
+                  <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Av. Madero Pte. 401, Centro Histórico, Morelia, Mich.</div>
                 </div>
               </div>
             </div>

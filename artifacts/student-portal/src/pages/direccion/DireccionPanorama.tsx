@@ -62,10 +62,10 @@ export default function DireccionPanorama() {
   return (
     <DireccionLayout>
       <div className="mb-5">
-        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
           Panorama del programa
         </h1>
-        <p className="text-[13px]" style={{ color: '#78716c' }}>
+        <p className="text-[13px]" style={{ color: '#6b635e' }}>
           Indicadores generales de Prepa Abierta Michoacán · datos agregados en tiempo real
         </p>
       </div>
@@ -101,15 +101,15 @@ export default function DireccionPanorama() {
               return (
                 <div key={f.etapa}>
                   <div className="flex justify-between text-[12px] mb-1">
-                    <span style={{ color: '#44403c' }}>{f.etapa}</span>
+                    <span style={{ color: '#443e39' }}>{f.etapa}</span>
                     <span className="font-semibold">
                       {f.total.toLocaleString('es-MX')}
                       {conversion !== null && (
-                        <span style={{ color: '#a8a29e', fontWeight: 400 }}> · {conversion}% del paso anterior</span>
+                        <span style={{ color: '#a89a8e', fontWeight: 400 }}> · {conversion}% del paso anterior</span>
                       )}
                     </span>
                   </div>
-                  <div className="h-[10px] rounded-full" style={{ background: '#f5f5f4' }}>
+                  <div className="h-[10px] rounded-full" style={{ background: '#f7f2ed' }}>
                     <div
                       className="h-full rounded-full"
                       style={{ width: `${Math.max(pct, 2)}%`, background: GUINDA, opacity: 1 - i * 0.1 }}
@@ -127,7 +127,7 @@ export default function DireccionPanorama() {
           sub={`Etapas del año ${new Date().getFullYear()}`}
         >
           {data.inscripcionesPorEtapa.length === 0 ? (
-            <div className="text-[13px] py-8 text-center" style={{ color: '#a8a29e' }}>Sin etapas registradas este año</div>
+            <div className="text-[13px] py-8 text-center" style={{ color: '#a89a8e' }}>Sin etapas registradas este año</div>
           ) : (
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={data.inscripcionesPorEtapa}>
@@ -136,7 +136,7 @@ export default function DireccionPanorama() {
                 <Tooltip />
                 <Bar dataKey="inscritos" radius={[4, 4, 0, 0]}>
                   {data.inscripcionesPorEtapa.map((e) => (
-                    <Cell key={e.clave} fill={e.activa ? GUINDA : e.futura ? '#d6d3d1' : '#a8848f'} />
+                    <Cell key={e.clave} fill={e.activa ? GUINDA : e.futura ? '#ddd0c5' : '#a8848f'} />
                   ))}
                 </Bar>
               </BarChart>
@@ -156,7 +156,7 @@ export default function DireccionPanorama() {
                   <stop offset="100%" stopColor={GUINDA} stopOpacity={0.02} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#f7f2ed" />
               <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
               <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={32} />
               <Tooltip />
@@ -172,8 +172,8 @@ export default function DireccionPanorama() {
               const max = data.municipiosTop[0]?.total ?? 1;
               return (
                 <div key={m.nombre} className="flex items-center gap-3">
-                  <div className="text-[12px] w-32 truncate" style={{ color: '#44403c' }}>{m.nombre}</div>
-                  <div className="flex-1 h-[8px] rounded-full" style={{ background: '#f5f5f4' }}>
+                  <div className="text-[12px] w-32 truncate" style={{ color: '#443e39' }}>{m.nombre}</div>
+                  <div className="flex-1 h-[8px] rounded-full" style={{ background: '#f7f2ed' }}>
                     <div
                       className="h-full rounded-full"
                       style={{ width: `${Math.max(Math.round((m.total / max) * 100), 3)}%`, background: GUINDA }}
@@ -184,7 +184,7 @@ export default function DireccionPanorama() {
               );
             })}
             {data.municipiosTop.length === 0 && (
-              <div className="text-[13px] py-6 text-center" style={{ color: '#a8a29e' }}>Sin datos</div>
+              <div className="text-[13px] py-6 text-center" style={{ color: '#a89a8e' }}>Sin datos</div>
             )}
           </div>
         </SeccionCard>

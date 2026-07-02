@@ -68,7 +68,7 @@ export default function PagosPendientes() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">Admin</div>
-          <h1 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-2xl font-bold text-stone-900">
+          <h1 style={{ fontFamily: "'Poppins', sans-serif" }} className="text-2xl font-bold text-stone-900">
             Pagos pendientes de verificación
           </h1>
         </div>
@@ -88,7 +88,7 @@ export default function PagosPendientes() {
       ) : pagos.length === 0 ? (
         <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
           <Check size={36} className="mx-auto text-emerald-500 mb-3" />
-          <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-lg font-bold text-stone-900 mb-1">
+          <div style={{ fontFamily: "'Poppins', sans-serif" }} className="text-lg font-bold text-stone-900 mb-1">
             Sin pagos pendientes
           </div>
           <p className="text-sm text-stone-500">Todos los comprobantes han sido verificados.</p>
@@ -98,7 +98,7 @@ export default function PagosPendientes() {
           {pagos.map((pago) => (
             <div key={pago.id} className="bg-white border border-stone-200 border-l-4 border-l-amber-400 rounded-xl px-5 py-4 flex items-center gap-4">
               <div className="flex-1 min-w-0">
-                <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="font-semibold text-stone-900 text-sm">
+                <div style={{ fontFamily: "'Poppins', sans-serif" }} className="font-semibold text-stone-900 text-sm">
                   {pago.nombreEstudiante} <span className="font-mono text-xs text-stone-500">{pago.curpEstudiante}</span>
                 </div>
                 <div className="text-xs text-stone-600 mt-0.5">
@@ -110,7 +110,7 @@ export default function PagosPendientes() {
                   {pago.referenciaBancaria && <span className="font-mono">Ref: {pago.referenciaBancaria}</span>}
                 </div>
               </div>
-              <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-2xl font-bold text-stone-900 text-right">
+              <div style={{ fontFamily: "'Poppins', sans-serif" }} className="text-2xl font-bold text-stone-900 text-right">
                 ${parseFloat(pago.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                 <div className="text-[10px] text-stone-400 font-normal">{pago.moneda}</div>
               </div>
@@ -147,7 +147,7 @@ export default function PagosPendientes() {
       {modalRechazo && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-6">
-            <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-lg font-bold text-stone-900 mb-3">
+            <h3 style={{ fontFamily: "'Poppins', sans-serif" }} className="text-lg font-bold text-stone-900 mb-3">
               Rechazar comprobante
             </h3>
             <textarea

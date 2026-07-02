@@ -399,7 +399,7 @@ function EditorView({
                   type="button"
                   onClick={() => insertVariable(v)}
                   className="px-2 py-0.5 rounded text-[11px] font-mono border hover:bg-stone-50 transition-colors"
-                  style={{ borderColor: '#d6d3d1', color: '#6B1530' }}
+                  style={{ borderColor: '#ddd0c5', color: '#6B1530' }}
                 >
                   {`{{${v}}}`}
                 </button>
@@ -429,7 +429,7 @@ function EditorView({
                 className="p-1.5 rounded transition-colors"
                 style={{
                   background: !previewMobile ? '#f5e6ef' : 'transparent',
-                  color: !previewMobile ? '#6B1530' : '#78716c',
+                  color: !previewMobile ? '#6B1530' : '#6b635e',
                 }}
               >
                 <Monitor size={13} strokeWidth={2} />
@@ -440,7 +440,7 @@ function EditorView({
                 className="p-1.5 rounded transition-colors"
                 style={{
                   background: previewMobile ? '#f5e6ef' : 'transparent',
-                  color: previewMobile ? '#6B1530' : '#78716c',
+                  color: previewMobile ? '#6B1530' : '#6b635e',
                 }}
               >
                 <Smartphone size={13} strokeWidth={2} />
@@ -527,7 +527,7 @@ function ListView({
                 style={
                   p.activa
                     ? { background: '#d1fae5', color: '#2d7d46' }
-                    : { background: '#f5f5f4', color: '#78716c' }
+                    : { background: '#f7f2ed', color: '#6b635e' }
                 }
               >
                 {p.activa ? 'ACTIVA' : 'INACTIVA'}

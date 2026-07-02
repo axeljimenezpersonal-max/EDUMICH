@@ -65,7 +65,7 @@ const METODO_CONFIG: Record<string, { label: string; bg: string; color: string; 
   spei: { label: 'SPEI', bg: '#dbeafe', color: '#1d4ed8', icon: Landmark },
   banco_deposito: { label: 'Depósito banco', bg: '#dcfce7', color: '#15803d', icon: Building2 },
   tienda_conveniencia: { label: 'Tienda / Oxxo', bg: '#ffedd5', color: '#c2410c', icon: Smartphone },
-  otro: { label: 'Otro', bg: '#f5f5f4', color: '#78716c', icon: CreditCard },
+  otro: { label: 'Otro', bg: '#f7f2ed', color: '#6b635e', icon: CreditCard },
 };
 
 const ESTADO_CONFIG = {
@@ -112,13 +112,13 @@ function StatCard({ label, value, sub, active, onClick }: {
       className={`bg-white border rounded-xl px-5 py-4 flex-1 min-w-0 transition-all ${onClick ? 'cursor-pointer' : ''} ${active ? 'border-[var(--color-guinda-700)] shadow-sm' : 'border-stone-200 hover:border-stone-300'}`}
       onClick={onClick}
     >
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: active ? 'var(--color-guinda-700)' : '#78716c' }}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: active ? 'var(--color-guinda-700)' : '#6b635e' }}>
         {label}
       </div>
-      <div className="text-2xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
         {typeof value === 'number' ? value.toLocaleString('es-MX') : value}
       </div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>{sub}</div>}
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
     </div>
   );
 }
@@ -154,14 +154,14 @@ function RechazarModal({ pagoId, onClose, onSuccess }: {
     >
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h2 className="text-base font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Rechazar comprobante
           </h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors">
-            <X size={16} style={{ color: '#78716c' }} />
+            <X size={16} style={{ color: '#6b635e' }} />
           </button>
         </div>
-        <p className="text-sm mb-3" style={{ color: '#78716c' }}>
+        <p className="text-sm mb-3" style={{ color: '#6b635e' }}>
           El alumno recibirá una notificación con el motivo del rechazo.
         </p>
         <textarea
@@ -176,7 +176,7 @@ function RechazarModal({ pagoId, onClose, onSuccess }: {
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-semibold rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
-            style={{ color: '#44403c' }}
+            style={{ color: '#443e39' }}
           >
             Cancelar
           </button>
@@ -235,22 +235,22 @@ function DetalleModal({
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-              style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
             >
               {ini}
             </div>
             <div>
-              <div className="text-base font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+              <div className="text-base font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                 {pago.alumnoNombre}
               </div>
-              <div className="text-[11px]" style={{ color: '#78716c' }}>
+              <div className="text-[11px]" style={{ color: '#6b635e' }}>
                 {pago.alumnoCurp ?? '—'}
                 {pago.municipioNombre ? ` · ${pago.municipioNombre}` : ''}
               </div>
             </div>
           </div>
           <button onClick={onClose} className="p-2 rounded-lg hover:bg-stone-100 transition-colors">
-            <X size={18} style={{ color: '#78716c' }} />
+            <X size={18} style={{ color: '#6b635e' }} />
           </button>
         </div>
 
@@ -274,27 +274,27 @@ function DetalleModal({
 
               {/* Concepto */}
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Concepto</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#6b635e' }}>Concepto</div>
                 <div className="text-sm font-semibold" style={{ color: '#2a2a2a' }}>
                   {CONCEPTO_LABELS[pago.concepto] ?? pago.concepto}
                 </div>
                 {pago.conceptoDetalle && (
-                  <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>{pago.conceptoDetalle}</div>
+                  <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>{pago.conceptoDetalle}</div>
                 )}
               </div>
 
               {/* Monto */}
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Monto</div>
-                <div className="text-2xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#6b635e' }}>Monto</div>
+                <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                   {fmtMonto(pago.monto)}
                 </div>
-                <div className="text-[10px]" style={{ color: '#a8a29e' }}>{pago.moneda}</div>
+                <div className="text-[10px]" style={{ color: '#a89a8e' }}>{pago.moneda}</div>
               </div>
 
               {/* Método */}
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#78716c' }}>Método de pago</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#6b635e' }}>Método de pago</div>
                 <span
                   className="inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-lg"
                   style={{ background: metodo.bg, color: metodo.color }}
@@ -305,15 +305,15 @@ function DetalleModal({
 
               {/* Fecha */}
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Fecha de pago</div>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#6b635e' }}>Fecha de pago</div>
                 <div className="text-sm" style={{ color: '#2a2a2a' }}>{fmtFecha(pago.fechaPago)}</div>
               </div>
 
               {/* Referencia */}
               {pago.referenciaBancaria && (
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Referencia</div>
-                  <div className="text-xs font-mono bg-stone-50 px-2 py-1.5 rounded" style={{ color: '#44403c' }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#6b635e' }}>Referencia</div>
+                  <div className="text-xs font-mono bg-stone-50 px-2 py-1.5 rounded" style={{ color: '#443e39' }}>
                     {pago.referenciaBancaria}
                   </div>
                 </div>
@@ -322,8 +322,8 @@ function DetalleModal({
               {/* Notas */}
               {pago.notas && (
                 <div>
-                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Notas</div>
-                  <div className="text-xs bg-stone-50 px-2 py-1.5 rounded" style={{ color: '#44403c' }}>
+                  <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#6b635e' }}>Notas</div>
+                  <div className="text-xs bg-stone-50 px-2 py-1.5 rounded" style={{ color: '#443e39' }}>
                     {pago.notas}
                   </div>
                 </div>
@@ -331,10 +331,10 @@ function DetalleModal({
 
               {/* Quién subió */}
               <div>
-                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#78716c' }}>Subido por</div>
-                <div className="flex items-center gap-1.5 text-xs" style={{ color: '#44403c' }}>
+                <div className="text-[10px] font-semibold uppercase tracking-wide mb-1" style={{ color: '#6b635e' }}>Subido por</div>
+                <div className="flex items-center gap-1.5 text-xs" style={{ color: '#443e39' }}>
                   {pago.subidoPorAlumno ? (
-                    <><User size={12} style={{ color: '#78716c' }} /> El propio alumno</>
+                    <><User size={12} style={{ color: '#6b635e' }} /> El propio alumno</>
                   ) : (
                     <><UserCheck size={12} style={{ color: '#1d4ed8' }} /> {pago.gestorNombre ?? 'Gestor'}</>
                   )}
@@ -376,8 +376,8 @@ function DetalleModal({
           {/* Right: PDF viewer */}
           <div className="flex-1 flex flex-col bg-stone-100 min-w-0">
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-stone-200 bg-white flex-shrink-0">
-              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#44403c' }}>
-                <FileText size={14} style={{ color: '#78716c' }} />
+              <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: '#443e39' }}>
+                <FileText size={14} style={{ color: '#6b635e' }} />
                 {pago.nombreComprobante ?? 'comprobante.pdf'}
               </div>
               <a
@@ -385,7 +385,7 @@ function DetalleModal({
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
-                style={{ color: '#44403c' }}
+                style={{ color: '#443e39' }}
               >
                 <ZoomIn size={12} /> Abrir en nueva pestaña
               </a>
@@ -411,8 +411,8 @@ function DetalleModal({
             ) : (
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
-                  <FileText size={40} style={{ color: '#d6d3d1', margin: '0 auto 12px' }} />
-                  <p className="text-sm font-semibold" style={{ color: '#44403c' }}>Sin comprobante adjunto</p>
+                  <FileText size={40} style={{ color: '#ddd0c5', margin: '0 auto 12px' }} />
+                  <p className="text-sm font-semibold" style={{ color: '#443e39' }}>Sin comprobante adjunto</p>
                 </div>
               </div>
             )}
@@ -446,23 +446,23 @@ function PagoRow({
       {/* Avatar */}
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
-        style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
       >
         {ini}
       </div>
 
       {/* Alumno + concepto */}
       <div className="min-w-0">
-        <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
           {pago.alumnoNombre}
         </div>
-        <div className="text-[11px] truncate" style={{ color: '#78716c' }}>
+        <div className="text-[11px] truncate" style={{ color: '#6b635e' }}>
           {CONCEPTO_LABELS[pago.concepto] ?? pago.concepto}
           {pago.conceptoDetalle ? ` · ${pago.conceptoDetalle}` : ''}
         </div>
         <div className="flex items-center gap-1 mt-0.5">
           {pago.subidoPorAlumno ? (
-            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#78716c' }}>
+            <span className="inline-flex items-center gap-1 text-[10px]" style={{ color: '#6b635e' }}>
               <User size={10} /> Alumno
             </span>
           ) : (
@@ -471,7 +471,7 @@ function PagoRow({
             </span>
           )}
           {pago.municipioNombre && (
-            <span className="text-[10px]" style={{ color: '#a8a29e' }}>· {pago.municipioNombre}</span>
+            <span className="text-[10px]" style={{ color: '#a89a8e' }}>· {pago.municipioNombre}</span>
           )}
         </div>
       </div>
@@ -488,14 +488,14 @@ function PagoRow({
 
       {/* Monto */}
       <div className="text-right">
-        <div className="text-sm font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <div className="text-sm font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
           {fmtMonto(pago.monto)}
         </div>
-        <div className="text-[10px]" style={{ color: '#a8a29e' }}>{pago.moneda}</div>
+        <div className="text-[10px]" style={{ color: '#a89a8e' }}>{pago.moneda}</div>
       </div>
 
       {/* Fecha */}
-      <div className="text-[11px]" style={{ color: '#78716c' }}>
+      <div className="text-[11px]" style={{ color: '#6b635e' }}>
         {fmtFechaCorta(pago.fechaPago)}
       </div>
 
@@ -512,7 +512,7 @@ function PagoRow({
 
       {/* Arrow */}
       <div className="flex items-center justify-center opacity-40">
-        <ChevronRight size={14} style={{ color: '#78716c' }} />
+        <ChevronRight size={14} style={{ color: '#6b635e' }} />
       </div>
     </div>
   );
@@ -624,10 +624,10 @@ export default function PagosAdmin() {
           <CreditCard size={12} /> PERSONAS · PAGOS
         </div>
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Verificación de pagos
             {data && estadoFiltro === 'pendiente' && data.total > 0 && (
-              <span className="ml-2 text-base font-normal" style={{ color: '#78716c' }}>
+              <span className="ml-2 text-base font-normal" style={{ color: '#6b635e' }}>
                 ({data.total} pendiente{data.total !== 1 ? 's' : ''})
               </span>
             )}
@@ -637,7 +637,7 @@ export default function PagosAdmin() {
             className="p-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
             title="Recargar"
           >
-            <RefreshCw size={14} style={{ color: '#78716c' }} />
+            <RefreshCw size={14} style={{ color: '#6b635e' }} />
           </button>
         </div>
       </div>
@@ -691,7 +691,7 @@ export default function PagosAdmin() {
               className="px-3 py-1.5 text-xs font-semibold rounded-md transition-all"
               style={{
                 background: estadoFiltro === v ? 'white' : 'transparent',
-                color: estadoFiltro === v ? 'var(--color-guinda-700)' : '#78716c',
+                color: estadoFiltro === v ? 'var(--color-guinda-700)' : '#6b635e',
                 boxShadow: estadoFiltro === v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
               }}
             >
@@ -701,7 +701,7 @@ export default function PagosAdmin() {
         </div>
 
         <div className="relative ml-auto">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
           <input
             className="pl-8 pr-8 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 w-48"
             style={{ background: '#f8f4ec' }}
@@ -711,7 +711,7 @@ export default function PagosAdmin() {
           />
           {searchInput && (
             <button className="absolute right-2.5 top-1/2 -translate-y-1/2" onClick={() => setSearchInput('')}>
-              <X size={12} style={{ color: '#78716c' }} />
+              <X size={12} style={{ color: '#6b635e' }} />
             </button>
           )}
         </div>
@@ -719,22 +719,22 @@ export default function PagosAdmin() {
 
       {/* Table */}
       {loading ? (
-        <div className="py-20 text-center text-sm" style={{ color: '#78716c' }}>Cargando pagos…</div>
+        <div className="py-20 text-center text-sm" style={{ color: '#6b635e' }}>Cargando pagos…</div>
       ) : !data || data.pagos.length === 0 ? (
         <div
           className="flex flex-col items-center justify-center py-20 rounded-xl border-2"
-          style={{ borderColor: '#e7e5e4', borderStyle: 'dashed', color: '#78716c' }}
+          style={{ borderColor: '#eadfd7', borderStyle: 'dashed', color: '#6b635e' }}
         >
           {estadoFiltro === 'pendiente' ? (
             <>
               <Check size={36} style={{ color: '#10b981', marginBottom: 12 }} />
-              <p className="text-sm font-semibold mb-1" style={{ color: '#44403c' }}>Sin pagos pendientes</p>
-              <p className="text-xs" style={{ color: '#a8a29e' }}>Todos los comprobantes han sido verificados.</p>
+              <p className="text-sm font-semibold mb-1" style={{ color: '#443e39' }}>Sin pagos pendientes</p>
+              <p className="text-xs" style={{ color: '#a89a8e' }}>Todos los comprobantes han sido verificados.</p>
             </>
           ) : (
             <>
-              <CreditCard size={32} style={{ color: '#d6d3d1', marginBottom: 12 }} />
-              <p className="text-sm font-semibold" style={{ color: '#44403c' }}>No hay pagos en esta categoría</p>
+              <CreditCard size={32} style={{ color: '#ddd0c5', marginBottom: 12 }} />
+              <p className="text-sm font-semibold" style={{ color: '#443e39' }}>No hay pagos en esta categoría</p>
             </>
           )}
         </div>
@@ -747,11 +747,11 @@ export default function PagosAdmin() {
               style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12, background: '#fafaf9' }}
             >
               <div />
-              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Alumno</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Método</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-right" style={{ color: '#78716c' }}>Monto</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Fecha</div>
-              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Estado</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>Alumno</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>Método</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-right" style={{ color: '#6b635e' }}>Monto</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>Fecha</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>Estado</div>
               <div />
             </div>
 
@@ -767,7 +767,7 @@ export default function PagosAdmin() {
           {/* Pagination */}
           {data.totalPages > 1 && (
             <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
-              <span className="text-sm" style={{ color: '#78716c' }}>
+              <span className="text-sm" style={{ color: '#6b635e' }}>
                 Página {data.page} de {data.totalPages} · {data.total.toLocaleString('es-MX')} pagos
               </span>
               <div className="flex items-center gap-1.5">
@@ -776,14 +776,14 @@ export default function PagosAdmin() {
                   disabled={page <= 1}
                   className="p-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-40 transition-colors"
                 >
-                  <ChevronLeft size={14} style={{ color: '#44403c' }} />
+                  <ChevronLeft size={14} style={{ color: '#443e39' }} />
                 </button>
                 <button
                   onClick={() => setPage((p) => p + 1)}
                   disabled={page >= data.totalPages}
                   className="p-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-40 transition-colors"
                 >
-                  <ChevronRight size={14} style={{ color: '#44403c' }} />
+                  <ChevronRight size={14} style={{ color: '#443e39' }} />
                 </button>
               </div>
             </div>

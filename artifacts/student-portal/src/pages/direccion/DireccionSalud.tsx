@@ -92,17 +92,17 @@ export default function DireccionSalud() {
     <DireccionLayout>
       <div className="mb-5 flex items-start justify-between">
         <div>
-          <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
             Salud del sistema
           </h1>
-          <p className="text-[13px]" style={{ color: '#78716c' }}>
+          <p className="text-[13px]" style={{ color: '#6b635e' }}>
             Latencia, tráfico y errores del API (golden signals) · se actualiza cada 30 s
           </p>
         </div>
         <button
           onClick={cargar}
           className="flex items-center gap-2 text-[12px] font-semibold px-3 py-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50"
-          style={{ color: '#44403c' }}
+          style={{ color: '#443e39' }}
         >
           <RefreshCw size={13} className={actualizando ? 'animate-spin' : ''} /> Actualizar
         </button>
@@ -139,7 +139,7 @@ export default function DireccionSalud() {
           <SeccionCard titulo="Tráfico y latencia por minuto" sub="Última hora — barras: requests · línea: latencia promedio (ms)">
             <ResponsiveContainer width="100%" height={240}>
               <ComposedChart data={serie}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#f7f2ed" />
                 <XAxis dataKey="hora" tick={{ fontSize: 10 }} minTickGap={30} />
                 <YAxis yAxisId="req" allowDecimals={false} tick={{ fontSize: 11 }} width={32} />
                 <YAxis yAxisId="ms" orientation="right" tick={{ fontSize: 11 }} width={40} />
@@ -161,7 +161,7 @@ export default function DireccionSalud() {
                 </div>
                 <div>
                   <div className="text-[13px] font-semibold">Base de datos</div>
-                  <div className="text-[11px]" style={{ color: '#78716c' }}>ping {data.baseDatos.pingMs} ms</div>
+                  <div className="text-[11px]" style={{ color: '#6b635e' }}>ping {data.baseDatos.pingMs} ms</div>
                 </div>
               </div>
               {data.baseDatos.ok
@@ -179,9 +179,9 @@ export default function DireccionSalud() {
               <div className="text-[13px] font-semibold">Correo (24 h)</div>
             </div>
             <div className="text-[12px] space-y-1.5">
-              <div className="flex justify-between"><span style={{ color: '#78716c' }}>Enviados</span><span className="font-semibold" style={{ color: '#166534' }}>{data.correo24h.enviados}</span></div>
-              <div className="flex justify-between"><span style={{ color: '#78716c' }}>Fallidos</span><span className="font-semibold" style={{ color: data.correo24h.fallidos > 0 ? '#dc2626' : '#166534' }}>{data.correo24h.fallidos}</span></div>
-              <div className="flex justify-between"><span style={{ color: '#78716c' }}>Pendientes</span><span className="font-semibold">{data.correo24h.pendientes}</span></div>
+              <div className="flex justify-between"><span style={{ color: '#6b635e' }}>Enviados</span><span className="font-semibold" style={{ color: '#166534' }}>{data.correo24h.enviados}</span></div>
+              <div className="flex justify-between"><span style={{ color: '#6b635e' }}>Fallidos</span><span className="font-semibold" style={{ color: data.correo24h.fallidos > 0 ? '#dc2626' : '#166534' }}>{data.correo24h.fallidos}</span></div>
+              <div className="flex justify-between"><span style={{ color: '#6b635e' }}>Pendientes</span><span className="font-semibold">{data.correo24h.pendientes}</span></div>
             </div>
           </div>
 
@@ -196,8 +196,8 @@ export default function DireccionSalud() {
             <div className="text-[11px] space-y-1.5">
               {data.tareasProgramadas.map((t) => (
                 <div key={t.nombre}>
-                  <div style={{ color: '#44403c', fontWeight: 500 }}>{t.nombre}</div>
-                  <div style={{ color: '#a8a29e' }}>{t.horario}</div>
+                  <div style={{ color: '#443e39', fontWeight: 500 }}>{t.nombre}</div>
+                  <div style={{ color: '#a89a8e' }}>{t.horario}</div>
                 </div>
               ))}
             </div>
@@ -208,7 +208,7 @@ export default function DireccionSalud() {
       <SeccionCard titulo="Tráfico por área del API" sub="Últimas 24 horas, agrupado por prefijo de ruta">
         <table className="w-full text-[12px]">
           <thead>
-            <tr className="text-left" style={{ color: '#78716c' }}>
+            <tr className="text-left" style={{ color: '#6b635e' }}>
               <th className="py-2 pr-3 font-semibold">Área</th>
               <th className="py-2 pr-3 font-semibold text-right">Requests</th>
               <th className="py-2 pr-3 font-semibold text-right">Errores</th>
@@ -225,7 +225,7 @@ export default function DireccionSalud() {
               </tr>
             ))}
             {data.api.ultimas24h.porGrupo.length === 0 && (
-              <tr><td colSpan={4} className="py-6 text-center" style={{ color: '#a8a29e' }}>
+              <tr><td colSpan={4} className="py-6 text-center" style={{ color: '#a89a8e' }}>
                 Sin tráfico registrado aún (las métricas se acumulan desde el último reinicio del servidor)
               </td></tr>
             )}

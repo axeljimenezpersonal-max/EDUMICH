@@ -139,21 +139,21 @@ export default function AdminInicio() {
               </div>
               <h1
                 className="text-[30px] font-bold tracking-tight"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a', lineHeight: 1.1 }}
+                style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a', lineHeight: 1.1 }}
               >
                 {saludo()}, {data?.greeting.nombreAdmin ? apellido(data.greeting.nombreAdmin) : 'Administrador'}
               </h1>
-              <p className="text-sm mt-1 capitalize" style={{ color: '#78716c' }}>
+              <p className="text-sm mt-1 capitalize" style={{ color: '#6b635e' }}>
                 {data?.greeting.fechaHoy} · Tienes {data?.greeting.totalTareasPendientes ?? 0} tareas pendientes hoy
               </p>
             </div>
             <div className="flex items-center gap-3">
               <div className="bg-white border border-stone-200 rounded-[10px] px-3.5 py-2.5 flex items-center gap-2.5">
                 <div>
-                  <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: '#78716c' }}>Día activo</div>
-                  <div className="font-bold text-lg leading-none mt-0.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+                  <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: '#6b635e' }}>Día activo</div>
+                  <div className="font-bold text-lg leading-none mt-0.5" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                     {data?.greeting.accesosHoy ?? 0}{' '}
-                    <span className="text-[11px] font-medium" style={{ color: '#78716c' }}>accesos</span>
+                    <span className="text-[11px] font-medium" style={{ color: '#6b635e' }}>accesos</span>
                   </div>
                 </div>
               </div>
@@ -183,7 +183,7 @@ export default function AdminInicio() {
           <div className="mb-8">
             <div
               className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+              style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
             >
               <div
                 className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center"
@@ -216,7 +216,7 @@ export default function AdminInicio() {
                 numEl={
                   <span>
                     {data?.kpisGenerales.expedientesCompletos.completos ?? 0}
-                    <small style={{ fontSize: 16, color: '#78716c', fontWeight: 500 }}>
+                    <small style={{ fontSize: 16, color: '#6b635e', fontWeight: 500 }}>
                       /{data?.kpisGenerales.expedientesCompletos.total ?? 0}
                     </small>
                   </span>
@@ -245,7 +245,7 @@ export default function AdminInicio() {
           <div className="mb-8">
             <div
               className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+              style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
             >
               <div
                 className="w-[30px] h-[30px] rounded-[7px] flex items-center justify-center"
@@ -254,7 +254,7 @@ export default function AdminInicio() {
                 <Zap size={14} />
               </div>
               Tu día de hoy — Tareas pendientes
-              <span className="ml-auto text-xs font-medium" style={{ color: '#78716c', fontFamily: 'Inter, sans-serif' }}>
+              <span className="ml-auto text-xs font-medium" style={{ color: '#6b635e', fontFamily: 'Inter, sans-serif' }}>
                 Click en cualquier tarjeta para ir directo
               </span>
             </div>
@@ -341,13 +341,13 @@ function ConvocatoriaStrip({ conv }: { conv: NonNullable<DashboardData['convocat
       </div>
       <div className="relative">
         <div className="text-[11px] uppercase font-semibold tracking-widest mb-0.5" style={{ opacity: 0.85 }}>CONVOCATORIA ACTIVA</div>
-        <h3 className="text-[22px] font-bold tracking-tight mt-0.5" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h3 className="text-[22px] font-bold tracking-tight mt-0.5" style={{ fontFamily: "'Poppins', sans-serif" }}>
           {conv.titulo}
         </h3>
         <div className="text-[13px] mt-1" style={{ opacity: 0.9 }}>{conv.inscritos} alumnos inscritos</div>
       </div>
       <div className="relative text-center border-l border-white/20 pl-6">
-        <div className="text-[36px] font-bold leading-none tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="text-[36px] font-bold leading-none tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
           {conv.diasParaCierre}
         </div>
         <div className="text-[11px] uppercase tracking-wide mt-1" style={{ opacity: 0.85 }}>Días para cierre</div>
@@ -396,16 +396,16 @@ function TareaCard({
       }}
       onMouseLeave={(e) => {
         (e.currentTarget as HTMLElement).style.boxShadow = '';
-        (e.currentTarget as HTMLElement).style.borderColor = '#e7e5e4';
+        (e.currentTarget as HTMLElement).style.borderColor = '#eadfd7';
       }}
     >
       <div className="w-11 h-11 rounded-[10px] flex items-center justify-center mb-3" style={{ background: s.iconBg, color: s.iconColor }}>
         {icon}
       </div>
-      <div className="text-[38px] font-bold leading-none mb-1 tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-[38px] font-bold leading-none mb-1 tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
         {num}
       </div>
-      <div className="text-sm font-semibold mb-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#44403c' }}>
+      <div className="text-sm font-semibold mb-2" style={{ fontFamily: "'Poppins', sans-serif", color: '#443e39' }}>
         {label}
       </div>
       <div className="flex items-center gap-1 text-[12px] font-semibold" style={{ color: s.ctaColor }}>
@@ -429,8 +429,8 @@ function KpiCard({
   deltaFlat?: boolean;
   sub: React.ReactNode;
 }) {
-  const trendBg    = deltaFlat ? '#f5f5f4' : deltaUp ? '#d1fae5' : '#fee2e2';
-  const trendColor = deltaFlat ? '#78716c' : deltaUp ? '#2d7d46' : '#b91c1c';
+  const trendBg    = deltaFlat ? '#f7f2ed' : deltaUp ? '#d1fae5' : '#fee2e2';
+  const trendColor = deltaFlat ? '#6b635e' : deltaUp ? '#2d7d46' : '#b91c1c';
   return (
     <div className="bg-white border border-stone-200 rounded-xl" style={{ padding: '18px 20px' }}>
       <div className="flex items-start justify-between gap-2">
@@ -445,11 +445,11 @@ function KpiCard({
           {delta}
         </span>
       </div>
-      <div className="text-[32px] font-bold leading-none tracking-tight mt-3.5 mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-[32px] font-bold leading-none tracking-tight mt-3.5 mb-1" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
         {numEl ?? num}
       </div>
-      <div className="text-xs font-medium" style={{ color: '#78716c' }}>{label}</div>
-      <div className="text-[11px] flex items-center gap-1 mt-2 pt-2" style={{ color: '#78716c', borderTop: '1px solid #f5f5f4' }}>
+      <div className="text-xs font-medium" style={{ color: '#6b635e' }}>{label}</div>
+      <div className="text-[11px] flex items-center gap-1 mt-2 pt-2" style={{ color: '#6b635e', borderTop: '1px solid #f7f2ed' }}>
         {sub}
       </div>
     </div>
@@ -464,17 +464,17 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
     <div className="bg-white border border-stone-200 rounded-xl px-6 py-5">
       <div className="flex items-start justify-between mb-4">
         <div>
-          <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Alumnos inscritos por etapa
           </h3>
-          <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>
+          <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>
             Convocatoria {new Date().getFullYear()} · {etapas.length} etapas
           </div>
         </div>
       </div>
 
       {etapas.length === 0 ? (
-        <div className="flex items-center justify-center h-36 text-sm" style={{ color: '#78716c' }}>Sin datos de etapas este año</div>
+        <div className="flex items-center justify-center h-36 text-sm" style={{ color: '#6b635e' }}>Sin datos de etapas este año</div>
       ) : (
         <>
           <div className="flex items-end gap-3.5 border-b border-stone-200" style={{ height: 150, paddingBottom: 8, paddingTop: 20 }}>
@@ -490,7 +490,7 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
                   >
                     <span
                       className="absolute left-1/2 -translate-x-1/2 text-[11px] font-bold whitespace-nowrap"
-                      style={{ top: -22, color: '#2a2a2a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      style={{ top: -22, color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}
                     >
                       {etapa.inscritos}
                     </span>
@@ -498,7 +498,7 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
                   <div
                     className="text-[10px] text-center uppercase font-medium whitespace-nowrap"
                     style={{
-                      color: etapa.activa ? 'var(--color-guinda-700)' : etapa.futura ? '#a8a29e' : '#78716c',
+                      color: etapa.activa ? 'var(--color-guinda-700)' : etapa.futura ? '#a89a8e' : '#6b635e',
                       fontWeight: etapa.activa ? 700 : 500,
                       letterSpacing: '0.05em',
                     }}
@@ -510,7 +510,7 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
               );
             })}
           </div>
-          <div className="flex gap-6 mt-3.5 pt-3.5 border-t border-stone-100 text-xs flex-wrap" style={{ color: '#78716c' }}>
+          <div className="flex gap-6 mt-3.5 pt-3.5 border-t border-stone-100 text-xs flex-wrap" style={{ color: '#6b635e' }}>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#6B1530' }} /> Inscritos cerrados
             </div>
@@ -533,7 +533,7 @@ function ActividadReciente({ actividad }: { actividad: DashboardData['actividadR
   return (
     <div className="bg-white border border-stone-200 rounded-xl px-5 py-5">
       <div className="flex items-center justify-between mb-3.5">
-        <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
           Actividad reciente
         </h3>
         <button style={{ background: 'none', border: 'none', color: 'var(--color-guinda-700)', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>
@@ -541,14 +541,14 @@ function ActividadReciente({ actividad }: { actividad: DashboardData['actividadR
         </button>
       </div>
       {actividad.length === 0 ? (
-        <div className="text-sm text-center py-8" style={{ color: '#78716c' }}>Sin actividad reciente</div>
+        <div className="text-sm text-center py-8" style={{ color: '#6b635e' }}>Sin actividad reciente</div>
       ) : (
         <ul className="list-none">
           {actividad.slice(0, 5).map((item) => (
             <li key={item.id} className="flex items-start gap-3 py-2.5 border-b border-stone-50 last:border-b-0">
               <ActivityIcon tipo={item.tipo} />
               <div className="flex-1 min-w-0">
-                <div className="text-xs leading-relaxed" style={{ color: '#44403c' }}>
+                <div className="text-xs leading-relaxed" style={{ color: '#443e39' }}>
                   <strong style={{ color: '#2a2a2a' }}>{item.actorNombre}</strong>
                   {' · '}
                   {item.descripcion}
@@ -558,7 +558,7 @@ function ActividadReciente({ actividad }: { actividad: DashboardData['actividadR
                     </span>
                   )}
                 </div>
-                <div className="text-[10px] mt-0.5" style={{ color: '#78716c' }}>{tiempoRelativo(item.creadoEn)}</div>
+                <div className="text-[10px] mt-0.5" style={{ color: '#6b635e' }}>{tiempoRelativo(item.creadoEn)}</div>
               </div>
             </li>
           ))}
@@ -576,8 +576,8 @@ const estadoStyles: Record<string, { bg: string; color: string }> = {
   pago_pendiente:      { bg: '#fff7ed', color: '#b45309' },
   en_proceso:          { bg: '#fef9c3', color: '#92400e' },
   rechazado:           { bg: '#fee2e2', color: '#b91c1c' },
-  sin_documentos:      { bg: '#f5f5f4', color: '#78716c' },
-  inactivo:            { bg: '#f5f5f4', color: '#78716c' },
+  sin_documentos:      { bg: '#f7f2ed', color: '#6b635e' },
+  inactivo:            { bg: '#f7f2ed', color: '#6b635e' },
 };
 
 function AlumnosRecientes({ alumnos, total }: { alumnos: DashboardData['alumnosRecientes']; total: number }) {
@@ -585,17 +585,17 @@ function AlumnosRecientes({ alumnos, total }: { alumnos: DashboardData['alumnosR
     <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
       <div className="flex items-center justify-between px-5 py-4 border-b border-stone-200">
         <div>
-          <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Alumnos recientes
           </h3>
-          <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>Últimos {alumnos.length} registros del sistema</div>
+          <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>Últimos {alumnos.length} registros del sistema</div>
         </div>
-        <a href="/admin/alumnos" className="text-xs font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-md no-underline" style={{ color: '#44403c' }}>
+        <a href="/admin/alumnos" className="text-xs font-semibold px-3 py-1.5 bg-white border border-stone-300 rounded-md no-underline" style={{ color: '#443e39' }}>
           Ver todos →
         </a>
       </div>
       {alumnos.length === 0 ? (
-        <div className="text-sm text-center py-8" style={{ color: '#78716c' }}>Sin alumnos registrados aún</div>
+        <div className="text-sm text-center py-8" style={{ color: '#6b635e' }}>Sin alumnos registrados aún</div>
       ) : (
         <>
           {alumnos.map((alumno) => {
@@ -610,7 +610,7 @@ function AlumnosRecientes({ alumnos, total }: { alumnos: DashboardData['alumnosR
                 <div
                   className="w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-bold"
                   style={{
-                    fontFamily: "'Plus Jakarta Sans', sans-serif",
+                    fontFamily: "'Poppins', sans-serif",
                     background: alumno.gestorNombre ? '#dbeafe' : '#efe7d6',
                     color: alumno.gestorNombre ? '#1e40af' : 'var(--color-guinda-700)',
                   }}
@@ -618,27 +618,27 @@ function AlumnosRecientes({ alumnos, total }: { alumnos: DashboardData['alumnosR
                   {alumno.iniciales}
                 </div>
                 <div>
-                  <div className="text-[13px] font-semibold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+                  <div className="text-[13px] font-semibold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                     {alumno.nombreCompleto}
                   </div>
-                  <div className="text-[11px] mt-0.5" style={{ color: '#78716c' }}>
+                  <div className="text-[11px] mt-0.5" style={{ color: '#6b635e' }}>
                     {alumno.gestorNombre ? `Gestor: ${alumno.gestorNombre}` : 'Auto-registro · Sin gestor'}
                   </div>
                 </div>
                 {alumno.municipio && (
-                  <span className="text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: '#f8f4ec', color: '#44403c' }}>
+                  <span className="text-[11px] font-medium px-2.5 py-1 rounded-full" style={{ background: '#f8f4ec', color: '#443e39' }}>
                     {alumno.municipio}
                   </span>
                 )}
                 <span className="text-[10px] font-semibold uppercase px-2 py-1 rounded-full tracking-wide" style={{ background: estilo.bg, color: estilo.color }}>
                   {alumno.estadoTexto}
                 </span>
-                <ArrowRight size={14} style={{ color: '#d6d3d1' }} />
+                <ArrowRight size={14} style={{ color: '#ddd0c5' }} />
               </a>
             );
           })}
           <div className="px-5 py-3 text-center" style={{ background: '#fdfaf3' }}>
-            <a href="/admin/alumnos" className="text-xs font-semibold px-4 py-1.5 bg-white border border-stone-300 rounded-md no-underline" style={{ color: '#44403c' }}>
+            <a href="/admin/alumnos" className="text-xs font-semibold px-4 py-1.5 bg-white border border-stone-300 rounded-md no-underline" style={{ color: '#443e39' }}>
               Ver los {total} alumnos →
             </a>
           </div>
@@ -656,14 +656,14 @@ function TopMunicipios({ municipios }: { municipios: DashboardData['topMunicipio
     <div className="bg-white border border-stone-200 rounded-xl px-5 py-5">
       <div className="flex items-center justify-between mb-3.5">
         <div>
-          <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h3 className="text-[15px] font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Top municipios
           </h3>
-          <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>Por número de alumnos</div>
+          <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>Por número de alumnos</div>
         </div>
       </div>
       {municipios.length === 0 ? (
-        <div className="text-sm text-center py-8" style={{ color: '#78716c' }}>Sin datos de municipios</div>
+        <div className="text-sm text-center py-8" style={{ color: '#6b635e' }}>Sin datos de municipios</div>
       ) : (
         <ul className="list-none">
           {municipios.map((m) => {
@@ -672,18 +672,18 @@ function TopMunicipios({ municipios }: { municipios: DashboardData['topMunicipio
             return (
               <li key={m.municipio} className="py-2.5 border-b border-stone-50 last:border-b-0">
                 <div className="flex justify-between items-center mb-1 text-xs">
-                  <span className="font-semibold" style={{ color: isOtros ? '#78716c' : '#2a2a2a' }}>{m.municipio}</span>
-                  <span className="font-bold text-[13px]" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: isOtros ? '#78716c' : 'var(--color-guinda-700)' }}>
+                  <span className="font-semibold" style={{ color: isOtros ? '#6b635e' : '#2a2a2a' }}>{m.municipio}</span>
+                  <span className="font-bold text-[13px]" style={{ fontFamily: "'Poppins', sans-serif", color: isOtros ? '#6b635e' : 'var(--color-guinda-700)' }}>
                     {m.count}
                   </span>
                 </div>
-                <div className="w-full h-[5px] rounded-full overflow-hidden" style={{ background: '#f5f5f4' }}>
+                <div className="w-full h-[5px] rounded-full overflow-hidden" style={{ background: '#f7f2ed' }}>
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${barWidth}%`,
                       background: isOtros
-                        ? 'linear-gradient(to right, #78716c, #d6d3d1)'
+                        ? 'linear-gradient(to right, #6b635e, #ddd0c5)'
                         : 'linear-gradient(to right, #6B1530, #c43759)',
                     }}
                   />

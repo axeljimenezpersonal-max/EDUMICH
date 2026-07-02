@@ -29,7 +29,7 @@ type Notif = {
 };
 
 const PRIORIDAD_COLOR: Record<string, string> = {
-  baja: '#a8a29e',
+  baja: '#a89a8e',
   normal: '#2563eb',
   alta: '#d97706',
   urgente: '#dc2626',
@@ -139,14 +139,14 @@ function HeaderNotifBell() {
             marginTop: 8,
             width: 'min(320px, calc(100vw - 16px))',
             background: 'white',
-            border: '1px solid #e7e5e4',
+            border: '1px solid #eadfd7',
             borderRadius: 10,
             boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
             zIndex: 200,
             overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <div style={{ padding: '10px 14px', borderBottom: '1px solid #f7f2ed', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#2a2a2a' }}>
               Notificaciones {noLeidas > 0 && <span style={{ color: 'var(--color-guinda-700)' }}>({noLeidas})</span>}
             </span>
@@ -156,8 +156,8 @@ function HeaderNotifBell() {
                 title="Marcar todas como leídas"
                 style={{
                   display: 'flex', alignItems: 'center', gap: 3,
-                  fontSize: 11, color: '#78716c', background: 'none',
-                  border: '1px solid #e7e5e4', borderRadius: 5,
+                  fontSize: 11, color: '#6b635e', background: 'none',
+                  border: '1px solid #eadfd7', borderRadius: 5,
                   padding: '3px 8px', cursor: 'pointer',
                 }}
               >
@@ -168,7 +168,7 @@ function HeaderNotifBell() {
 
           <div style={{ maxHeight: 280, overflowY: 'auto' }}>
             {notifs.length === 0 ? (
-              <div style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: 13 }}>
+              <div style={{ padding: '24px 14px', textAlign: 'center', color: '#a89a8e', fontSize: 13 }}>
                 Sin notificaciones
               </div>
             ) : (
@@ -184,16 +184,16 @@ function HeaderNotifBell() {
                     gap: 10,
                     padding: '10px 14px',
                     background: n.leida ? 'transparent' : '#fdf8f0',
-                    borderBottom: '1px solid #f5f5f4',
+                    borderBottom: '1px solid #f7f2ed',
                     cursor: n.enlace ? 'pointer' : 'default',
                     position: 'relative',
                   }}
                 >
-                  <div style={{ width: 3, borderRadius: 2, background: PRIORIDAD_COLOR[n.prioridad] ?? '#a8a29e', alignSelf: 'stretch', flexShrink: 0 }} />
+                  <div style={{ width: 3, borderRadius: 2, background: PRIORIDAD_COLOR[n.prioridad] ?? '#a89a8e', alignSelf: 'stretch', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 12, fontWeight: n.leida ? 400 : 600, color: '#2a2a2a', lineHeight: 1.3, paddingRight: 20 }}>{n.titulo}</div>
-                    <div style={{ fontSize: 11, color: '#78716c', marginTop: 2, lineHeight: 1.4 }}>{n.cuerpo}</div>
-                    <div style={{ fontSize: 10, color: '#a8a29e', marginTop: 3 }}>{tiempoRelativo(n.creadaEn)}</div>
+                    <div style={{ fontSize: 11, color: '#6b635e', marginTop: 2, lineHeight: 1.4 }}>{n.cuerpo}</div>
+                    <div style={{ fontSize: 10, color: '#a89a8e', marginTop: 3 }}>{tiempoRelativo(n.creadaEn)}</div>
                   </div>
                   {/* Dismiss button */}
                   <button
@@ -212,7 +212,7 @@ function HeaderNotifBell() {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#a8a29e',
+                      color: '#a89a8e',
                       padding: 0,
                       opacity: 0.7,
                     }}
@@ -234,7 +234,7 @@ function HeaderNotifBell() {
               justifyContent: 'center',
               gap: 4,
               padding: '10px 14px',
-              borderTop: '1px solid #f5f5f4',
+              borderTop: '1px solid #f7f2ed',
               fontSize: 12,
               color: 'var(--color-guinda-700)',
               textDecoration: 'none',

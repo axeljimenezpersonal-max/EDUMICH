@@ -102,7 +102,7 @@ function ScoreRing({ score, size = 152 }: { score: number; size?: number }) {
   const color = score >= 60 ? '#16a34a' : '#d97706';
   return (
     <svg width={size} height={size} style={{ transform: 'rotate(-90deg)' }} aria-hidden>
-      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#e7e5e4" strokeWidth="12" />
+      <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eadfd7" strokeWidth="12" />
       <circle
         cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="12"
         strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"

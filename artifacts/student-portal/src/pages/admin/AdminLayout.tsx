@@ -47,7 +47,7 @@ function tiempoRelativo(iso: string): string {
 }
 
 const PRIORIDAD_COLOR: Record<string, string> = {
-  baja: '#a8a29e',
+  baja: '#a89a8e',
   normal: '#2563eb',
   alta: '#d97706',
   urgente: '#dc2626',
@@ -78,7 +78,7 @@ function NotifItem({ notif, onLeer }: { notif: Notif; onLeer: (id: number) => vo
         gap: 10,
         padding: '10px 14px',
         background: notif.leida ? 'transparent' : '#fdf8f0',
-        borderBottom: '1px solid #f5f5f4',
+        borderBottom: '1px solid #f7f2ed',
         cursor: 'pointer',
       }}
       onClick={() => {
@@ -91,21 +91,21 @@ function NotifItem({ notif, onLeer }: { notif: Notif; onLeer: (id: number) => vo
           width: 3,
           borderRadius: 2,
           flexShrink: 0,
-          background: PRIORIDAD_COLOR[notif.prioridad] ?? '#a8a29e',
+          background: PRIORIDAD_COLOR[notif.prioridad] ?? '#a89a8e',
           alignSelf: 'stretch',
         }}
       />
-      <div style={{ color: PRIORIDAD_COLOR[notif.prioridad] ?? '#78716c', flexShrink: 0, marginTop: 1 }}>
+      <div style={{ color: PRIORIDAD_COLOR[notif.prioridad] ?? '#6b635e', flexShrink: 0, marginTop: 1 }}>
         <NotifIcon tipo={notif.tipo} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 12, fontWeight: notif.leida ? 400 : 600, color: '#2a2a2a', lineHeight: 1.3 }}>
           {notif.titulo}
         </div>
-        <div style={{ fontSize: 11, color: '#78716c', marginTop: 2, lineHeight: 1.4 }}>
+        <div style={{ fontSize: 11, color: '#6b635e', marginTop: 2, lineHeight: 1.4 }}>
           {notif.cuerpo}
         </div>
-        <div style={{ fontSize: 10, color: '#a8a29e', marginTop: 3 }}>
+        <div style={{ fontSize: 10, color: '#a89a8e', marginTop: 3 }}>
           {tiempoRelativo(notif.creadaEn)}
         </div>
       </div>
@@ -166,7 +166,7 @@ function NotifBell() {
       <button
         onClick={() => setOpen(v => !v)}
         className="relative w-[38px] h-[38px] rounded-lg border flex items-center justify-center"
-        style={{ background: open ? '#f0eae0' : '#f8f4ec', borderColor: '#e7e5e4', color: '#44403c' }}
+        style={{ background: open ? '#f0eae0' : '#f8f4ec', borderColor: '#eadfd7', color: '#443e39' }}
       >
         <Bell size={14} />
         {noLeidas > 0 && (
@@ -202,14 +202,14 @@ function NotifBell() {
             top: 'calc(100% + 8px)',
             width: 340,
             background: 'white',
-            border: '1px solid #e7e5e4',
+            border: '1px solid #eadfd7',
             borderRadius: 10,
             boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
             zIndex: 200,
             overflow: 'hidden',
           }}
         >
-          <div style={{ padding: '12px 14px', borderBottom: '1px solid #f5f5f4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ padding: '12px 14px', borderBottom: '1px solid #f7f2ed', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: 13, fontWeight: 600, color: '#2a2a2a' }}>
               Notificaciones {noLeidas > 0 && <span style={{ color: 'var(--color-guinda-700)' }}>({noLeidas})</span>}
             </span>
@@ -225,7 +225,7 @@ function NotifBell() {
 
           <div style={{ maxHeight: 320, overflowY: 'auto' }}>
             {notifs.length === 0 ? (
-              <div style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: 13 }}>
+              <div style={{ padding: '24px 14px', textAlign: 'center', color: '#a89a8e', fontSize: 13 }}>
                 Sin notificaciones
               </div>
             ) : (
@@ -241,7 +241,7 @@ function NotifBell() {
               justifyContent: 'center',
               gap: 4,
               padding: '10px 14px',
-              borderTop: '1px solid #f5f5f4',
+              borderTop: '1px solid #f7f2ed',
               fontSize: 12,
               color: 'var(--color-guinda-700)',
               textDecoration: 'none',
@@ -261,7 +261,7 @@ function SidebarBadge({ count }: { count: number; muted?: boolean }) {
   return (
     <span
       className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-      style={{ background: 'var(--color-guinda-700)', color: 'white' }}
+      style={{ background: 'var(--color-guinda-800)', color: 'white' }}
     >
       {count}
     </span>
@@ -317,7 +317,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     return {
       borderLeftColor: active ? 'var(--color-guinda-700)' : 'transparent',
       background: active ? '#f8f4ec' : 'transparent',
-      color: active ? 'var(--color-guinda-800)' : '#44403c',
+      color: active ? 'var(--color-guinda-800)' : '#443e39',
       fontWeight: active ? 600 : 400,
     };
   }
@@ -339,12 +339,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: '#ececec', fontFamily: "'Inter', sans-serif", color: '#2a2a2a' }}>
+    <div className="min-h-screen" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
 
       {/* Banda gobierno */}
       <div
         className="flex justify-between items-center text-white text-[11px] font-medium"
-        style={{ background: 'var(--color-guinda-700)', padding: '6px 16px', letterSpacing: '0.05em' }}
+        style={{ background: 'var(--color-guinda-800)', padding: '6px 16px', letterSpacing: '0.05em' }}
       >
         <span>GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
         <span style={{ opacity: 0.7 }}>prepaabierta.michoacan.gob.mx</span>
@@ -364,14 +364,14 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               alt="Secretaría de Educación de Michoacán"
               className="brand-logo-img flex-shrink-0"
             />
-            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.15 }}>
+            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-sm font-semibold" style={{ color: 'var(--color-guinda-800)' }}>Gobierno de Michoacán</div>
-              <div className="text-[9px] uppercase tracking-widest" style={{ color: '#78716c', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>
+              <div className="text-[9px] uppercase tracking-widest" style={{ color: '#6b635e', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>
             </div>
-            <div className="w-px h-9" style={{ background: '#d6d3d1' }} />
-            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.15 }}>
+            <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
+            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Prepa Abierta</div>
-              <div className="text-xs" style={{ color: '#78716c', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Sistema de Gestión · IEMSyS
                 <span style={{
                   display: 'inline-flex', alignItems: 'center',
@@ -388,10 +388,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           {/* Right actions */}
           <div className="flex items-center gap-4">
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
               <input
                 className="pl-9 pr-3 py-2 text-[13px] rounded-lg border w-72"
-                style={{ background: '#f8f4ec', borderColor: '#e7e5e4', color: '#44403c' }}
+                style={{ background: '#f8f4ec', borderColor: '#eadfd7', color: '#443e39' }}
                 placeholder="Buscar alumno, gestor, folio..."
               />
             </div>
@@ -414,7 +414,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={handleLogout}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c', padding: 6 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}
             >
               <LogOut size={14} />
             </button>
@@ -433,9 +433,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           style={{ top: 96 }}
         >
           {/* Header */}
-          <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
+          <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
             <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
-            <div className="text-[15px] font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <div className="text-[15px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Administración
             </div>
           </div>
@@ -459,7 +459,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <div className="py-1.5 border-t border-stone-100">
             <div
               className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
-              style={{ color: '#78716c', letterSpacing: '0.12em' }}
+              style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
             >
               PERSONAS
             </div>
@@ -483,7 +483,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           <div className="py-1.5 border-t border-stone-100">
             <div
               className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
-              style={{ color: '#78716c', letterSpacing: '0.12em' }}
+              style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
             >
               OTROS
             </div>
@@ -509,7 +509,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <footer className="bg-white" style={{ borderTop: '1px solid #e7e5e4', marginTop: 0 }}>
+      <footer className="bg-white" style={{ borderTop: '1px solid #eadfd7', marginTop: 0 }}>
         <div className="max-w-[1400px] mx-auto px-6 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>© {new Date().getFullYear()} Gobierno del Estado de Michoacán</div>
           <div style={{ fontWeight: 500 }}>

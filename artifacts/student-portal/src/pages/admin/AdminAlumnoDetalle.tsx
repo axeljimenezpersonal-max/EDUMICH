@@ -93,8 +93,8 @@ const ESTADO_EXP_CFG: Record<string, { label: string; dot: string; bg: string; c
   pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
   en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
   rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
-  sin_documentos:      { label: 'Sin documentos',        dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
-  inactivo:            { label: 'Inactivo',              dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  sin_documentos:      { label: 'Sin documentos',        dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
+  inactivo:            { label: 'Inactivo',              dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
 };
 
 const DOC_TIPO_LABEL: Record<string, string> = {
@@ -125,7 +125,7 @@ function fmtDate(iso: string) {
 }
 
 function vigenciaInfo(vigenteHasta: string | null | undefined): { label: string; bg: string; color: string; border: string; diasRestantes: number | null } {
-  if (!vigenteHasta) return { label: 'Sin vigencia', bg: '#f5f5f4', color: '#78716c', border: '#e7e5e4', diasRestantes: null };
+  if (!vigenteHasta) return { label: 'Sin vigencia', bg: '#f7f2ed', color: '#6b635e', border: '#eadfd7', diasRestantes: null };
   const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
   const fecha = new Date(vigenteHasta + 'T00:00:00');
   const dias = Math.ceil((fecha.getTime() - hoy.getTime()) / 86_400_000);
@@ -178,7 +178,7 @@ function DocRow({
             {cfg.label}
           </span>
         </div>
-        <div className="text-xs mt-0.5 truncate" style={{ color: '#78716c' }}>
+        <div className="text-xs mt-0.5 truncate" style={{ color: '#6b635e' }}>
           {doc.nombreOriginal}
         </div>
         {doc.motivoRechazo && (
@@ -186,7 +186,7 @@ function DocRow({
             Motivo: {doc.motivoRechazo}
           </div>
         )}
-        <div className="text-[11px] mt-1" style={{ color: '#a8a29e' }}>
+        <div className="text-[11px] mt-1" style={{ color: '#a89a8e' }}>
           Subido {fmtDate(doc.subidoEn)}
           {doc.revisadoEn && ` · Revisado ${fmtDate(doc.revisadoEn)}`}
         </div>
@@ -197,7 +197,7 @@ function DocRow({
           target="_blank"
           rel="noopener noreferrer"
           className="px-2.5 py-1 text-xs font-semibold border rounded-lg transition-colors"
-          style={{ color: '#44403c', border: '1px solid #d6d3d1', background: 'white' }}
+          style={{ color: '#443e39', border: '1px solid #ddd0c5', background: 'white' }}
           title="Ver PDF"
         >
           Ver PDF
@@ -248,18 +248,18 @@ function ModalAprobar({
           </div>
           <div>
             <h3 className="font-bold text-base" style={{ color: '#1a1a1a' }}>¿Aprobar este documento?</h3>
-            <p className="text-xs" style={{ color: '#78716c' }}>El documento se contabilizará como completo en el expediente.</p>
+            <p className="text-xs" style={{ color: '#6b635e' }}>El documento se contabilizará como completo en el expediente.</p>
           </div>
         </div>
-        <div className="rounded-xl p-3 mb-5" style={{ background: '#f5f5f4' }}>
+        <div className="rounded-xl p-3 mb-5" style={{ background: '#f7f2ed' }}>
           <div className="text-sm font-semibold mb-0.5" style={{ color: '#1a1a1a' }}>{DOC_TIPO_LABEL[doc.tipo] ?? doc.tipo}</div>
-          <div className="text-xs" style={{ color: '#78716c' }}>{doc.nombreOriginal}</div>
+          <div className="text-xs" style={{ color: '#6b635e' }}>{doc.nombreOriginal}</div>
         </div>
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
             className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-xl"
-            style={{ color: '#44403c' }}
+            style={{ color: '#443e39' }}
           >
             Cancelar
           </button>
@@ -303,11 +303,11 @@ function ModalRechazar({
           </div>
           <div>
             <h3 className="font-bold text-base" style={{ color: '#1a1a1a' }}>Rechazar documento</h3>
-            <p className="text-xs" style={{ color: '#78716c' }}>{DOC_TIPO_LABEL[doc.tipo] ?? doc.tipo} · {doc.nombreOriginal}</p>
+            <p className="text-xs" style={{ color: '#6b635e' }}>{DOC_TIPO_LABEL[doc.tipo] ?? doc.tipo} · {doc.nombreOriginal}</p>
           </div>
         </div>
         <div className="mb-3">
-          <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: '#78716c' }}>
+          <label className="text-xs font-semibold uppercase tracking-wide block mb-1.5" style={{ color: '#6b635e' }}>
             Motivo del rechazo <span style={{ color: '#b91c1c' }}>*</span>
           </label>
           <textarea
@@ -317,7 +317,7 @@ function ModalRechazar({
             placeholder="El alumno verá esta razón para volver a subir el documento…"
             rows={3}
             className="w-full text-sm border rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2"
-            style={{ border: '1px solid #d6d3d1', color: '#1a1a1a' }}
+            style={{ border: '1px solid #ddd0c5', color: '#1a1a1a' }}
           />
         </div>
         <div className="flex flex-wrap gap-1.5 mb-5">
@@ -327,9 +327,9 @@ function ModalRechazar({
               onClick={() => { setMotivo(m); textareaRef.current?.focus(); }}
               className="text-[11px] px-2.5 py-1 border rounded-full transition-colors"
               style={{
-                border: motivo === m ? '1px solid #b91c1c' : '1px solid #d6d3d1',
+                border: motivo === m ? '1px solid #b91c1c' : '1px solid #ddd0c5',
                 background: motivo === m ? '#fee2e2' : 'white',
-                color: motivo === m ? '#b91c1c' : '#44403c',
+                color: motivo === m ? '#b91c1c' : '#443e39',
               }}
             >
               {m}
@@ -340,7 +340,7 @@ function ModalRechazar({
           <button
             onClick={onCancel}
             className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-xl"
-            style={{ color: '#44403c' }}
+            style={{ color: '#443e39' }}
           >
             Cancelar
           </button>
@@ -381,7 +381,7 @@ function PagoRow({ pago }: { pago: Pago }) {
             {cfg.label}
           </span>
         </div>
-        <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>
+        <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>
           {pago.metodoPago} · {fmtDate(pago.fechaPago)}
         </div>
         {pago.motivoRechazo && (
@@ -405,8 +405,8 @@ function ExamenRow({ examen }: { examen: Examen }) {
       <div
         className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 text-xs font-bold"
         style={{
-          background: examen.calificacion === null ? '#f5f5f4' : aprobado ? '#d1fae5' : '#fee2e2',
-          color: examen.calificacion === null ? '#78716c' : aprobado ? '#2d7d46' : '#b91c1c',
+          background: examen.calificacion === null ? '#f7f2ed' : aprobado ? '#d1fae5' : '#fee2e2',
+          color: examen.calificacion === null ? '#6b635e' : aprobado ? '#2d7d46' : '#b91c1c',
         }}
       >
         {examen.calificacion !== null ? examen.calificacion : '—'}
@@ -415,7 +415,7 @@ function ExamenRow({ examen }: { examen: Examen }) {
         <div className="text-sm font-semibold" style={{ color: '#2a2a2a' }}>
           {examen.moduloNombre ?? (examen.moduloNumero !== null ? `Módulo ${examen.moduloNumero}` : `Módulo ${examen.moduloId}`)}
         </div>
-        <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>
+        <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>
           {examen.etapaClave ?? `Etapa ${examen.etapaId}`}
           {examen.etapaFase && ` · ${examen.etapaFase}`}
           {examen.etapaAnio && ` ${examen.etapaAnio}`}
@@ -574,7 +574,7 @@ export default function AdminAlumnoDetalle() {
   if (loading) {
     return (
       <AdminLayout>
-        <div className="py-24 text-center text-sm" style={{ color: '#78716c' }}>Cargando alumno…</div>
+        <div className="py-24 text-center text-sm" style={{ color: '#6b635e' }}>Cargando alumno…</div>
       </AdminLayout>
     );
   }
@@ -677,7 +677,7 @@ export default function AdminAlumnoDetalle() {
               color: 'var(--color-guinda-700)',
               border: '5px solid white',
               marginTop: -60,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: 36,
               letterSpacing: '-0.02em',
@@ -692,12 +692,12 @@ export default function AdminAlumnoDetalle() {
 
           {/* Texto */}
           <div style={{ paddingTop: 16 }}>
-            <div className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#a8a29e' }}>
+            <div className="text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#a89a8e' }}>
               ALUMNO · ID-{alumno.id}
             </div>
             <h1
               className="text-2xl font-bold tracking-tight mb-2"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}
+              style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}
             >
               {alumno.nombreCompleto}
             </h1>
@@ -712,7 +712,7 @@ export default function AdminAlumnoDetalle() {
               {alumno.municipio && (
                 <span
                   className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                  style={{ background: '#f5f5f4', color: '#44403c' }}
+                  style={{ background: '#f7f2ed', color: '#443e39' }}
                 >
                   <MapPin size={11} /> {alumno.municipio.nombre}
                 </span>
@@ -742,7 +742,7 @@ export default function AdminAlumnoDetalle() {
               onClick={handleResetPassword}
               disabled={resettingPwd}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
             </button>
@@ -750,7 +750,7 @@ export default function AdminAlumnoDetalle() {
               onClick={handleReenviarCredenciales}
               disabled={reenviando}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
             </button>
@@ -769,31 +769,31 @@ export default function AdminAlumnoDetalle() {
         {/* Meta row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-8 pb-6 pt-5 border-t border-stone-100">
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Correo</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Mail size={12} style={{ color: '#78716c' }} />
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Correo</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Mail size={12} style={{ color: '#6b635e' }} />
               <span className="truncate">{alumno.email}</span>
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Teléfono</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Phone size={12} style={{ color: '#78716c' }} />
-              {alumno.telefono ?? <span style={{ color: '#a8a29e' }}>No registrado</span>}
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Teléfono</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Phone size={12} style={{ color: '#6b635e' }} />
+              {alumno.telefono ?? <span style={{ color: '#a89a8e' }}>No registrado</span>}
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>CURP</div>
-            <div className="text-sm font-mono" style={{ color: '#44403c' }}>
-              {alumno.curp ?? <span style={{ color: '#a8a29e', fontFamily: 'inherit', fontWeight: 400 }}>No registrada</span>}
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>CURP</div>
+            <div className="text-sm font-mono" style={{ color: '#443e39' }}>
+              {alumno.curp ?? <span style={{ color: '#a89a8e', fontFamily: 'inherit', fontWeight: 400 }}>No registrada</span>}
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Registro</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Calendar size={12} style={{ color: '#78716c' }} />
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Registro</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Calendar size={12} style={{ color: '#6b635e' }} />
               {fmtDate(alumno.creadoEn)}
-              {edad !== null && <span style={{ color: '#a8a29e' }}> · {edad} años</span>}
+              {edad !== null && <span style={{ color: '#a89a8e' }}> · {edad} años</span>}
             </div>
           </div>
         </div>
@@ -805,31 +805,31 @@ export default function AdminAlumnoDetalle() {
           { label: 'Documentos', value: `${alumno.docsAprobados}/${alumno.docsTotal}`, sub: 'aprobados', icon: FileText, bg: '#fbe6ea', color: 'var(--color-guinda-700)' },
           { label: 'Pagos',      value: pagosData.length, sub: 'registrados',  icon: CreditCard,   bg: '#ede9fe', color: '#7c3aed' },
           { label: 'Evaluaciones', value: examenes.length, sub: 'realizadas',  icon: GraduationCap, bg: '#d1fae5', color: '#2d7d46' },
-          { label: 'Último acceso', value: alumno.ultimaActividad ? fmtDate(alumno.ultimaActividad) : '—', sub: '', icon: Clock, bg: '#f5f5f4', color: '#44403c' },
+          { label: 'Último acceso', value: alumno.ultimaActividad ? fmtDate(alumno.ultimaActividad) : '—', sub: '', icon: Clock, bg: '#f7f2ed', color: '#443e39' },
         ].map((k) => (
           <div key={k.label} className="bg-white border border-stone-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: k.bg }}>
                 <k.icon size={14} style={{ color: k.color }} />
               </div>
-              <span className="text-[11px] uppercase tracking-wide font-semibold" style={{ color: '#a8a29e' }}>{k.label}</span>
+              <span className="text-[11px] uppercase tracking-wide font-semibold" style={{ color: '#a89a8e' }}>{k.label}</span>
             </div>
-            <div className="text-xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}>{k.value}</div>
-            {k.sub && <div className="text-xs mt-0.5" style={{ color: '#78716c' }}>{k.sub}</div>}
+            <div className="text-xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>{k.value}</div>
+            {k.sub && <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>{k.sub}</div>}
           </div>
         ))}
       </div>
 
       {/* ── MATRÍCULA OFICIAL DGB ───────────────────────────────── */}
       {!alumno.matriculaOficialDGB ? (
-        <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+        <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <Award size={18} style={{ color: 'var(--color-guinda-700)' }} />
             </div>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>Aún no se ha capturado la matrícula oficial asignada por la SEP-DGB.</p>
+              <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>Aún no se ha capturado la matrícula oficial asignada por la SEP-DGB.</p>
             </div>
           </div>
           <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', fontSize: 12, color: '#1d4ed8', marginBottom: 14 }}>
@@ -847,19 +847,19 @@ export default function AdminAlumnoDetalle() {
             </div>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Matrícula oficial DGB</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+              <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
                 Capturada el {alumno.matriculaCapturadaEn ? new Date(alumno.matriculaCapturadaEn).toLocaleDateString('es-MX', {day:'numeric',month:'short',year:'numeric'}) : '—'}
               </p>
             </div>
           </div>
-          <div style={{ background: '#f8fafc', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+          <div style={{ background: '#f8fafc', border: '1px solid #eadfd7', borderRadius: 10, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>MATRÍCULA</div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', marginBottom: 3 }}>MATRÍCULA</div>
               <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 22, fontWeight: 700, color: 'var(--color-guinda-700)', letterSpacing: '0.05em' }}>
                 {alumno.matriculaOficialDGB}
               </div>
             </div>
-            <button onClick={() => setModalMatricula({ matriculaActual: alumno.matriculaOficialDGB! })} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 12, color: '#44403c' }}>
+            <button onClick={() => setModalMatricula({ matriculaActual: alumno.matriculaOficialDGB! })} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '6px 12px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 12, color: '#443e39' }}>
               <Edit2 size={12} /> Editar
             </button>
           </div>
@@ -867,7 +867,7 @@ export default function AdminAlumnoDetalle() {
             <a href={`/api/admin/alumnos/${alumnoId}/ficha-registro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#16a34a', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
               <Download size={12} /> Ficha de registro PDF
             </a>
-            <a href={`/api/admin/alumnos/${alumnoId}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #e7e5e4', borderRadius: 8, fontSize: 12, color: '#44403c', textDecoration: 'none' }}>
+            <a href={`/api/admin/alumnos/${alumnoId}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: '1px solid #eadfd7', borderRadius: 8, fontSize: 12, color: '#443e39', textDecoration: 'none' }}>
               <FileText size={12} /> Ficha de pre-registro
             </a>
           </div>
@@ -876,14 +876,14 @@ export default function AdminAlumnoDetalle() {
 
       {/* ── LICENCIA DIGITAL ────────────────────────────────────── */}
       {!alumno.licenciaDigital ? (
-        <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
+        <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
             </div>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+              <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
                 {!alumno.matriculaOficialDGB
                   ? 'Se requiere matrícula oficial antes de emitir la licencia digital.'
                   : 'Aún no se ha emitido la licencia digital para este alumno.'}
@@ -915,13 +915,13 @@ export default function AdminAlumnoDetalle() {
             </div>
             <div>
               <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
-              <p style={{ fontSize: 12, color: '#78716c', margin: '3px 0 0' }}>
+              <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
                 Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
               </p>
             </div>
           </div>
-          <div style={{ background: '#faf8ff', border: '1px solid #e7e5e4', borderRadius: 10, padding: '14px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', marginBottom: 3 }}>LICENCIA DIGITAL</div>
+          <div style={{ background: '#faf8ff', border: '1px solid #eadfd7', borderRadius: 10, padding: '14px 18px' }}>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', marginBottom: 3 }}>LICENCIA DIGITAL</div>
             <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
               {alumno.licenciaDigital}
             </div>
@@ -933,17 +933,17 @@ export default function AdminAlumnoDetalle() {
       {alumno.folioPreregistro && (() => {
         const vig = vigenciaInfo(alumno.preregistroVigenteHasta);
         return (
-          <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 12, padding: '16px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '16px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
             <div style={{ width: 36, height: 36, borderRadius: 8, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
               <FileText size={18} style={{ color: 'var(--color-guinda-700)' }} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a8a29e', marginBottom: 3 }}>Folio de pre-registro</div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a89a8e', marginBottom: 3 }}>Folio de pre-registro</div>
               <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 16, fontWeight: 700, color: 'var(--color-guinda-700)', letterSpacing: '0.04em' }}>
                 {alumno.folioPreregistro}
               </div>
               {alumno.preregistroVigenteHasta && (
-                <div style={{ fontSize: 11, color: '#78716c', marginTop: 2 }}>
+                <div style={{ fontSize: 11, color: '#6b635e', marginTop: 2 }}>
                   Vigente hasta {new Date(alumno.preregistroVigenteHasta + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
                 </div>
               )}
@@ -952,11 +952,11 @@ export default function AdminAlumnoDetalle() {
               {vig.label}
             </span>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-              <a href={`/api/admin/alumnos/${alumnoId}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', border: '1px solid #e7e5e4', borderRadius: 6, background: '#fff', textDecoration: 'none', fontSize: 12, color: '#44403c' }}>
+              <a href={`/api/admin/alumnos/${alumnoId}/ficha-preregistro`} target="_blank" rel="noopener" style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', textDecoration: 'none', fontSize: 12, color: '#443e39' }}>
                 <Download size={12} /> Descargar
               </a>
               {!alumno.matriculaOficialDGB && (
-                <button onClick={handleRenovarPreregistro} disabled={renovando} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', border: '1px solid #e7e5e4', borderRadius: 6, background: vig.diasRestantes !== null && vig.diasRestantes <= 0 ? 'var(--color-guinda-700)' : '#fff', color: vig.diasRestantes !== null && vig.diasRestantes <= 0 ? 'white' : '#44403c', cursor: 'pointer', fontSize: 12, opacity: renovando ? 0.5 : 1 }}>
+                <button onClick={handleRenovarPreregistro} disabled={renovando} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '6px 12px', border: '1px solid #eadfd7', borderRadius: 6, background: vig.diasRestantes !== null && vig.diasRestantes <= 0 ? 'var(--color-guinda-700)' : '#fff', color: vig.diasRestantes !== null && vig.diasRestantes <= 0 ? 'white' : '#443e39', cursor: 'pointer', fontSize: 12, opacity: renovando ? 0.5 : 1 }}>
                   <RefreshCw size={12} /> {renovando ? 'Renovando...' : 'Renovar'}
                 </button>
               )}
@@ -975,7 +975,7 @@ export default function AdminAlumnoDetalle() {
               onClick={() => setActiveTab(t.key)}
               className="flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors"
               style={{
-                color: activeTab === t.key ? 'var(--color-guinda-700)' : '#78716c',
+                color: activeTab === t.key ? 'var(--color-guinda-700)' : '#6b635e',
                 background: 'none',
                 border: 'none',
                 borderBottom: activeTab === t.key ? '2px solid var(--color-guinda-700)' : '2px solid transparent',
@@ -987,7 +987,7 @@ export default function AdminAlumnoDetalle() {
               {t.count !== undefined && t.count > 0 && (
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: activeTab === t.key ? '#fbe6ea' : '#f5f5f4', color: activeTab === t.key ? 'var(--color-guinda-700)' : '#78716c' }}
+                  style={{ background: activeTab === t.key ? '#fbe6ea' : '#f7f2ed', color: activeTab === t.key ? 'var(--color-guinda-700)' : '#6b635e' }}
                 >
                   {t.count}
                 </span>
@@ -1000,7 +1000,7 @@ export default function AdminAlumnoDetalle() {
         <div className="p-5">
           {activeTab === 'docs' && (
             documentos.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a8a29e' }}>No hay documentos registrados</p>
+              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay documentos registrados</p>
               : documentos.map((d) => (
                   <DocRow
                     key={d.id}
@@ -1013,12 +1013,12 @@ export default function AdminAlumnoDetalle() {
           )}
           {activeTab === 'pagos' && (
             pagosData.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a8a29e' }}>No hay pagos registrados</p>
+              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay pagos registrados</p>
               : pagosData.map((p) => <PagoRow key={p.id} pago={p} />)
           )}
           {activeTab === 'examenes' && (
             examenes.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a8a29e' }}>No hay evaluaciones registradas</p>
+              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay evaluaciones registradas</p>
               : examenes.map((e) => <ExamenRow key={e.id} examen={e} />)
           )}
         </div>
@@ -1052,35 +1052,35 @@ export default function AdminAlumnoDetalle() {
                 <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>
                   {modalMatricula.matriculaActual ? 'Editar matrícula oficial DGB' : 'Capturar matrícula oficial DGB'}
                 </h2>
-                <p style={{ fontSize: 12, color: '#78716c', marginTop: 4, marginBottom: 0 }}>
+                <p style={{ fontSize: 12, color: '#6b635e', marginTop: 4, marginBottom: 0 }}>
                   Ingresa la matrícula que la SEP-DGB asignó a este alumno.
                 </p>
               </div>
-              <button onClick={() => setModalMatricula(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c' }}>
+              <button onClick={() => setModalMatricula(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e' }}>
                 <X size={18} />
               </button>
             </div>
 
-            <div style={{ background: '#faf9f8', border: '1px solid #e7e5e4', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
+            <div style={{ background: '#faf9f8', border: '1px solid #eadfd7', borderRadius: 8, padding: '12px 16px', marginBottom: 16 }}>
               <div style={{ fontWeight: 700, fontSize: 14, color: '#2a2a2a' }}>{alumno.nombreCompleto}</div>
-              <div style={{ fontSize: 12, color: '#78716c' }}>CURP: {alumno.curp}</div>
-              {alumno.folioPreregistro && <div style={{ fontSize: 12, color: '#78716c' }}>Pre-registro: {alumno.folioPreregistro}</div>}
+              <div style={{ fontSize: 12, color: '#6b635e' }}>CURP: {alumno.curp}</div>
+              {alumno.folioPreregistro && <div style={{ fontSize: 12, color: '#6b635e' }}>Pre-registro: {alumno.folioPreregistro}</div>}
             </div>
 
             <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 12, fontWeight: 600, color: '#57534e', display: 'block', marginBottom: 6 }}>Matrícula oficial DGB *</label>
+              <label style={{ fontSize: 12, fontWeight: 600, color: '#57504a', display: 'block', marginBottom: 6 }}>Matrícula oficial DGB *</label>
               <input
                 type="text"
                 value={matriculaInput}
                 onChange={e => setMatriculaInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
                 placeholder="Ej. 26016000142X"
                 maxLength={20}
-                style={{ width: '100%', border: '1px solid #e7e5e4', borderRadius: 6, padding: '9px 12px', fontSize: 15, fontFamily: 'monospace', letterSpacing: '0.05em', background: '#faf9f8' }}
+                style={{ width: '100%', border: '1px solid #eadfd7', borderRadius: 6, padding: '9px 12px', fontSize: 15, fontFamily: 'monospace', letterSpacing: '0.05em', background: '#faf9f8' }}
               />
-              <div style={{ fontSize: 11, color: '#78716c', marginTop: 4 }}>Entre 8 y 20 caracteres alfanuméricos. Tal como la asignó la SEP-DGB.</div>
+              <div style={{ fontSize: 11, color: '#6b635e', marginTop: 4 }}>Entre 8 y 20 caracteres alfanuméricos. Tal como la asignó la SEP-DGB.</div>
             </div>
 
-            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#44403c', cursor: 'pointer', marginBottom: 16 }}>
+            <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: '#443e39', cursor: 'pointer', marginBottom: 16 }}>
               <input type="checkbox" checked={matriculaConfirmado} onChange={e => setMatriculaConfirmado(e.target.checked)} style={{ marginTop: 2 }} />
               <span>Confirmo que esta matrícula fue asignada oficialmente por la SEP-DGB y corresponde a este alumno.</span>
             </label>
@@ -1088,7 +1088,7 @@ export default function AdminAlumnoDetalle() {
             {matriculaError && <div style={{ color: '#be123c', fontSize: 12, padding: '8px 12px', background: '#fff1f2', borderRadius: 6, marginBottom: 12 }}>{matriculaError}</div>}
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-              <button onClick={() => setModalMatricula(null)} style={{ padding: '9px 20px', border: '1px solid #e7e5e4', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+              <button onClick={() => setModalMatricula(null)} style={{ padding: '9px 20px', border: '1px solid #eadfd7', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
               <button
                 disabled={matriculaSaving || matriculaInput.length < 8 || !matriculaConfirmado}
                 onClick={async () => {
@@ -1125,13 +1125,13 @@ export default function AdminAlumnoDetalle() {
               </div>
               <div>
                 <h3 className="font-bold text-base" style={{ color: '#1a1a1a' }}>Emitir licencia digital</h3>
-                <p className="text-xs" style={{ color: '#78716c' }}>Esta acción genera un folio único e irreversible.</p>
+                <p className="text-xs" style={{ color: '#6b635e' }}>Esta acción genera un folio único e irreversible.</p>
               </div>
             </div>
-            <div className="rounded-xl p-3 mb-5" style={{ background: '#f5f5f4' }}>
+            <div className="rounded-xl p-3 mb-5" style={{ background: '#f7f2ed' }}>
               <div className="text-sm font-semibold mb-0.5" style={{ color: '#1a1a1a' }}>{alumno.nombreCompleto}</div>
-              <div className="text-xs font-mono" style={{ color: '#78716c' }}>{alumno.curp}</div>
-              <div className="text-xs mt-1" style={{ color: '#78716c' }}>Matrícula: {alumno.matriculaOficialDGB}</div>
+              <div className="text-xs font-mono" style={{ color: '#6b635e' }}>{alumno.curp}</div>
+              <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Matrícula: {alumno.matriculaOficialDGB}</div>
             </div>
             <div className="rounded-lg p-3 mb-5 text-xs" style={{ background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa' }}>
               <strong>Importante:</strong> La licencia digital se genera automáticamente con un folio único del sistema. Una vez emitida no puede eliminarse, solo el administrador puede verla.
@@ -1140,7 +1140,7 @@ export default function AdminAlumnoDetalle() {
               <button
                 onClick={() => setConfirmarLicencia(false)}
                 className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-xl"
-                style={{ color: '#44403c' }}
+                style={{ color: '#443e39' }}
               >
                 Cancelar
               </button>

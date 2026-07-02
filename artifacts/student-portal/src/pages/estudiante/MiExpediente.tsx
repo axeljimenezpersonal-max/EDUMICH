@@ -402,6 +402,23 @@ export default function MiExpediente() {
                 }
               />
 
+              {/* Acceso a la inscripción (convocatoria) — arriba de los documentos */}
+              <a
+                href="/estudiante/convocatoria"
+                className="mb-4 flex items-center gap-3 bg-white border border-stone-200 rounded-xl p-4 hover:border-[var(--color-guinda-700)] transition-colors group"
+              >
+                <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+                  <Calendar size={18} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-stone-900">Inscripción</div>
+                  <div className="text-xs text-stone-500">Consulta tu convocatoria, módulos y sede asignada.</div>
+                </div>
+                <span className="text-xs font-semibold text-[var(--color-guinda-700)] group-hover:underline shrink-0">
+                  Ver →
+                </span>
+              </a>
+
               <section className="mb-6">
                 <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Documentos obligatorios</h2>
                 <div className="space-y-3">
@@ -443,6 +460,17 @@ export default function MiExpediente() {
                     Armar →
                   </span>
                 </a>
+
+                {/* Vista previa de la cédula */}
+                <div className="mt-3">
+                  <div className="text-xs font-semibold text-stone-500 mb-1.5">Vista previa de tu cédula</div>
+                  <iframe
+                    title="Vista previa de la cédula"
+                    src="/api/estudiante/cedula/pdf#toolbar=0&view=FitH"
+                    className="w-full border border-stone-200 rounded-xl bg-stone-100"
+                    style={{ height: 360 }}
+                  />
+                </div>
               </section>
 
               <section className="mb-6">

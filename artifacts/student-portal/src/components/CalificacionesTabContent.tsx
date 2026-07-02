@@ -54,7 +54,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
         </div>
         <div
           className="text-2xl font-bold text-stone-900 leading-none my-0.5"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           {d.getDate()}
         </div>
@@ -88,7 +88,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
             </div>
             <div
               className="text-2xl font-bold leading-none"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               {resumen.totalAprobados} módulos aprobados
             </div>
@@ -98,7 +98,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
           <div className="text-center">
             <div
               className="text-4xl font-bold leading-none"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               {resumen.promedioGlobal}
               <span className="text-base opacity-60 font-normal">/100</span>
@@ -108,7 +108,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
           <div className="text-center">
             <div
               className="text-4xl font-bold leading-none"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               {resumen.porcentajeAvance}
               <span className="text-base opacity-60 font-normal">%</span>
@@ -133,7 +133,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                   ? 'text-[var(--color-guinda-700)] border-[var(--color-guinda-700)]'
                   : 'text-stone-500 border-transparent hover:text-stone-700'
               }`}
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               {tab === 'aprobados' ? <Grid3x3 size={14} /> : <List size={14} />}
               {label}
@@ -177,13 +177,13 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                   <div>
                     <span
                       className="inline-block bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] font-bold text-sm px-2.5 py-1 rounded-md"
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      style={{ fontFamily: "'Poppins', sans-serif" }}
                     >
                       M{row.moduloNumero}
                     </span>
                   </div>
                   <div>
-                    <div className="font-semibold text-stone-900 text-sm leading-snug" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    <div className="font-semibold text-stone-900 text-sm leading-snug" style={{ fontFamily: "'Poppins', sans-serif" }}>
                       {row.moduloNombre}
                     </div>
                     <div className="text-[11px] text-stone-500 mt-0.5">
@@ -192,7 +192,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                   </div>
                   <div
                     className="text-right font-bold text-emerald-600 text-xl leading-none"
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
                     {row.calificacion}
                     <span className="text-xs font-normal text-stone-400">/100</span>
@@ -218,7 +218,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
               <div className="w-12 h-12 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] rounded-full flex items-center justify-center mx-auto mb-3">
                 <GraduationCap size={22} />
               </div>
-              <div className="font-bold text-stone-900 mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <div className="font-bold text-stone-900 mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
                 Faltan {21 - modulosAprobados.length} módulos por aprobar
               </div>
               <p className="text-xs text-stone-500">
@@ -256,7 +256,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                     </span>
                     <div
                       className="font-semibold text-stone-900 text-sm leading-snug"
-                      style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                      style={{ fontFamily: "'Poppins', sans-serif" }}
                     >
                       {row.moduloNombre}
                     </div>
@@ -268,7 +268,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                   </div>
                   <div
                     className={`text-3xl font-bold leading-none ${row.aprobado ? 'text-emerald-600' : 'text-red-600'}`}
-                    style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                    style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
                     {row.calificacion}
                     <span className="text-sm font-normal text-stone-400">/100</span>
@@ -298,7 +298,7 @@ function EmptyState({ icon, title, desc }: { icon: React.ReactNode; title: strin
       <div className="w-14 h-14 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] rounded-full flex items-center justify-center mx-auto mb-3">
         {icon}
       </div>
-      <div className="font-bold text-stone-900 mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+      <div className="font-bold text-stone-900 mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
         {title}
       </div>
       <p className="text-sm text-stone-500 max-w-sm mx-auto">{desc}</p>

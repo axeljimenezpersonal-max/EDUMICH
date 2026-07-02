@@ -157,24 +157,24 @@ export default function CapturaMasivaCalificaciones() {
         </div>
         <h1
           className="text-2xl font-bold tracking-tight"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+          style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
         >
           Captura masiva de calificaciones
         </h1>
-        <p className="text-sm mt-1" style={{ color: '#78716c' }}>
+        <p className="text-sm mt-1" style={{ color: '#6b635e' }}>
           Selecciona una etapa y teclea las calificaciones para todos los alumnos que presentaron examen.
         </p>
       </div>
 
       {/* Selector de etapa */}
       <div className="bg-white border border-stone-200 rounded-xl p-5 mb-6">
-        <label className="block text-sm font-semibold mb-2" style={{ color: '#44403c' }}>
+        <label className="block text-sm font-semibold mb-2" style={{ color: '#443e39' }}>
           Etapa de examen con calificaciones pendientes
         </label>
         {loadingEtapas ? (
-          <div className="text-sm" style={{ color: '#78716c' }}>Cargando etapas…</div>
+          <div className="text-sm" style={{ color: '#6b635e' }}>Cargando etapas…</div>
         ) : etapas.length === 0 ? (
-          <div className="text-sm" style={{ color: '#78716c' }}>No hay etapas con calificaciones pendientes.</div>
+          <div className="text-sm" style={{ color: '#6b635e' }}>No hay etapas con calificaciones pendientes.</div>
         ) : (
           <select
             className="w-full max-w-lg px-3 py-2 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 bg-white"
@@ -193,15 +193,15 @@ export default function CapturaMasivaCalificaciones() {
       {etapaId && (
         <>
           {loadingInsc ? (
-            <div className="py-12 text-center text-sm" style={{ color: '#78716c' }}>Cargando inscripciones…</div>
+            <div className="py-12 text-center text-sm" style={{ color: '#6b635e' }}>Cargando inscripciones…</div>
           ) : inscripciones.length === 0 ? (
-            <div className="bg-white border border-stone-200 rounded-xl py-12 text-center text-sm" style={{ color: '#78716c' }}>
+            <div className="bg-white border border-stone-200 rounded-xl py-12 text-center text-sm" style={{ color: '#6b635e' }}>
               No hay inscripciones pendientes para esta etapa.
             </div>
           ) : (
             <>
               <div className="flex items-center justify-between mb-3">
-                <p className="text-sm" style={{ color: '#78716c' }}>
+                <p className="text-sm" style={{ color: '#6b635e' }}>
                   {inscripciones.length} alumnos · {totalCapturadas} calificaciones ingresadas
                 </p>
                 {error && (
@@ -227,7 +227,7 @@ export default function CapturaMasivaCalificaciones() {
                     gridTemplateColumns: '100px 1fr 160px 120px 140px 160px',
                     gap: 12,
                     background: '#fafaf9',
-                    color: '#78716c',
+                    color: '#6b635e',
                   }}
                 >
                   <div>Folio</div>
@@ -261,17 +261,17 @@ export default function CapturaMasivaCalificaciones() {
                         {ins.folio}
                       </div>
                       <div>
-                        <div className="text-sm font-semibold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+                        <div className="text-sm font-semibold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                           {ins.alumnoNombre}
                         </div>
                       </div>
-                      <div className="text-xs" style={{ color: '#44403c' }}>
+                      <div className="text-xs" style={{ color: '#443e39' }}>
                         Mód. {ins.moduloNumero} — {ins.moduloNombre}
                       </div>
-                      <div className="text-xs" style={{ color: '#78716c' }}>
+                      <div className="text-xs" style={{ color: '#6b635e' }}>
                         {ins.fechaExamen}
                       </div>
-                      <div className="text-xs truncate" style={{ color: '#78716c' }}>
+                      <div className="text-xs truncate" style={{ color: '#6b635e' }}>
                         {ins.sedeNombre}
                       </div>
                       <div className="flex items-center gap-2">
@@ -285,13 +285,13 @@ export default function CapturaMasivaCalificaciones() {
                           onChange={(e) => setCalif(ins.id, e.target.value)}
                           className="w-20 px-2 py-1.5 text-sm text-center rounded-lg border focus:outline-none"
                           style={{
-                            borderColor: entrada.noPresento ? '#e7e5e4' :
-                              entrada.calificacion === '' ? '#e7e5e4' :
+                            borderColor: entrada.noPresento ? '#eadfd7' :
+                              entrada.calificacion === '' ? '#eadfd7' :
                               esValida ? (esAprobado ? '#a7f3d0' : '#fca5a5') : '#fca5a5',
-                            background: entrada.noPresento ? '#f5f5f4' : 'white',
-                            color: entrada.noPresento ? '#a8a29e' :
+                            background: entrada.noPresento ? '#f7f2ed' : 'white',
+                            color: entrada.noPresento ? '#a89a8e' :
                               (esValida ? (esAprobado ? '#2d7d46' : '#b91c1c') : '#2a2a2a'),
-                            fontFamily: "'Plus Jakarta Sans', sans-serif",
+                            fontFamily: "'Poppins', sans-serif",
                             fontWeight: 700,
                           }}
                         />
@@ -306,7 +306,7 @@ export default function CapturaMasivaCalificaciones() {
                             {esAprobado ? 'APRO' : 'REP'}
                           </span>
                         )}
-                        <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: '#78716c' }}>
+                        <label className="flex items-center gap-1 text-[11px] cursor-pointer select-none" style={{ color: '#6b635e' }}>
                           <input
                             type="checkbox"
                             checked={entrada.noPresento}

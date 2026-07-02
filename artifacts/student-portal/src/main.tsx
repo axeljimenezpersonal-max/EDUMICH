@@ -30,7 +30,7 @@ function Root() {
         >
           <div
             style={{
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontWeight: 900,
               fontSize: 64,
               letterSpacing: '-0.05em',

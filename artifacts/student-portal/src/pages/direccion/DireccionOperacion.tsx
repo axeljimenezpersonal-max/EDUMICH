@@ -72,10 +72,10 @@ export default function DireccionOperacion() {
   return (
     <DireccionLayout>
       <div className="mb-5">
-        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
           Operación del programa
         </h1>
-        <p className="text-[13px]" style={{ color: '#78716c' }}>
+        <p className="text-[13px]" style={{ color: '#6b635e' }}>
           Backlog del equipo, tiempos de respuesta y productividad de gestores
         </p>
       </div>
@@ -91,8 +91,8 @@ export default function DireccionOperacion() {
               <Icon size={16} />
             </div>
             <div>
-              <div className="font-bold" style={{ fontSize: 20, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{valor}</div>
-              <div className="text-[11px]" style={{ color: '#78716c' }}>{label}</div>
+              <div className="font-bold" style={{ fontSize: 20, fontFamily: "'Poppins', sans-serif" }}>{valor}</div>
+              <div className="text-[11px]" style={{ color: '#6b635e' }}>{label}</div>
             </div>
           </div>
         ))}
@@ -121,7 +121,7 @@ export default function DireccionOperacion() {
           <SeccionCard titulo="Productividad de gestores" sub="Top 10 por alumnos activos asignados">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="text-left" style={{ color: '#78716c' }}>
+                <tr className="text-left" style={{ color: '#6b635e' }}>
                   <th className="py-2 pr-3 font-semibold">Gestor</th>
                   <th className="py-2 pr-3 font-semibold">Municipio</th>
                   <th className="py-2 pr-3 font-semibold text-center">Estado</th>
@@ -133,13 +133,13 @@ export default function DireccionOperacion() {
                 {data.gestores.map((g) => (
                   <tr key={g.nombre} className="border-t border-stone-100">
                     <td className="py-2 pr-3 font-medium">{g.nombre}</td>
-                    <td className="py-2 pr-3" style={{ color: '#78716c' }}>{g.municipio ?? '—'}</td>
+                    <td className="py-2 pr-3" style={{ color: '#6b635e' }}>{g.municipio ?? '—'}</td>
                     <td className="py-2 pr-3 text-center">
                       <span
                         className="text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase"
                         style={g.estado === 'activo'
                           ? { background: '#f0fdf4', color: '#166534' }
-                          : { background: '#f5f5f4', color: '#78716c' }}
+                          : { background: '#f7f2ed', color: '#6b635e' }}
                       >
                         {g.estado}
                       </span>
@@ -149,7 +149,7 @@ export default function DireccionOperacion() {
                   </tr>
                 ))}
                 {data.gestores.length === 0 && (
-                  <tr><td colSpan={5} className="py-6 text-center" style={{ color: '#a8a29e' }}>Sin gestores registrados</td></tr>
+                  <tr><td colSpan={5} className="py-6 text-center" style={{ color: '#a89a8e' }}>Sin gestores registrados</td></tr>
                 )}
               </tbody>
             </table>
@@ -162,23 +162,23 @@ export default function DireccionOperacion() {
               <Mail size={16} />
             </div>
             <div>
-              <div className="font-bold" style={{ fontSize: 20, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{totalCorreos}</div>
-              <div className="text-[11px]" style={{ color: '#78716c' }}>correos generados</div>
+              <div className="font-bold" style={{ fontSize: 20, fontFamily: "'Poppins', sans-serif" }}>{totalCorreos}</div>
+              <div className="text-[11px]" style={{ color: '#6b635e' }}>correos generados</div>
             </div>
           </div>
           <div className="space-y-2 text-[12px]">
             <div className="flex justify-between border-t border-stone-100 pt-2">
-              <span style={{ color: '#44403c' }}>Enviados</span>
+              <span style={{ color: '#443e39' }}>Enviados</span>
               <span className="font-semibold" style={{ color: '#166534' }}>{data.correos7d.enviados}</span>
             </div>
             <div className="flex justify-between border-t border-stone-100 pt-2">
-              <span style={{ color: '#44403c' }}>Fallidos</span>
+              <span style={{ color: '#443e39' }}>Fallidos</span>
               <span className="font-semibold" style={{ color: data.correos7d.fallidos > 0 ? '#dc2626' : '#166534' }}>
                 {data.correos7d.fallidos}
               </span>
             </div>
             <div className="flex justify-between border-t border-stone-100 pt-2">
-              <span style={{ color: '#44403c' }}>Pendientes</span>
+              <span style={{ color: '#443e39' }}>Pendientes</span>
               <span className="font-semibold">{data.correos7d.pendientes}</span>
             </div>
           </div>

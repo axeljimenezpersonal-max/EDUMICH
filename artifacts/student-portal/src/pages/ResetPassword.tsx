@@ -56,7 +56,7 @@ export default function ResetPassword() {
 
   const panelIzquierdo = (
     <div
-      className="bg-[var(--color-guinda-700)] text-white relative overflow-hidden"
+      className="bg-[var(--color-guinda-800)] text-white relative overflow-hidden"
       style={{ display: 'flex', flexDirection: 'column', padding: '48px 60px' }}
     >
       <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 40%)' }} />
@@ -82,7 +82,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <div className="bg-[var(--color-guinda-700)] text-white text-xs">
+      <div className="bg-[var(--color-guinda-800)] text-white text-xs">
         <div className="max-w-7xl mx-auto px-4 py-1.5">
           <span className="font-medium tracking-wide">GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
         </div>
@@ -164,10 +164,10 @@ export default function ResetPassword() {
                     {/* Indicadores visuales */}
                     {password.length > 0 && (
                       <div className="flex gap-4 mt-1.5">
-                        <span className="text-[11px]" style={{ color: password.length >= 8 ? '#2d7d46' : '#78716c' }}>
+                        <span className="text-[11px]" style={{ color: password.length >= 8 ? '#2d7d46' : '#6b635e' }}>
                           {password.length >= 8 ? '✓' : '○'} 8 caracteres
                         </span>
-                        <span className="text-[11px]" style={{ color: /[0-9]/.test(password) ? '#2d7d46' : '#78716c' }}>
+                        <span className="text-[11px]" style={{ color: /[0-9]/.test(password) ? '#2d7d46' : '#6b635e' }}>
                           {/[0-9]/.test(password) ? '✓' : '○'} Al menos un número
                         </span>
                       </div>

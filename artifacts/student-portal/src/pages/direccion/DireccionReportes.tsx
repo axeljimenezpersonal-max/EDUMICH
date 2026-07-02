@@ -126,10 +126,10 @@ export default function DireccionReportes() {
   return (
     <DireccionLayout>
       <div className="mb-5">
-        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
           Reportes institucionales
         </h1>
-        <p className="text-[13px]" style={{ color: '#78716c' }}>
+        <p className="text-[13px]" style={{ color: '#6b635e' }}>
           Los mismos reportes del sistema, en modo consulta · Excel o PDF
         </p>
       </div>
@@ -144,16 +144,16 @@ export default function DireccionReportes() {
               onClick={() => { setSelected(tipo); setPreview(null); }}
               className="text-left bg-white rounded-lg p-3.5 border transition-colors"
               style={{
-                borderColor: activo ? GUINDA : '#e7e5e4',
+                borderColor: activo ? GUINDA : '#eadfd7',
                 boxShadow: activo ? `0 0 0 1px ${GUINDA}` : 'none',
                 cursor: 'pointer',
               }}
             >
-              <div className="flex items-center gap-2 mb-1.5" style={{ color: activo ? GUINDA : '#57534e' }}>
+              <div className="flex items-center gap-2 mb-1.5" style={{ color: activo ? GUINDA : '#57504a' }}>
                 <Icon size={15} />
                 <span className="text-[13px] font-bold">{label}</span>
               </div>
-              <div className="text-[11px] leading-snug" style={{ color: '#a8a29e' }}>{desc}</div>
+              <div className="text-[11px] leading-snug" style={{ color: '#a89a8e' }}>{desc}</div>
             </button>
           );
         })}
@@ -163,7 +163,7 @@ export default function DireccionReportes() {
         <SeccionCard titulo={`Generar: ${REPORTES.find((r) => r.tipo === selected)?.label}`} sub="Filtra por rango de fechas si lo necesitas">
           <div className="flex flex-wrap items-end gap-3 mb-4">
             <div>
-              <label className="text-[11px] font-semibold block mb-1" style={{ color: '#78716c' }}>Desde</label>
+              <label className="text-[11px] font-semibold block mb-1" style={{ color: '#6b635e' }}>Desde</label>
               <input
                 type="date" value={filtros.fechaInicio}
                 onChange={(e) => setFiltros((f) => ({ ...f, fechaInicio: e.target.value }))}
@@ -171,7 +171,7 @@ export default function DireccionReportes() {
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold block mb-1" style={{ color: '#78716c' }}>Hasta</label>
+              <label className="text-[11px] font-semibold block mb-1" style={{ color: '#6b635e' }}>Hasta</label>
               <input
                 type="date" value={filtros.fechaFin}
                 onChange={(e) => setFiltros((f) => ({ ...f, fechaFin: e.target.value }))}
@@ -179,7 +179,7 @@ export default function DireccionReportes() {
               />
             </div>
             <div>
-              <label className="text-[11px] font-semibold block mb-1" style={{ color: '#78716c' }}>Formato</label>
+              <label className="text-[11px] font-semibold block mb-1" style={{ color: '#6b635e' }}>Formato</label>
               <select
                 value={formato}
                 onChange={(e) => setFormato(e.target.value as Formato)}
@@ -215,20 +215,20 @@ export default function DireccionReportes() {
               <div className="flex flex-wrap gap-3 mb-4">
                 {preview.kpis.map((k) => (
                   <div key={k.label} className="border border-stone-200 rounded-lg px-3.5 py-2.5">
-                    <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#78716c' }}>{k.label}</div>
-                    <div className="text-[17px] font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                    <div className="text-[10px] uppercase tracking-wider font-semibold" style={{ color: '#6b635e' }}>{k.label}</div>
+                    <div className="text-[17px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
                       {k.valor}{k.unidad ? ` ${k.unidad}` : ''}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="text-[11px] mb-2" style={{ color: '#78716c' }}>
+              <div className="text-[11px] mb-2" style={{ color: '#6b635e' }}>
                 Mostrando {Math.min(50, preview.preview.length)} de {preview.totalRegistros.toLocaleString('es-MX')} registros
               </div>
               <div style={{ overflowX: 'auto', maxHeight: 360, overflowY: 'auto' }} className="border border-stone-100 rounded-lg">
                 <table className="w-full text-[11.5px]">
                   <thead>
-                    <tr className="text-left sticky top-0" style={{ background: '#f8f4ec', color: '#57534e' }}>
+                    <tr className="text-left sticky top-0" style={{ background: '#f8f4ec', color: '#57504a' }}>
                       {preview.columnas.map((c) => (
                         <th key={c} className="py-2 px-2.5 font-semibold whitespace-nowrap">{c}</th>
                       ))}
@@ -255,7 +255,7 @@ export default function DireccionReportes() {
         <SeccionCard titulo="Historial de reportes generados" sub="Últimos 20 del sistema (todos los perfiles)">
           <table className="w-full text-[12px]">
             <thead>
-              <tr className="text-left" style={{ color: '#78716c' }}>
+              <tr className="text-left" style={{ color: '#6b635e' }}>
                 <th className="py-2 pr-3 font-semibold">Reporte</th>
                 <th className="py-2 pr-3 font-semibold">Formato</th>
                 <th className="py-2 pr-3 font-semibold text-right">Registros</th>
@@ -266,13 +266,13 @@ export default function DireccionReportes() {
               {historial.map((h) => (
                 <tr key={h.id} className="border-t border-stone-100">
                   <td className="py-2 pr-3 font-medium">{h.nombre}</td>
-                  <td className="py-2 pr-3 uppercase" style={{ color: '#78716c' }}>{h.formato}</td>
+                  <td className="py-2 pr-3 uppercase" style={{ color: '#6b635e' }}>{h.formato}</td>
                   <td className="py-2 pr-3 text-right">{h.totalRegistros ?? '—'}</td>
-                  <td className="py-2 text-right" style={{ color: '#78716c' }}>{fechaCorta(h.generadoEn ?? h.createdAt)}</td>
+                  <td className="py-2 text-right" style={{ color: '#6b635e' }}>{fechaCorta(h.generadoEn ?? h.createdAt)}</td>
                 </tr>
               ))}
               {historial.length === 0 && (
-                <tr><td colSpan={4} className="py-6 text-center" style={{ color: '#a8a29e' }}>Aún no hay reportes generados</td></tr>
+                <tr><td colSpan={4} className="py-6 text-center" style={{ color: '#a89a8e' }}>Aún no hay reportes generados</td></tr>
               )}
             </tbody>
           </table>

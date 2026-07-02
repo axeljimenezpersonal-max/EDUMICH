@@ -463,7 +463,7 @@ export default function MiConvocatoria() {
 
         {/* Header */}
         <div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">Mi Convocatoria</h1>
+          <h1 className="font-serif text-2xl font-bold text-stone-900">Mi Inscripción</h1>
           <p className="text-stone-500 text-sm mt-1">
             Consulta tu estado de inscripción, módulos disponibles y sede asignada.
           </p>

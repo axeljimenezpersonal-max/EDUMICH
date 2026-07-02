@@ -34,7 +34,7 @@ function StrengthBar({ password }: { password: string }) {
           <div
             key={i}
             className="h-1 flex-1 rounded-full transition-all"
-            style={{ background: i <= score ? colors[score] : '#e7e5e4' }}
+            style={{ background: i <= score ? colors[score] : '#eadfd7' }}
           />
         ))}
       </div>
@@ -81,7 +81,7 @@ function PasswordInput({
           type="button"
           onClick={() => setShow((s) => !s)}
           className="absolute right-2.5 top-1/2 -translate-y-1/2"
-          style={{ color: '#78716c', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+          style={{ color: '#6b635e', background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
         >
           {show ? <EyeOff size={14} strokeWidth={2} /> : <Eye size={14} strokeWidth={2} />}
         </button>
@@ -282,7 +282,7 @@ function SesionesActivas() {
             <RefreshCw size={18} className="animate-spin" style={{ color: '#6B1530' }} />
           </div>
         ) : sesiones.length === 0 ? (
-          <p className="text-sm text-center py-6" style={{ color: '#78716c' }}>
+          <p className="text-sm text-center py-6" style={{ color: '#6b635e' }}>
             No hay sesiones activas registradas.
           </p>
         ) : (
@@ -295,7 +295,7 @@ function SesionesActivas() {
               >
                 <div
                   className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
-                  style={{ background: s.id === currentId ? '#efe7d6' : '#f5f5f4', color: s.id === currentId ? '#6B1530' : '#78716c' }}
+                  style={{ background: s.id === currentId ? '#efe7d6' : '#f7f2ed', color: s.id === currentId ? '#6B1530' : '#6b635e' }}
                 >
                   <Monitor size={14} strokeWidth={2} />
                 </div>
@@ -313,7 +313,7 @@ function SesionesActivas() {
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>
+                  <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>
                     Inicio: {formatDate(s.creadoEn)} · Ultima actividad: {formatDate(s.ultimaActividad)}
                   </div>
                 </div>
@@ -323,7 +323,7 @@ function SesionesActivas() {
                     onClick={() => cerrarSesion(s.id)}
                     disabled={cerrando === s.id}
                     className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border border-stone-200 rounded-lg disabled:opacity-50 hover:bg-stone-50"
-                    style={{ color: '#44403c', flexShrink: 0 }}
+                    style={{ color: '#443e39', flexShrink: 0 }}
                   >
                     {cerrando === s.id
                       ? <RefreshCw size={11} strokeWidth={2} className="animate-spin" />
@@ -391,11 +391,11 @@ function TwoFactorAuth() {
                 PROXIMAMENTE
               </span>
             </div>
-            <p className="text-sm mb-3" style={{ color: '#78716c' }}>
+            <p className="text-sm mb-3" style={{ color: '#6b635e' }}>
               Agrega una capa adicional de seguridad a tu cuenta. Al activar 2FA, necesitaras ingresar un codigo
               generado por una aplicacion autenticadora ademas de tu contrasena.
             </p>
-            <p className="text-xs p-3 rounded-lg" style={{ background: '#f5f5f4', color: '#78716c' }}>
+            <p className="text-xs p-3 rounded-lg" style={{ background: '#f7f2ed', color: '#6b635e' }}>
               Esta funcion estara disponible en una proxima actualizacion del sistema. Por ahora, asegurate de
               usar una contrasena robusta y de no compartirla con nadie.
             </p>

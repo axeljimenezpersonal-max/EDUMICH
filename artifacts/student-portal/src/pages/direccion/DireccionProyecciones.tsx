@@ -60,7 +60,7 @@ function GraficaProyeccion({ titulo, sub, serie }: { titulo: string; sub: string
               <stop offset="100%" stopColor={GUINDA} stopOpacity={0.02} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f5f5f4" />
+          <CartesianGrid strokeDasharray="3 3" stroke="#f7f2ed" />
           <XAxis dataKey="mes" tick={{ fontSize: 10 }} />
           <YAxis allowDecimals={false} tick={{ fontSize: 11 }} width={32} />
           <Tooltip />
@@ -107,10 +107,10 @@ export default function DireccionProyecciones() {
   return (
     <DireccionLayout>
       <div className="mb-5">
-        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
           Proyecciones
         </h1>
-        <p className="text-[13px]" style={{ color: '#78716c' }}>
+        <p className="text-[13px]" style={{ color: '#6b635e' }}>
           Tendencias históricas (12 meses) con proyección estadística a 3 meses
         </p>
       </div>
@@ -147,8 +147,8 @@ export default function DireccionProyecciones() {
           serie={data.modulosAprobados}
         />
         <div className="bg-white border border-stone-200 rounded-lg p-5 flex gap-3">
-          <Info size={16} style={{ color: '#78716c', flexShrink: 0, marginTop: 2 }} />
-          <div className="text-[12px] leading-relaxed" style={{ color: '#57534e' }}>
+          <Info size={16} style={{ color: '#6b635e', flexShrink: 0, marginTop: 2 }} />
+          <div className="text-[12px] leading-relaxed" style={{ color: '#57504a' }}>
             <div className="font-semibold mb-1" style={{ color: '#2a2a2a' }}>Cómo leer estas proyecciones</div>
             {data.nota} La línea punteada extiende la tendencia de los últimos 6 meses;
             eventos como la apertura de una convocatoria o campañas de difusión pueden

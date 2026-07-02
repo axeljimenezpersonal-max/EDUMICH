@@ -18,7 +18,7 @@ type Notif = {
 };
 
 const PRIORIDAD_COLOR: Record<string, string> = {
-  baja: '#a8a29e',
+  baja: '#a89a8e',
   normal: '#2563eb',
   alta: '#d97706',
   urgente: '#dc2626',
@@ -108,7 +108,7 @@ export default function Notificaciones() {
   const noLeidasCount = notifs.filter(n => !n.leida).length;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f5f4', fontFamily: "'Inter', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f7f2ed', fontFamily: "'Poppins', sans-serif" }}>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 16px' }}>
 
         {/* Header */}
@@ -116,14 +116,14 @@ export default function Notificaciones() {
           <div>
             <a
               href="javascript:history.back()"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#78716c', textDecoration: 'none', marginBottom: 8 }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13, color: '#6b635e', textDecoration: 'none', marginBottom: 8 }}
             >
               <ChevronLeft size={14} /> Volver
             </a>
             <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#2a2a2a', display: 'flex', alignItems: 'center', gap: 10 }}>
               <Bell size={20} /> Notificaciones
               {total > 0 && (
-                <span style={{ fontSize: 13, fontWeight: 400, color: '#78716c' }}>({total})</span>
+                <span style={{ fontSize: 13, fontWeight: 400, color: '#6b635e' }}>({total})</span>
               )}
             </h1>
           </div>
@@ -133,9 +133,9 @@ export default function Notificaciones() {
               style={{
                 padding: '6px 14px',
                 borderRadius: 8,
-                border: `1px solid ${soloNoLeidas ? 'var(--color-guinda-700)' : '#e7e5e4'}`,
+                border: `1px solid ${soloNoLeidas ? 'var(--color-guinda-700)' : '#eadfd7'}`,
                 background: soloNoLeidas ? '#fdf8f0' : 'white',
-                color: soloNoLeidas ? 'var(--color-guinda-700)' : '#44403c',
+                color: soloNoLeidas ? 'var(--color-guinda-700)' : '#443e39',
                 fontSize: 12,
                 fontWeight: soloNoLeidas ? 600 : 400,
                 cursor: 'pointer',
@@ -149,9 +149,9 @@ export default function Notificaciones() {
                 style={{
                   padding: '6px 14px',
                   borderRadius: 8,
-                  border: '1px solid #e7e5e4',
+                  border: '1px solid #eadfd7',
                   background: 'white',
-                  color: '#44403c',
+                  color: '#443e39',
                   fontSize: 12,
                   cursor: 'pointer',
                   display: 'flex',
@@ -166,16 +166,16 @@ export default function Notificaciones() {
         </div>
 
         {/* List */}
-        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #e7e5e4', overflow: 'hidden' }}>
+        <div style={{ background: 'white', borderRadius: 12, border: '1px solid #eadfd7', overflow: 'hidden' }}>
           {loading ? (
-            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#a8a29e', fontSize: 14 }}>
+            <div style={{ padding: '40px 24px', textAlign: 'center', color: '#a89a8e', fontSize: 14 }}>
               Cargando...
             </div>
           ) : notifs.length === 0 ? (
             <div style={{ padding: '60px 24px', textAlign: 'center' }}>
-              <Bell size={32} style={{ color: '#d6d3d1', margin: '0 auto 12px' }} />
-              <div style={{ fontSize: 15, color: '#78716c', fontWeight: 500 }}>Sin notificaciones</div>
-              <div style={{ fontSize: 13, color: '#a8a29e', marginTop: 4 }}>
+              <Bell size={32} style={{ color: '#ddd0c5', margin: '0 auto 12px' }} />
+              <div style={{ fontSize: 15, color: '#6b635e', fontWeight: 500 }}>Sin notificaciones</div>
+              <div style={{ fontSize: 13, color: '#a89a8e', marginTop: 4 }}>
                 {soloNoLeidas ? 'No tienes notificaciones pendientes de lectura.' : 'No tienes notificaciones aún.'}
               </div>
             </div>
@@ -188,7 +188,7 @@ export default function Notificaciones() {
                   gap: 14,
                   padding: '14px 18px',
                   background: n.leida ? 'transparent' : '#fdf8f0',
-                  borderBottom: i < notifs.length - 1 ? '1px solid #f5f5f4' : 'none',
+                  borderBottom: i < notifs.length - 1 ? '1px solid #f7f2ed' : 'none',
                 }}
               >
                 {/* Priority bar */}
@@ -197,7 +197,7 @@ export default function Notificaciones() {
                     width: 4,
                     borderRadius: 2,
                     flexShrink: 0,
-                    background: PRIORIDAD_COLOR[n.prioridad] ?? '#a8a29e',
+                    background: PRIORIDAD_COLOR[n.prioridad] ?? '#a89a8e',
                     alignSelf: 'stretch',
                   }}
                 />
@@ -208,12 +208,12 @@ export default function Notificaciones() {
                     width: 32,
                     height: 32,
                     borderRadius: 8,
-                    background: n.leida ? '#f5f5f4' : '#f0eae0',
+                    background: n.leida ? '#f7f2ed' : '#f0eae0',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexShrink: 0,
-                    color: PRIORIDAD_COLOR[n.prioridad] ?? '#78716c',
+                    color: PRIORIDAD_COLOR[n.prioridad] ?? '#6b635e',
                   }}
                 >
                   <NotifIcon tipo={n.tipo} />
@@ -229,7 +229,7 @@ export default function Notificaciones() {
                       style={{
                         fontSize: 10,
                         fontWeight: 600,
-                        color: PRIORIDAD_COLOR[n.prioridad] ?? '#a8a29e',
+                        color: PRIORIDAD_COLOR[n.prioridad] ?? '#a89a8e',
                         background: `${PRIORIDAD_COLOR[n.prioridad]}18`,
                         padding: '2px 7px',
                         borderRadius: 4,
@@ -241,11 +241,11 @@ export default function Notificaciones() {
                       {PRIORIDAD_LABEL[n.prioridad]}
                     </div>
                   </div>
-                  <div style={{ fontSize: 13, color: '#78716c', marginTop: 4, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 13, color: '#6b635e', marginTop: 4, lineHeight: 1.5 }}>
                     {n.cuerpo}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 8 }}>
-                    <span style={{ fontSize: 11, color: '#a8a29e' }}>{tiempoRelativo(n.creadaEn)}</span>
+                    <span style={{ fontSize: 11, color: '#a89a8e' }}>{tiempoRelativo(n.creadaEn)}</span>
                     {n.enlace && (
                       <a
                         href={safeUrl(n.enlace)}
@@ -267,13 +267,13 @@ export default function Notificaciones() {
                         width: 28,
                         height: 28,
                         borderRadius: 6,
-                        border: '1px solid #e7e5e4',
+                        border: '1px solid #eadfd7',
                         background: 'white',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        color: '#78716c',
+                        color: '#6b635e',
                       }}
                     >
                       <Check size={12} />
@@ -286,13 +286,13 @@ export default function Notificaciones() {
                       width: 28,
                       height: 28,
                       borderRadius: 6,
-                      border: '1px solid #e7e5e4',
+                      border: '1px solid #eadfd7',
                       background: 'white',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#a8a29e',
+                      color: '#a89a8e',
                     }}
                   >
                     <Trash2 size={12} />
@@ -312,10 +312,10 @@ export default function Notificaciones() {
               style={{
                 padding: '6px 12px',
                 borderRadius: 8,
-                border: '1px solid #e7e5e4',
+                border: '1px solid #eadfd7',
                 background: 'white',
                 cursor: page === 1 ? 'not-allowed' : 'pointer',
-                color: page === 1 ? '#d6d3d1' : '#44403c',
+                color: page === 1 ? '#ddd0c5' : '#443e39',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,
@@ -324,7 +324,7 @@ export default function Notificaciones() {
             >
               <ChevronLeft size={14} /> Anterior
             </button>
-            <span style={{ fontSize: 13, color: '#78716c' }}>
+            <span style={{ fontSize: 13, color: '#6b635e' }}>
               Página {page} de {pages}
             </span>
             <button
@@ -333,10 +333,10 @@ export default function Notificaciones() {
               style={{
                 padding: '6px 12px',
                 borderRadius: 8,
-                border: '1px solid #e7e5e4',
+                border: '1px solid #eadfd7',
                 background: 'white',
                 cursor: page === pages ? 'not-allowed' : 'pointer',
-                color: page === pages ? '#d6d3d1' : '#44403c',
+                color: page === pages ? '#ddd0c5' : '#443e39',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 4,

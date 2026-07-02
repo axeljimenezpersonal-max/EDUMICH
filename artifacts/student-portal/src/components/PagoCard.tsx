@@ -82,7 +82,7 @@ export default function PagoCard({ pago, onVerComprobante }: Props) {
       <div className="flex-1 min-w-0">
         <div
           className="font-semibold text-stone-900 text-sm truncate"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           {titulo}
         </div>
@@ -109,7 +109,7 @@ export default function PagoCard({ pago, onVerComprobante }: Props) {
       <div className="text-right shrink-0">
         <div
           className="text-2xl font-bold text-stone-900 leading-none"
-          style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+          style={{ fontFamily: "'Poppins', sans-serif" }}
         >
           ${parseFloat(pago.monto).toLocaleString('es-MX', { minimumFractionDigits: 2 })}
           <span className="text-xs text-stone-400 font-normal ml-1">{pago.moneda}</span>

@@ -34,7 +34,7 @@ const ESTADO_CONFIG: Record<string, { label: string; dotColor: string; bg: strin
   en_examen:            { label: 'En examen',             dotColor: '#d97706', bg: '#fef3c7', textColor: '#92400e', pulse: true },
   inscripcion_cerrada:  { label: 'Inscripción cerrada',   dotColor: '#c77700', bg: '#fef9c3', textColor: '#92400e' },
   inscripcion_abierta:  { label: 'Inscripción abierta',   dotColor: '#059669', bg: '#d1fae5', textColor: '#065f46', pulse: true },
-  programada:           { label: 'Programada',            dotColor: '#d6d3d1', bg: '#f5f5f4', textColor: '#78716c' },
+  programada:           { label: 'Programada',            dotColor: '#ddd0c5', bg: '#f7f2ed', textColor: '#6b635e' },
 };
 
 const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -84,7 +84,7 @@ export default function ConvocatoriasLista() {
           </div>
           <h1
             className="text-2xl font-bold tracking-tight"
-            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+            style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
           >
             Etapas {año}
           </h1>
@@ -100,7 +100,7 @@ export default function ConvocatoriasLista() {
               style={
                 año === y
                   ? { background: 'var(--color-guinda-700)', color: 'white' }
-                  : { color: '#78716c', background: 'transparent' }
+                  : { color: '#6b635e', background: 'transparent' }
               }
             >
               {y}
@@ -161,7 +161,7 @@ export default function ConvocatoriasLista() {
               <div className="text-[10px] font-semibold uppercase tracking-widest mb-0.5" style={{ opacity: 0.8 }}>
                 ETAPA ACTIVA AHORA
               </div>
-              <div className="text-lg font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <div className="text-lg font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
                 Etapa {etapaActiva.clave} — Fase {etapaActiva.fase}
               </div>
               <div className="text-xs mt-0.5" style={{ opacity: 0.85 }}>
@@ -183,11 +183,11 @@ export default function ConvocatoriasLista() {
 
       {/* Timeline */}
       {loading ? (
-        <div className="flex items-center justify-center py-20 text-sm" style={{ color: '#78716c' }}>
+        <div className="flex items-center justify-center py-20 text-sm" style={{ color: '#6b635e' }}>
           Cargando etapas...
         </div>
       ) : !data || data.etapas.length === 0 ? (
-        <div className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-20 text-sm" style={{ color: '#78716c' }}>
+        <div className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-20 text-sm" style={{ color: '#6b635e' }}>
           No hay etapas registradas para {año}
         </div>
       ) : (
@@ -195,7 +195,7 @@ export default function ConvocatoriasLista() {
           {/* Connector line */}
           <div
             className="absolute"
-            style={{ left: 19, top: 24, bottom: 24, width: 2, background: '#e7e5e4', borderRadius: 1 }}
+            style={{ left: 19, top: 24, bottom: 24, width: 2, background: '#eadfd7', borderRadius: 1 }}
           />
 
           <div className="flex flex-col gap-3">
@@ -230,7 +230,7 @@ export default function ConvocatoriasLista() {
                     href={`/admin/convocatorias/${etapa.id}`}
                     className="block bg-white rounded-xl no-underline transition-all group"
                     style={{
-                      border: `1.5px solid ${isActiva ? 'var(--color-guinda-700)' : '#e7e5e4'}`,
+                      border: `1.5px solid ${isActiva ? 'var(--color-guinda-700)' : '#eadfd7'}`,
                       padding: '14px 18px',
                     }}
                     onMouseEnter={(e) => {
@@ -239,7 +239,7 @@ export default function ConvocatoriasLista() {
                     }}
                     onMouseLeave={(e) => {
                       (e.currentTarget as HTMLElement).style.boxShadow = '';
-                      (e.currentTarget as HTMLElement).style.borderColor = isActiva ? 'var(--color-guinda-700)' : '#e7e5e4';
+                      (e.currentTarget as HTMLElement).style.borderColor = isActiva ? 'var(--color-guinda-700)' : '#eadfd7';
                     }}
                   >
                     <div className="flex items-center justify-between gap-4">
@@ -252,11 +252,11 @@ export default function ConvocatoriasLista() {
                         >
                           <div
                             className="text-[17px] font-bold leading-none"
-                            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: 'var(--color-guinda-700)' }}
+                            style={{ fontFamily: "'Poppins', sans-serif", color: 'var(--color-guinda-700)' }}
                           >
                             {fmtDate(etapa.examenSabado).split(' ')[0]}
                           </div>
-                          <div className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#78716c', marginTop: 1 }}>
+                          <div className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e', marginTop: 1 }}>
                             {fmtDate(etapa.examenSabado).split(' ')[1]}
                           </div>
                         </div>
@@ -265,7 +265,7 @@ export default function ConvocatoriasLista() {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span
                               className="font-bold text-[15px]"
-                              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+                              style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                             >
                               Etapa {etapa.clave}
                             </span>
@@ -285,13 +285,13 @@ export default function ConvocatoriasLista() {
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5 text-xs" style={{ color: '#78716c' }}>
+                          <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5 text-xs" style={{ color: '#6b635e' }}>
                             <span>
-                              <span className="font-medium" style={{ color: '#44403c' }}>Inscripciones:</span>{' '}
+                              <span className="font-medium" style={{ color: '#443e39' }}>Inscripciones:</span>{' '}
                               {fmtDateLong(etapa.solicitudInicio)} al {fmtDateLong(etapa.solicitudFin)}
                             </span>
                             <span>
-                              <span className="font-medium" style={{ color: '#44403c' }}>Examen:</span>{' '}
+                              <span className="font-medium" style={{ color: '#443e39' }}>Examen:</span>{' '}
                               sáb {fmtDate(etapa.examenSabado)} y dom {fmtDate(etapa.examenDomingo)}
                             </span>
                           </div>
@@ -303,15 +303,15 @@ export default function ConvocatoriasLista() {
                         <div className="text-right">
                           <div
                             className="text-xl font-bold leading-none"
-                            style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+                            style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                           >
                             {etapa.totalInscritos}
                           </div>
-                          <div className="text-[10px] mt-0.5" style={{ color: '#78716c' }}>inscritos</div>
+                          <div className="text-[10px] mt-0.5" style={{ color: '#6b635e' }}>inscritos</div>
                         </div>
                         <ChevronRight
                           size={16}
-                          style={{ color: '#d6d3d1', transition: 'transform 0.15s' }}
+                          style={{ color: '#ddd0c5', transition: 'transform 0.15s' }}
                           className="group-hover:translate-x-0.5"
                         />
                       </div>
@@ -343,7 +343,7 @@ function StatCard({
         className="w-8 h-8 rounded-lg flex items-center justify-center mb-3"
         style={{
           background: highlight ? '#fbe6ea' : '#f8f4ec',
-          color: highlight ? 'var(--color-guinda-700)' : '#78716c',
+          color: highlight ? 'var(--color-guinda-700)' : '#6b635e',
         }}
       >
         {icon}
@@ -351,13 +351,13 @@ function StatCard({
       <div
         className="text-2xl font-bold leading-none tracking-tight"
         style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "'Poppins', sans-serif",
           color: highlight ? 'var(--color-guinda-700)' : '#2a2a2a',
         }}
       >
         {num}
       </div>
-      <div className="text-xs mt-1" style={{ color: '#78716c' }}>
+      <div className="text-xs mt-1" style={{ color: '#6b635e' }}>
         {label}
       </div>
     </div>

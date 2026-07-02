@@ -56,7 +56,7 @@ function EstadoPill({ estado }: { estado: EstadoEtapa }) {
     return (
       <span
         className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
-        style={{ background: '#f5f5f4', color: '#78716c' }}
+        style={{ background: '#f7f2ed', color: '#6b635e' }}
       >
         PASADA
       </span>
@@ -209,7 +209,7 @@ export default function EtapasDGB({ onDirty: _onDirty }: { onDirty?: (d: boolean
               className="flex items-center gap-1.5 px-5 py-2.5 text-sm font-medium border-b-2 transition-colors"
               style={{
                 borderBottomColor: selectedYear === year ? '#6B1530' : 'transparent',
-                color: selectedYear === year ? '#6B1530' : '#78716c',
+                color: selectedYear === year ? '#6B1530' : '#6b635e',
                 background: 'transparent',
               }}
             >
@@ -225,7 +225,7 @@ export default function EtapasDGB({ onDirty: _onDirty }: { onDirty?: (d: boolean
               {suffix && (
                 <span
                   className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase"
-                  style={{ background: '#f5f5f4', color: '#78716c' }}
+                  style={{ background: '#f7f2ed', color: '#6b635e' }}
                 >
                   {suffix}
                 </span>
@@ -251,7 +251,7 @@ export default function EtapasDGB({ onDirty: _onDirty }: { onDirty?: (d: boolean
         {/* Rows */}
         {selectedYear === 2027 ? (
           <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <Clock size={32} strokeWidth={1.5} style={{ color: '#d6d3d1' }} />
+            <Clock size={32} strokeWidth={1.5} style={{ color: '#ddd0c5' }} />
             <p className="text-sm font-medium text-stone-500">Calendario 2027 pendiente de publicacion</p>
             <p className="text-xs text-stone-400">La SEP-DGB publicara las fechas aproximadamente en diciembre 2026.</p>
           </div>
@@ -281,7 +281,7 @@ export default function EtapasDGB({ onDirty: _onDirty }: { onDirty?: (d: boolean
       {showToast && (
         <div
           className="fixed bottom-6 right-6 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium text-white flex items-center gap-2"
-          style={{ background: '#44403c' }}
+          style={{ background: '#443e39' }}
         >
           <Info size={14} strokeWidth={2} />
           Proximamente disponible

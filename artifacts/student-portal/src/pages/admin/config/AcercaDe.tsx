@@ -16,7 +16,7 @@ export default function AcercaDe() {
       >
         <div
           style={{
-            fontFamily: "'Plus Jakarta Sans', sans-serif",
+            fontFamily: "'Poppins', sans-serif",
             fontWeight: 900,
             fontSize: 56,
             letterSpacing: '-0.04em',
@@ -33,7 +33,7 @@ export default function AcercaDe() {
         <h1 style={{ fontSize: 18, fontWeight: 700, color: '#2a2a2a', margin: '0 0 12px', letterSpacing: '-0.01em' }}>
           Plataforma Educativa Digital del Estado de Michoacán
         </h1>
-        <p style={{ fontSize: 14, color: '#78716c', lineHeight: 1.6, margin: '0 auto', maxWidth: 480 }}>
+        <p style={{ fontSize: 14, color: '#6b635e', lineHeight: 1.6, margin: '0 auto', maxWidth: 480 }}>
           EDUMICH es la iniciativa tecnológica del Gobierno de Michoacán para digitalizar y
           modernizar la gestión educativa del estado, comenzando con el sistema de Preparatoria
           Abierta del IEMSyS.
@@ -78,7 +78,7 @@ export default function AcercaDe() {
             key={titulo}
             style={{
               background: 'white',
-              border: '1px solid #e7e5e4',
+              border: '1px solid #eadfd7',
               borderRadius: 12,
               padding: '20px 22px',
             }}
@@ -93,40 +93,40 @@ export default function AcercaDe() {
               </div>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#2a2a2a' }}>{titulo}</div>
             </div>
-            <p style={{ fontSize: 12, color: '#78716c', lineHeight: 1.55, margin: 0 }}>{desc}</p>
+            <p style={{ fontSize: 12, color: '#6b635e', lineHeight: 1.55, margin: 0 }}>{desc}</p>
           </div>
         ))}
       </div>
 
       {/* Jerarquía de nombres */}
-      <div style={{ background: 'white', border: '1px solid #e7e5e4', borderRadius: 12, padding: '24px 28px', marginBottom: 24 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#a8a29e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
+      <div style={{ background: 'white', border: '1px solid #eadfd7', borderRadius: 12, padding: '24px 28px', marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#a89a8e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
           Jerarquía de marca
         </div>
         {[
           { num: '1', nombre: 'EDUMICH', desc: 'La marca tecnológica — el nombre del proyecto/plataforma', color: 'var(--color-guinda-700)' },
-          { num: '2', nombre: 'Prepa Abierta', desc: 'El servicio educativo principal que se gestiona', color: '#44403c' },
-          { num: '3', nombre: 'IEMSyS', desc: 'La institución que opera el sistema', color: '#78716c' },
-          { num: '4', nombre: 'Gobierno de Michoacán', desc: 'El ente gubernamental que respalda todo', color: '#a8a29e' },
+          { num: '2', nombre: 'Prepa Abierta', desc: 'El servicio educativo principal que se gestiona', color: '#443e39' },
+          { num: '3', nombre: 'IEMSyS', desc: 'La institución que opera el sistema', color: '#6b635e' },
+          { num: '4', nombre: 'Gobierno de Michoacán', desc: 'El ente gubernamental que respalda todo', color: '#a89a8e' },
         ].map(({ num, nombre, desc, color }) => (
-          <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: num !== '4' ? '1px solid #f5f5f4' : 'none' }}>
+          <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: num !== '4' ? '1px solid #f7f2ed' : 'none' }}>
             <div style={{
-              width: 24, height: 24, borderRadius: 6, background: '#f5f5f4',
+              width: 24, height: 24, borderRadius: 6, background: '#f7f2ed',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#a8a29e', flexShrink: 0,
+              fontSize: 11, fontWeight: 700, color: '#a89a8e', flexShrink: 0,
             }}>
               {num}
             </div>
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color }}>{nombre}</div>
-              <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 1 }}>{desc}</div>
+              <div style={{ fontSize: 11, color: '#a89a8e', marginTop: 1 }}>{desc}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Version info */}
-      <div style={{ fontSize: 11, color: '#a8a29e', textAlign: 'center', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 11, color: '#a89a8e', textAlign: 'center', lineHeight: 1.6 }}>
         EDUMICH v0.1 (demo) · Módulo Prepa Abierta · {new Date().getFullYear()}<br />
         Gobierno del Estado de Michoacán · Instituto de Educación Media Superior y Superior
       </div>

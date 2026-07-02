@@ -55,10 +55,10 @@ function DocCard({ doc }: { doc: DocDef }) {
 
       {/* Content */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm font-semibold mb-1" style={{ color: '#1a1a1a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+        <div className="text-sm font-semibold mb-1" style={{ color: '#1a1a1a', fontFamily: "'Poppins', sans-serif" }}>
           {doc.titulo}
         </div>
-        <div className="text-xs mb-2.5" style={{ color: '#78716c' }}>
+        <div className="text-xs mb-2.5" style={{ color: '#6b635e' }}>
           {doc.descripcion}
         </div>
         {/* Badges */}
@@ -71,7 +71,7 @@ function DocCard({ doc }: { doc: DocDef }) {
           </span>
           <span
             className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full"
-            style={{ background: '#f5f5f4', color: '#57534e' }}
+            style={{ background: '#f7f2ed', color: '#57504a' }}
           >
             NORMA DGB22DR-001
           </span>
@@ -106,7 +106,7 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
           </h2>
         </div>
         <div className="p-5">
-          <p className="text-sm mb-4" style={{ color: '#78716c' }}>
+          <p className="text-sm mb-4" style={{ color: '#6b635e' }}>
             Todos los aspirantes deben presentar los siguientes 5 documentos en formato PDF para completar
             su expediente de inscripcion. El sistema valida automaticamente que cada documento haya sido
             revisado y aprobado antes de proceder al registro definitivo.
@@ -122,7 +122,7 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
           {/* Footer note */}
           <div
             className="mt-5 pt-4 border-t border-stone-100 text-xs flex items-center gap-2"
-            style={{ color: '#a8a29e' }}
+            style={{ color: '#a89a8e' }}
           >
             <Info size={12} strokeWidth={2} />
             Para solicitar modificaciones a los requisitos documentales, comunicate con la Direccion General de

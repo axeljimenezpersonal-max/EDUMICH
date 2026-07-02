@@ -110,7 +110,7 @@ export default function SubirPagoModal({ open, onClose, estudianteId, onSuccess 
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-[480px] max-h-[92vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 bg-[var(--color-guinda-700)] text-white">
-          <h3 style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }} className="text-base font-semibold">
+          <h3 style={{ fontFamily: "'Poppins', sans-serif" }} className="text-base font-semibold">
             Subir comprobante de pago
           </h3>
           <button onClick={handleClose} className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-colors">
@@ -123,7 +123,7 @@ export default function SubirPagoModal({ open, onClose, estudianteId, onSuccess 
           {success ? (
             <div className="flex flex-col items-center py-8 gap-3">
               <CheckCircle2 size={48} className="text-emerald-500" />
-              <div className="text-base font-semibold text-stone-900" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+              <div className="text-base font-semibold text-stone-900" style={{ fontFamily: "'Poppins', sans-serif" }}>
                 ¡Comprobante registrado!
               </div>
               <p className="text-sm text-stone-500 text-center">

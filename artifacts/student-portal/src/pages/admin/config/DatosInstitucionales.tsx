@@ -144,7 +144,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                   maxLength={50}
                   placeholder="Ej. Prepa Abierta Michoacan"
                 />
-                <span className="text-[11px]" style={{ color: '#a8a29e' }}>
+                <span className="text-[11px]" style={{ color: '#a89a8e' }}>
                   {form.nombreCorto.length}/50 caracteres
                 </span>
               </div>

@@ -58,8 +58,8 @@ const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; co
   pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
   en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
   rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
-  sin_documentos:      { label: 'Sin documentos',        dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
-  inactivo:            { label: 'Inactivo',              dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  sin_documentos:      { label: 'Sin documentos',        dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
+  inactivo:            { label: 'Inactivo',              dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
 };
 
 const ESTADO_CUENTA_OPTIONS = [
@@ -71,7 +71,7 @@ const ESTADO_CUENTA_OPTIONS = [
 
 function actividadBadge(diasSinActividad: number | null, ultimaActividadEn: string | null) {
   if (!ultimaActividadEn && diasSinActividad === null) {
-    return { label: 'Sin actividad', bg: '#e7e5e4', color: '#78716c' };
+    return { label: 'Sin actividad', bg: '#eadfd7', color: '#6b635e' };
   }
   const dias = diasSinActividad ?? 0;
   if (dias < 7) return { label: `Hace ${dias}d`, bg: '#d1fae5', color: '#065f46' };
@@ -153,16 +153,16 @@ function AsignarGestorModal({
             <div className="text-[11px] font-semibold uppercase tracking-widest mb-0.5" style={{ color: 'var(--color-guinda-700)' }}>
               Asignar gestor
             </div>
-            <h2 className="text-lg font-bold" style={{ color: '#2a2a2a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <h2 className="text-lg font-bold" style={{ color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}>
               {alumnoNombre}
             </h2>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-stone-100 transition-colors">
-            <X size={16} style={{ color: '#78716c' }} />
+            <X size={16} style={{ color: '#6b635e' }} />
           </button>
         </div>
 
-        <label className="block text-sm font-semibold mb-1.5" style={{ color: '#44403c' }}>
+        <label className="block text-sm font-semibold mb-1.5" style={{ color: '#443e39' }}>
           Gestor municipal
         </label>
         <select
@@ -178,7 +178,7 @@ function AsignarGestorModal({
           ))}
         </select>
         {municipioId && (
-          <p className="text-[11px] mb-4" style={{ color: '#78716c' }}>
+          <p className="text-[11px] mb-4" style={{ color: '#6b635e' }}>
             Mostrando gestores del municipio del alumno primero.
           </p>
         )}
@@ -189,7 +189,7 @@ function AsignarGestorModal({
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-semibold rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
-            style={{ color: '#44403c' }}
+            style={{ color: '#443e39' }}
           >
             Cancelar
           </button>
@@ -212,13 +212,13 @@ function AsignarGestorModal({
 function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
   return (
     <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex-1 min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#78716c' }}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#6b635e' }}>
         {label}
       </div>
-      <div className="text-2xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
         {typeof value === 'number' ? value.toLocaleString('es-MX') : value}
       </div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>{sub}</div>}
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
     </div>
   );
 }
@@ -235,7 +235,7 @@ function SortTh({
     <button
       onClick={() => onSort(col)}
       className="flex items-center gap-0.5 text-[11px] font-semibold uppercase tracking-wide hover:opacity-70 transition-opacity"
-      style={{ color: active ? 'var(--color-guinda-700)' : '#78716c', background: 'none', border: 'none', cursor: 'pointer' }}
+      style={{ color: active ? 'var(--color-guinda-700)' : '#6b635e', background: 'none', border: 'none', cursor: 'pointer' }}
     >
       {label}
       {active ? (
@@ -400,10 +400,10 @@ export default function AlumnosLista() {
           <Users size={12} /> PERSONAS · ALUMNOS
         </div>
         <div className="flex items-center justify-between flex-wrap gap-3">
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Alumnos
             {data && (
-              <span className="ml-2 text-base font-normal" style={{ color: '#78716c' }}>
+              <span className="ml-2 text-base font-normal" style={{ color: '#6b635e' }}>
                 ({data.total.toLocaleString('es-MX')})
               </span>
             )}
@@ -414,7 +414,7 @@ export default function AlumnosLista() {
               className="p-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
               title="Recargar"
             >
-              <RefreshCw size={14} style={{ color: '#78716c' }} />
+              <RefreshCw size={14} style={{ color: '#6b635e' }} />
             </button>
           </div>
         </div>
@@ -476,7 +476,7 @@ export default function AlumnosLista() {
       <div className="flex items-center gap-1.5 mb-4 overflow-x-auto">
         {/* Search */}
         <div className="relative flex-shrink-0">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
+          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
           <input
             className="pl-8 pr-8 py-1.5 text-sm rounded-lg border border-stone-200 focus:outline-none focus:border-stone-400 w-44"
             style={{ background: '#f8f4ec' }}
@@ -486,7 +486,7 @@ export default function AlumnosLista() {
           />
           {searchInput && (
             <button className="absolute right-2.5 top-1/2 -translate-y-1/2" onClick={() => setSearchInput('')}>
-              <X size={12} style={{ color: '#78716c' }} />
+              <X size={12} style={{ color: '#6b635e' }} />
             </button>
           )}
         </div>
@@ -551,7 +551,7 @@ export default function AlumnosLista() {
 
       {/* Table */}
       {loading ? (
-        <div className="py-20 text-center text-sm" style={{ color: '#78716c' }}>Cargando alumnos…</div>
+        <div className="py-20 text-center text-sm" style={{ color: '#6b635e' }}>Cargando alumnos…</div>
       ) : !data || data.alumnos.length === 0 ? (
         <EmptyState hasFilters={hasAnyFilter} onClear={clearAllFilters} />
       ) : (
@@ -590,7 +590,7 @@ export default function AlumnosLista() {
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4 flex-wrap gap-3">
             <div className="flex items-center gap-3 text-sm">
-              <span style={{ color: '#78716c' }}>
+              <span style={{ color: '#6b635e' }}>
                 Página {data.page} de {data.totalPages} · {data.total.toLocaleString('es-MX')} alumnos
               </span>
               <select
@@ -608,7 +608,7 @@ export default function AlumnosLista() {
               <PaginationButton label="‹" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} title="Anterior" />
               {buildPageRange(page, data.totalPages).map((p, i) =>
                 p === '…' ? (
-                  <span key={`e${i}`} className="px-2 text-xs" style={{ color: '#a8a29e' }}>…</span>
+                  <span key={`e${i}`} className="px-2 text-xs" style={{ color: '#a89a8e' }}>…</span>
                 ) : (
                   <PaginationButton
                     key={p}
@@ -658,7 +658,7 @@ function AlumnoRow({
       <div
         className="w-9 h-9 rounded-full flex items-center justify-center text-[12px] font-bold flex-shrink-0"
         style={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "'Poppins', sans-serif",
           background: alumno.gestor ? '#dbeafe' : '#efe7d6',
           color: alumno.gestor ? '#1e40af' : 'var(--color-guinda-700)',
         }}
@@ -668,10 +668,10 @@ function AlumnoRow({
 
       {/* Nombre + CURP */}
       <div className="min-w-0">
-        <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
           {alumno.nombreCompleto}
         </div>
-        <div className="text-[11px] truncate" style={{ color: '#78716c' }}>
+        <div className="text-[11px] truncate" style={{ color: '#6b635e' }}>
           {alumno.curp ?? alumno.email}
         </div>
       </div>
@@ -679,11 +679,11 @@ function AlumnoRow({
       {/* Municipio */}
       <div>
         {alumno.municipio ? (
-          <span className="text-[11px] font-medium px-2.5 py-1 rounded-full truncate block max-w-full" style={{ background: '#f8f4ec', color: '#44403c' }}>
+          <span className="text-[11px] font-medium px-2.5 py-1 rounded-full truncate block max-w-full" style={{ background: '#f8f4ec', color: '#443e39' }}>
             {alumno.municipio.nombre}
           </span>
         ) : (
-          <span className="text-[11px]" style={{ color: '#a8a29e' }}>—</span>
+          <span className="text-[11px]" style={{ color: '#a89a8e' }}>—</span>
         )}
       </div>
 
@@ -697,12 +697,12 @@ function AlumnoRow({
             >
               {alumno.gestor.iniciales}
             </div>
-            <span className="text-[12px] truncate" style={{ color: '#44403c' }}>
+            <span className="text-[12px] truncate" style={{ color: '#443e39' }}>
               {alumno.gestor.nombreCompleto}
             </span>
           </div>
         ) : (
-          <span className="text-[11px]" style={{ color: '#a8a29e' }}>Sin gestor</span>
+          <span className="text-[11px]" style={{ color: '#a89a8e' }}>Sin gestor</span>
         )}
       </div>
 
@@ -719,13 +719,13 @@ function AlumnoRow({
         </div>
         {alumno.docsAprobados > 0 && (
           <div className="flex items-center gap-1.5">
-            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: '#e7e5e4', maxWidth: 60 }}>
+            <div className="flex-1 h-1 rounded-full overflow-hidden" style={{ background: '#eadfd7', maxWidth: 60 }}>
               <div
                 className="h-full rounded-full transition-all"
                 style={{ width: `${docsWidth}%`, background: docsWidth >= 100 ? '#2d7d46' : 'var(--color-guinda-700)' }}
               />
             </div>
-            <span className="text-[10px]" style={{ color: '#78716c' }}>{alumno.docsAprobados}/{alumno.docsTotal}</span>
+            <span className="text-[10px]" style={{ color: '#6b635e' }}>{alumno.docsAprobados}/{alumno.docsTotal}</span>
           </div>
         )}
       </div>
@@ -751,7 +751,7 @@ function AlumnoRow({
       </div>
 
       {/* Registro */}
-      <div className="text-[11px]" style={{ color: '#78716c' }}>
+      <div className="text-[11px]" style={{ color: '#6b635e' }}>
         {fechaReg}
       </div>
 
@@ -785,7 +785,7 @@ function ActionBtn({ title, onClick, children }: { title: string; onClick: () =>
       title={title}
       onClick={onClick}
       className="p-1.5 rounded-lg hover:bg-stone-200 transition-colors"
-      style={{ color: '#78716c', background: 'none', border: 'none', cursor: 'pointer' }}
+      style={{ color: '#6b635e', background: 'none', border: 'none', cursor: 'pointer' }}
     >
       {children}
     </button>
@@ -830,7 +830,7 @@ function DropItem({
     <button
       onClick={onClick}
       className="flex items-center gap-2.5 w-full px-3 py-2 text-sm hover:bg-stone-50 transition-colors text-left"
-      style={{ color: danger ? '#b91c1c' : '#44403c', background: 'none', border: 'none', cursor: 'pointer' }}
+      style={{ color: danger ? '#b91c1c' : '#443e39', background: 'none', border: 'none', cursor: 'pointer' }}
     >
       {icon} {label}
     </button>
@@ -857,10 +857,10 @@ function EmptyState({ hasFilters, onClear }: { hasFilters: boolean; onClear: () 
   return (
     <div
       className="flex flex-col items-center justify-center py-20 rounded-xl border-2"
-      style={{ borderColor: '#e7e5e4', borderStyle: 'dashed', color: '#78716c' }}
+      style={{ borderColor: '#eadfd7', borderStyle: 'dashed', color: '#6b635e' }}
     >
-      <Users size={32} style={{ color: '#d6d3d1', marginBottom: 12 }} />
-      <p className="text-sm font-semibold mb-1" style={{ color: '#44403c' }}>
+      <Users size={32} style={{ color: '#ddd0c5', marginBottom: 12 }} />
+      <p className="text-sm font-semibold mb-1" style={{ color: '#443e39' }}>
         {hasFilters ? 'Ningún alumno coincide con los filtros' : 'No hay alumnos registrados aún'}
       </p>
       {hasFilters && (
@@ -889,8 +889,8 @@ function PaginationButton({
       className="px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-colors disabled:opacity-40"
       style={{
         background: active ? 'var(--color-guinda-700)' : 'white',
-        color: active ? 'white' : '#44403c',
-        borderColor: active ? 'var(--color-guinda-700)' : '#e7e5e4',
+        color: active ? 'white' : '#443e39',
+        borderColor: active ? 'var(--color-guinda-700)' : '#eadfd7',
         cursor: disabled ? 'default' : 'pointer',
       }}
     >

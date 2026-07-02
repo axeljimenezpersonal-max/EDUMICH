@@ -43,7 +43,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
     return {
       borderLeftColor: active ? 'var(--color-guinda-700)' : 'transparent',
       background: active ? '#f8f4ec' : 'transparent',
-      color: active ? 'var(--color-guinda-800)' : '#44403c',
+      color: active ? 'var(--color-guinda-800)' : '#443e39',
       fontWeight: active ? 600 : 400,
     };
   }
@@ -58,12 +58,12 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: '#ececec', fontFamily: "'Inter', sans-serif", color: '#2a2a2a' }}>
+    <div className="min-h-screen" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
 
       {/* Banda gobierno */}
       <div
         className="flex justify-between items-center text-white text-[11px] font-medium"
-        style={{ background: 'var(--color-guinda-700)', padding: '6px 16px', letterSpacing: '0.05em' }}
+        style={{ background: 'var(--color-guinda-800)', padding: '6px 16px', letterSpacing: '0.05em' }}
       >
         <span>GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
         <span style={{ opacity: 0.7 }}>prepaabierta.michoacan.gob.mx</span>
@@ -81,14 +81,14 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
               alt="Secretaría de Educación de Michoacán"
               className="brand-logo-img flex-shrink-0"
             />
-            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.15 }}>
+            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-sm font-semibold" style={{ color: 'var(--color-guinda-800)' }}>Gobierno de Michoacán</div>
-              <div className="text-[9px] uppercase tracking-widest" style={{ color: '#78716c', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>
+              <div className="text-[9px] uppercase tracking-widest" style={{ color: '#6b635e', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>
             </div>
-            <div className="w-px h-9" style={{ background: '#d6d3d1' }} />
-            <div style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", lineHeight: 1.15 }}>
+            <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
+            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Prepa Abierta</div>
-              <div className="text-xs" style={{ color: '#78716c', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Dirección de Programa · IEMSyS
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
@@ -121,7 +121,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </div>
             <button
               onClick={handleLogout}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c', padding: 6 }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}
               title="Cerrar sesión"
             >
               <LogOut size={14} />
@@ -139,9 +139,9 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
           className="bg-white border border-stone-200 rounded-lg overflow-hidden sticky"
           style={{ top: 96 }}
         >
-          <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
+          <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
             <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
-            <div className="text-[15px] font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <div className="text-[15px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Dirección
             </div>
           </div>
@@ -149,7 +149,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
           <div className="py-1.5 border-t border-stone-100">
             <div
               className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
-              style={{ color: '#78716c', letterSpacing: '0.12em' }}
+              style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
             >
               INDICADORES
             </div>
@@ -168,7 +168,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
 
-          <div className="px-[18px] py-3 border-t border-stone-100" style={{ fontSize: 10.5, color: '#78716c', lineHeight: 1.5 }}>
+          <div className="px-[18px] py-3 border-t border-stone-100" style={{ fontSize: 10.5, color: '#6b635e', lineHeight: 1.5 }}>
             Este perfil muestra únicamente datos agregados del programa. No da
             acceso a expedientes ni datos personales de alumnos.
           </div>
@@ -179,7 +179,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
-      <footer className="bg-white" style={{ borderTop: '1px solid #e7e5e4' }}>
+      <footer className="bg-white" style={{ borderTop: '1px solid #eadfd7' }}>
         <div className="max-w-[1400px] mx-auto px-6 py-4 text-xs text-stone-500 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
           <div>© {new Date().getFullYear()} Gobierno del Estado de Michoacán</div>
           <div style={{ fontWeight: 500 }}>
@@ -199,16 +199,16 @@ export function TarjetaKPI({
 }: { etiqueta: string; valor: string | number; sub?: string; acento?: string }) {
   return (
     <div className="bg-white border border-stone-200 rounded-lg p-4">
-      <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: '#78716c' }}>
+      <div className="text-[11px] uppercase tracking-wider font-semibold" style={{ color: '#6b635e' }}>
         {etiqueta}
       </div>
       <div
         className="font-bold mt-1"
-        style={{ fontSize: 26, color: acento ?? '#2a2a2a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+        style={{ fontSize: 26, color: acento ?? '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}
       >
         {valor}
       </div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>{sub}</div>}
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
     </div>
   );
 }
@@ -219,8 +219,8 @@ export function SeccionCard({
   return (
     <div className="bg-white border border-stone-200 rounded-lg p-5">
       <div className="mb-4">
-        <div className="text-sm font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>{titulo}</div>
-        {sub && <div className="text-[11px] mt-0.5" style={{ color: '#78716c' }}>{sub}</div>}
+        <div className="text-sm font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>{titulo}</div>
+        {sub && <div className="text-[11px] mt-0.5" style={{ color: '#6b635e' }}>{sub}</div>}
       </div>
       {children}
     </div>

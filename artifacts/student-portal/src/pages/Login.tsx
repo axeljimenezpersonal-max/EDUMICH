@@ -46,7 +46,7 @@ export default function Login() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Banda institucional */}
-      <div className="bg-[var(--color-guinda-700)] text-white text-xs">
+      <div className="bg-[var(--color-guinda-800)] text-white text-xs">
         <div className="max-w-7xl mx-auto px-4 py-1.5">
           <span className="font-medium tracking-wide">
             GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO
@@ -59,7 +59,7 @@ export default function Login() {
 
         {/* Columna izquierda: branding — oculta en móvil */}
         <div
-          className="hidden md:flex bg-[var(--color-guinda-700)] text-white relative overflow-hidden"
+          className="hidden md:flex bg-[var(--color-guinda-800)] text-white relative overflow-hidden"
           style={{ flexDirection: 'column', padding: '48px 60px' }}
         >
           {/* Patrón decorativo sutil */}
@@ -245,7 +245,7 @@ export default function Login() {
               </div>
             </a>
 
-            <div className="mt-4" style={{ fontSize: 11, color: '#78716c', lineHeight: 1.4 }}>
+            <div className="mt-4" style={{ fontSize: 11, color: '#6b635e', lineHeight: 1.4 }}>
               Al iniciar sesión aceptas el aviso de privacidad institucional. Tus datos se
               protegen conforme a la LGPDPPSO.{' '}
               <a

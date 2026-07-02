@@ -17,7 +17,7 @@ const G = {
   crema50: '#fbf8f2',
   crema100: '#f8f4ec',
   crema200: '#efe7d6',
-  piedra500: '#78716c',
+  piedra500: '#6b635e',
   piedra900: '#2a2a2a',
   aprobado: '#2d7d46',
 };

@@ -68,8 +68,8 @@ const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; co
   pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
   en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
   rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
-  sin_documentos:      { label: 'Sin documentos',        dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
-  inactivo:            { label: 'Inactivo',              dot: '#78716c', bg: '#f5f5f4', color: '#78716c' },
+  sin_documentos:      { label: 'Sin documentos',        dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
+  inactivo:            { label: 'Inactivo',              dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
 };
 
 function tasaColor(nivel: 'alta' | 'media' | 'baja') {
@@ -125,7 +125,7 @@ function DesactivarGestorModal({
           className="flex items-center justify-between px-6 py-4"
           style={{ background: '#b91c1c', color: 'white' }}
         >
-          <h3 className="font-semibold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h3 className="font-semibold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Desactivar gestor
           </h3>
           <button
@@ -153,7 +153,7 @@ function DesactivarGestorModal({
 
           {totalAlumnos > 0 && (
             <div className="mb-3">
-              <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
+              <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
                 Reasignar {totalAlumnos} alumnos a otro gestor
               </label>
               <select
@@ -168,12 +168,12 @@ function DesactivarGestorModal({
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>Solo se muestran gestores activos</p>
+              <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>Solo se muestran gestores activos</p>
             </div>
           )}
 
           <div className="mb-4">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
               Razón de desactivación (opcional)
             </label>
             <textarea
@@ -191,7 +191,7 @@ function DesactivarGestorModal({
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               Cancelar
             </button>
@@ -269,7 +269,7 @@ function EditarGestorModal({
           className="flex items-center justify-between px-6 py-4"
           style={{ background: 'var(--color-guinda-700)', color: 'white' }}
         >
-          <h3 className="font-semibold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h3 className="font-semibold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>
             Editar gestor
           </h3>
           <button
@@ -283,7 +283,7 @@ function EditarGestorModal({
 
         <div className="p-6 flex flex-col gap-3">
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>Nombre completo *</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>Nombre completo *</label>
             <input
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
               value={form.nombreCompleto}
@@ -291,7 +291,7 @@ function EditarGestorModal({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>Título / cargo</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>Título / cargo</label>
             <input
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
               placeholder="Gestor Municipal"
@@ -300,7 +300,7 @@ function EditarGestorModal({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>Teléfono</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>Teléfono</label>
             <input
               type="tel"
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
@@ -310,7 +310,7 @@ function EditarGestorModal({
             />
           </div>
           <div>
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>Capacidad máxima</label>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>Capacidad máxima</label>
             <input
               type="number"
               min={5}
@@ -327,7 +327,7 @@ function EditarGestorModal({
             <button
               onClick={onClose}
               className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               Cancelar
             </button>
@@ -375,12 +375,12 @@ function MetricCard({
       </div>
       <div
         className="text-2xl font-bold mb-0.5"
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}
+        style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}
       >
         {value}
       </div>
-      <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>{label}</div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>{sub}</div>}
+      <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>{label}</div>
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
     </div>
   );
 }
@@ -411,10 +411,10 @@ function AlumnoRow({ alumno, onNav }: { alumno: Alumno; onNav: () => void }) {
 
       {/* Nombre */}
       <div>
-        <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
           {alumno.nombreCompleto}
         </div>
-        <div className="text-[11px] truncate" style={{ color: '#78716c' }}>{alumno.email}</div>
+        <div className="text-[11px] truncate" style={{ color: '#6b635e' }}>{alumno.email}</div>
       </div>
 
       {/* Estado */}
@@ -431,7 +431,7 @@ function AlumnoRow({ alumno, onNav }: { alumno: Alumno; onNav: () => void }) {
       {/* Docs progress */}
       <div>
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-1.5 rounded-full" style={{ background: '#e7e5e4' }}>
+          <div className="flex-1 h-1.5 rounded-full" style={{ background: '#eadfd7' }}>
             <div
               className="h-1.5 rounded-full"
               style={{
@@ -440,18 +440,18 @@ function AlumnoRow({ alumno, onNav }: { alumno: Alumno; onNav: () => void }) {
               }}
             />
           </div>
-          <span className="text-[11px] font-mono flex-shrink-0" style={{ color: '#78716c' }}>
+          <span className="text-[11px] font-mono flex-shrink-0" style={{ color: '#6b635e' }}>
             {alumno.docsAprobados}/{alumno.docsTotal}
           </span>
         </div>
       </div>
 
       {/* Última actividad */}
-      <div className="text-xs" style={{ color: '#78716c' }}>{alumno.ultimaActividadTexto}</div>
+      <div className="text-xs" style={{ color: '#6b635e' }}>{alumno.ultimaActividadTexto}</div>
 
       {/* Arrow */}
       <div className="flex items-center justify-center opacity-30 hover:opacity-70">
-        <ArrowUpRight size={14} style={{ color: '#44403c' }} />
+        <ArrowUpRight size={14} style={{ color: '#443e39' }} />
       </div>
     </div>
   );
@@ -543,7 +543,7 @@ export default function GestorDetalle() {
   if (loadingGestor) {
     return (
       <AdminLayout>
-        <div className="py-24 text-center text-sm" style={{ color: '#78716c' }}>Cargando gestor…</div>
+        <div className="py-24 text-center text-sm" style={{ color: '#6b635e' }}>Cargando gestor…</div>
       </AdminLayout>
     );
   }
@@ -604,7 +604,7 @@ export default function GestorDetalle() {
             height: 100,
             borderRadius: '12px 12px 0 0',
             background: inactivo
-              ? 'linear-gradient(135deg, #78716c 0%, #44403c 100%)'
+              ? 'linear-gradient(135deg, #6b635e 0%, #443e39 100%)'
               : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #5C1428 100%)',
             position: 'relative',
           }}
@@ -621,11 +621,11 @@ export default function GestorDetalle() {
           />
           <span
             className="absolute top-3 right-4 flex items-center gap-1 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.95)', color: inactivo ? '#78716c' : '#2d7d46' }}
+            style={{ background: 'rgba(255,255,255,0.95)', color: inactivo ? '#6b635e' : '#2d7d46' }}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${!inactivo ? 'animate-pulse' : ''}`}
-              style={{ background: inactivo ? '#78716c' : '#2d7d46' }}
+              style={{ background: inactivo ? '#6b635e' : '#2d7d46' }}
             />
             {inactivo ? 'Inactivo' : 'Activo'}
           </span>
@@ -651,11 +651,11 @@ export default function GestorDetalle() {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              background: inactivo ? '#f5f5f4' : '#efe7d6',
-              color: inactivo ? '#78716c' : 'var(--color-guinda-700)',
+              background: inactivo ? '#f7f2ed' : '#efe7d6',
+              color: inactivo ? '#6b635e' : 'var(--color-guinda-700)',
               border: '5px solid white',
               marginTop: -60,
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Poppins', sans-serif",
               fontWeight: 700,
               fontSize: 36,
               letterSpacing: '-0.02em',
@@ -672,25 +672,25 @@ export default function GestorDetalle() {
           <div style={{ paddingTop: 16 }}>
             <div
               className="text-[11px] font-semibold uppercase tracking-widest mb-1"
-              style={{ color: '#a8a29e' }}
+              style={{ color: '#a89a8e' }}
             >
               GESTOR · ID-{gestor.id}
             </div>
             <h1
               className="text-2xl font-bold tracking-tight mb-2"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}
+              style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}
             >
               {gestor.nombreCompleto}
             </h1>
             {gestor.titulo && (
-              <p className="text-sm mb-2" style={{ color: '#78716c' }}>{gestor.titulo}</p>
+              <p className="text-sm mb-2" style={{ color: '#6b635e' }}>{gestor.titulo}</p>
             )}
             {/* Pills */}
             <div className="flex items-center gap-2 flex-wrap">
               {gestor.municipio && (
                 <span
                   className="flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full"
-                  style={{ background: '#f5f5f4', color: '#44403c' }}
+                  style={{ background: '#f7f2ed', color: '#443e39' }}
                 >
                   <MapPin size={11} /> {gestor.municipio.nombre}
                 </span>
@@ -709,7 +709,7 @@ export default function GestorDetalle() {
             <button
               onClick={() => setModal('editar')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               <Edit size={12} /> Editar
             </button>
@@ -717,7 +717,7 @@ export default function GestorDetalle() {
               onClick={handleResetPassword}
               disabled={resettingPwd}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50"
-              style={{ color: '#44403c' }}
+              style={{ color: '#443e39' }}
             >
               <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
             </button>
@@ -752,30 +752,30 @@ export default function GestorDetalle() {
         {/* Meta row */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mx-8 pb-6 pt-5 border-t border-stone-100">
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Correo</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Mail size={12} style={{ color: '#78716c' }} />
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Correo</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Mail size={12} style={{ color: '#6b635e' }} />
               <span className="truncate">{gestor.email}</span>
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Teléfono</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Phone size={12} style={{ color: '#78716c' }} />
-              {gestor.telefono ?? <span style={{ color: '#a8a29e' }}>No registrado</span>}
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Teléfono</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Phone size={12} style={{ color: '#6b635e' }} />
+              {gestor.telefono ?? <span style={{ color: '#a89a8e' }}>No registrado</span>}
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Nuevos este mes</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Calendar size={12} style={{ color: '#78716c' }} />
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Nuevos este mes</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Calendar size={12} style={{ color: '#6b635e' }} />
               {gestor.alumnosNuevosEsteMes} alumnos
             </div>
           </div>
           <div>
-            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a8a29e' }}>Último acceso</div>
-            <div className="flex items-center gap-1 text-sm" style={{ color: '#44403c' }}>
-              <Clock size={12} style={{ color: '#78716c' }} />
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Último acceso</div>
+            <div className="flex items-center gap-1 text-sm" style={{ color: '#443e39' }}>
+              <Clock size={12} style={{ color: '#6b635e' }} />
               {gestor.ultimaActividadTexto}
             </div>
           </div>
@@ -813,8 +813,8 @@ export default function GestorDetalle() {
           label="Docs por revisar"
           value={gestor.docsPorRevisar}
           sub={gestor.docsPorRevisar > 0 ? 'Requiere atención' : 'Al día'}
-          iconBg={gestor.docsPorRevisar > 0 ? '#fee2e2' : '#f5f5f4'}
-          iconColor={gestor.docsPorRevisar > 0 ? '#b91c1c' : '#78716c'}
+          iconBg={gestor.docsPorRevisar > 0 ? '#fee2e2' : '#f7f2ed'}
+          iconColor={gestor.docsPorRevisar > 0 ? '#b91c1c' : '#6b635e'}
         />
       </div>
 
@@ -823,24 +823,24 @@ export default function GestorDetalle() {
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingUp size={14} style={{ color: tc.text }} />
-            <span className="text-sm font-semibold" style={{ color: '#44403c' }}>Tasa de éxito</span>
+            <span className="text-sm font-semibold" style={{ color: '#443e39' }}>Tasa de éxito</span>
           </div>
-          <span className="text-lg font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: tc.text }}>
+          <span className="text-lg font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: tc.text }}>
             {gestor.metricas.tasaExito}%
           </span>
         </div>
-        <div className="h-2 rounded-full" style={{ background: '#f5f5f4' }}>
+        <div className="h-2 rounded-full" style={{ background: '#f7f2ed' }}>
           <div
             className="h-2 rounded-full transition-all"
             style={{ width: `${gestor.metricas.tasaExito}%`, background: tc.bar }}
           />
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[11px]" style={{ color: '#78716c' }}>
+          <span className="text-[11px]" style={{ color: '#6b635e' }}>
             {gestor.metricas.expedientesCompletos} completos de {gestor.metricas.totalAlumnos}
           </span>
           {gestor.calificacionPromedio != null && (
-            <span className="text-[11px]" style={{ color: '#78716c' }}>
+            <span className="text-[11px]" style={{ color: '#6b635e' }}>
               Promedio calificaciones: <strong>{gestor.calificacionPromedio}</strong>
             </span>
           )}
@@ -850,14 +850,14 @@ export default function GestorDetalle() {
         <div className="mt-4 pt-4 border-t border-stone-100">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Gauge size={14} style={{ color: '#78716c' }} />
-              <span className="text-sm font-semibold" style={{ color: '#44403c' }}>Ocupación</span>
+              <Gauge size={14} style={{ color: '#6b635e' }} />
+              <span className="text-sm font-semibold" style={{ color: '#443e39' }}>Ocupación</span>
             </div>
-            <span className="text-sm font-bold" style={{ color: ocupacion >= 90 ? '#b91c1c' : ocupacion >= 70 ? '#d97706' : '#44403c' }}>
+            <span className="text-sm font-bold" style={{ color: ocupacion >= 90 ? '#b91c1c' : ocupacion >= 70 ? '#d97706' : '#443e39' }}>
               {ocupacion}%
             </span>
           </div>
-          <div className="h-2 rounded-full" style={{ background: '#f5f5f4' }}>
+          <div className="h-2 rounded-full" style={{ background: '#f7f2ed' }}>
             <div
               className="h-2 rounded-full transition-all"
               style={{
@@ -870,7 +870,7 @@ export default function GestorDetalle() {
               }}
             />
           </div>
-          <div className="text-[11px] mt-1" style={{ color: '#78716c' }}>
+          <div className="text-[11px] mt-1" style={{ color: '#6b635e' }}>
             {gestor.metricas.totalAlumnos} de {gestor.capacidadMaxima} lugares usados
           </div>
         </div>
@@ -883,11 +883,11 @@ export default function GestorDetalle() {
           <div>
             <h2
               className="text-base font-bold"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}
+              style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}
             >
               Alumnos asignados a {gestor.nombreCompleto.split(' ')[0]}
             </h2>
-            <p className="text-[11px] mt-0.5" style={{ color: '#78716c' }}>
+            <p className="text-[11px] mt-0.5" style={{ color: '#6b635e' }}>
               {alumnosTotal} alumno{alumnosTotal !== 1 ? 's' : ''} en total
             </p>
           </div>
@@ -901,9 +901,9 @@ export default function GestorDetalle() {
         </div>
 
         {loadingAlumnos ? (
-          <div className="py-10 text-center text-sm" style={{ color: '#78716c' }}>Cargando alumnos…</div>
+          <div className="py-10 text-center text-sm" style={{ color: '#6b635e' }}>Cargando alumnos…</div>
         ) : alumnos.length === 0 ? (
-          <div className="py-10 text-center text-sm" style={{ color: '#78716c' }}>
+          <div className="py-10 text-center text-sm" style={{ color: '#6b635e' }}>
             Este gestor no tiene alumnos asignados todavía.
           </div>
         ) : (
@@ -911,7 +911,7 @@ export default function GestorDetalle() {
             {/* Table header */}
             <div
               className="grid text-[11px] font-semibold uppercase tracking-wide px-5 py-2.5 border-b border-stone-100"
-              style={{ gridTemplateColumns: '40px 1fr 120px 140px 120px 40px', gap: 12, background: '#fafaf9', color: '#78716c' }}
+              style={{ gridTemplateColumns: '40px 1fr 120px 140px 120px 40px', gap: 12, background: '#fafaf9', color: '#6b635e' }}
             >
               <div />
               <div>Alumno</div>
@@ -932,7 +932,7 @@ export default function GestorDetalle() {
             {/* Pagination */}
             {alumnosTotalPages > 1 && (
               <div className="flex items-center justify-between px-5 py-3 border-t border-stone-100">
-                <span className="text-xs" style={{ color: '#78716c' }}>
+                <span className="text-xs" style={{ color: '#6b635e' }}>
                   Página {alumnosPage} de {alumnosTotalPages}
                 </span>
                 <div className="flex gap-2">
@@ -940,7 +940,7 @@ export default function GestorDetalle() {
                     onClick={() => setAlumnosPage((p) => Math.max(1, p - 1))}
                     disabled={alumnosPage === 1}
                     className="px-3 py-1 text-xs font-semibold border border-stone-200 rounded-lg disabled:opacity-40 hover:bg-stone-50"
-                    style={{ color: '#44403c' }}
+                    style={{ color: '#443e39' }}
                   >
                     Anterior
                   </button>
@@ -948,7 +948,7 @@ export default function GestorDetalle() {
                     onClick={() => setAlumnosPage((p) => Math.min(alumnosTotalPages, p + 1))}
                     disabled={alumnosPage === alumnosTotalPages}
                     className="px-3 py-1 text-xs font-semibold border border-stone-200 rounded-lg disabled:opacity-40 hover:bg-stone-50"
-                    style={{ color: '#44403c' }}
+                    style={{ color: '#443e39' }}
                   >
                     Siguiente
                   </button>

@@ -43,7 +43,7 @@ function Toggle({
         onClick={() => !disabled && onChange(!value)}
         disabled={disabled}
         className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-        style={{ background: value ? '#6B1530' : '#d6d3d1', opacity: disabled ? 0.5 : 1 }}
+        style={{ background: value ? '#6B1530' : '#ddd0c5', opacity: disabled ? 0.5 : 1 }}
       >
         <span
           className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform"
@@ -174,16 +174,16 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
               {/* Avatar */}
               <div
                 className="flex-shrink-0 flex items-center justify-center rounded-full text-white font-bold text-lg"
-                style={{ width: 60, height: 60, background: '#6B1530', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                style={{ width: 60, height: 60, background: '#6B1530', fontFamily: "'Poppins', sans-serif" }}
               >
                 {initials || <User size={24} strokeWidth={2} />}
               </div>
               <div className="flex-1">
-                <div className="text-base font-bold" style={{ color: '#1a1a1a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                <div className="text-base font-bold" style={{ color: '#1a1a1a', fontFamily: "'Poppins', sans-serif" }}>
                   {cuenta.nombreCompleto || 'Sin nombre'}
                 </div>
-                <div className="text-sm" style={{ color: '#78716c' }}>{cuenta.cargo || 'Administrador'}</div>
-                <div className="text-xs mt-0.5" style={{ color: '#a8a29e' }}>{cuenta.email}</div>
+                <div className="text-sm" style={{ color: '#6b635e' }}>{cuenta.cargo || 'Administrador'}</div>
+                <div className="text-xs mt-0.5" style={{ color: '#a89a8e' }}>{cuenta.email}</div>
               </div>
             </div>
           )}
@@ -233,10 +233,10 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
                   type="email"
                   readOnly
                   className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 bg-stone-50 cursor-not-allowed"
-                  style={{ color: '#78716c' }}
+                  style={{ color: '#6b635e' }}
                   value={cuenta.email}
                 />
-                <p className="text-[11px] mt-1" style={{ color: '#a8a29e' }}>
+                <p className="text-[11px] mt-1" style={{ color: '#a89a8e' }}>
                   El correo institucional no puede modificarse desde aqui. Contacta al soporte tecnico para realizar este cambio.
                 </p>
               </div>

@@ -185,14 +185,14 @@ export default function EstudianteDashboard() {
               <Megaphone size={16} style={{ color: c.icon, flexShrink: 0, marginTop: 2 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div className="font-semibold text-sm" style={{ color: c.text, marginBottom: 2 }}>{a.titulo}</div>
-                <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>{a.contenido}</p>
+                <p className="text-xs leading-relaxed" style={{ color: '#57504a' }}>{a.contenido}</p>
                 {a.ctaTexto && a.ctaUrl && (
                   <a href={safeUrl(a.ctaUrl)} rel="noopener noreferrer" className="inline-block mt-2 text-xs font-semibold" style={{ color: c.text, textDecoration: 'underline' }}>
                     {a.ctaTexto} →
                   </a>
                 )}
               </div>
-              <button onClick={() => cerrarAnuncio(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a8a29e', flexShrink: 0, padding: 2 }}>
+              <button onClick={() => cerrarAnuncio(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a89a8e', flexShrink: 0, padding: 2 }}>
                 <X size={13} />
               </button>
             </div>
@@ -237,7 +237,7 @@ export default function EstudianteDashboard() {
               <div className="font-semibold text-sm" style={{ color: '#b91c1c', marginBottom: 2 }}>
                 Tu ficha de pre-registro ha vencido
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>
+              <p className="text-xs leading-relaxed" style={{ color: '#57504a' }}>
                 Tu folio <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{data.folioPreregistro}</span> ya no es válido. Comunícate con tu gestor o con la administración para renovarlo.
               </p>
             </div>
@@ -255,7 +255,7 @@ export default function EstudianteDashboard() {
               <div className="font-semibold text-sm" style={{ color: '#b45309', marginBottom: 2 }}>
                 Tu ficha de pre-registro vence pronto
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: '#57534e' }}>
+              <p className="text-xs leading-relaxed" style={{ color: '#57504a' }}>
                 Tu folio <span style={{ fontFamily: 'monospace', fontWeight: 700 }}>{data.folioPreregistro}</span> vence en{' '}
                 <strong>{diasVigencia} {diasVigencia === 1 ? 'día' : 'días'}</strong>. Descárgala antes de que expire.
               </p>
@@ -269,13 +269,13 @@ export default function EstudianteDashboard() {
 
             {/* ── Ficha de pre-registro ── */}
             {data.folioPreregistro && (
-              <div style={{ background: '#fff', border: '1px solid #e7e5e4', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '16px 18px 14px', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
                     <div style={{ width: 34, height: 34, borderRadius: 9, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       <FileText size={16} style={{ color: 'var(--color-guinda-700)' }} />
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#78716c', lineHeight: 1.3 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', lineHeight: 1.3 }}>
                       Ficha de<br />pre-registro
                     </span>
                   </div>
@@ -283,14 +283,14 @@ export default function EstudianteDashboard() {
                     {data.folioPreregistro}
                   </div>
                   {data.preregistroVigenteHasta && (
-                    <div style={{ fontSize: 11, marginTop: 5, color: diasVigencia !== null && diasVigencia <= 0 ? '#b91c1c' : diasVigencia !== null && diasVigencia <= 3 ? '#b45309' : '#78716c' }}>
+                    <div style={{ fontSize: 11, marginTop: 5, color: diasVigencia !== null && diasVigencia <= 0 ? '#b91c1c' : diasVigencia !== null && diasVigencia <= 3 ? '#b45309' : '#6b635e' }}>
                       {diasVigencia !== null && diasVigencia <= 0
                         ? '⚠ Vencida'
                         : `Vigente hasta ${new Date(data.preregistroVigenteHasta + 'T00:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                     </div>
                   )}
                 </div>
-                <div style={{ borderTop: '1px solid #f5f5f4', padding: '10px 18px' }}>
+                <div style={{ borderTop: '1px solid #f7f2ed', padding: '10px 18px' }}>
                   <a
                     href="/api/alumno/ficha-preregistro"
                     target="_blank"

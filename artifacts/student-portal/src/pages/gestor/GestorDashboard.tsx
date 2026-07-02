@@ -86,14 +86,14 @@ export default function GestorDashboard() {
             <Megaphone size={15} style={{ color: c.icon, flexShrink: 0, marginTop: 2 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: c.text, marginBottom: 2 }}>{a.titulo}</div>
-              <div style={{ fontSize: 12, color: '#57534e', lineHeight: 1.4 }}>{a.contenido}</div>
+              <div style={{ fontSize: 12, color: '#57504a', lineHeight: 1.4 }}>{a.contenido}</div>
               {a.ctaTexto && a.ctaUrl && (
                 <a href={safeUrl(a.ctaUrl)} rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 6, fontSize: 11, fontWeight: 600, color: c.text, textDecoration: 'underline' }}>
                   {a.ctaTexto} →
                 </a>
               )}
             </div>
-            <button onClick={() => cerrarAnuncio(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a8a29e', flexShrink: 0, padding: 2 }}>
+            <button onClick={() => cerrarAnuncio(a.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#a89a8e', flexShrink: 0, padding: 2 }}>
               <X size={13} />
             </button>
           </div>

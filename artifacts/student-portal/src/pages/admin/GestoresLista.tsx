@@ -128,7 +128,7 @@ function CrearGestorModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 flex flex-col overflow-hidden" style={{ maxHeight: '92vh' }}>
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
-          <h3 className="font-semibold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Nuevo gestor municipal</h3>
+          <h3 className="font-semibold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>Nuevo gestor municipal</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-80 transition-opacity" style={{ background: 'rgba(255,255,255,0.15)' }}>
             <X size={14} />
           </button>
@@ -159,12 +159,12 @@ function CrearGestorModal({
               <option value="">Selecciona un municipio...</option>
               {municipios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
             </select>
-            <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>El gestor podrá ver y gestionar los alumnos de este municipio</p>
+            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>El gestor podrá ver y gestionar los alumnos de este municipio</p>
           </FormField>
 
           <FormField label="Capacidad máxima de alumnos" className="mb-4">
             <input type="number" min={5} max={200} className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400" value={form.capacidadMaxima} onChange={(e) => set('capacidadMaxima', e.target.value)} />
-            <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>Número máximo de alumnos que puede tener asignados al mismo tiempo</p>
+            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>Número máximo de alumnos que puede tener asignados al mismo tiempo</p>
           </FormField>
 
           {/* Helper note */}
@@ -178,7 +178,7 @@ function CrearGestorModal({
 
         {/* Footer */}
         <div className="flex justify-end gap-2 px-6 py-4 border-t border-stone-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors" style={{ color: '#44403c' }}>Cancelar</button>
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors" style={{ color: '#443e39' }}>Cancelar</button>
           <button onClick={handleSubmit} disabled={saving} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50" style={{ background: 'var(--color-guinda-700)' }}>
             <UserPlus size={14} /> {saving ? 'Creando...' : 'Crear gestor'}
           </button>
@@ -229,7 +229,7 @@ function ReasignarAlumnosModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(42,42,42,0.7)' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
-          <h3 className="font-semibold text-base" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>Reasignar alumnos de {gestor.nombreCompleto.split(' ')[0]}</h3>
+          <h3 className="font-semibold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>Reasignar alumnos de {gestor.nombreCompleto.split(' ')[0]}</h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-80" style={{ background: 'rgba(255,255,255,0.15)' }}><X size={14} /></button>
         </div>
 
@@ -248,9 +248,9 @@ function ReasignarAlumnosModal({
               {gestoresActivos.filter((g) => g.id !== gestor.id).map((g) => (
                 <option key={g.id} value={g.id}>{g.nombreCompleto}{g.municipioNombre ? ` · ${g.municipioNombre}` : ''}</option>
               ))}
-              <option value="null" style={{ color: '#78716c' }}>— No reasignar (alumnos quedan sin gestor) —</option>
+              <option value="null" style={{ color: '#6b635e' }}>— No reasignar (alumnos quedan sin gestor) —</option>
             </select>
-            <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>Solo se muestran gestores activos</p>
+            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>Solo se muestran gestores activos</p>
           </FormField>
 
           <FormField label="Razón del cambio (opcional)" className="mb-4">
@@ -265,7 +265,7 @@ function ReasignarAlumnosModal({
           {error && <p className="text-xs font-medium mb-3" style={{ color: '#b91c1c' }}>{error}</p>}
 
           <div className="flex justify-end gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#44403c' }}>Cancelar</button>
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>Cancelar</button>
             <button onClick={handleSubmit} disabled={saving || !aGestorId} className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50" style={{ background: 'var(--color-guinda-700)' }}>
               <Users size={14} /> {saving ? 'Reasignando...' : `Reasignar ${n} alumnos`}
             </button>
@@ -281,7 +281,7 @@ function ReasignarAlumnosModal({
 function FormField({ label, children, className = '' }: { label: string; children: React.ReactNode; className?: string }) {
   return (
     <div className={className}>
-      <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>{label}</label>
+      <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>{label}</label>
       {children}
     </div>
   );
@@ -322,7 +322,7 @@ function GestorCard({
         (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)';
       }}
       onMouseLeave={(e) => {
-        (e.currentTarget as HTMLElement).style.borderColor = '#e7e5e4';
+        (e.currentTarget as HTMLElement).style.borderColor = '#eadfd7';
         (e.currentTarget as HTMLElement).style.boxShadow = '';
         (e.currentTarget as HTMLElement).style.transform = '';
       }}
@@ -330,14 +330,14 @@ function GestorCard({
       {/* Banner */}
       <div className="h-14 relative flex-shrink-0" style={{
         background: inactivo
-          ? 'linear-gradient(135deg, #78716c 0%, #44403c 100%)'
+          ? 'linear-gradient(135deg, #6b635e 0%, #443e39 100%)'
           : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #5C1428 100%)',
       }}>
         <span
           className="absolute top-2.5 right-3 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full"
-          style={{ background: 'rgba(255,255,255,0.95)', color: inactivo ? '#78716c' : '#2d7d46' }}
+          style={{ background: 'rgba(255,255,255,0.95)', color: inactivo ? '#6b635e' : '#2d7d46' }}
         >
-          <span className={`w-1.5 h-1.5 rounded-full ${inactivo ? '' : 'animate-pulse'}`} style={{ background: inactivo ? '#78716c' : '#2d7d46' }} />
+          <span className={`w-1.5 h-1.5 rounded-full ${inactivo ? '' : 'animate-pulse'}`} style={{ background: inactivo ? '#6b635e' : '#2d7d46' }} />
           {inactivo ? 'Inactivo' : 'Activo'}
         </span>
       </div>
@@ -346,10 +346,10 @@ function GestorCard({
       <div
         className="w-[76px] h-[76px] rounded-full flex items-center justify-center text-2xl font-bold border-4 border-white mx-auto text-center"
         style={{
-          background: inactivo ? '#f5f5f4' : '#efe7d6',
-          color: inactivo ? '#78716c' : 'var(--color-guinda-700)',
+          background: inactivo ? '#f7f2ed' : '#efe7d6',
+          color: inactivo ? '#6b635e' : 'var(--color-guinda-700)',
           marginTop: -38,
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "'Poppins', sans-serif",
           position: 'relative',
           zIndex: 1,
         }}
@@ -359,16 +359,16 @@ function GestorCard({
 
       {/* Info */}
       <div className="px-5 pb-4 text-center">
-        <div className="text-sm font-bold leading-tight mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+        <div className="text-sm font-bold leading-tight mb-1" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
           {gestor.nombreCompleto}
         </div>
-        <div className="text-[11px] mb-2" style={{ color: '#78716c' }}>{gestor.titulo}</div>
+        <div className="text-[11px] mb-2" style={{ color: '#6b635e' }}>{gestor.titulo}</div>
         {gestor.municipio && (
           <span
             className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide"
             style={{
-              background: inactivo ? '#f5f5f4' : 'var(--color-guinda-100)',
-              color: inactivo ? '#78716c' : 'var(--color-guinda-700)',
+              background: inactivo ? '#f7f2ed' : 'var(--color-guinda-100)',
+              color: inactivo ? '#6b635e' : 'var(--color-guinda-700)',
             }}
           >
             <MapPin size={10} /> {gestor.municipio.nombre}
@@ -389,17 +389,17 @@ function GestorCard({
       {/* Tasa de éxito */}
       <div className="px-5 py-3 border-b border-stone-100">
         <div className="flex items-center justify-between mb-1.5">
-          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#78716c' }}>Tasa de éxito</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>Tasa de éxito</span>
           <span className="text-sm font-bold" style={{ color: tc.text }}>{gestor.metricas.tasaExito}%</span>
         </div>
-        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#f5f5f4' }}>
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: '#f7f2ed' }}>
           <div className="h-full rounded-full" style={{ width: `${gestor.metricas.tasaExito}%`, background: tc.bar }} />
         </div>
       </div>
 
       {/* Email */}
       <div className="px-5 py-2.5 border-b border-stone-100">
-        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#78716c' }}>
+        <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#6b635e' }}>
           <Mail size={10} /> <span className="truncate">{gestor.email}</span>
         </div>
       </div>
@@ -411,7 +411,7 @@ function GestorCard({
             <AlertTriangle size={12} /> {gestor.alertas.sinReasignar} alumnos sin reasignar
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#78716c' }}>
+          <div className="flex items-center gap-1.5 text-[11px]" style={{ color: '#6b635e' }}>
             {gestor.estado === 'activo' && <span className="w-1.5 h-1.5 rounded-full animate-pulse bg-green-500 flex-shrink-0" />}
             {gestor.ultimaActividadTexto}
           </div>
@@ -449,8 +449,8 @@ function GestorCard({
 function MetricItem({ num, label, color }: { num: number; label: string; color?: string }) {
   return (
     <div className="text-center py-1">
-      <div className="text-xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: color ?? '#2a2a2a', letterSpacing: '-0.02em', lineHeight: 1 }}>{num}</div>
-      <div className="text-[10px] font-semibold uppercase tracking-wide mt-1" style={{ color: '#78716c' }}>{label}</div>
+      <div className="text-xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: color ?? '#2a2a2a', letterSpacing: '-0.02em', lineHeight: 1 }}>{num}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wide mt-1" style={{ color: '#6b635e' }}>{label}</div>
     </div>
   );
 }
@@ -461,7 +461,7 @@ function ActionBtn({ title, onClick, children }: { title: string; onClick: (e: R
       title={title}
       onClick={(e) => { e.stopPropagation(); onClick(e); }}
       className="w-7 h-7 rounded-lg flex items-center justify-center border border-stone-200 bg-white transition-all hover:bg-[var(--color-guinda-700)] hover:border-[var(--color-guinda-700)] hover:text-white"
-      style={{ color: '#44403c' }}
+      style={{ color: '#443e39' }}
     >
       {children}
     </button>
@@ -470,7 +470,7 @@ function ActionBtn({ title, onClick, children }: { title: string; onClick: (e: R
 
 function DropItem({ onClick, icon, label }: { onClick: () => void; icon: React.ReactNode; label: string }) {
   return (
-    <button onClick={onClick} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-stone-50 transition-colors text-left" style={{ color: '#44403c', background: 'none', border: 'none', cursor: 'pointer' }}>
+    <button onClick={onClick} className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-stone-50 transition-colors text-left" style={{ color: '#443e39', background: 'none', border: 'none', cursor: 'pointer' }}>
       {icon} {label}
     </button>
   );
@@ -481,13 +481,13 @@ function DropItem({ onClick, icon, label }: { onClick: () => void; icon: React.R
 function StatCard({ num, label, sub }: { num: number | string; label: string; sub?: string }) {
   return (
     <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex-1 min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#78716c' }}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#6b635e' }}>
         {label}
       </div>
-      <div className="text-2xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
         {typeof num === 'number' ? num.toLocaleString('es-MX') : num}
       </div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a8a29e' }}>{sub}</div>}
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
     </div>
   );
 }
@@ -595,18 +595,18 @@ export default function GestoresLista() {
           <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase mb-1.5" style={{ color: 'var(--color-guinda-700)', letterSpacing: '0.15em' }}>
             <UserCheck size={12} /> PERSONAS · GESTORES
           </div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             Gestores municipales
           </h1>
           {resumen && (
-            <p className="text-sm mt-1" style={{ color: '#78716c' }}>
+            <p className="text-sm mt-1" style={{ color: '#6b635e' }}>
               {resumen.totalActivos} gestores activos · {data?.gestores.reduce((s, g) => s + g.metricas.totalAlumnos, 0) ?? 0} alumnos en gestión
             </p>
           )}
         </div>
         <div className="flex items-center gap-2">
           <button onClick={load} className="p-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors" title="Recargar">
-            <RefreshCw size={14} style={{ color: '#78716c' }} />
+            <RefreshCw size={14} style={{ color: '#6b635e' }} />
           </button>
           <button
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg"
@@ -633,22 +633,22 @@ export default function GestoresLista() {
         <div className="grid gap-3" style={{ gridTemplateColumns: '2fr 1fr 1fr 1fr' }}>
           {/* Search */}
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#78716c' }}>Buscar</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#6b635e' }}>Buscar</label>
             <div className="relative">
-              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
+              <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
               <input
                 className="w-full pl-8 pr-8 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
                 placeholder="Nombre del gestor o municipio..."
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
               />
-              {searchInput && <button className="absolute right-2.5 top-1/2 -translate-y-1/2" onClick={() => setSearchInput('')}><X size={12} style={{ color: '#78716c' }} /></button>}
+              {searchInput && <button className="absolute right-2.5 top-1/2 -translate-y-1/2" onClick={() => setSearchInput('')}><X size={12} style={{ color: '#6b635e' }} /></button>}
             </div>
           </div>
 
           {/* Estado */}
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#78716c' }}>Estado</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#6b635e' }}>Estado</label>
             <select className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white" value={estado} onChange={(e) => setEstado(e.target.value)}>
               <option value="">Todos</option>
               <option value="activo">Activos</option>
@@ -658,7 +658,7 @@ export default function GestoresLista() {
 
           {/* Municipio */}
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#78716c' }}>Municipio</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#6b635e' }}>Municipio</label>
             <select className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white" value={municipioId} onChange={(e) => setMunicipioId(e.target.value)}>
               <option value="">Cualquiera</option>
               {municipios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
@@ -667,7 +667,7 @@ export default function GestoresLista() {
 
           {/* Sort */}
           <div>
-            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#78716c' }}>Ordenar por</label>
+            <label className="block text-[10px] font-semibold uppercase tracking-wide mb-1.5" style={{ color: '#6b635e' }}>Ordenar por</label>
             <select className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
               <option value="tasa_exito">Mayor tasa de éxito</option>
               <option value="mas_alumnos">Más alumnos</option>
@@ -680,11 +680,11 @@ export default function GestoresLista() {
 
       {/* Grid */}
       {loading ? (
-        <div className="py-20 text-center text-sm" style={{ color: '#78716c' }}>Cargando gestores...</div>
+        <div className="py-20 text-center text-sm" style={{ color: '#6b635e' }}>Cargando gestores...</div>
       ) : !data || data.gestores.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 rounded-xl border-2" style={{ borderColor: '#e7e5e4', borderStyle: 'dashed' }}>
-          <UserX size={32} style={{ color: '#d6d3d1', marginBottom: 12 }} />
-          <p className="text-sm font-semibold" style={{ color: '#44403c' }}>No se encontraron gestores</p>
+        <div className="flex flex-col items-center justify-center py-20 rounded-xl border-2" style={{ borderColor: '#eadfd7', borderStyle: 'dashed' }}>
+          <UserX size={32} style={{ color: '#ddd0c5', marginBottom: 12 }} />
+          <p className="text-sm font-semibold" style={{ color: '#443e39' }}>No se encontraron gestores</p>
         </div>
       ) : (
         <>
@@ -699,7 +699,7 @@ export default function GestoresLista() {
             ))}
           </div>
           {data.total > data.gestores.length && (
-            <p className="text-center text-sm mt-5" style={{ color: '#78716c' }}>
+            <p className="text-center text-sm mt-5" style={{ color: '#6b635e' }}>
               Mostrando {data.gestores.length} de {data.total} gestores
             </p>
           )}

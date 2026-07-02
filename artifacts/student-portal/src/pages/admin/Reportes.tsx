@@ -252,7 +252,7 @@ export default function Reportes() {
 
   return (
     <AdminLayout>
-      <div style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div style={{ fontFamily: "'Poppins', sans-serif" }}>
 
         {/* ── Page header ── */}
         <div className="flex items-center justify-between mb-6">
@@ -264,14 +264,14 @@ export default function Reportes() {
             <button
               onClick={() => { toggleHistorial(); setHistorialLoaded(true); cargarHistorial(); }}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border"
-              style={{ borderColor: '#d6d3d1', color: '#44403c', background: 'white' }}
+              style={{ borderColor: '#ddd0c5', color: '#443e39', background: 'white' }}
             >
               <Clock size={14} /> Historial
             </button>
             <button
               onClick={toggleProgramados}
               className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border"
-              style={{ borderColor: '#d6d3d1', color: '#44403c', background: 'white' }}
+              style={{ borderColor: '#ddd0c5', color: '#443e39', background: 'white' }}
             >
               <RefreshCw size={14} /> Programados
             </button>
@@ -294,7 +294,7 @@ export default function Reportes() {
               className="text-left p-4 rounded-xl border transition-all"
               style={{
                 background: selected === tipo ? '#fdf6fa' : 'white',
-                borderColor: selected === tipo ? GUINDA : '#e7e5e4',
+                borderColor: selected === tipo ? GUINDA : '#eadfd7',
                 borderWidth: selected === tipo ? 2 : 1,
                 boxShadow: selected === tipo ? `0 0 0 3px ${GUINDA}22` : undefined,
               }}
@@ -306,7 +306,7 @@ export default function Reportes() {
                 <Icon size={16} />
               </div>
               <div className="text-sm font-semibold" style={{ color: selected === tipo ? GUINDA : '#2a2a2a' }}>{label}</div>
-              <div className="text-xs mt-0.5" style={{ color: '#78716c', lineHeight: 1.4 }}>{desc}</div>
+              <div className="text-xs mt-0.5" style={{ color: '#6b635e', lineHeight: 1.4 }}>{desc}</div>
             </button>
           ))}
         </div>
@@ -358,7 +358,7 @@ export default function Reportes() {
                   onClick={cargarPreview}
                   disabled={loadingPreview}
                   className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border"
-                  style={{ borderColor: '#d6d3d1', background: 'white', color: '#44403c' }}
+                  style={{ borderColor: '#ddd0c5', background: 'white', color: '#443e39' }}
                 >
                   {loadingPreview ? <RefreshCw size={13} className="animate-spin" /> : <BarChart2 size={13} />}
                   Vista previa
@@ -599,7 +599,7 @@ export default function Reportes() {
               <div className="flex gap-2 mt-5">
                 <button
                   className="flex-1 py-2 text-sm font-medium rounded-lg border"
-                  style={{ borderColor: '#d6d3d1', color: '#44403c' }}
+                  style={{ borderColor: '#ddd0c5', color: '#443e39' }}
                   onClick={() => setShowModalProgramar(false)}
                 >
                   Cancelar

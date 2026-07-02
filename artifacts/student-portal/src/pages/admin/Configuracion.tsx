@@ -113,7 +113,7 @@ export default function Configuracion() {
 
   return (
     <AdminLayout>
-      <div className="flex gap-5" style={{ fontFamily: "'Inter', sans-serif" }}>
+      <div className="flex gap-5" style={{ fontFamily: "'Poppins', sans-serif" }}>
 
         {/* ── Config sidebar ── */}
         <aside
@@ -122,7 +122,7 @@ export default function Configuracion() {
         >
           <div className="px-4 py-3" style={{ background: GUINDA }}>
             <div className="text-[10px] uppercase tracking-widest text-white/70">PANEL</div>
-            <div className="text-sm font-bold text-white" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+            <div className="text-sm font-bold text-white" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Configuración
             </div>
           </div>
@@ -131,7 +131,7 @@ export default function Configuracion() {
             <div key={group.label} className="py-1.5 border-t border-stone-100">
               <div
                 className="text-[9px] uppercase tracking-widest font-bold px-4 pt-2 pb-1"
-                style={{ color: '#a8a29e', letterSpacing: '0.15em' }}
+                style={{ color: '#a89a8e', letterSpacing: '0.15em' }}
               >
                 {group.label}
               </div>
@@ -146,7 +146,7 @@ export default function Configuracion() {
                         style={{
                           borderLeftColor: active ? GUINDA : 'transparent',
                           background: active ? '#fdf6fa' : 'transparent',
-                          color: active ? GUINDA : '#57534e',
+                          color: active ? GUINDA : '#57504a',
                           fontWeight: active ? 600 : 400,
                         }}
                       >

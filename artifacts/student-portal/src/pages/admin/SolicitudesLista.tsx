@@ -92,7 +92,7 @@ function UrgenciaPill({ urgencia }: { urgencia: 'alta' | 'media' | 'baja' }) {
     </span>
   );
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: '#f5f5f4', color: '#78716c' }}>
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase" style={{ background: '#f7f2ed', color: '#6b635e' }}>
       Baja
     </span>
   );
@@ -105,7 +105,7 @@ function EstadoPill({ estado, fechaTexto }: { estado: string; fechaTexto: string
     pendiente: { bg: '#fef9c3', color: '#92400e', label: 'Pendiente' },
     aprobada:  { bg: '#d1fae5', color: '#2d7d46', label: 'Aprobada' },
     rechazada: { bg: '#fee2e2', color: '#b91c1c', label: 'Rechazada' },
-  }[estado] ?? { bg: '#f5f5f4', color: '#78716c', label: estado };
+  }[estado] ?? { bg: '#f7f2ed', color: '#6b635e', label: estado };
 
   return (
     <span
@@ -124,7 +124,7 @@ function SolicitanteAvatar({ iniciales }: { iniciales: string }) {
   return (
     <div
       className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-      style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+      style={{ background: '#efe7d6', color: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
     >
       {iniciales}
     </div>
@@ -148,7 +148,7 @@ function FieldRow({ icon, label, value, mono }: { icon: React.ReactNode; label: 
     <div className="flex items-start gap-2.5 mb-3">
       <IconWrap>{icon}</IconWrap>
       <div className="flex-1 min-w-0">
-        <div className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: '#78716c' }}>{label}</div>
+        <div className="text-[10px] uppercase tracking-widest font-semibold mb-0.5" style={{ color: '#6b635e' }}>{label}</div>
         <div className={`text-sm font-medium ${mono ? 'font-mono tracking-wide text-xs' : ''}`} style={{ color: '#2a2a2a' }}>{value}</div>
       </div>
     </div>
@@ -209,7 +209,7 @@ function SolicitudDrawer({
             </div>
             <h3
               className="text-lg font-bold text-white"
-              style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               {solicitud.nombreCompleto}
             </h3>
@@ -233,7 +233,7 @@ function SolicitudDrawer({
 
         {/* Datos personales */}
         <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#78716c' }}>
+          <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#6b635e' }}>
             DATOS PERSONALES
           </div>
           <FieldRow icon={<User size={13} />} label="CURP" value={solicitud.curp} mono />
@@ -250,7 +250,7 @@ function SolicitudDrawer({
         {/* Formación previa */}
         {(solicitud.ultimoNivelCursado) && (
           <div className="mb-4">
-            <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#78716c' }}>
+            <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#6b635e' }}>
               FORMACIÓN PREVIA
             </div>
             <FieldRow
@@ -264,17 +264,17 @@ function SolicitudDrawer({
         {/* Justificación */}
         {solicitud.justificacion && (
           <div className="mb-4">
-            <div className="text-[10px] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5" style={{ color: '#78716c' }}>
+            <div className="text-[10px] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5" style={{ color: '#6b635e' }}>
               <MessageSquare size={11} /> ¿POR QUÉ QUIERE ESTUDIAR?
             </div>
             <div
               className="p-3 rounded-lg"
-              style={{ background: '#fdfaf3', borderLeft: '3px solid var(--color-guinda-700)', border: '1px solid #e7e5e4', borderLeftWidth: 3 }}
+              style={{ background: '#fdfaf3', borderLeft: '3px solid var(--color-guinda-700)', border: '1px solid #eadfd7', borderLeftWidth: 3 }}
             >
               <p className="text-sm leading-relaxed italic" style={{ color: '#2a2a2a' }}>
                 "{solicitud.justificacion}"
               </p>
-              <div className="flex items-center gap-1 mt-2 text-[11px]" style={{ color: '#78716c' }}>
+              <div className="flex items-center gap-1 mt-2 text-[11px]" style={{ color: '#6b635e' }}>
                 <Clock size={10} /> Capturada el{' '}
                 {new Date(solicitud.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
@@ -284,7 +284,7 @@ function SolicitudDrawer({
 
         {/* Detalle de solicitud */}
         <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#78716c' }}>
+          <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#6b635e' }}>
             DETALLE DE SOLICITUD
           </div>
           <FieldRow
@@ -312,22 +312,22 @@ function SolicitudDrawer({
               <div className="text-xs space-y-1.5">
                 {solicitud.procesadaPor && (
                   <div className="flex justify-between">
-                    <span style={{ color: '#78716c' }}>Aprobada por</span>
+                    <span style={{ color: '#6b635e' }}>Aprobada por</span>
                     <span className="font-semibold" style={{ color: '#2a2a2a' }}>{solicitud.procesadaPor.nombreCorto}</span>
                   </div>
                 )}
                 {solicitud.procesadaEn && (
                   <div className="flex justify-between">
-                    <span style={{ color: '#78716c' }}>Fecha</span>
+                    <span style={{ color: '#6b635e' }}>Fecha</span>
                     <span className="font-semibold" style={{ color: '#2a2a2a' }}>
                       {new Date(solicitud.procesadaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between">
-                  <span style={{ color: '#78716c' }}>Gestor asignado</span>
+                  <span style={{ color: '#6b635e' }}>Gestor asignado</span>
                   <span className="font-semibold" style={{ color: '#2a2a2a' }}>
-                    {solicitud.gestorAsignado?.nombreCorto ?? <em style={{ color: '#78716c', fontWeight: 400 }}>Sin gestor</em>}
+                    {solicitud.gestorAsignado?.nombreCorto ?? <em style={{ color: '#6b635e', fontWeight: 400 }}>Sin gestor</em>}
                   </span>
                 </div>
               </div>
@@ -345,13 +345,13 @@ function SolicitudDrawer({
               <div className="text-xs space-y-1.5">
                 {solicitud.procesadaPor && (
                   <div className="flex justify-between">
-                    <span style={{ color: '#78716c' }}>Rechazada por</span>
+                    <span style={{ color: '#6b635e' }}>Rechazada por</span>
                     <span className="font-semibold" style={{ color: '#2a2a2a' }}>{solicitud.procesadaPor.nombreCorto}</span>
                   </div>
                 )}
                 {solicitud.procesadaEn && (
                   <div className="flex justify-between">
-                    <span style={{ color: '#78716c' }}>Fecha</span>
+                    <span style={{ color: '#6b635e' }}>Fecha</span>
                     <span className="font-semibold" style={{ color: '#2a2a2a' }}>
                       {new Date(solicitud.procesadaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </span>
@@ -359,7 +359,7 @@ function SolicitudDrawer({
                 )}
                 {solicitud.motivoRechazo && (
                   <div className="flex justify-between">
-                    <span style={{ color: '#78716c' }}>Motivo</span>
+                    <span style={{ color: '#6b635e' }}>Motivo</span>
                     <span className="font-semibold" style={{ color: '#2a2a2a' }}>{solicitud.motivoRechazo}</span>
                   </div>
                 )}
@@ -376,7 +376,7 @@ function SolicitudDrawer({
         {/* Notas internas */}
         {solicitud.notasInternas && (
           <div className="mb-4">
-            <div className="text-[10px] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5" style={{ color: '#78716c' }}>
+            <div className="text-[10px] uppercase tracking-widest font-bold mb-3 flex items-center gap-1.5" style={{ color: '#6b635e' }}>
               <Lock size={11} /> NOTAS INTERNAS
             </div>
             <div className="p-3 rounded-lg text-xs leading-relaxed" style={{ background: '#fef9c3', border: '1px solid #fcd34d', color: '#92400e' }}>
@@ -465,7 +465,7 @@ function AprobarModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" style={{ maxHeight: '92vh' }}>
         {/* Header verde */}
         <div className="flex items-center justify-between px-5 py-4" style={{ background: '#2d7d46', color: 'white' }}>
-          <h3 className="font-semibold text-base flex items-center gap-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h3 className="font-semibold text-base flex items-center gap-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
             <Check size={16} /> Aprobar solicitud de cuenta
           </h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-80" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer' }}>
@@ -475,13 +475,13 @@ function AprobarModal({
 
         <div className="overflow-y-auto p-5 flex-1">
           {/* Resumen solicitante */}
-          <div className="flex items-center gap-3 p-3 rounded-lg mb-4" style={{ background: '#fdfaf3', border: '1px solid #e7e5e4' }}>
+          <div className="flex items-center gap-3 p-3 rounded-lg mb-4" style={{ background: '#fdfaf3', border: '1px solid #eadfd7' }}>
             <SolicitanteAvatar iniciales={solicitud.iniciales} />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+              <div className="font-bold text-sm truncate" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                 {solicitud.nombreCompleto}
               </div>
-              <div className="text-xs" style={{ color: '#78716c' }}>
+              <div className="text-xs" style={{ color: '#6b635e' }}>
                 {solicitud.municipio?.nombre}{solicitud.municipio && ' · '}{solicitud.email}
               </div>
             </div>
@@ -489,8 +489,8 @@ function AprobarModal({
 
           {/* Selector de gestor */}
           <div className="mb-4">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
-              Asignar gestor <span className="font-normal" style={{ color: '#78716c' }}>(opcional)</span>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
+              Asignar gestor <span className="font-normal" style={{ color: '#6b635e' }}>(opcional)</span>
             </label>
             <select
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white"
@@ -504,14 +504,14 @@ function AprobarModal({
                 </option>
               ))}
             </select>
-            <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>
+            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>
               Solo se muestran gestores del municipio del solicitante con capacidad disponible
             </p>
           </div>
 
           {/* Notas internas */}
           <div className="mb-4">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
               Notas administrativas internas
             </label>
             <textarea
@@ -521,7 +521,7 @@ function AprobarModal({
               value={notasInternas}
               onChange={(e) => setNotasInternas(e.target.value)}
             />
-            <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>
+            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>
               Estas notas son visibles solo para el equipo administrativo
             </p>
           </div>
@@ -557,7 +557,7 @@ function AprobarModal({
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-stone-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#44403c' }}>
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>
             Cancelar
           </button>
           <button
@@ -627,7 +627,7 @@ function RechazarModal({
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" style={{ maxHeight: '92vh' }}>
         {/* Header rojo */}
         <div className="flex items-center justify-between px-5 py-4" style={{ background: '#b91c1c', color: 'white' }}>
-          <h3 className="font-semibold text-base flex items-center gap-2" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <h3 className="font-semibold text-base flex items-center gap-2" style={{ fontFamily: "'Poppins', sans-serif" }}>
             <X size={16} /> Rechazar solicitud
           </h3>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center hover:opacity-80" style={{ background: 'rgba(255,255,255,0.15)', border: 'none', cursor: 'pointer' }}>
@@ -637,13 +637,13 @@ function RechazarModal({
 
         <div className="overflow-y-auto p-5 flex-1">
           {/* Resumen solicitante */}
-          <div className="flex items-center gap-3 p-3 rounded-lg mb-4" style={{ background: '#fdfaf3', border: '1px solid #e7e5e4' }}>
+          <div className="flex items-center gap-3 p-3 rounded-lg mb-4" style={{ background: '#fdfaf3', border: '1px solid #eadfd7' }}>
             <SolicitanteAvatar iniciales={solicitud.iniciales} />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-sm truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+              <div className="font-bold text-sm truncate" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
                 {solicitud.nombreCompleto}
               </div>
-              <div className="text-xs" style={{ color: '#78716c' }}>
+              <div className="text-xs" style={{ color: '#6b635e' }}>
                 {solicitud.municipio?.nombre}{solicitud.municipio && ' · '}{solicitud.email}
               </div>
             </div>
@@ -655,7 +655,7 @@ function RechazarModal({
           </HelperNote>
 
           <div className="mt-4 mb-3">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
               Motivo del rechazo <span style={{ color: '#b91c1c' }}>*</span>
             </label>
             <select
@@ -669,7 +669,7 @@ function RechazarModal({
           </div>
 
           <div className="mb-3">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
               Detalles del rechazo
             </label>
             <textarea
@@ -679,14 +679,14 @@ function RechazarModal({
               value={detalles}
               onChange={(e) => setDetalles(e.target.value)}
             />
-            <p className="text-[11px] mt-1" style={{ color: '#78716c' }}>
+            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>
               El solicitante recibirá un correo con esta información para que pueda corregir y volver a solicitar
             </p>
           </div>
 
           <div className="mb-3">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#44403c' }}>
-              Notas administrativas internas <span className="font-normal" style={{ color: '#78716c' }}>(opcional)</span>
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
+              Notas administrativas internas <span className="font-normal" style={{ color: '#6b635e' }}>(opcional)</span>
             </label>
             <textarea
               rows={2}
@@ -701,7 +701,7 @@ function RechazarModal({
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-stone-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#44403c' }}>
+          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>
             Cancelar
           </button>
           <button
@@ -850,16 +850,16 @@ export default function SolicitudesLista() {
           <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest mb-1" style={{ color: 'var(--color-guinda-700)' }}>
             <Inbox size={12} /> PERSONAS · SOLICITUDES
           </div>
-          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}>
+          <h1 className="text-2xl font-bold tracking-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>
             Solicitudes de cuenta
           </h1>
-          <p className="text-sm mt-0.5" style={{ color: '#78716c' }}>
+          <p className="text-sm mt-0.5" style={{ color: '#6b635e' }}>
             Bandeja de personas que quieren entrar al sistema · {subtabSuffix}
           </p>
         </div>
         <button
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
-          style={{ color: '#44403c' }}
+          style={{ color: '#443e39' }}
         >
           <Download size={13} /> Exportar
         </button>
@@ -904,13 +904,13 @@ export default function SolicitudesLista() {
               onClick={() => setEstado(key)}
               className="flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-colors"
               style={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: "'Poppins', sans-serif",
                 borderTop: 'none',
                 borderLeft: 'none',
                 borderRight: 'none',
                 borderBottom: active ? '2px solid var(--color-guinda-700)' : '2px solid transparent',
                 marginBottom: -2,
-                color: active ? 'var(--color-guinda-700)' : '#78716c',
+                color: active ? 'var(--color-guinda-700)' : '#6b635e',
                 background: 'none',
                 cursor: 'pointer',
               }}
@@ -920,8 +920,8 @@ export default function SolicitudesLista() {
                 <span
                   className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                   style={{
-                    background: active && urgent ? '#d97706' : active ? '#fbe6ea' : '#f5f5f4',
-                    color: active && urgent ? 'white' : active ? 'var(--color-guinda-700)' : '#78716c',
+                    background: active && urgent ? '#d97706' : active ? '#fbe6ea' : '#f7f2ed',
+                    color: active && urgent ? 'white' : active ? 'var(--color-guinda-700)' : '#6b635e',
                   }}
                 >
                   {count}
@@ -937,9 +937,9 @@ export default function SolicitudesLista() {
         <div className="grid gap-3" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
           {/* Search */}
           <div>
-            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#78716c' }}>Buscar</label>
+            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#6b635e' }}>Buscar</label>
             <div className="relative">
-              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
+              <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
               <input
                 className="w-full pl-8 pr-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
                 placeholder="Nombre, CURP o email..."
@@ -950,7 +950,7 @@ export default function SolicitudesLista() {
           </div>
           {/* Municipio */}
           <div>
-            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#78716c' }}>
+            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#6b635e' }}>
               {estadoParam === 'pendiente' ? 'Municipio' : 'Municipio'}
             </label>
             <select
@@ -964,7 +964,7 @@ export default function SolicitudesLista() {
           </div>
           {/* Urgencia / Mes */}
           <div>
-            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#78716c' }}>
+            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#6b635e' }}>
               {estadoParam === 'pendiente' ? 'Urgencia' : 'Período'}
             </label>
             {estadoParam === 'pendiente' ? (
@@ -988,7 +988,7 @@ export default function SolicitudesLista() {
           </div>
           {/* Ordenar */}
           <div>
-            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#78716c' }}>Ordenar por</label>
+            <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#6b635e' }}>Ordenar por</label>
             <select
               className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white"
               value={sortBy}
@@ -1010,14 +1010,14 @@ export default function SolicitudesLista() {
         <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
           {/* Results bar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-stone-50" style={{ background: 'white' }}>
-            <span className="text-sm" style={{ color: '#44403c' }}>
+            <span className="text-sm" style={{ color: '#443e39' }}>
               Mostrando <strong>{solicitudes.length}</strong> de <strong>{total}</strong>{' '}
               solicitudes {estadoParam === 'pendiente' ? 'pendientes' : estadoParam === 'aprobada' ? 'aprobadas' : 'rechazadas'}
             </span>
           </div>
 
           {loading ? (
-            <div className="py-16 text-center text-sm" style={{ color: '#78716c' }}>Cargando solicitudes…</div>
+            <div className="py-16 text-center text-sm" style={{ color: '#6b635e' }}>Cargando solicitudes…</div>
           ) : solicitudes.length === 0 ? (
             <EmptyState estado={estadoParam} />
           ) : (
@@ -1031,7 +1031,7 @@ export default function SolicitudesLista() {
                     : estadoParam === 'pendiente' ? '1.4fr 180px 140px 90px 90px 100px' : '1.4fr 180px 140px 120px 120px',
                   gap: 8,
                   background: '#fdfaf3',
-                  color: '#78716c',
+                  color: '#6b635e',
                 }}
               >
                 {drawerOpen ? (
@@ -1085,7 +1085,7 @@ export default function SolicitudesLista() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-stone-100">
-                  <span className="text-xs" style={{ color: '#78716c' }}>Página {page} de {totalPages}</span>
+                  <span className="text-xs" style={{ color: '#6b635e' }}>Página {page} de {totalPages}</span>
                   <div className="flex gap-1">
                     <button
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
@@ -1096,7 +1096,7 @@ export default function SolicitudesLista() {
                     </button>
                     {buildPageRange(page, totalPages).map((p2, i) =>
                       p2 === '...' ? (
-                        <span key={i} className="w-8 h-8 flex items-center justify-center text-xs" style={{ color: '#78716c' }}>…</span>
+                        <span key={i} className="w-8 h-8 flex items-center justify-center text-xs" style={{ color: '#6b635e' }}>…</span>
                       ) : (
                         <button
                           key={p2}
@@ -1104,8 +1104,8 @@ export default function SolicitudesLista() {
                           className="w-8 h-8 flex items-center justify-center text-xs font-semibold border rounded-lg"
                           style={{
                             background: p2 === page ? 'var(--color-guinda-700)' : 'white',
-                            color: p2 === page ? 'white' : '#44403c',
-                            borderColor: p2 === page ? 'var(--color-guinda-700)' : '#e7e5e4',
+                            color: p2 === page ? 'white' : '#443e39',
+                            borderColor: p2 === page ? 'var(--color-guinda-700)' : '#eadfd7',
                           }}
                         >
                           {p2}
@@ -1191,10 +1191,10 @@ function SolicitudRow({
       <div className="flex items-center gap-2.5 min-w-0">
         <SolicitanteAvatar iniciales={s.iniciales} />
         <div className="min-w-0">
-          <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}>
+          <div className="text-sm font-semibold truncate" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
             {s.nombreCompleto}
           </div>
-          <div className="text-[11px] font-mono truncate" style={{ color: '#78716c' }}>{s.curp}</div>
+          <div className="text-[11px] font-mono truncate" style={{ color: '#6b635e' }}>{s.curp}</div>
         </div>
       </div>
 
@@ -1202,7 +1202,7 @@ function SolicitudRow({
       {drawerOpen ? (
         <>
           <div>
-            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#44403c' }}>
+            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#443e39' }}>
               {s.municipio?.nombre ?? '—'}
             </span>
           </div>
@@ -1212,17 +1212,17 @@ function SolicitudRow({
         </>
       ) : estado === 'pendiente' ? (
         <>
-          <div className="text-xs font-mono truncate" style={{ color: '#78716c' }}>{s.email}</div>
+          <div className="text-xs font-mono truncate" style={{ color: '#6b635e' }}>{s.email}</div>
           <div>
-            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#44403c' }}>
+            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#443e39' }}>
               {s.municipio?.nombre ?? '—'}
             </span>
           </div>
           <div>
-            <div className="text-xs" style={{ color: '#44403c' }}>
+            <div className="text-xs" style={{ color: '#443e39' }}>
               {new Date(s.createdAt).toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })}
             </div>
-            <div className="text-[11px]" style={{ color: '#78716c' }}>{s.fechaTexto}</div>
+            <div className="text-[11px]" style={{ color: '#6b635e' }}>{s.fechaTexto}</div>
           </div>
           <div><UrgenciaPill urgencia={s.urgencia} /></div>
           {/* Inline actions */}
@@ -1236,35 +1236,35 @@ function SolicitudRow({
         </>
       ) : estado === 'aprobada' ? (
         <>
-          <div className="text-xs font-mono truncate" style={{ color: '#78716c' }}>{s.email}</div>
+          <div className="text-xs font-mono truncate" style={{ color: '#6b635e' }}>{s.email}</div>
           <div>
-            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#44403c' }}>
+            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#443e39' }}>
               {s.municipio?.nombre ?? '—'}
             </span>
           </div>
-          <div className="text-xs" style={{ color: '#78716c' }}>
+          <div className="text-xs" style={{ color: '#6b635e' }}>
             {s.procesadaEn
               ? new Date(s.procesadaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
               : '—'}
           </div>
-          <div className="text-xs" style={{ color: s.gestorAsignado ? '#44403c' : '#a8a29e' }}>
+          <div className="text-xs" style={{ color: s.gestorAsignado ? '#443e39' : '#a89a8e' }}>
             {s.gestorAsignado ? s.gestorAsignado.nombreCorto : <em>Sin gestor</em>}
           </div>
         </>
       ) : (
         <>
-          <div className="text-xs font-mono truncate" style={{ color: '#78716c' }}>{s.email}</div>
+          <div className="text-xs font-mono truncate" style={{ color: '#6b635e' }}>{s.email}</div>
           <div>
-            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#44403c' }}>
+            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-medium" style={{ background: '#f8f4ec', color: '#443e39' }}>
               {s.municipio?.nombre ?? '—'}
             </span>
           </div>
-          <div className="text-xs" style={{ color: '#78716c' }}>
+          <div className="text-xs" style={{ color: '#6b635e' }}>
             {s.procesadaEn
               ? new Date(s.procesadaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
               : '—'}
           </div>
-          <div className="text-xs truncate" style={{ color: '#44403c' }}>{s.motivoRechazo ?? '—'}</div>
+          <div className="text-xs truncate" style={{ color: '#443e39' }}>{s.motivoRechazo ?? '—'}</div>
         </>
       )}
     </div>
@@ -1284,7 +1284,7 @@ function ActionBtn({
   const styles = {
     success: { bg: '#d1fae5', border: '#86efac', color: '#2d7d46', hoverBg: '#2d7d46', hoverColor: 'white' },
     danger:  { bg: '#fee2e2', border: '#fca5a5', color: '#b91c1c', hoverBg: '#b91c1c', hoverColor: 'white' },
-    default: { bg: 'white',   border: '#e7e5e4', color: '#44403c', hoverBg: 'var(--color-guinda-700)', hoverColor: 'white' },
+    default: { bg: 'white',   border: '#eadfd7', color: '#443e39', hoverBg: 'var(--color-guinda-700)', hoverColor: 'white' },
   }[variant];
 
   return (
@@ -1327,8 +1327,8 @@ function StatCard({ icon, num, label, variant }: { icon: React.ReactNode; num: n
         {icon}
       </div>
       <div>
-        <div className="text-xl font-bold" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}>{num ?? '—'}</div>
-        <div className="text-[11px] uppercase tracking-wide font-medium" style={{ color: '#78716c' }}>{label}</div>
+        <div className="text-xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>{num ?? '—'}</div>
+        <div className="text-[11px] uppercase tracking-wide font-medium" style={{ color: '#6b635e' }}>{label}</div>
       </div>
     </div>
   );
@@ -1345,10 +1345,10 @@ function EmptyState({ estado }: { estado: string }) {
       >
         <CheckCircle size={28} />
       </div>
-      <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#1a1a1a' }}>
+      <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>
         {estado === 'pendiente' ? 'Todo al día ✓' : 'Sin resultados'}
       </h3>
-      <p className="text-sm" style={{ color: '#78716c' }}>
+      <p className="text-sm" style={{ color: '#6b635e' }}>
         {estado === 'pendiente'
           ? 'No hay solicitudes pendientes de revisión por ahora.'
           : 'No hay solicitudes con los filtros seleccionados.'}

@@ -59,7 +59,7 @@ const ESTADO_CONFIG: Record<string, { label: string; bg: string; textColor: stri
   en_examen:            { label: 'En examen',             bg: '#fef3c7', textColor: '#92400e' },
   inscripcion_cerrada:  { label: 'Inscripción cerrada',   bg: '#fef9c3', textColor: '#92400e' },
   inscripcion_abierta:  { label: 'Inscripción abierta',   bg: '#d1fae5', textColor: '#065f46' },
-  programada:           { label: 'Programada',            bg: '#f5f5f4', textColor: '#78716c' },
+  programada:           { label: 'Programada',            bg: '#f7f2ed', textColor: '#6b635e' },
 };
 
 const MESES_LONG = [
@@ -176,7 +176,7 @@ export default function ConvocatoriaDetalle() {
         <a
           href="/admin/convocatorias"
           className="mt-0.5 w-9 h-9 rounded-lg border border-stone-200 bg-white flex items-center justify-center flex-shrink-0 hover:border-stone-300 transition-colors no-underline"
-          style={{ color: '#44403c' }}
+          style={{ color: '#443e39' }}
         >
           <ArrowLeft size={16} />
         </a>
@@ -193,7 +193,7 @@ export default function ConvocatoriaDetalle() {
             <div className="flex items-center gap-3 flex-wrap">
               <h1
                 className="text-2xl font-bold tracking-tight"
-                style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: '#2a2a2a' }}
+                style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
               >
                 Etapa {data?.etapa.clave}
               </h1>
@@ -212,7 +212,7 @@ export default function ConvocatoriaDetalle() {
           onClick={handleExportar}
           disabled={!data}
           className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-stone-200 bg-white hover:border-stone-300 disabled:opacity-40 transition-colors"
-          style={{ color: '#44403c' }}
+          style={{ color: '#443e39' }}
         >
           <Download size={14} /> Exportar CSV
         </button>
@@ -221,7 +221,7 @@ export default function ConvocatoriaDetalle() {
       {loading ? (
         <LoadingSkeleton />
       ) : !data ? (
-        <div className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-20 text-sm" style={{ color: '#78716c' }}>
+        <div className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-20 text-sm" style={{ color: '#6b635e' }}>
           Etapa no encontrada
         </div>
       ) : (
@@ -284,7 +284,7 @@ export default function ConvocatoriaDetalle() {
                 className="px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors capitalize"
                 style={{
                   borderBottomColor: tab === t ? 'var(--color-guinda-700)' : 'transparent',
-                  color: tab === t ? 'var(--color-guinda-700)' : '#78716c',
+                  color: tab === t ? 'var(--color-guinda-700)' : '#6b635e',
                   background: 'none',
                   cursor: 'pointer',
                 }}
@@ -294,8 +294,8 @@ export default function ConvocatoriaDetalle() {
                   <span
                     className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
                     style={{
-                      background: tab === 'inscritos' ? 'var(--color-guinda-700)' : '#e7e5e4',
-                      color: tab === 'inscritos' ? 'white' : '#44403c',
+                      background: tab === 'inscritos' ? 'var(--color-guinda-700)' : '#eadfd7',
+                      color: tab === 'inscritos' ? 'white' : '#443e39',
                     }}
                   >
                     {data.stats.totalInscritos}
@@ -310,20 +310,20 @@ export default function ConvocatoriaDetalle() {
             <>
               {/* Search */}
               <div className="relative mb-4" style={{ maxWidth: 360 }}>
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#78716c' }} />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
                 <input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border border-stone-200 bg-white"
                   placeholder="Buscar por nombre, CURP o municipio..."
-                  style={{ color: '#44403c' }}
+                  style={{ color: '#443e39' }}
                 />
               </div>
 
               {inscritosFiltrados.length === 0 ? (
                 <div
                   className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-16 text-sm"
-                  style={{ color: '#78716c' }}
+                  style={{ color: '#6b635e' }}
                 >
                   {data.stats.totalInscritos === 0
                     ? 'No hay alumnos inscritos en esta etapa'
@@ -338,7 +338,7 @@ export default function ConvocatoriaDetalle() {
                       gridTemplateColumns: '28px 1fr 140px 90px 80px 32px',
                       gap: 12,
                       background: '#fafaf9',
-                      color: '#78716c',
+                      color: '#6b635e',
                     }}
                   >
                     <span>#</span>
@@ -369,23 +369,23 @@ export default function ConvocatoriaDetalle() {
                               gap: 12,
                             }}
                           >
-                            <span className="text-sm font-semibold" style={{ color: '#d6d3d1', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                            <span className="text-sm font-semibold" style={{ color: '#ddd0c5', fontFamily: "'Poppins', sans-serif" }}>
                               {idx + 1}
                             </span>
                             <div>
-                              <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                              <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}>
                                 {insc.nombreCompleto}
                               </div>
                               {insc.curp && (
-                                <div className="text-[10px] mt-0.5 font-mono" style={{ color: '#78716c' }}>
+                                <div className="text-[10px] mt-0.5 font-mono" style={{ color: '#6b635e' }}>
                                   {insc.curp}
                                 </div>
                               )}
                             </div>
-                            <span className="text-xs" style={{ color: '#78716c' }}>
+                            <span className="text-xs" style={{ color: '#6b635e' }}>
                               {insc.municipio ?? '—'}
                             </span>
-                            <span className="text-sm font-semibold" style={{ color: '#44403c' }}>
+                            <span className="text-sm font-semibold" style={{ color: '#443e39' }}>
                               {insc.totalModulos}
                             </span>
                             <div className="flex gap-1">
@@ -416,8 +416,8 @@ export default function ConvocatoriaDetalle() {
                             </div>
                             <div className="flex items-center justify-center">
                               {isExpanded
-                                ? <ChevronDown size={14} style={{ color: '#78716c' }} />
-                                : <ChevronRight size={14} style={{ color: '#d6d3d1' }} />
+                                ? <ChevronDown size={14} style={{ color: '#6b635e' }} />
+                                : <ChevronRight size={14} style={{ color: '#ddd0c5' }} />
                               }
                             </div>
                           </div>
@@ -434,7 +434,7 @@ export default function ConvocatoriaDetalle() {
                                   <div
                                     key={mod.numero}
                                     className="flex items-center justify-between gap-3 text-xs px-3 py-2 rounded-lg"
-                                    style={{ background: 'white', border: '1px solid #f5f5f4' }}
+                                    style={{ background: 'white', border: '1px solid #f7f2ed' }}
                                   >
                                     <div className="flex items-center gap-2 min-w-0">
                                       <span
@@ -443,12 +443,12 @@ export default function ConvocatoriaDetalle() {
                                       >
                                         {mod.numero}
                                       </span>
-                                      <span className="truncate" style={{ color: '#44403c' }}>{mod.nombre}</span>
+                                      <span className="truncate" style={{ color: '#443e39' }}>{mod.nombre}</span>
                                     </div>
                                     <div className="flex items-center gap-3 flex-shrink-0">
                                       <span
                                         className="font-mono text-[10px]"
-                                        style={{ color: '#78716c' }}
+                                        style={{ color: '#6b635e' }}
                                       >
                                         {mod.folio}
                                       </span>
@@ -491,7 +491,7 @@ export default function ConvocatoriaDetalle() {
               {resultadosPorModulo.length === 0 ? (
                 <div
                   className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-16 text-sm"
-                  style={{ color: '#78716c' }}
+                  style={{ color: '#6b635e' }}
                 >
                   Sin datos de resultados para esta etapa
                 </div>
@@ -504,7 +504,7 @@ export default function ConvocatoriaDetalle() {
                       gridTemplateColumns: '40px 1fr 80px 90px 90px 90px 120px',
                       gap: 12,
                       background: '#fafaf9',
-                      color: '#78716c',
+                      color: '#6b635e',
                     }}
                   >
                     <span>Mód.</span>
@@ -526,14 +526,14 @@ export default function ConvocatoriaDetalle() {
                       >
                         <span
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold"
-                          style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)', fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                          style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
                         >
                           {r.numero}
                         </span>
                         <span className="text-[13px] font-medium" style={{ color: '#2a2a2a' }}>
                           {r.nombre}
                         </span>
-                        <span className="text-sm font-bold" style={{ color: '#44403c', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+                        <span className="text-sm font-bold" style={{ color: '#443e39', fontFamily: "'Poppins', sans-serif" }}>
                           {r.total}
                         </span>
                         <div className="flex items-center gap-1.5">
@@ -544,18 +544,18 @@ export default function ConvocatoriaDetalle() {
                             {r.aprobados}
                           </span>
                           {r.aprobados > 0 && (
-                            <span className="text-[10px]" style={{ color: '#78716c' }}>{aprobadoPct}%</span>
+                            <span className="text-[10px]" style={{ color: '#6b635e' }}>{aprobadoPct}%</span>
                           )}
                         </div>
                         <span
                           className="text-[11px] font-bold px-2 py-0.5 rounded-full w-fit"
-                          style={{ background: r.reprobados > 0 ? '#fee2e2' : '#f5f5f4', color: r.reprobados > 0 ? '#991b1b' : '#78716c' }}
+                          style={{ background: r.reprobados > 0 ? '#fee2e2' : '#f7f2ed', color: r.reprobados > 0 ? '#991b1b' : '#6b635e' }}
                         >
                           {r.reprobados}
                         </span>
                         <span
                           className="text-[11px] font-bold px-2 py-0.5 rounded-full w-fit"
-                          style={{ background: r.pendientes > 0 ? '#fef9c3' : '#f5f5f4', color: r.pendientes > 0 ? '#92400e' : '#78716c' }}
+                          style={{ background: r.pendientes > 0 ? '#fef9c3' : '#f7f2ed', color: r.pendientes > 0 ? '#92400e' : '#6b635e' }}
                         >
                           {r.pendientes}
                         </span>
@@ -565,13 +565,13 @@ export default function ConvocatoriaDetalle() {
                               <span
                                 className="text-sm font-bold"
                                 style={{
-                                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                                  fontFamily: "'Poppins', sans-serif",
                                   color: r.promedio >= 70 ? '#059669' : '#dc2626',
                                 }}
                               >
                                 {r.promedio}
                               </span>
-                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#f5f5f4', maxWidth: 48 }}>
+                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#f7f2ed', maxWidth: 48 }}>
                                 <div
                                   className="h-full rounded-full"
                                   style={{
@@ -584,7 +584,7 @@ export default function ConvocatoriaDetalle() {
                               </div>
                             </>
                           ) : (
-                            <span className="text-xs" style={{ color: '#d6d3d1' }}>—</span>
+                            <span className="text-xs" style={{ color: '#ddd0c5' }}>—</span>
                           )}
                         </div>
                       </div>
@@ -612,7 +612,7 @@ function DateCard({ label, value, icon }: { label: string; value: string; icon: 
         {icon}
       </div>
       <div>
-        <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: '#78716c' }}>
+        <div className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: '#6b635e' }}>
           {label}
         </div>
         <div className="text-sm font-semibold mt-0.5" style={{ color: '#2a2a2a' }}>
@@ -642,11 +642,11 @@ function MiniStat({
       </div>
       <div
         className="text-2xl font-bold leading-none"
-        style={{ fontFamily: "'Plus Jakarta Sans', sans-serif", color: color ?? '#2a2a2a' }}
+        style={{ fontFamily: "'Poppins', sans-serif", color: color ?? '#2a2a2a' }}
       >
         {num}
       </div>
-      <div className="text-[10px] mt-1" style={{ color: '#78716c' }}>
+      <div className="text-[10px] mt-1" style={{ color: '#6b635e' }}>
         {label}
       </div>
     </div>
