@@ -10,7 +10,8 @@
  * "Completar la cédula" = completar los datos del alumno.
  */
 
-import { PDFDocument } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { winAnsiSafe } from '../utils/pdfText';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { z } from 'zod';
@@ -91,6 +92,7 @@ export interface CedulaDatosResueltos {
   telefono: string;
   correo: string;
   ultimoEstudio: string;
+  observaciones: string;
   responsableNombre: string;
   tieneFoto: boolean;
   tieneFirmaAlumno: boolean;
@@ -149,6 +151,7 @@ async function reunirDatos(estudianteId: number): Promise<{
     telefono: est.telefono ?? '',
     correo: userRow?.email ?? '',
     ultimoEstudio: est.ultimoEstudio || 'Secundaria',
+    observaciones: est.observaciones ?? '',
     responsableNombre,
     tieneFoto: fotoPath !== null,
     tieneFirmaAlumno: firmaAlumno !== null,
@@ -178,6 +181,7 @@ export const cedulaDatosSchema = z.object({
   ciudad: z.string().max(120).optional(),
   estado: z.string().max(80).optional(), // → estado_domicilio
   ultimoEstudio: z.string().max(120).optional(),
+  observaciones: z.string().max(1000).optional(),
 });
 
 export type CedulaDatosInput = z.infer<typeof cedulaDatosSchema>;
@@ -201,6 +205,7 @@ export async function guardarDatosCedula(estudianteId: number, data: CedulaDatos
   if (data.ciudad !== undefined) set.ciudad = data.ciudad;
   if (data.estado !== undefined) set.estadoDomicilio = data.estado;
   if (data.ultimoEstudio !== undefined) set.ultimoEstudio = data.ultimoEstudio;
+  if (data.observaciones !== undefined) set.observaciones = data.observaciones;
 
   // Re-derivar nombreCompleto y direccion desde las partes (mezclando lo nuevo con lo existente)
   const nombres = data.nombres ?? est.nombres;
@@ -300,6 +305,23 @@ export async function generarCedulaPdf(estudianteId: number): Promise<Uint8Array
   };
   await dibujarFirma(firmaAlumno, 60, 118);
   await dibujarFirma(firmaResponsable, 362, 118);
+
+  // ── Observaciones (opcional) ──
+  // La plantilla no tiene campo AcroForm para observaciones, así que se dibuja.
+  // Se intenta también por si la plantilla llegara a tener el campo.
+  set('Observaciones', datos.observaciones);
+  if (datos.observaciones && datos.observaciones.trim()) {
+    const font = await doc.embedFont(StandardFonts.Helvetica);
+    page.drawText(winAnsiSafe(`Observaciones: ${datos.observaciones.trim()}`), {
+      x: 50,
+      y: 150,
+      size: 8,
+      font,
+      color: rgb(0.15, 0.15, 0.15),
+      maxWidth: 500,
+      lineHeight: 10,
+    });
+  }
 
   form.flatten();
   return await doc.save();

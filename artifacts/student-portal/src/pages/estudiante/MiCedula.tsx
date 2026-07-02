@@ -26,6 +26,7 @@ const LABELS: Record<keyof CedulaDatosEditable, string> = {
   ciudad: 'Ciudad',
   estado: 'Estado',
   ultimoEstudio: 'Último estudio realizado',
+  observaciones: 'Observaciones',
 };
 
 export default function MiCedula() {
@@ -53,6 +54,7 @@ export default function MiCedula() {
           lugarNacimiento: d.lugarNacimiento, entidadNacimiento: d.entidadNacimiento,
           calleNumero: d.calleNumero, colonia: d.colonia, cp: d.cp,
           ciudad: d.ciudad, estado: d.estado, ultimoEstudio: d.ultimoEstudio,
+          observaciones: d.observaciones,
         });
       })
       .catch((e) => setError(e instanceof Error ? e.message : 'Error al cargar'));
@@ -156,6 +158,16 @@ export default function MiCedula() {
                     )}
                   </div>
                 ))}
+              </div>
+              <div className="mt-3">
+                <label className="block text-xs font-semibold text-stone-500 mb-1">Observaciones (opcional)</label>
+                <textarea
+                  className={inputCls}
+                  rows={2}
+                  value={form.observaciones}
+                  onChange={(e) => set('observaciones', e.target.value)}
+                  placeholder="Notas o comentarios adicionales para la cédula…"
+                />
               </div>
               {error && (
                 <div className="mt-3 text-xs text-red-600 bg-red-50 rounded p-2 flex items-center gap-1.5">

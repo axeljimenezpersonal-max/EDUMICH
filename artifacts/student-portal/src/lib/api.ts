@@ -483,6 +483,7 @@ export interface CedulaDatos {
   telefono: string;
   correo: string;
   ultimoEstudio: string;
+  observaciones: string;
   responsableNombre: string;
   tieneFoto: boolean;
   tieneFirmaAlumno: boolean;
@@ -494,7 +495,7 @@ export type CedulaDatosEditable = Pick<
   CedulaDatos,
   | 'apellidoPaterno' | 'apellidoMaterno' | 'nombres' | 'sexo' | 'estadoCivil'
   | 'lugarNacimiento' | 'entidadNacimiento' | 'calleNumero' | 'colonia'
-  | 'cp' | 'ciudad' | 'estado' | 'ultimoEstudio'
+  | 'cp' | 'ciudad' | 'estado' | 'ultimoEstudio' | 'observaciones'
 >;
 
 // ── Firma reutilizable ──────────────────────────────────────────────────────
