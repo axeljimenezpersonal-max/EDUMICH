@@ -193,6 +193,8 @@ function NuevoView({ onCancel, onCreado, onError }: {
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [creando, setCreando] = useState(false);
+  const [modo, setModo] = useState<'individual' | 'grupal'>('grupal');
+  const [alumnoSel, setAlumnoSel] = useState<number | null>(null);
 
   useEffect(() => {
     api
@@ -202,14 +204,46 @@ function NuevoView({ onCancel, onCreado, onError }: {
       .finally(() => setLoading(false));
   }, []);
 
+  // Alumnos con exámenes pendientes (para el modo individual)
+  const alumnos = useMemo(() => {
+    const m = new Map<number, { id: number; nombre: string; count: number }>();
+    for (const e of examenes) {
+      if (!m.has(e.estudianteId)) m.set(e.estudianteId, { id: e.estudianteId, nombre: e.alumno, count: 0 });
+      m.get(e.estudianteId)!.count++;
+    }
+    return [...m.values()].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  }, [examenes]);
+
+  // Exámenes visibles según el modo/filtro seleccionado
+  const visibles = useMemo(() => {
+    if (modo === 'individual') {
+      if (alumnoSel === null) return [];
+      return examenes.filter((e) => e.estudianteId === alumnoSel);
+    }
+    return examenes;
+  }, [examenes, modo, alumnoSel]);
+
+  // Al cambiar de modo, limpiar selección y alumno elegido
+  function cambiarModo(m: 'individual' | 'grupal') {
+    setModo(m);
+    setAlumnoSel(null);
+    setSel(new Set());
+  }
+
+  function elegirAlumno(id: number) {
+    setAlumnoSel(id);
+    // Al elegir un alumno, preseleccionar todos sus exámenes (pago individual completo)
+    setSel(new Set(examenes.filter((e) => e.estudianteId === id).map((e) => e.id)));
+  }
+
   const porModulo = useMemo(() => {
     const m = new Map<number, { numero: number; nombre: string; items: ExamenDisponible[] }>();
-    for (const e of examenes) {
+    for (const e of visibles) {
       if (!m.has(e.moduloId)) m.set(e.moduloId, { numero: e.moduloNumero, nombre: e.moduloNombre, items: [] });
       m.get(e.moduloId)!.items.push(e);
     }
     return [...m.values()].sort((a, b) => a.numero - b.numero);
-  }, [examenes]);
+  }, [visibles]);
 
   function toggle(id: number) {
     setSel((s) => {
@@ -251,12 +285,12 @@ function NuevoView({ onCancel, onCreado, onError }: {
       </button>
       <h1 className="font-serif text-2xl font-bold text-stone-900 mb-1">Nuevo pago</h1>
       <p className="text-stone-500 text-sm mb-5">
-        Selecciona los exámenes a cubrir. Cada examen cuesta <strong>{fmtMoney(costo)} MXN</strong>.
+        Elige el tipo de pago y selecciona los exámenes a cubrir. Cada examen cuesta <strong>{fmtMoney(costo)} MXN</strong>.
       </p>
 
       {loading ? (
         <div className="text-center text-stone-400 py-16 text-sm">Cargando exámenes…</div>
-      ) : porModulo.length === 0 ? (
+      ) : examenes.length === 0 ? (
         <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
           <FileText size={30} className="mx-auto text-stone-300 mb-3" />
           <div className="font-bold text-stone-900 mb-1">No hay exámenes pendientes de pago</div>
@@ -266,16 +300,85 @@ function NuevoView({ onCancel, onCreado, onError }: {
         </div>
       ) : (
         <div className="space-y-4 pb-24">
-          {/* Atajo: seleccionar / quitar todos los pendientes */}
+          {/* ── Filtro: tipo de pago ── */}
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              onClick={() => cambiarModo('individual')}
+              className={`text-left rounded-xl border-2 p-4 transition-colors ${
+                modo === 'individual'
+                  ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                  : 'border-stone-200 bg-white hover:border-stone-300'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  modo === 'individual' ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'
+                }`}>
+                  {modo === 'individual' && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
+                </span>
+                <span className="text-sm font-bold text-stone-900">Pago individual</span>
+              </div>
+              <p className="text-xs text-stone-500 leading-snug">Los exámenes de un solo alumno.</p>
+            </button>
+            <button
+              onClick={() => cambiarModo('grupal')}
+              className={`text-left rounded-xl border-2 p-4 transition-colors ${
+                modo === 'grupal'
+                  ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                  : 'border-stone-200 bg-white hover:border-stone-300'
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                  modo === 'grupal' ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'
+                }`}>
+                  {modo === 'grupal' && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
+                </span>
+                <span className="text-sm font-bold text-stone-900">Pago grupal</span>
+              </div>
+              <p className="text-xs text-stone-500 leading-snug">Exámenes de varios alumnos en una sola ficha.</p>
+            </button>
+          </div>
+
+          {/* ── Selector de alumno (solo modo individual) ── */}
+          {modo === 'individual' && (
+            <div className="bg-white border border-stone-200 rounded-xl px-4 py-3">
+              <label className="block text-xs font-semibold text-stone-600 uppercase tracking-wide mb-1.5">
+                Alumno
+              </label>
+              <select
+                value={alumnoSel ?? ''}
+                onChange={(e) => e.target.value ? elegirAlumno(Number(e.target.value)) : (setAlumnoSel(null), setSel(new Set()))}
+                className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-[var(--color-guinda-700)]"
+              >
+                <option value="">Elige un alumno…</option>
+                {alumnos.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.nombre} — {a.count} examen{a.count !== 1 ? 'es' : ''} pendiente{a.count !== 1 ? 's' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Estado vacío cuando el filtro no arroja exámenes */}
+          {modo === 'individual' && alumnoSel === null ? (
+            <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center">
+              <FileText size={26} className="mx-auto text-stone-300 mb-2" />
+              <p className="text-sm text-stone-500">Elige un alumno para ver sus exámenes pendientes.</p>
+            </div>
+          ) : (
+          <>
+          {/* Atajo: seleccionar / quitar todos los visibles */}
           <div className="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3">
             <span className="text-sm text-stone-600">
-              {examenes.length} examen{examenes.length !== 1 ? 'es' : ''} pendiente{examenes.length !== 1 ? 's' : ''} de pago
+              {visibles.length} examen{visibles.length !== 1 ? 'es' : ''} pendiente{visibles.length !== 1 ? 's' : ''} de pago
             </span>
             <button
-              onClick={() => setSel((s) => (s.size === examenes.length ? new Set() : new Set(examenes.map((e) => e.id))))}
+              onClick={() => setSel((s) => (visibles.every((e) => s.has(e.id)) ? new Set() : new Set(visibles.map((e) => e.id))))}
               className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors"
             >
-              <Check size={13} /> {sel.size === examenes.length ? 'Quitar selección' : 'Seleccionar todos'}
+              <Check size={13} /> {visibles.length > 0 && visibles.every((e) => sel.has(e.id)) ? 'Quitar selección' : 'Seleccionar todos'}
             </button>
           </div>
 
@@ -324,6 +427,8 @@ function NuevoView({ onCancel, onCreado, onError }: {
               </div>
             );
           })}
+          </>
+          )}
         </div>
       )}
 
