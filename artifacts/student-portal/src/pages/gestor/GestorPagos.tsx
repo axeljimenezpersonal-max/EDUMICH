@@ -266,6 +266,19 @@ function NuevoView({ onCancel, onCreado, onError }: {
         </div>
       ) : (
         <div className="space-y-4 pb-24">
+          {/* Atajo: seleccionar / quitar todos los pendientes */}
+          <div className="flex items-center justify-between gap-3 bg-white border border-stone-200 rounded-xl px-4 py-3">
+            <span className="text-sm text-stone-600">
+              {examenes.length} examen{examenes.length !== 1 ? 'es' : ''} pendiente{examenes.length !== 1 ? 's' : ''} de pago
+            </span>
+            <button
+              onClick={() => setSel((s) => (s.size === examenes.length ? new Set() : new Set(examenes.map((e) => e.id))))}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors"
+            >
+              <Check size={13} /> {sel.size === examenes.length ? 'Quitar selección' : 'Seleccionar todos'}
+            </button>
+          </div>
+
           {porModulo.map((g) => {
             const todos = g.items.every((i) => sel.has(i.id));
             const algunos = g.items.some((i) => sel.has(i.id));

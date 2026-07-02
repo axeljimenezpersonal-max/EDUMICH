@@ -712,6 +712,8 @@ export interface GestorConvocatoriaInscripcion {
   hora: string;
   fechaExamen: string;
   estado: string;
+  pagoEstado?: 'pagado' | 'en_pago' | 'sin_pagar';
+  pagoFolio?: string | null;
   sede: { nombre: string; direccion: string };
 }
 

@@ -1559,11 +1559,30 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     : [];
   const horariosEnriquecidosById = new Map(horariosEnriquecidos.map((h) => [h.id, h]));
 
+  // Estado de pago por examen (vía pago grupal): pagado / en_pago / sin_pagar
+  const examIds = inscripcionesActivas.map((i) => i.id);
+  const pagoInfoRows = examIds.length > 0
+    ? await db
+        .select({
+          examenId: pagosGrupalesExamenes.examenInscripcionId,
+          folio: pagosGrupales.folio,
+          estado: pagosGrupales.estado,
+        })
+        .from(pagosGrupalesExamenes)
+        .innerJoin(pagosGrupales, eq(pagosGrupales.id, pagosGrupalesExamenes.pagoGrupalId))
+        .where(and(inArray(pagosGrupalesExamenes.examenInscripcionId, examIds), ne(pagosGrupales.estado, 'rechazado')))
+    : [];
+  const pagoByExamen = new Map(pagoInfoRows.map((p) => [p.examenId, p]));
+
   const inscripcionesActivasEnriquecidas = inscripcionesActivas.map((i) => {
     const mod = modulosById.get(i.moduloId);
     const hor = horariosEnriquecidosById.get(i.horarioId);
     const sed = sedesById.get(i.sedeId);
     const fechaExamen = hor?.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
+    const pg = pagoByExamen.get(i.id);
+    const pagoEstado: 'pagado' | 'en_pago' | 'sin_pagar' = pg
+      ? pg.estado === 'verificado' ? 'pagado' : 'en_pago'
+      : 'sin_pagar';
     return {
       id: i.id,
       folio: i.folio,
@@ -1574,6 +1593,8 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
       hora: hor?.hora ?? null,
       fechaExamen: fechaExamen ?? null,
       estado: i.estado,
+      pagoEstado,
+      pagoFolio: pg?.folio ?? null,
       sede: sed ? { nombre: sed.nombre, direccion: sed.direccion } : null,
     };
   });
