@@ -359,6 +359,11 @@ export default function AlumnoDetalle() {
   const inscripcionesCount = convData?.inscripcionesActivas.length ?? 0;
   const modulosDisponiblesCount = convData?.modulosDisponibles.filter((m) => !m.yaInscrito).length ?? 0;
 
+  // Gating de inscripción: 5 documentos obligatorios APROBADOS + matrícula oficial.
+  const docsAprobadosOblig = obligatorios.filter((d) => docs[d.tipo]?.estado === 'aprobado').length;
+  const expedienteAprobado = docsAprobadosOblig >= obligatorios.length;
+  const puedeInscribir = expedienteAprobado && !!alumno.matriculaOficialDGB;
+
   // convLoading puede ser true solo si el lazy-effect se disparó (fallback).
   // En carga normal, convData ya viene populado junto con el resto de la página.
   const convBadgeLoading = convLoading && convData === null;
@@ -379,13 +384,13 @@ export default function AlumnoDetalle() {
     },
     {
       key: 'plan',
-      label: 'Convocatoria',
+      label: 'Inscripción',
       icon: <CalendarCheck size={15} />,
       badge: convBadgeLoading ? '…' : (modulosDisponiblesCount > 0 ? String(modulosDisponiblesCount) : '—'),
     },
     {
       key: 'convocatoria',
-      label: 'Inscripción',
+      label: 'Pagos',
       icon: <Receipt size={15} />,
       badge: convBadgeLoading ? '…' : (inscripcionesCount > 0 ? String(inscripcionesCount) : '—'),
     },
@@ -755,19 +760,45 @@ export default function AlumnoDetalle() {
               </a>
             </div>
           </section>
+
+          {/* Acceso a inscribir exámenes */}
+          <section className="mb-2">
+            <button
+              onClick={() => setActiveTab('plan')}
+              className="w-full bg-white border border-stone-200 rounded-xl p-4 flex items-center gap-3 hover:border-[var(--color-guinda-700)] transition-colors group text-left"
+            >
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+                <CalendarCheck size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-semibold text-stone-900">Inscribir exámenes</div>
+                <div className="text-xs text-stone-500">Inscribe al alumno a los módulos de la convocatoria activa.</div>
+              </div>
+              <span className="shrink-0 text-xs font-semibold text-[var(--color-guinda-700)] group-hover:underline">Inscribir →</span>
+            </button>
+          </section>
         </>
       )}
 
       {/* ══════════════ TAB: Plan de estudios ══════════════ */}
       {activeTab === 'plan' && (
-        <PlanDeEstudiosTab
-          data={convData}
-          loading={convLoading}
-          seleccion={convSeleccion}
-          setSeleccion={setConvSeleccion}
-          inscribiendo={convInscribiendo}
-          onInscribir={handleInscribir}
-        />
+        puedeInscribir ? (
+          <PlanDeEstudiosTab
+            data={convData}
+            loading={convLoading}
+            seleccion={convSeleccion}
+            setSeleccion={setConvSeleccion}
+            inscribiendo={convInscribiendo}
+            onInscribir={handleInscribir}
+          />
+        ) : (
+          <InscripcionBloqueada
+            expedienteAprobado={expedienteAprobado}
+            docsAprobados={docsAprobadosOblig}
+            totalObligatorios={obligatorios.length}
+            tieneMatricula={!!alumno.matriculaOficialDGB}
+          />
+        )
       )}
 
       {/* ══════════════ TAB: Convocatoria ══════════════ */}
@@ -961,6 +992,55 @@ function PlanDeEstudiosTab({
     });
   }
 
+  // Choque de horario: un slot "dia-hora" no puede repetirse (no se puede
+  // presentar 2 exámenes el mismo día y hora). Bloquea la selección en la UI.
+  type ModDisp = (typeof modulosDisponibles)[number];
+  const slotDe = (m: ModDisp) => `${m.dia}-${m.hora}`;
+  const inscritosSlots = new Set(inscritos.map(slotDe));
+  function slotOcupado(m: ModDisp): boolean {
+    if (seleccion.has(m.id)) return false;
+    if (inscritosSlots.has(slotDe(m))) return true;
+    return pendientes.some((x) => x.id !== m.id && seleccion.has(x.id) && slotDe(x) === slotDe(m));
+  }
+
+  function ModuloPendiente({ m }: { m: ModDisp }) {
+    const checked = seleccion.has(m.id);
+    const ocupado = slotOcupado(m);
+    return (
+      <label
+        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors select-none ${
+          ocupado
+            ? 'border-stone-200 bg-stone-50 opacity-60 cursor-not-allowed'
+            : checked
+              ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] cursor-pointer'
+              : 'border-stone-200 bg-white hover:bg-stone-50 cursor-pointer'
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={ocupado}
+          onChange={() => !ocupado && toggle(m.id)}
+          className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]"
+        />
+        <div className="min-w-0 flex-1">
+          <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+            Módulo {m.numero}
+          </div>
+          <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
+          <div className="text-[10px] text-stone-400 mt-0.5">
+            {DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}
+          </div>
+          {ocupado && (
+            <div className="text-[10px] text-amber-600 font-semibold mt-0.5">
+              Choca con otro módulo (mismo día y hora)
+            </div>
+          )}
+        </div>
+      </label>
+    );
+  }
+
   const niveles = [1, 2, 3, 4];
 
   return (
@@ -1039,35 +1119,7 @@ function PlanDeEstudiosTab({
                       </span>
                     </div>
                   ))}
-                  {pend.map((m) => {
-                    const checked = seleccion.has(m.id);
-                    return (
-                      <label
-                        key={m.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${
-                          checked
-                            ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
-                            : 'border-stone-200 bg-white hover:bg-stone-50'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => toggle(m.id)}
-                          className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
-                            Módulo {m.numero}
-                          </div>
-                          <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
-                          <div className="text-[10px] text-stone-400 mt-0.5">
-                            {DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}
-                          </div>
-                        </div>
-                      </label>
-                    );
-                  })}
+                  {pend.map((m) => <ModuloPendiente key={m.id} m={m} />)}
                 </div>
               </section>
             );
@@ -1093,22 +1145,7 @@ function PlanDeEstudiosTab({
                       <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">✓ Inscrito</span>
                     </div>
                   ))}
-                  {pend.map((m) => {
-                    const checked = seleccion.has(m.id);
-                    return (
-                      <label
-                        key={m.id}
-                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors select-none ${checked ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 bg-white hover:bg-stone-50'}`}
-                      >
-                        <input type="checkbox" checked={checked} onChange={() => toggle(m.id)} className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]" />
-                        <div className="min-w-0 flex-1">
-                          <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>Módulo {m.numero}</div>
-                          <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
-                          <div className="text-[10px] text-stone-400 mt-0.5">{DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}</div>
-                        </div>
-                      </label>
-                    );
-                  })}
+                  {pend.map((m) => <ModuloPendiente key={m.id} m={m} />)}
                 </div>
               </section>
             );
@@ -1853,6 +1890,44 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
           className="w-full border border-stone-200 rounded-xl bg-stone-100"
           style={{ height: 720 }}
         />
+      </div>
+    </div>
+  );
+}
+
+// ─── Inscripción bloqueada (requisitos incompletos) ───────────────────────
+function InscripcionBloqueada({
+  expedienteAprobado, docsAprobados, totalObligatorios, tieneMatricula,
+}: {
+  expedienteAprobado: boolean;
+  docsAprobados: number;
+  totalObligatorios: number;
+  tieneMatricula: boolean;
+}) {
+  const Req = ({ ok, label }: { ok: boolean; label: string }) => (
+    <div className="flex items-center gap-2.5">
+      <span className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 ${ok ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
+        {ok ? <CheckCircle2 size={14} /> : <Clock size={14} />}
+      </span>
+      <span className={`text-sm ${ok ? 'text-stone-700' : 'text-stone-500'}`}>{label}</span>
+    </div>
+  );
+  return (
+    <div className="bg-white border border-stone-200 rounded-xl p-6 max-w-xl mx-auto text-center">
+      <div className="w-12 h-12 rounded-full bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] flex items-center justify-center mx-auto mb-3">
+        <Lock size={22} />
+      </div>
+      <h3 className="font-serif text-lg font-bold text-stone-900 mb-1">Inscripción no disponible aún</h3>
+      <p className="text-sm text-stone-500 mb-5">
+        Para inscribirse a los módulos de la convocatoria, el expediente debe estar completo y aprobado, y la matrícula oficial registrada.
+      </p>
+      <div className="space-y-2.5 text-left max-w-xs mx-auto mb-5">
+        <Req ok={expedienteAprobado} label={`Expediente aprobado (${docsAprobados}/${totalObligatorios} documentos)`} />
+        <Req ok={tieneMatricula} label="Matrícula oficial DGB registrada" />
+      </div>
+      <div className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-lg px-4 py-3">
+        La matrícula la asigna la administración cuando la <strong>Secretaría (SEP-DGB)</strong> valida el expediente.
+        Para conocer el estatus de esta cuenta, contacta a la administración.
       </div>
     </div>
   );
