@@ -45,22 +45,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Banda institucional */}
-      <div className="bg-[var(--color-guinda-800)] text-white text-xs">
-        <div className="max-w-7xl mx-auto px-4 py-1.5">
-          <span className="font-medium tracking-wide">
-            GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO
-          </span>
-        </div>
-      </div>
-
-      {/* Cuerpo split */}
+      {/* Cuerpo split — sin banda superior para que el login quepa en una
+          sola pantalla; el sello de gobierno vive en la columna izquierda. */}
       <div className="flex-1 grid md:grid-cols-2">
 
         {/* Columna izquierda: branding — oculta en móvil */}
         <div
           className="hidden md:flex bg-[var(--color-guinda-800)] text-white relative overflow-hidden"
-          style={{ flexDirection: 'column', padding: '48px 60px' }}
+          style={{ flexDirection: 'column', padding: '36px 60px 28px' }}
         >
           {/* Patrón decorativo sutil */}
           <div
@@ -87,7 +79,7 @@ export default function Login() {
           {/* Centro — crece para llenar espacio, centra su contenido */}
           <div
             className="relative"
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 32, paddingBottom: 32 }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 20, paddingBottom: 20 }}
           >
             {/* Prepa Abierta pill (programa) — EDUMICH es la marca principal */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
@@ -113,17 +105,17 @@ export default function Login() {
             }}>
               Plataforma Educativa Digital
             </div>
-            <p style={{ fontSize: 15, lineHeight: 1.55, opacity: 0.88, marginBottom: 28, textAlign: 'center' }}>
+            <p style={{ fontSize: 14.5, lineHeight: 1.55, opacity: 0.88, marginBottom: 20, textAlign: 'center' }}>
               Sistema de gestión institucional para la coordinación, gestores municipales y
               estudiantes del Plan Modular del Instituto de Educación Media Superior y Superior.
             </p>
 
-            {/* Ilustración centrada */}
+            {/* Ilustración centrada — compacta para que el login quepa en una pantalla */}
             <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
               <img
                 src="/ilustracion-login.svg"
                 alt=""
-                style={{ width: '100%', maxWidth: 440, height: 'auto', opacity: 0.88, display: 'block' }}
+                style={{ width: '100%', maxWidth: 340, height: 'auto', opacity: 0.88, display: 'block' }}
               />
             </div>
           </div>
