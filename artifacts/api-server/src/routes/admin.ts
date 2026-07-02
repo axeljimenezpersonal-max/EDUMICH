@@ -35,6 +35,8 @@ import {
   anuncios,
   anunciosVistos,
   outbox,
+  pagosGrupales,
+  pagosGrupalesExamenes,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales, sendBienvenidaGestor } from '../services/email';
@@ -4047,6 +4049,221 @@ router.get('/outbox', async (req, res) => {
     rows,
     pagination: { page: pageNum, perPage: limit, total: Number(total), totalPages: Math.ceil(Number(total) / limit) },
   });
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// PAGOS GRUPALES (admin) — verificación del comprobante del gestor. Al
+// verificar, se generan los pagos individuales por alumno (referencia = folio)
+// para que toda la lógica existente de "pagado" funcione sin cambios.
+// ═════════════════════════════════════════════════════════════════════════
+
+const MIME_COMPROBANTE: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+};
+
+// ─── GET /admin/pagos-grupales — lista (filtro por estado) ─────────────────
+router.get('/pagos-grupales', async (req, res) => {
+  const estado = typeof req.query.estado === 'string' ? req.query.estado : '';
+  const VALID = ['pendiente_comprobante', 'en_revision', 'verificado', 'rechazado'];
+  const rows = await db.execute<{
+    id: number; folio: string; estado: string; cantidad_examenes: number;
+    monto_total: string; fecha_pago: string | null; created_at: string;
+    tiene_comprobante: boolean; gestor_nombre: string; municipio: string | null;
+  }>(sql`
+    SELECT pg.id, pg.folio, pg.estado, pg.cantidad_examenes, pg.monto_total,
+           pg.fecha_pago::text, pg.created_at::text,
+           (pg.ruta_comprobante IS NOT NULL) AS tiene_comprobante,
+           g.nombre_completo AS gestor_nombre, m.nombre AS municipio
+    FROM pagos_grupales pg
+    JOIN gestores g ON g.user_id = pg.gestor_id
+    LEFT JOIN municipios m ON m.id = g.municipio_id
+    WHERE ${VALID.includes(estado) ? sql`pg.estado = ${estado}` : sql`1=1`}
+    ORDER BY pg.created_at DESC
+    LIMIT 300
+  `);
+  res.json({
+    pagos: rows.rows.map((r) => ({
+      id: Number(r.id),
+      folio: r.folio,
+      estado: r.estado,
+      cantidadExamenes: Number(r.cantidad_examenes),
+      montoTotal: Number(r.monto_total),
+      fechaPago: r.fecha_pago,
+      creadoEn: r.created_at,
+      tieneComprobante: !!r.tiene_comprobante,
+      gestorNombre: r.gestor_nombre,
+      municipio: r.municipio,
+    })),
+  });
+});
+
+// ─── GET /admin/pagos-grupales/:id — detalle ───────────────────────────────
+router.get('/pagos-grupales/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const [pg] = await db.select().from(pagosGrupales).where(eq(pagosGrupales.id, id));
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+
+  const [g] = await db
+    .select({ nombre: gestores.nombreCompleto, municipioId: gestores.municipioId })
+    .from(gestores).where(eq(gestores.userId, pg.gestorId));
+  const [muni] = g?.municipioId
+    ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, g.municipioId))
+    : [null];
+
+  const items = await db
+    .select({
+      estudianteId: pagosGrupalesExamenes.estudianteId,
+      alumno: estudiantes.nombreCompleto,
+      curp: estudiantes.curp,
+      folioExamen: examenesInscripciones.folio,
+      moduloNumero: modulos.numero,
+      moduloNombre: modulos.nombre,
+      monto: pagosGrupalesExamenes.monto,
+    })
+    .from(pagosGrupalesExamenes)
+    .leftJoin(estudiantes, eq(pagosGrupalesExamenes.estudianteId, estudiantes.userId))
+    .leftJoin(examenesInscripciones, eq(pagosGrupalesExamenes.examenInscripcionId, examenesInscripciones.id))
+    .leftJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
+    .where(eq(pagosGrupalesExamenes.pagoGrupalId, id));
+
+  res.json({
+    id: pg.id,
+    folio: pg.folio,
+    estado: pg.estado,
+    cantidadExamenes: pg.cantidadExamenes,
+    montoUnitario: Number(pg.montoUnitario),
+    montoTotal: Number(pg.montoTotal),
+    fechaPago: pg.fechaPago,
+    motivoRechazo: pg.motivoRechazo,
+    tieneComprobante: !!pg.rutaComprobante,
+    nombreComprobante: pg.nombreComprobante,
+    creadoEn: pg.createdAt,
+    gestor: { nombre: g?.nombre ?? '—', municipio: muni?.nombre ?? null },
+    examenes: items.map((i) => ({ ...i, monto: Number(i.monto) })),
+  });
+});
+
+// ─── GET /admin/pagos-grupales/:id/comprobante — preview ──────────────────
+router.get('/pagos-grupales/:id/comprobante', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const [pg] = await db.select().from(pagosGrupales).where(eq(pagosGrupales.id, id));
+  if (!pg?.rutaComprobante || !existsSync(pg.rutaComprobante)) {
+    res.status(404).json({ error: 'Sin comprobante' }); return;
+  }
+  const ext = path.extname(pg.rutaComprobante).toLowerCase();
+  res.setHeader('Content-Type', MIME_COMPROBANTE[ext] ?? 'application/octet-stream');
+  res.setHeader('Content-Disposition', 'inline; filename="comprobante' + ext + '"');
+  createReadStream(pg.rutaComprobante).pipe(res);
+});
+
+// ─── POST /admin/pagos-grupales/:id/verificar ──────────────────────────────
+router.post('/pagos-grupales/:id/verificar', async (req, res) => {
+  const adminId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const [pg] = await db.select().from(pagosGrupales).where(eq(pagosGrupales.id, id));
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+  if (pg.estado === 'verificado') { res.status(400).json({ error: 'Este pago ya fue verificado' }); return; }
+  if (!pg.rutaComprobante) { res.status(400).json({ error: 'El gestor aún no sube el comprobante' }); return; }
+
+  const items = await db
+    .select()
+    .from(pagosGrupalesExamenes)
+    .where(eq(pagosGrupalesExamenes.pagoGrupalId, id));
+  if (items.length === 0) { res.status(400).json({ error: 'El pago no tiene exámenes asociados' }); return; }
+
+  // Agrupar montos por alumno → un pago individual verificado por alumno
+  const porAlumno = new Map<number, number>();
+  for (const it of items) {
+    porAlumno.set(it.estudianteId, (porAlumno.get(it.estudianteId) ?? 0) + Number(it.monto));
+  }
+
+  const fechaPago = pg.fechaPago ?? new Date().toISOString().slice(0, 10);
+  await db.transaction(async (tx) => {
+    for (const [estudianteId, monto] of porAlumno) {
+      await tx.insert(pagos).values({
+        estudianteId,
+        concepto: 'derecho_examen',
+        conceptoDetalle: `Pago grupal ${pg.folio} · Tesorería del Estado`,
+        monto: String(monto),
+        fechaPago,
+        metodoPago: 'otro',
+        referenciaBancaria: pg.folio,
+        rutaComprobante: pg.rutaComprobante!,
+        nombreComprobante: pg.nombreComprobante,
+        estado: 'verificado',
+        subidoPorUserId: pg.gestorId,
+        verificadoPorUserId: adminId,
+        verificadoEn: new Date(),
+      });
+    }
+    await tx.update(pagosGrupales)
+      .set({ estado: 'verificado', verificadoPorUserId: adminId, verificadoEn: new Date(), updatedAt: new Date() })
+      .where(eq(pagosGrupales.id, id));
+  });
+
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'verificar_pago_grupal',
+    entidad: 'pagos_grupales',
+    entidadId: id,
+    detalle: `Verificó el pago grupal ${pg.folio} (${pg.cantidadExamenes} exámenes, ${porAlumno.size} alumnos)`,
+    req,
+  });
+
+  notificar({
+    userId: pg.gestorId,
+    tipo: 'pago_verificado',
+    prioridad: 'normal',
+    titulo: 'Pago grupal verificado',
+    cuerpo: `Tu pago grupal ${pg.folio} fue verificado. ${porAlumno.size} alumnos quedaron con su pago cubierto.`,
+    enlace: '/gestor/pagos',
+  });
+
+  res.json({ ok: true, alumnosCubiertos: porAlumno.size });
+});
+
+// ─── POST /admin/pagos-grupales/:id/rechazar ───────────────────────────────
+const rechazarPagoGrupalSchema = z.object({ motivo: z.string().min(1).max(500) });
+
+router.post('/pagos-grupales/:id/rechazar', async (req, res) => {
+  const adminId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const parse = rechazarPagoGrupalSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Indica el motivo del rechazo' }); return; }
+  const [pg] = await db.select().from(pagosGrupales).where(eq(pagosGrupales.id, id));
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+  if (pg.estado === 'verificado') { res.status(400).json({ error: 'Este pago ya fue verificado' }); return; }
+
+  await db.update(pagosGrupales)
+    .set({ estado: 'rechazado', motivoRechazo: parse.data.motivo, updatedAt: new Date() })
+    .where(eq(pagosGrupales.id, id));
+
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'rechazar_pago_grupal',
+    entidad: 'pagos_grupales',
+    entidadId: id,
+    detalle: `Rechazó el pago grupal ${pg.folio}: ${parse.data.motivo}`,
+    req,
+  });
+
+  notificar({
+    userId: pg.gestorId,
+    tipo: 'documento_rechazado',
+    prioridad: 'alta',
+    titulo: 'Pago grupal rechazado — acción requerida',
+    cuerpo: `Tu pago grupal ${pg.folio} fue rechazado. Motivo: ${parse.data.motivo}`,
+    enlace: '/gestor/pagos',
+  });
+
+  res.json({ ok: true });
 });
 
 export default router;

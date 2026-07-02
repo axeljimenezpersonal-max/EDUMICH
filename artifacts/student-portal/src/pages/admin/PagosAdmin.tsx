@@ -632,13 +632,21 @@ export default function PagosAdmin() {
               </span>
             )}
           </h1>
-          <button
-            onClick={load}
-            className="p-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
-            title="Recargar"
-          >
-            <RefreshCw size={14} style={{ color: '#6b635e' }} />
-          </button>
+          <div className="flex items-center gap-2">
+            <a
+              href="/admin/pagos-grupales"
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors"
+            >
+              <CreditCard size={13} /> Pagos grupales de gestores
+            </a>
+            <button
+              onClick={load}
+              className="p-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors"
+              title="Recargar"
+            >
+              <RefreshCw size={14} style={{ color: '#6b635e' }} />
+            </button>
+          </div>
         </div>
       </div>
 

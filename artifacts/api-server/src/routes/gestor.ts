@@ -37,6 +37,8 @@ import {
   convocatoriasModulosHorarios,
   sedes,
   pagos,
+  pagosGrupales,
+  pagosGrupalesExamenes,
   datosBancarios,
   conceptosPago,
 } from '@workspace/db/schema';
@@ -55,6 +57,7 @@ import {
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
 
 const router = Router();
 
@@ -1912,6 +1915,313 @@ router.get('/alumnos/:id/ficha-pago', async (req, res) => {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="ficha-pago-${safeNombre}-${metodo}.pdf"`);
   res.send(pdf);
+});
+
+// ═════════════════════════════════════════════════════════════════════════
+// PAGOS GRUPALES — el gestor paga N exámenes de golpe ante la Tesorería del
+// Estado y sube UN comprobante; el admin verifica y todos quedan cubiertos.
+// ═════════════════════════════════════════════════════════════════════════
+
+const PAGOS_GRUPALES_DIR = process.env.STORAGE_DIR
+  ? path.join(process.env.STORAGE_DIR, 'pagos-grupales')
+  : path.join(process.cwd(), 'storage', 'pagos-grupales');
+
+const uploadComprobanteGrupal = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      await fs.mkdir(PAGOS_GRUPALES_DIR, { recursive: true });
+      cb(null, PAGOS_GRUPALES_DIR);
+    },
+    filename: (req, file, cb) => {
+      const ext = path.extname(file.originalname).toLowerCase() || '.pdf';
+      cb(null, `pg-${req.params.id}-${Date.now()}${ext}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
+    if (!allowed.includes(file.mimetype)) { cb(new Error('Solo PDF, JPG o PNG')); return; }
+    cb(null, true);
+  },
+});
+
+const MIME_POR_EXT: Record<string, string> = {
+  '.pdf': 'application/pdf',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.png': 'image/png',
+};
+
+async function pagoGrupalDelGestor(gestorId: number, id: number) {
+  const [pg] = await db
+    .select()
+    .from(pagosGrupales)
+    .where(and(eq(pagosGrupales.id, id), eq(pagosGrupales.gestorId, gestorId)));
+  return pg ?? null;
+}
+
+// ─── GET /gestor/pagos-grupales — mis pagos grupales ──────────────────────
+router.get('/pagos-grupales', async (req, res) => {
+  const rows = await db
+    .select()
+    .from(pagosGrupales)
+    .where(eq(pagosGrupales.gestorId, req.user!.userId))
+    .orderBy(desc(pagosGrupales.createdAt));
+  res.json({
+    pagos: rows.map((r) => ({
+      id: r.id,
+      folio: r.folio,
+      cantidadExamenes: r.cantidadExamenes,
+      montoUnitario: Number(r.montoUnitario),
+      montoTotal: Number(r.montoTotal),
+      estado: r.estado,
+      tieneComprobante: !!r.rutaComprobante,
+      fechaPago: r.fechaPago,
+      motivoRechazo: r.motivoRechazo,
+      creadoEn: r.createdAt,
+    })),
+  });
+});
+
+// ─── GET /gestor/pagos-grupales/examenes-disponibles ──────────────────────
+// Exámenes inscritos de MIS alumnos que aún no están cubiertos por ningún
+// pago (ni grupal activo ni individual vigente del alumno).
+router.get('/pagos-grupales/examenes-disponibles', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const { costoExamen } = await getConfigPago();
+
+  const rows = await db.execute<{
+    id: number; folio: string; estudiante_id: number; alumno: string;
+    modulo_id: number; modulo_numero: number; modulo_nombre: string;
+  }>(sql`
+    SELECT ei.id, ei.folio, ei.estudiante_id, e.nombre_completo AS alumno,
+           m.id AS modulo_id, m.numero AS modulo_numero, m.nombre AS modulo_nombre
+    FROM examenes_inscripciones ei
+    JOIN estudiantes e ON e.user_id = ei.estudiante_id
+    JOIN modulos m ON m.id = ei.modulo_id
+    WHERE e.gestor_id = ${gestorId}
+      AND ei.estado = 'inscrito'
+      AND NOT EXISTS (
+        SELECT 1 FROM pagos_grupales_examenes pge
+        JOIN pagos_grupales pg ON pg.id = pge.pago_grupal_id
+        WHERE pge.examen_inscripcion_id = ei.id AND pg.estado != 'rechazado'
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM pagos p
+        WHERE p.estudiante_id = ei.estudiante_id
+          AND p.concepto = 'derecho_examen' AND p.estado != 'rechazado'
+      )
+    ORDER BY m.numero, e.nombre_completo
+  `);
+
+  res.json({
+    costoExamen,
+    examenes: rows.rows.map((r) => ({
+      id: Number(r.id),
+      folio: r.folio,
+      estudianteId: Number(r.estudiante_id),
+      alumno: r.alumno,
+      moduloId: Number(r.modulo_id),
+      moduloNumero: Number(r.modulo_numero),
+      moduloNombre: r.modulo_nombre,
+    })),
+  });
+});
+
+// ─── POST /gestor/pagos-grupales — crear (genera folio de referencia) ─────
+const crearPagoGrupalSchema = z.object({
+  examenIds: z.array(z.number().int().positive()).min(1).max(500),
+});
+
+router.post('/pagos-grupales', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const parse = crearPagoGrupalSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Selecciona al menos un examen' }); return; }
+  const examenIds = [...new Set(parse.data.examenIds)];
+
+  // Validar que todos los exámenes sean elegibles (mismos criterios que la lista)
+  const validos = await db.execute<{ id: number; estudiante_id: number }>(sql`
+    SELECT ei.id, ei.estudiante_id
+    FROM examenes_inscripciones ei
+    JOIN estudiantes e ON e.user_id = ei.estudiante_id
+    WHERE ei.id IN (${sql.join(examenIds.map((i) => sql`${i}`), sql`, `)})
+      AND e.gestor_id = ${gestorId}
+      AND ei.estado = 'inscrito'
+      AND NOT EXISTS (
+        SELECT 1 FROM pagos_grupales_examenes pge
+        JOIN pagos_grupales pg ON pg.id = pge.pago_grupal_id
+        WHERE pge.examen_inscripcion_id = ei.id AND pg.estado != 'rechazado'
+      )
+  `);
+  if (validos.rows.length !== examenIds.length) {
+    res.status(409).json({ error: 'Algún examen ya está cubierto por otro pago o no es elegible. Actualiza la lista.' });
+    return;
+  }
+
+  const { costoExamen } = await getConfigPago();
+  const total = costoExamen * examenIds.length;
+
+  const creado = await db.transaction(async (tx) => {
+    const [pg] = await tx
+      .insert(pagosGrupales)
+      .values({
+        folio: `PG-TMP-${Date.now()}-${gestorId}`,
+        gestorId,
+        cantidadExamenes: examenIds.length,
+        montoUnitario: String(costoExamen),
+        montoTotal: String(total),
+      })
+      .returning();
+
+    const anio = new Date().getFullYear();
+    const folio = `PG-${anio}-G${gestorId}-${String(pg.id).padStart(4, '0')}`;
+    await tx.update(pagosGrupales).set({ folio }).where(eq(pagosGrupales.id, pg.id));
+
+    await tx.insert(pagosGrupalesExamenes).values(
+      validos.rows.map((v) => ({
+        pagoGrupalId: pg.id,
+        estudianteId: Number(v.estudiante_id),
+        examenInscripcionId: Number(v.id),
+        monto: String(costoExamen),
+      }))
+    );
+    return { id: pg.id, folio };
+  });
+
+  await tryAuditLog({
+    userId: gestorId,
+    accion: 'crear_pago_grupal',
+    entidad: 'pagos_grupales',
+    entidadId: creado.id,
+    detalle: `Creó pago grupal ${creado.folio}: ${examenIds.length} exámenes por $${total}`,
+    metadata: { examenIds, total },
+    req,
+  });
+
+  res.status(201).json({ ok: true, id: creado.id, folio: creado.folio, montoTotal: total });
+});
+
+// ─── GET /gestor/pagos-grupales/:id — detalle con exámenes ────────────────
+router.get('/pagos-grupales/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const pg = await pagoGrupalDelGestor(req.user!.userId, id);
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+
+  const items = await db
+    .select({
+      alumno: estudiantes.nombreCompleto,
+      folioExamen: examenesInscripciones.folio,
+      moduloNumero: modulos.numero,
+      moduloNombre: modulos.nombre,
+      monto: pagosGrupalesExamenes.monto,
+    })
+    .from(pagosGrupalesExamenes)
+    .leftJoin(estudiantes, eq(pagosGrupalesExamenes.estudianteId, estudiantes.userId))
+    .leftJoin(examenesInscripciones, eq(pagosGrupalesExamenes.examenInscripcionId, examenesInscripciones.id))
+    .leftJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
+    .where(eq(pagosGrupalesExamenes.pagoGrupalId, id));
+
+  res.json({
+    id: pg.id,
+    folio: pg.folio,
+    estado: pg.estado,
+    cantidadExamenes: pg.cantidadExamenes,
+    montoUnitario: Number(pg.montoUnitario),
+    montoTotal: Number(pg.montoTotal),
+    tieneComprobante: !!pg.rutaComprobante,
+    fechaPago: pg.fechaPago,
+    motivoRechazo: pg.motivoRechazo,
+    creadoEn: pg.createdAt,
+    examenes: items.map((i) => ({ ...i, monto: Number(i.monto) })),
+  });
+});
+
+// ─── GET /gestor/pagos-grupales/:id/ficha — ficha de depósito PDF ─────────
+router.get('/pagos-grupales/:id/ficha', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const pg = await pagoGrupalDelGestor(req.user!.userId, id);
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+  const { pdf, nombreArchivo } = await generarFichaPagoGrupal(id);
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo.replace(/[^\x20-\x7E]/g, '')}"`);
+  res.send(Buffer.from(pdf));
+});
+
+// ─── POST /gestor/pagos-grupales/:id/comprobante — subir comprobante ──────
+router.post('/pagos-grupales/:id/comprobante', uploadComprobanteGrupal.single('comprobante'), async (req, res) => {
+  const gestorId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const pg = await pagoGrupalDelGestor(gestorId, id);
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+  if (pg.estado === 'verificado') { res.status(400).json({ error: 'Este pago ya fue verificado' }); return; }
+  if (!req.file) { res.status(400).json({ error: 'No se recibió archivo' }); return; }
+
+  const fechaPago = typeof req.body.fechaPago === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(req.body.fechaPago)
+    ? req.body.fechaPago
+    : new Date().toISOString().slice(0, 10);
+
+  await db.update(pagosGrupales)
+    .set({
+      rutaComprobante: req.file.path,
+      nombreComprobante: req.file.originalname,
+      fechaPago,
+      estado: 'en_revision',
+      motivoRechazo: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(pagosGrupales.id, id));
+
+  await notificarATodosLosAdmins({
+    tipo: 'pago_subido_verificar',
+    prioridad: 'alta',
+    titulo: 'Pago grupal por verificar',
+    cuerpo: `El gestor subió comprobante del pago grupal ${pg.folio} (${pg.cantidadExamenes} exámenes, $${Number(pg.montoTotal).toLocaleString('es-MX')}).`,
+    enlace: '/admin/pagos-grupales',
+  });
+
+  res.json({ ok: true });
+});
+
+// ─── GET /gestor/pagos-grupales/:id/comprobante — ver comprobante ─────────
+router.get('/pagos-grupales/:id/comprobante', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const pg = await pagoGrupalDelGestor(req.user!.userId, id);
+  if (!pg?.rutaComprobante || !existsSync(pg.rutaComprobante)) {
+    res.status(404).json({ error: 'Sin comprobante' }); return;
+  }
+  const ext = path.extname(pg.rutaComprobante).toLowerCase();
+  res.setHeader('Content-Type', MIME_POR_EXT[ext] ?? 'application/octet-stream');
+  res.setHeader('Content-Disposition', 'inline; filename="comprobante' + ext + '"');
+  createReadStream(pg.rutaComprobante).pipe(res);
+});
+
+// ─── DELETE /gestor/pagos-grupales/:id — cancelar (si no está verificado) ─
+router.delete('/pagos-grupales/:id', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const id = Number(req.params.id);
+  if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const pg = await pagoGrupalDelGestor(gestorId, id);
+  if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
+  if (pg.estado === 'verificado') { res.status(400).json({ error: 'No se puede cancelar un pago verificado' }); return; }
+
+  if (pg.rutaComprobante && existsSync(pg.rutaComprobante)) {
+    try { await fs.unlink(pg.rutaComprobante); } catch { /* noop */ }
+  }
+  await db.delete(pagosGrupales).where(eq(pagosGrupales.id, id));
+
+  await tryAuditLog({
+    userId: gestorId,
+    accion: 'cancelar_pago_grupal',
+    entidad: 'pagos_grupales',
+    entidadId: id,
+    detalle: `Canceló el pago grupal ${pg.folio}`,
+    req,
+  });
+  res.json({ ok: true });
 });
 
 export default router;

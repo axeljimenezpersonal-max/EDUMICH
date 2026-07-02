@@ -482,6 +482,60 @@ export const pagos = pgTable(
 );
 
 // ─────────────────────────────────────────────────────────────────────────
+// Pagos grupales — el gestor paga N exámenes de golpe ante la Tesorería del
+// Estado y sube UN comprobante; el admin verifica y se marcan todos pagados.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const pagoGrupalEstadoEnum = pgEnum('pago_grupal_estado', [
+  'pendiente_comprobante', // creado, aún sin comprobante
+  'en_revision',           // comprobante subido, espera verificación del admin
+  'verificado',
+  'rechazado',
+]);
+
+export const pagosGrupales = pgTable('pagos_grupales', {
+  id: serial('id').primaryKey(),
+  folio: varchar('folio', { length: 30 }).notNull().unique(), // PG-2026-G12-0007
+  gestorId: integer('gestor_id')
+    .notNull()
+    .references(() => gestores.userId, { onDelete: 'cascade' }),
+  concepto: varchar('concepto', { length: 40 }).notNull().default('derecho_examen'),
+  cantidadExamenes: integer('cantidad_examenes').notNull(),
+  montoUnitario: numeric('monto_unitario', { precision: 10, scale: 2 }).notNull(),
+  montoTotal: numeric('monto_total', { precision: 10, scale: 2 }).notNull(),
+  estado: pagoGrupalEstadoEnum('estado').notNull().default('pendiente_comprobante'),
+  rutaComprobante: varchar('ruta_comprobante', { length: 500 }),
+  nombreComprobante: varchar('nombre_comprobante', { length: 240 }),
+  fechaPago: date('fecha_pago'),
+  motivoRechazo: text('motivo_rechazo'),
+  verificadoPorUserId: integer('verificado_por_user_id').references(() => users.id),
+  verificadoEn: timestamp('verificado_en'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const pagosGrupalesExamenes = pgTable(
+  'pagos_grupales_examenes',
+  {
+    id: serial('id').primaryKey(),
+    pagoGrupalId: integer('pago_grupal_id')
+      .notNull()
+      .references(() => pagosGrupales.id, { onDelete: 'cascade' }),
+    estudianteId: integer('estudiante_id')
+      .notNull()
+      .references(() => estudiantes.userId, { onDelete: 'cascade' }),
+    examenInscripcionId: integer('examen_inscripcion_id')
+      .notNull()
+      .references(() => examenesInscripciones.id, { onDelete: 'cascade' }),
+    monto: numeric('monto', { precision: 10, scale: 2 }).notNull(),
+  },
+  (t) => ({
+    pagoExamenIdx: uniqueIndex('pge_pago_examen_idx').on(t.pagoGrupalId, t.examenInscripcionId),
+    examenIdx: index('pge_examen_idx').on(t.examenInscripcionId),
+  })
+);
+
+// ─────────────────────────────────────────────────────────────────────────
 // Calificaciones — exámenes presenciales capturados por admin
 // ─────────────────────────────────────────────────────────────────────────
 

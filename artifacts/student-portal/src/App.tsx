@@ -11,6 +11,7 @@ import GestorDashboard from './pages/gestor/GestorDashboard';
 import AlumnosList from './pages/gestor/AlumnosList';
 import NuevoAlumno from './pages/gestor/NuevoAlumno';
 import AlumnoDetalle from './pages/gestor/AlumnoDetalle';
+import GestorPagos from './pages/gestor/GestorPagos';
 import EstudianteDashboard from './pages/estudiante/EstudianteDashboard';
 import CambiarPasswordPrimerLogin from './pages/estudiante/CambiarPasswordPrimerLogin';
 import Avisos from './pages/estudiante/Avisos';
@@ -36,6 +37,7 @@ import RecuperarPassword from './pages/RecuperarPassword';
 import ResetPassword from './pages/ResetPassword';
 import PagosPendientes from './pages/admin/PagosPendientes';
 import PagosAdmin from './pages/admin/PagosAdmin';
+import AdminPagosGrupales from './pages/admin/AdminPagosGrupales';
 import AlumnosCalificaciones from './pages/admin/AlumnosCalificaciones';
 import Solicitudes from './pages/admin/SolicitudesLista';
 import AdminInicio from './pages/admin/AdminInicio';
@@ -72,6 +74,7 @@ export default function App() {
       <Route path="/gestor" component={GestorDashboard} />
       <Route path="/gestor/alumnos" component={AlumnosList} />
       <Route path="/gestor/alumnos/nuevo" component={NuevoAlumno} />
+      <Route path="/gestor/pagos" component={GestorPagos} />
       <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
 
       {/* Rutas del estudiante */}
@@ -103,6 +106,7 @@ export default function App() {
       {/* Admin */}
       <Route path="/admin/solicitudes" component={Solicitudes} />
       <Route path="/admin/pagos" component={PagosAdmin} />
+      <Route path="/admin/pagos-grupales" component={AdminPagosGrupales} />
       <Route path="/admin/pagos-pendientes" component={PagosPendientes} />
       <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
       <Route path="/admin/alumnos" component={AdminAlumnosLista} />

@@ -616,6 +616,50 @@ export interface CalificacionesResponse {
   pdfOficial?: { disponible: boolean; subidoEn: string | null };
 }
 
+// ── Pagos grupales (gestor paga N exámenes ante Tesorería) ─────────────────
+export type PagoGrupalEstado = 'pendiente_comprobante' | 'en_revision' | 'verificado' | 'rechazado';
+
+export interface PagoGrupalResumen {
+  id: number;
+  folio: string;
+  cantidadExamenes: number;
+  montoUnitario?: number;
+  montoTotal: number;
+  estado: PagoGrupalEstado;
+  tieneComprobante: boolean;
+  fechaPago: string | null;
+  motivoRechazo?: string | null;
+  creadoEn: string;
+  gestorNombre?: string;
+  municipio?: string | null;
+}
+
+export interface PagoGrupalExamenItem {
+  alumno: string | null;
+  curp?: string | null;
+  folioExamen: string | null;
+  moduloNumero: number | null;
+  moduloNombre: string | null;
+  monto: number;
+}
+
+export interface PagoGrupalDetalle extends PagoGrupalResumen {
+  montoUnitario: number;
+  examenes: PagoGrupalExamenItem[];
+  nombreComprobante?: string | null;
+  gestor?: { nombre: string; municipio: string | null };
+}
+
+export interface ExamenDisponible {
+  id: number;
+  folio: string;
+  estudianteId: number;
+  alumno: string;
+  moduloId: number;
+  moduloNumero: number;
+  moduloNombre: string;
+}
+
 // ── Config pago gestor ────────────────────────────────────────────────────
 
 export interface GestorDatosBancarios {
