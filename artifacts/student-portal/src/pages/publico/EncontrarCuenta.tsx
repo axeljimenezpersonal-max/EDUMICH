@@ -7,10 +7,10 @@
  *    token firmado sin revelar el correo.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Search, User, CreditCard, Copy, Check, LogIn, MailQuestion,
-  Loader2, LifeBuoy, CheckCircle2, HelpCircle,
+  Loader2, LifeBuoy, CheckCircle2, HelpCircle, Mail, Phone,
 } from 'lucide-react';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
@@ -42,6 +42,24 @@ export default function EncontrarCuenta() {
   const [copiado, setCopiado] = useState(false);
   const [enviandoRecuperacion, setEnviandoRecuperacion] = useState(false);
   const [recuperacionEnviada, setRecuperacionEnviada] = useState(false);
+
+  // Contacto institucional — siempre visible al pie de la tarjeta
+  const [contacto, setContacto] = useState<{ nombre: string; correo: string; telefono: string } | null>(null);
+  const [contactoCopiado, setContactoCopiado] = useState(false);
+
+  useEffect(() => {
+    api.get<{ nombre: string; correo: string; telefono: string }>('/publico/contacto')
+      .then(setContacto)
+      .catch(() => {});
+  }, []);
+
+  function copiarContacto() {
+    if (!contacto) return;
+    navigator.clipboard.writeText(contacto.correo).then(() => {
+      setContactoCopiado(true);
+      setTimeout(() => setContactoCopiado(false), 2500);
+    });
+  }
 
   async function buscar(e: React.FormEvent) {
     e.preventDefault();
@@ -283,23 +301,56 @@ export default function EncontrarCuenta() {
                 </div>
                 <p className="text-[12.5px] text-stone-600 mb-3">
                   Puede que aún no tengas cuenta, o que tus datos estén escritos distinto.
-                  Puedes solicitar una cuenta nueva o contactarnos para ayudarte a buscarla.
+                  Puedes solicitar una cuenta nueva, o escribirnos al contacto de aquí abajo
+                  para ayudarte a buscarla.
                 </p>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <a href="/solicitar-cuenta" className="gov-btn-primary flex-1 text-center no-underline text-sm">
-                    Solicitar cuenta
-                  </a>
-                  <a
-                    href="mailto:contacto@michoacan.gob.mx?subject=Ayuda%20para%20encontrar%20mi%20cuenta%20-%20Prepa%20Abierta"
-                    className="gov-btn-secondary flex-1 flex items-center justify-center gap-2 no-underline text-sm"
-                  >
-                    <LifeBuoy size={14} /> Contactar
-                  </a>
-                </div>
+                <a href="/solicitar-cuenta" className="gov-btn-primary inline-block text-center no-underline text-sm">
+                  Solicitar cuenta
+                </a>
               </div>
             )}
           </div>
         )}
+
+        {/* ── Contacto institucional — SIEMPRE visible ── */}
+        <div className="mt-6 border-t border-stone-200 pt-4">
+          <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest mb-2" style={{ color: 'var(--color-dorado)' }}>
+            <LifeBuoy size={12} />
+            ¿Necesitas ayuda? Contáctanos
+          </div>
+          <div className="text-[12px] font-semibold text-stone-800 mb-2">
+            {contacto?.nombre ?? 'Coordinación de Prepa Abierta Michoacán'}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <div
+              className="flex items-center gap-2 flex-1 px-3 py-2 rounded-md border bg-stone-50"
+              style={{ borderColor: '#eadfd7' }}
+            >
+              <Mail size={13} style={{ color: 'var(--color-guinda-700)', flexShrink: 0 }} />
+              <span className="text-[12.5px] font-medium text-stone-800" style={{ overflowWrap: 'anywhere' }}>
+                {contacto?.correo ?? 'contacto@michoacan.gob.mx'}
+              </span>
+              <button
+                type="button"
+                onClick={copiarContacto}
+                className="ml-auto flex items-center gap-1 text-[11px] font-semibold px-2 py-1 rounded border bg-white hover:bg-stone-50"
+                style={{ borderColor: '#eadfd7', color: contactoCopiado ? '#166534' : '#443e39', flexShrink: 0 }}
+              >
+                {contactoCopiado ? <Check size={11} /> : <Copy size={11} />}
+                {contactoCopiado ? 'Copiado' : 'Copiar'}
+              </button>
+            </div>
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-md border bg-stone-50"
+              style={{ borderColor: '#eadfd7' }}
+            >
+              <Phone size={13} style={{ color: 'var(--color-guinda-700)', flexShrink: 0 }} />
+              <span className="text-[12.5px] font-medium text-stone-800">
+                {contacto?.telefono ?? '443-322-9250'}
+              </span>
+            </div>
+          </div>
+        </div>
 
         <div className="mt-5 text-center text-xs text-stone-500">
           ¿Ya sabes tu correo?{' '}

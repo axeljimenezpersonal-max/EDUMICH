@@ -25,6 +25,7 @@ import {
   auditLog,
   modulos,
   passwordResetTokens,
+  datosInstitucionales,
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
@@ -253,6 +254,34 @@ router.get('/municipios', async (_req, res) => {
     .from(municipios)
     .orderBy(municipios.nombre);
   res.json(rows);
+});
+
+// ─── GET /publico/contacto ────────────────────────────────────────────────
+// Datos de contacto institucionales (públicos por naturaleza): se muestran
+// en páginas de ayuda como "encontrar cuenta".
+router.get('/contacto', async (_req, res) => {
+  try {
+    const [datos] = await db
+      .select({
+        nombre: datosInstitucionales.nombreCorto,
+        nombreOficial: datosInstitucionales.nombreOficial,
+        correo: datosInstitucionales.correoSoporte,
+        telefono: datosInstitucionales.telefonoGeneral,
+      })
+      .from(datosInstitucionales)
+      .limit(1);
+    res.json({
+      nombre: datos?.nombre || datos?.nombreOficial || 'Coordinación de Prepa Abierta Michoacán',
+      correo: datos?.correo || 'contacto@michoacan.gob.mx',
+      telefono: datos?.telefono || '443-322-9250',
+    });
+  } catch {
+    res.json({
+      nombre: 'Coordinación de Prepa Abierta Michoacán',
+      correo: 'contacto@michoacan.gob.mx',
+      telefono: '443-322-9250',
+    });
+  }
 });
 
 // ─── Token helpers (HMAC, 30 min) ────────────────────────────────────────
