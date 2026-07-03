@@ -329,8 +329,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const otrosItems = [
-    { href: '/admin/pagos',      icon: CreditCard, label: 'Pagos',   badge: sidebar.pagosPendientes, muted: false },
-    { href: '/admin/ordenes-pago', icon: Landmark,  label: 'Órdenes de pago' },
+    { href: '/admin/ordenes-pago', icon: CreditCard, label: 'Pagos', muted: false },
     { href: '/admin/contabilidad-examenes', icon: ClipboardList, label: 'Contabilidad de exámenes' },
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación de pase' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
