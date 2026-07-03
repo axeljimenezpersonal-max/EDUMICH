@@ -1368,6 +1368,14 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
     res.status(400).json({ error: 'La inscripción no está abierta para esta etapa' });
     return;
   }
+  // Guard por fecha: nunca después del cierre de solicitud o si el examen ya pasó.
+  const hoyStr = new Date().toISOString().slice(0, 10);
+  const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
+  const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;
+  if ((cierre && cierre < hoyStr) || (examen && examen < hoyStr)) {
+    res.status(400).json({ error: 'El período de inscripción de esta etapa ya cerró.' });
+    return;
+  }
 
   // b. Expediente completo (5 documentos obligatorios aprobados)
   const { completo, faltantes } = await expedienteCompleto(userId);
