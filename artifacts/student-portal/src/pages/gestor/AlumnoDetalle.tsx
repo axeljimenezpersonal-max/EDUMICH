@@ -977,6 +977,11 @@ function PlanDeEstudiosTab({
 
   const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
   const HORA_LABEL: Record<string, string> = { '09:00': '9:00 AM', '11:00': '11:00 AM' };
+  // Fecha real de examen por día (variable de la convocatoria activa).
+  const fechaDeDia = (dia: string): string | null =>
+    dia === 'sabado' ? etapa.examenSabado : dia === 'domingo' ? etapa.examenDomingo : null;
+  const fmtDiaCorto = (iso: string) =>
+    new Date(iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
 
   const pendientes = modulosDisponibles.filter((m) => !m.yaInscrito);
   const inscritos = modulosDisponibles.filter((m) => m.yaInscrito);
@@ -1126,11 +1131,15 @@ function PlanDeEstudiosTab({
               >
                 {/* Encabezado: días */}
                 <div />
-                {diasOrd.map((d) => (
-                  <div key={`h-${d}`} className="text-center text-xs font-bold uppercase tracking-wide text-[var(--color-guinda-700)] pb-1.5 border-b-2 border-[var(--color-guinda-200,#e8c4d4)]">
-                    {DIA_LABEL[d] ?? d}
-                  </div>
-                ))}
+                {diasOrd.map((d) => {
+                  const fecha = fechaDeDia(d);
+                  return (
+                    <div key={`h-${d}`} className="text-center pb-1.5 border-b-2 border-[var(--color-guinda-200,#e8c4d4)]">
+                      <div className="text-xs font-bold uppercase tracking-wide text-[var(--color-guinda-700)]">{DIA_LABEL[d] ?? d}</div>
+                      {fecha && <div className="text-[10px] font-medium text-stone-400 normal-case mt-0.5">{fmtDiaCorto(fecha)}</div>}
+                    </div>
+                  );
+                })}
                 {/* Filas: una por hora */}
                 {horasOrd.map((h) => (
                   <Fragment key={`row-${h}`}>
