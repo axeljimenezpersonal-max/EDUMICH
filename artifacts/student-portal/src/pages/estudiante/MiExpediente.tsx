@@ -17,6 +17,7 @@ import {
   type MetodoPago,
   METODOS_PAGO,
 } from '../../lib/api';
+import { PagoStepper } from '../../components/PagoStepper';
 import DocumentoUploader from '../../components/DocumentoUploader';
 import PagoCard from '../../components/PagoCard';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
@@ -849,6 +850,9 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
             </div>
 
             <div className="p-5 space-y-4">
+              {/* Stepper del proceso */}
+              <PagoStepper estado={o.estado} />
+
               {/* Total + exámenes */}
               <div className="flex items-baseline justify-between">
                 <span className="text-sm text-stone-500">{o.cantidadExamenes} examen{o.cantidadExamenes !== 1 ? 'es' : ''} de derecho a examen</span>
