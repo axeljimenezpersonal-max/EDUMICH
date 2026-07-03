@@ -34,20 +34,23 @@ export function agregarDiasHabiles(base: Date, dias: number): Date {
 }
 
 export async function generarFolioPreregistro(): Promise<string> {
-  const año = new Date().getFullYear();
-  const prefix = `PRE-${año}-MICH-`;
+  // Formato: PREF-<consecutivo>-<MM>-<YYYY> (p. ej. PREF-000004-07-2026).
+  // El consecutivo es global y va justo después de PREF; el mes/año son de emisión.
+  const now = new Date();
+  const mes = String(now.getMonth() + 1).padStart(2, '0');
+  const año = now.getFullYear();
 
   const result = await db.execute(sql`
     SELECT COALESCE(MAX(
-      CAST(SUBSTRING(folio_preregistro FROM '[0-9]+$') AS INTEGER)
+      CAST(SUBSTRING(folio_preregistro FROM '^PREF-0*([0-9]+)') AS INTEGER)
     ), 0) + 1 AS siguiente
     FROM estudiantes
-    WHERE folio_preregistro LIKE ${prefix + '%'}
+    WHERE folio_preregistro LIKE 'PREF-%'
   `);
 
   const row = result.rows[0];
   const siguiente = Number((row as any)?.siguiente ?? 1);
-  return `${prefix}${String(siguiente).padStart(6, '0')}`;
+  return `PREF-${String(siguiente).padStart(6, '0')}-${mes}-${año}`;
 }
 
 export async function generarFolioLicencia(): Promise<string> {

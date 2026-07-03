@@ -544,11 +544,10 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
   // ── Siguientes pasos ─────────────────────────────────────────────────
   y = drawSectionHeading(page, bold, 'Siguientes pasos para completar tu inscripción', y);
   y = drawStepList(page, bold, regular, [
-    'Subir los documentos requeridos: CURP, acta de nacimiento, identificación oficial y certificado de secundaria.',
-    'Realizar el pago de inscripción y subir el comprobante de pago.',
-    'Esperar la validación documental por parte de la administración (3-5 días hábiles).',
+    'Subir los documentos requeridos: CURP, acta de nacimiento, identificación oficial (INE) y certificado de secundaria.',
+    'Esperar la validación de los documentos por parte de la administración (3 a 5 días hábiles).',
     'Asistir a la plática informativa requerida por la DGB.',
-    'Una vez asignada tu matrícula oficial por la SEP-DGB, solicitar su captura al gestor o administrador.',
+    'Una vez asignada tu matrícula oficial por la SEP-DGB, solicita la inscripción a tus módulos (exámenes) con tu gestor o administrador.',
   ], MARGIN, y - 4);
 
   y -= 12;

@@ -38,6 +38,15 @@ const migrations = [
      WHERE asunto LIKE '%Prepa Abierta%' OR contenido_html LIKE '%Prepa Abierta%' OR contenido_texto LIKE '%Prepa Abierta%'`,
   `UPDATE conceptos_pago SET descripcion = REPLACE(descripcion, 'Prepa Abierta', 'Preparatoria Abierta') WHERE descripcion LIKE '%Prepa Abierta%'`,
   `UPDATE outbox SET from_name = REPLACE(from_name, 'Prepa Abierta', 'Preparatoria Abierta') WHERE from_name LIKE '%Prepa Abierta%'`,
+  // Reformateo de folio de pre-registro: PRE-<año>-MICH-<consec> → PREF-<consec>-<MM>-<YYYY>.
+  // Mes/año de la fecha de emisión (o de creación como respaldo). Idempotente: los
+  // folios ya reformateados empiezan con 'PREF-' y no vuelven a coincidir.
+  `UPDATE estudiantes
+     SET folio_preregistro =
+       'PREF-' || LPAD(SUBSTRING(folio_preregistro FROM '([0-9]+)$'), 6, '0')
+       || '-' || LPAD(EXTRACT(MONTH FROM COALESCE(preregistro_generado_en, created_at))::text, 2, '0')
+       || '-' || EXTRACT(YEAR FROM COALESCE(preregistro_generado_en, created_at))::text
+     WHERE folio_preregistro LIKE 'PRE-%MICH-%'`,
 ];
 
 export async function runStartupMigrations() {
