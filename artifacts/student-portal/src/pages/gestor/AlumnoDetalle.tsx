@@ -439,41 +439,38 @@ export default function AlumnoDetalle() {
         Volver a mis alumnos
       </Link>
 
-      {/* ── Cabecera (compacta) ── */}
-      <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 mb-4">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div className="flex-1 min-w-0">
-            <div className="text-[10px] uppercase tracking-widest text-[var(--color-guinda-700)] font-bold mb-0.5">
-              Alumno
+      {/* ── Cabecera (fondo guinda, estilo admin) ── */}
+      <div className="border border-stone-200 rounded-xl mb-4 overflow-hidden">
+        {/* Bloque del alumno sobre fondo guinda degradado */}
+        <div style={{ background: 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{
+              width: 88, height: 88, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#efe7d6', color: 'var(--color-guinda-700)', border: '4px solid rgba(255,255,255,0.9)',
+              fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 30, flexShrink: 0, boxShadow: '0 3px 12px rgba(0,0,0,0.18)',
+            }}>
+              {alumno.nombreCompleto.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
             </div>
-            <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: 'var(--color-guinda-700)' }}>
-              {alumno.nombreCompleto}
-            </h1>
-            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2.5 text-xs" style={{ color: '#443e39' }}>
-              <span className="inline-flex items-center gap-1.5"><span className="text-[9px] font-bold uppercase tracking-wide text-stone-400">CURP</span><span className="font-mono">{alumno.curp ?? '—'}</span></span>
-              <span className="inline-flex items-center gap-1.5"><Mail size={12} className="text-stone-400" /><span className="truncate max-w-[220px]">{alumno.email}</span></span>
-              <span className="inline-flex items-center gap-1.5"><Phone size={12} className="text-stone-400" />{alumno.telefono ?? '—'}</span>
-              <span className="inline-flex items-center gap-1.5"><Calendar size={12} className="text-stone-400" />{alumno.fechaNacimiento ? new Date(alumno.fechaNacimiento).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span>
-              <span className="inline-flex items-center gap-1.5"><MapPin size={12} className="text-stone-400" /><span className="truncate max-w-[240px]">{alumno.direccion ?? '—'}</span></span>
-            </div>
-          </div>
 
-          <div className="flex items-start gap-3">
-            {inscripcionActiva && (
-              <div className="text-right">
-                <div className="text-xs uppercase tracking-widest text-stone-500 font-semibold mb-1">
-                  Inscripción
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.65)' }}>Alumno</div>
+              <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#ffffff' }}>
+                {alumno.nombreCompleto}
+              </h1>
+              {inscripcionActiva && (
+                <div className="flex items-center gap-2 mt-2">
+                  <StatusBadge estado={inscripcionActiva.estado} />
+                  <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.8)' }}>{inscripcionActiva.convocatoria}</span>
                 </div>
-                <StatusBadge estado={inscripcionActiva.estado} />
-                <div className="text-xs text-stone-500 mt-1">{inscripcionActiva.convocatoria}</div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {/* Acciones "..." menu */}
-            <div className="relative" ref={menuRef}>
+            {/* Acciones "..." menu (sobre el guinda) */}
+            <div className="relative shrink-0" ref={menuRef}>
               <button
                 onClick={() => setMenuOpen((v) => !v)}
-                className="p-2 rounded-lg border border-stone-200 hover:bg-stone-50 text-stone-500 hover:text-stone-700 transition-colors"
+                className="p-2 rounded-lg transition-colors text-white"
+                style={{ border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}
                 title="Acciones"
               >
                 <MoreVertical size={16} />
@@ -512,6 +509,30 @@ export default function AlumnoDetalle() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        {/* Meta con etiquetas (fondo blanco) */}
+        <div className="bg-white grid grid-cols-2 md:grid-cols-3 gap-4 px-6 py-4">
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>CURP</div>
+            <div className="text-sm font-mono" style={{ color: '#443e39' }}>{alumno.curp ?? '—'}</div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Correo</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}><Mail size={13} className="text-stone-400" /><span className="truncate">{alumno.email}</span></div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Teléfono</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}><Phone size={13} className="text-stone-400" />{alumno.telefono ?? '—'}</div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Fecha de nacimiento</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}><Calendar size={13} className="text-stone-400" />{alumno.fechaNacimiento ? new Date(alumno.fechaNacimiento).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</div>
+          </div>
+          <div className="col-span-2 md:col-span-1">
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Dirección</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}><MapPin size={13} className="text-stone-400" /><span className="truncate">{alumno.direccion ?? '—'}</span></div>
           </div>
         </div>
       </div>
