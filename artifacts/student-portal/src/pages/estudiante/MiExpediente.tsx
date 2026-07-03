@@ -911,6 +911,20 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
               {/* Emitida / en_revision / vencido: mostrar línea de captura + descarga */}
               {(o.estado === 'emitida' || o.estado === 'en_revision' || o.estado === 'vencido') && (
                 <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-3">
+                  <div className="text-[11px] text-stone-500">La coordinación emitió tu orden de pago. Descárgala y paga ante la Tesorería.</div>
+                  {o.tieneOrden ? (
+                    <a href={`/api/pagos-examen/${o.id}/orden`} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-3 rounded-xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] px-4 py-3 hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors">
+                      <FileText size={22} className="text-[var(--color-guinda-700)] shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-bold text-[var(--color-guinda-800)]">Ver / descargar orden de pago (PDF)</div>
+                        <div className="text-[11px] text-stone-500">Documento oficial de la plataforma del Estado</div>
+                      </div>
+                      <Download size={18} className="text-[var(--color-guinda-700)] shrink-0" />
+                    </a>
+                  ) : (
+                    <div className="text-xs text-stone-500 bg-white border border-stone-200 rounded-lg p-2.5">La coordinación aún no adjuntó el PDF; usa la línea de captura o el link de pago.</div>
+                  )}
                   {o.lineaCaptura && (
                     <div>
                       <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
@@ -922,18 +936,11 @@ function OrdenesPagoExamen({ onEstado }: { onEstado: (activa: boolean) => void }
                       </div>
                     </div>
                   )}
-                  <div className="flex flex-wrap gap-2">
-                    {o.tieneOrden && (
-                      <a href={`/api/pagos-examen/${o.id}/orden`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]">
-                        <Download size={15} /> Descargar orden de pago
-                      </a>
-                    )}
-                    {o.linkPago && (
-                      <a href={o.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-white">
-                        <ExternalLink size={15} /> Pagar en línea
-                      </a>
-                    )}
-                  </div>
+                  {o.linkPago && (
+                    <a href={o.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-white">
+                      <ExternalLink size={15} /> Pagar en línea
+                    </a>
+                  )}
                   {o.fechaVencimiento && (
                     <div className="text-xs text-stone-500">Vence el <strong className="text-stone-700">{fmtFecha(o.fechaVencimiento)}</strong>. Paga en banco, tienda de conveniencia o en línea.</div>
                   )}

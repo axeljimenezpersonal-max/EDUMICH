@@ -454,28 +454,46 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
           {/* Estado por fase */}
           {p.estado === 'pendiente_emision' && <FichaSolicitada estado={p.estado} />}
 
-          {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'vencido') && p.lineaCaptura && (
+          {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'vencido') && (
             <div className="bg-white border border-stone-200 rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3"><Landmark size={15} className="text-[var(--color-guinda-700)]" /><h3 className="text-sm font-bold text-stone-900">Ficha emitida por la coordinación</h3></div>
-              <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
-              <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 mb-3">
-                <code className="flex-1 text-sm font-mono text-stone-800 break-all">{p.lineaCaptura}</code>
-                <button onClick={() => { navigator.clipboard.writeText(p.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0">
-                  {copiado ? <Check size={15} /> : <Copy size={15} />}
-                </button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {p.tieneOrden && (
-                  <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]">
-                    <Download size={15} /> Descargar orden de pago
-                  </a>
-                )}
-                {p.linkPago && (
-                  <a href={p.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
-                    <ExternalLink size={15} /> Pagar en línea
-                  </a>
-                )}
-              </div>
+              <div className="flex items-center gap-2 mb-1"><Landmark size={16} className="text-[var(--color-guinda-700)]" /><h3 className="text-sm font-bold text-stone-900">Orden de pago emitida por la coordinación</h3></div>
+              <p className="text-[11px] text-stone-500 mb-3">Esta es la ficha oficial con la que pagas ante la Tesorería. Descárgala o ábrela para ver la línea de captura.</p>
+
+              {/* Descargar / ver la orden (ficha técnica) — primaria */}
+              {p.tieneOrden ? (
+                <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-3 rounded-xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] px-4 py-3 mb-3 hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors">
+                  <FileText size={22} className="text-[var(--color-guinda-700)] shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-bold text-[var(--color-guinda-800)]">Ver / descargar orden de pago (PDF)</div>
+                    <div className="text-[11px] text-stone-500">Documento oficial que emitió la plataforma del Estado</div>
+                  </div>
+                  <Download size={18} className="text-[var(--color-guinda-700)] shrink-0" />
+                </a>
+              ) : (
+                <div className="text-xs text-stone-500 bg-stone-50 border border-stone-200 rounded-lg p-2.5 mb-3">
+                  La coordinación aún no adjuntó el PDF de la orden. Usa la línea de captura o el link de pago.
+                </div>
+              )}
+
+              {/* Línea de captura */}
+              {p.lineaCaptura && (
+                <>
+                  <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
+                  <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 mb-3">
+                    <code className="flex-1 text-sm font-mono text-stone-800 break-all">{p.lineaCaptura}</code>
+                    <button onClick={() => { navigator.clipboard.writeText(p.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0">
+                      {copiado ? <Check size={15} /> : <Copy size={15} />}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {p.linkPago && (
+                <a href={p.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                  <ExternalLink size={15} /> Pagar en línea
+                </a>
+              )}
               {p.fechaVencimiento && <div className="text-xs text-stone-500 mt-2">Vence el <strong className="text-stone-700">{fmtFecha(p.fechaVencimiento)}</strong>.</div>}
             </div>
           )}
@@ -498,9 +516,10 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
                       </button>
                     ))}
                   </div>
-                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 cursor-pointer transition-colors ${file ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-stone-400'}`}>
-                    <UploadCloud size={18} className={file ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
-                    <span className="flex-1 text-sm truncate">{file ? file.name : 'Comprobante (PDF o imagen)'}</span>
+                  <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl py-7 px-4 cursor-pointer text-center transition-colors ${file ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-[var(--color-guinda-700)] hover:bg-stone-50'}`}>
+                    <UploadCloud size={30} className={file ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
+                    <div className="text-sm font-bold uppercase tracking-wide text-stone-700">Comprobante</div>
+                    <span className="text-xs text-stone-500 truncate max-w-full">{file ? file.name : 'Toca para subir el PDF o la foto de tu recibo'}</span>
                     <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
                   </label>
                   <button onClick={subir} disabled={!file || !metodo || subiendo} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
