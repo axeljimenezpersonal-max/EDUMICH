@@ -828,78 +828,101 @@ export default function AdminAlumnoDetalle() {
         <ChevronLeft size={14} /> Volver a Alumnos
       </button>
 
-      {/* ── HEADER CARD (compacto) ──────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl mb-6 overflow-hidden">
-        {/* Banda guinda delgada */}
-        <div style={{ height: 52, background: 'linear-gradient(135deg, var(--color-guinda-700) 0%, var(--color-guinda-800) 100%)', position: 'relative' }}>
-          <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 85% 30%, rgba(255,255,255,0.16) 0%, transparent 55%)', pointerEvents: 'none' }} />
-        </div>
-
-        {/* Fila: avatar · nombre+badges · acciones */}
-        <div style={{ padding: '0 24px 14px', display: 'flex', gap: 16, alignItems: 'flex-end', flexWrap: 'wrap' }}>
-          <div style={{
-            width: 72, height: 72, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: '#efe7d6', color: 'var(--color-guinda-700)', border: '4px solid white', marginTop: -32,
-            fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 24, letterSpacing: '-0.02em',
-            flexShrink: 0, boxShadow: '0 3px 10px rgba(0,0,0,0.10)', position: 'relative', zIndex: 2,
-          }}>
-            {alumno.iniciales}
-          </div>
-
-          <div style={{ flex: 1, minWidth: 220, paddingTop: 8 }}>
-            <div className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#a89a8e' }}>
-              ALUMNO · ID-{alumno.id}
+      {/* ── HEADER CARD (fondo guinda) ──────────────────────────── */}
+      <div className="border border-stone-200 rounded-xl mb-6 overflow-hidden">
+        {/* Bloque del alumno sobre fondo guinda fuerte */}
+        <div style={{ background: 'var(--color-guinda-700)', padding: '20px 24px' }}>
+          <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            {/* Avatar */}
+            <div style={{
+              width: 88, height: 88, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: '#efe7d6', color: 'var(--color-guinda-700)', border: '4px solid rgba(255,255,255,0.9)',
+              fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 30, letterSpacing: '-0.02em',
+              flexShrink: 0, boxShadow: '0 3px 12px rgba(0,0,0,0.18)',
+            }}>
+              {alumno.iniciales}
             </div>
-            <h1 className="text-xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: 'var(--color-guinda-700)' }}>
-              {alumno.nombreCompleto}
-            </h1>
-            <div className="flex items-center gap-1.5 flex-wrap mt-1.5">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: expCfg.bg, color: expCfg.color }}>
-                <span className="w-1.5 h-1.5 rounded-full" style={{ background: expCfg.dot }} />
-                {expCfg.label}
-              </span>
-              {alumno.municipio && (
-                <span className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#f7f2ed', color: '#443e39' }}>
-                  <MapPin size={10} /> {alumno.municipio.nombre}
-                </span>
-              )}
-              {alumno.gestor && (
-                <span className="flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                  <Users size={10} /> {alumno.gestor.nombreCompleto.split(' ').slice(0, 2).join(' ')}
-                </span>
-              )}
-              {alumno.passwordTemporal && (
-                <span className="flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: '#fff7ed', color: '#c77700' }}>
-                  Contraseña temporal
-                </span>
-              )}
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0, paddingTop: 8 }}>
-            <button onClick={handleResetPassword} disabled={resettingPwd}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50" style={{ color: '#443e39' }}>
-              <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
-            </button>
-            <button onClick={handleReenviarCredenciales} disabled={reenviando}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50" style={{ color: '#443e39' }}>
-              <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
-            </button>
-            {alumno.gestor && (
-              <button onClick={() => setLocation(`/admin/gestores/${alumno.gestor!.id}`)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg" style={{ background: 'var(--color-guinda-700)' }}>
-                <UserCheck size={12} /> Ver gestor
+            {/* Nombre + badges */}
+            <div style={{ flex: 1, minWidth: 220 }}>
+              <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.65)' }}>
+                ALUMNO · ID-{alumno.id}
+              </div>
+              <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#ffffff' }}>
+                {alumno.nombreCompleto}
+              </h1>
+              <div className="flex items-center gap-2 flex-wrap mt-2">
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: expCfg.bg, color: expCfg.color }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: expCfg.dot }} />
+                  {expCfg.label}
+                </span>
+                {alumno.municipio && (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: 'rgba(255,255,255,0.92)', color: '#443e39' }}>
+                    <MapPin size={11} /> {alumno.municipio.nombre}
+                  </span>
+                )}
+                {alumno.gestor && (
+                  <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: '#ede9fe', color: '#7c3aed' }}>
+                    <Users size={11} /> {alumno.gestor.nombreCompleto.split(' ').slice(0, 2).join(' ')}
+                  </span>
+                )}
+                {alumno.passwordTemporal && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: '#fff7ed', color: '#c77700' }}>
+                    Contraseña temporal
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Acciones (sobre el guinda) */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+              <button onClick={handleResetPassword} disabled={resettingPwd}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
+                <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
               </button>
-            )}
+              <button onClick={handleReenviarCredenciales} disabled={reenviando}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
+                <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
+              </button>
+              {alumno.gestor && (
+                <button onClick={() => setLocation(`/admin/gestores/${alumno.gestor!.id}`)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg"
+                  style={{ background: '#fff', color: 'var(--color-guinda-700)' }}>
+                  <UserCheck size={12} /> Ver gestor
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Meta compacta (una sola línea) */}
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-1.5 px-6 py-2.5 border-t border-stone-100 text-xs" style={{ color: '#443e39' }}>
-          <span className="inline-flex items-center gap-1.5"><Mail size={12} style={{ color: '#a89a8e' }} /><span className="truncate max-w-[220px]">{alumno.email}</span></span>
-          <span className="inline-flex items-center gap-1.5"><Phone size={12} style={{ color: '#a89a8e' }} />{alumno.telefono ?? <span style={{ color: '#a89a8e' }}>Sin teléfono</span>}</span>
-          <span className="inline-flex items-center gap-1.5"><span className="text-[9px] font-bold uppercase tracking-wide" style={{ color: '#a89a8e' }}>CURP</span><span className="font-mono">{alumno.curp ?? <span className="font-sans" style={{ color: '#a89a8e' }}>No registrada</span>}</span></span>
-          <span className="inline-flex items-center gap-1.5"><Calendar size={12} style={{ color: '#a89a8e' }} />{fmtDate(alumno.creadoEn)}{edad !== null && <span style={{ color: '#a89a8e' }}> · {edad} años</span>}</span>
+        {/* Meta con etiquetas (fondo blanco) */}
+        <div className="bg-white grid grid-cols-2 md:grid-cols-4 gap-4 px-6 py-4">
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Correo</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}>
+              <Mail size={13} style={{ color: '#6b635e' }} /><span className="truncate">{alumno.email}</span>
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Teléfono</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}>
+              <Phone size={13} style={{ color: '#6b635e' }} />{alumno.telefono ?? <span style={{ color: '#a89a8e' }}>No registrado</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>CURP</div>
+            <div className="text-sm font-mono" style={{ color: '#443e39' }}>
+              {alumno.curp ?? <span style={{ color: '#a89a8e', fontFamily: 'inherit' }}>No registrada</span>}
+            </div>
+          </div>
+          <div>
+            <div className="text-[11px] uppercase tracking-wide font-semibold mb-0.5" style={{ color: '#a89a8e' }}>Registro</div>
+            <div className="flex items-center gap-1.5 text-sm" style={{ color: '#443e39' }}>
+              <Calendar size={13} style={{ color: '#6b635e' }} />{fmtDate(alumno.creadoEn)}{edad !== null && <span style={{ color: '#a89a8e' }}> · {edad} años</span>}
+            </div>
+          </div>
         </div>
       </div>
 
