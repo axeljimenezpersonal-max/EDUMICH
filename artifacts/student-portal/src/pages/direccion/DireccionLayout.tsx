@@ -59,7 +59,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
   ];
 
   return (
-    <div className="min-h-screen" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
 
 
       {/* Header */}
@@ -125,7 +125,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
 
       {/* Body */}
       <div
-        className="max-w-[1400px] mx-auto px-6 py-6 grid gap-6"
+        className="w-full max-w-[1400px] mx-auto px-6 py-6 grid gap-6 flex-1"
         style={{ gridTemplateColumns: '240px 1fr', alignItems: 'start' }}
       >
         <aside
