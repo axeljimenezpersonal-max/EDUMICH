@@ -123,6 +123,12 @@ const DOCS_REQUERIDOS: { tipo: string; label: string; descripcion: string }[] = 
   { tipo: 'certificado_secundaria', label: 'Certificado de secundaria', descripcion: 'Certificado o constancia de secundaria' },
 ];
 
+// Documentos opcionales que igual se muestran y se verifican.
+// REGLA: la fotografía se usa para la credencial / licencia digital del alumno.
+const DOCS_OPCIONALES: { tipo: string; label: string; descripcion: string; nota?: string }[] = [
+  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco (JPG, PNG o PDF)', nota: 'Se usa para la credencial / licencia digital del alumno.' },
+];
+
 const DOC_ESTADO_CFG: Record<string, { label: string; icon: typeof CheckCircle; color: string; bg: string }> = {
   aprobado:           { label: 'Aprobado',                 icon: CheckCircle,    color: '#2d7d46', bg: '#d1fae5' },
   pendiente_revision: { label: 'Pendiente de aprobación',  icon: Clock3,         color: '#92400e', bg: '#fef9c3' },
@@ -243,8 +249,8 @@ function DocRow({
   );
 }
 
-// Fila para un documento obligatorio que el alumno AÚN NO ha subido.
-function DocFaltante({ label, descripcion }: { label: string; descripcion: string }) {
+// Fila para un documento que el alumno AÚN NO ha subido (obligatorio u opcional).
+function DocFaltante({ label, descripcion, opcional }: { label: string; descripcion: string; opcional?: boolean }) {
   return (
     <div className="flex items-start gap-3 py-3 border-b border-stone-50 last:border-b-0">
       <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#f5f5f4' }}>
@@ -254,7 +260,7 @@ function DocFaltante({ label, descripcion }: { label: string; descripcion: strin
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm font-semibold" style={{ color: '#57534e' }}>{label}</span>
           <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: '#f5f5f4', color: '#a8a29e' }}>
-            Falta subir
+            {opcional ? 'Opcional · falta' : 'Falta subir'}
           </span>
         </div>
         <div className="text-xs mt-0.5" style={{ color: '#a89a8e' }}>{descripcion}</div>
@@ -275,9 +281,10 @@ function DocumentosChecklist({
 }) {
   const porTipo = new Map(documentos.map((d) => [d.tipo, d]));
   const tiposReq = new Set(DOCS_REQUERIDOS.map((r) => r.tipo));
+  const tiposOpc = new Set(DOCS_OPCIONALES.map((r) => r.tipo));
   const subidos = DOCS_REQUERIDOS.filter((r) => porTipo.has(r.tipo)).length;
   const aprobados = DOCS_REQUERIDOS.filter((r) => porTipo.get(r.tipo)?.estado === 'aprobado').length;
-  const adicionales = documentos.filter((d) => !tiposReq.has(d.tipo));
+  const adicionales = documentos.filter((d) => !tiposReq.has(d.tipo) && !tiposOpc.has(d.tipo));
   const pct = Math.round((aprobados / DOCS_REQUERIDOS.length) * 100);
 
   return (
@@ -298,6 +305,24 @@ function DocumentosChecklist({
         return doc
           ? <DocRow key={r.tipo} doc={doc} alumnoId={alumnoId} onAprobar={onAprobar} onRechazar={onRechazar} />
           : <DocFaltante key={r.tipo} label={r.label} descripcion={r.descripcion} />;
+      })}
+
+      {/* Opcionales (se muestran siempre y también se verifican) */}
+      <h4 className="text-xs font-bold uppercase tracking-widest text-stone-500 mt-5 mb-2">Documentos opcionales</h4>
+      {DOCS_OPCIONALES.map((r) => {
+        const doc = porTipo.get(r.tipo);
+        return (
+          <div key={r.tipo}>
+            {doc
+              ? <DocRow doc={doc} alumnoId={alumnoId} onAprobar={onAprobar} onRechazar={onRechazar} />
+              : <DocFaltante label={r.label} descripcion={r.descripcion} opcional />}
+            {r.nota && (
+              <div className="flex items-center gap-1.5 text-[11px] font-medium ml-11 -mt-1.5 mb-2" style={{ color: 'var(--color-guinda-700)' }}>
+                <BadgeCheck size={12} className="shrink-0" /> {r.nota}
+              </div>
+            )}
+          </div>
+        );
       })}
 
       {adicionales.length > 0 && (
