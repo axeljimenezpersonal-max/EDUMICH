@@ -443,22 +443,22 @@ export default function AlumnoDetalle() {
       <div className="border border-stone-200 rounded-xl mb-4 overflow-hidden">
         {/* Bloque del alumno sobre fondo guinda degradado */}
         <div style={{ background: 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)', padding: '20px 24px' }}>
-          <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 22, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{
-              width: 88, height: 88, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 104, height: 104, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
               background: '#efe7d6', color: 'var(--color-guinda-700)', border: '4px solid rgba(255,255,255,0.9)',
-              fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 30, flexShrink: 0, boxShadow: '0 3px 12px rgba(0,0,0,0.18)',
+              fontFamily: "'Poppins', sans-serif", fontWeight: 700, fontSize: 36, flexShrink: 0, boxShadow: '0 3px 12px rgba(0,0,0,0.18)',
             }}>
               {alumno.nombreCompleto.split(' ').filter(Boolean).slice(0, 2).map((w) => w[0]).join('').toUpperCase()}
             </div>
 
             <div style={{ flex: 1, minWidth: 220 }}>
-              <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.65)' }}>Alumno</div>
-              <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#ffffff' }}>
+              <div className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.65)' }}>Alumno</div>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-none mt-1" style={{ fontFamily: "'Poppins', sans-serif", color: '#ffffff' }}>
                 {alumno.nombreCompleto}
               </h1>
               {inscripcionActiva && (
-                <div className="flex items-center gap-2 mt-2">
+                <div className="flex items-center gap-2 mt-3">
                   <StatusBadge estado={inscripcionActiva.estado} />
                   <span className="text-[11px]" style={{ color: 'rgba(255,255,255,0.8)' }}>{inscripcionActiva.convocatoria}</span>
                 </div>
