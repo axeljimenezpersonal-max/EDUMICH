@@ -850,6 +850,8 @@ export interface PagoExamenAdmin extends PagoExamenAlumno {
   alumno?: string;
   matricula?: string | null;
   curp?: string | null;
+  fechaExamen?: string | null;
+  vencimientoSugerido?: string | null;
 }
 
 export interface PagoExamenCandidato {

@@ -30,6 +30,24 @@ import {
 import { authRequired } from '../middleware/auth';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen';
+import { DIAS_ANTES_EXAMEN_VENCE_PAGO } from '../config/reglas';
+
+// Fecha del examen de una etapa + vencimiento del pago (regla: N días antes).
+// Devuelve strings 'YYYY-MM-DD' o null si el pago no tiene etapa.
+async function fechasDeEtapa(etapaId: number | null): Promise<{ fechaExamen: string | null; vencimientoSugerido: string | null }> {
+  if (etapaId == null) return { fechaExamen: null, vencimientoSugerido: null };
+  const [et] = await db
+    .select({ examenSabado: convocatoriasEtapas.examenSabado })
+    .from(convocatoriasEtapas)
+    .where(eq(convocatoriasEtapas.id, etapaId))
+    .limit(1);
+  if (!et?.examenSabado) return { fechaExamen: null, vencimientoSugerido: null };
+  const fechaExamen = String(et.examenSabado); // 'YYYY-MM-DD'
+  const d = new Date(fechaExamen + 'T12:00:00');
+  d.setDate(d.getDate() - DIAS_ANTES_EXAMEN_VENCE_PAGO);
+  const vencimientoSugerido = d.toISOString().slice(0, 10);
+  return { fechaExamen, vencimientoSugerido };
+}
 
 const router = Router();
 router.use(authRequired);
@@ -551,7 +569,8 @@ router.get('/:id/detalle', async (req, res) => {
         .where(eq(estudiantes.userId, det.pago.estudianteId))
         .limit(1);
     }
-    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp });
+    const { fechaExamen, vencimientoSugerido } = await fechasDeEtapa(det.pago.etapaId);
+    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp, fechaExamen, vencimientoSugerido });
   } catch {
     return res.status(500).json({ error: 'Error al obtener detalle' });
   }
@@ -675,12 +694,17 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
       return res.status(409).json({ error: `No se puede emitir desde el estado ${p.estado}` });
     }
 
+    // Regla: el pago vence una semana antes del examen. Si el admin no capturó
+    // una fecha, se calcula automáticamente desde la etapa del examen.
+    const { vencimientoSugerido } = await fechasDeEtapa(p.etapaId);
+    const vencimientoFinal = fechaVencimiento || p.fechaVencimiento || vencimientoSugerido;
+
     await db
       .update(pagosExamen)
       .set({
         lineaCaptura: lineaCaptura ?? p.lineaCaptura,
         linkPago: linkPago ?? p.linkPago,
-        fechaVencimiento: fechaVencimiento || p.fechaVencimiento,
+        fechaVencimiento: vencimientoFinal,
         ordenPagoPath: req.file ? req.file.path : p.ordenPagoPath,
         ordenPagoNombre: req.file ? nombreArchivoUtf8(req.file.originalname) : p.ordenPagoNombre,
         fechaEmision: new Date(),

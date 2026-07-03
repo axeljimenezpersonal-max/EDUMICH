@@ -176,7 +176,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
   function cargar() {
     setLoading(true);
     return api.get<PagoExamenAdmin>(`/pagos-examen/${id}/detalle`)
-      .then((d) => { setP(d); setLinea(d.lineaCaptura ?? ''); setVenc(d.fechaVencimiento ?? ''); setLink(d.linkPago ?? ''); })
+      .then((d) => { setP(d); setLinea(d.lineaCaptura ?? ''); setVenc(d.fechaVencimiento ?? d.vencimientoSugerido ?? ''); setLink(d.linkPago ?? ''); })
       .catch(() => onToast('Error al cargar', false))
       .finally(() => setLoading(false));
   }
@@ -274,6 +274,16 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               <div>
                 <label className="block text-xs font-semibold text-stone-600 mb-1">Vence</label>
                 <input type="date" value={venc} onChange={(e) => setVenc(e.target.value)} className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2" />
+                {p.fechaExamen && (
+                  <p className="text-[11px] text-stone-500 mt-1">
+                    Regla: 1 semana antes del examen ({fmtFecha(p.fechaExamen)}).
+                    {p.vencimientoSugerido && venc !== p.vencimientoSugerido && (
+                      <button type="button" onClick={() => setVenc(p.vencimientoSugerido!)} className="ml-1 text-[var(--color-guinda-700)] font-semibold hover:underline">
+                        Usar {fmtFecha(p.vencimientoSugerido)}
+                      </button>
+                    )}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-stone-600 mb-1">Link de pago (opcional)</label>
