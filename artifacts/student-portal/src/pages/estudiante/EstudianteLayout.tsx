@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
+import { AppFooter } from '../../components/AppFooter';
 
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
@@ -85,6 +86,10 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
 
         {/* Contenido */}
         <main className="min-w-0">{children}</main>
+      </div>
+
+      <div className="hidden md:block">
+        <AppFooter />
       </div>
 
       {/* Bottom tab bar — solo en móvil */}

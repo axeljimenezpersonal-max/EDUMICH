@@ -9,6 +9,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { LayoutDashboard, Users, FilePlus2, CreditCard } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
+import { AppFooter } from '../../components/AppFooter';
 
 const NAV = [
   { to: '/gestor', icon: LayoutDashboard, label: 'Inicio' },
@@ -84,6 +85,7 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         <main className="min-w-0">{children}</main>
       </div>
 
+      <AppFooter />
     </div>
   );
 }

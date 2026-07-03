@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
+import { AppFooter } from '../../components/AppFooter';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -341,14 +342,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
 
-      {/* Banda gobierno */}
-      <div
-        className="flex justify-between items-center text-white text-[11px] font-medium"
-        style={{ background: 'var(--color-guinda-800)', padding: '6px 16px', letterSpacing: '0.05em' }}
-      >
-        <span>GOBIERNO DEL ESTADO DE MICHOACÁN · HONESTIDAD Y TRABAJO</span>
-        <span style={{ opacity: 0.7 }}>prepaabierta.michoacan.gob.mx</span>
-      </div>
 
       {/* Sticky app header */}
       <header
@@ -509,6 +502,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
 
+      <AppFooter />
     </div>
   );
 }
