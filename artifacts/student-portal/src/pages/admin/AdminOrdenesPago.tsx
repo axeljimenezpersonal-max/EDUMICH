@@ -273,6 +273,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
   const [orden, setOrden] = useState<File | null>(null);
   const [notas, setNotas] = useState('');
   const [editando, setEditando] = useState(false);
+  const [modal, setModal] = useState<null | 'editar' | 'cancelar' | 'rechazar'>(null);
 
   function cargar() {
     setLoading(true);
@@ -403,7 +404,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
                 </div>
                 {p.estado === 'emitida' && (
                   <button
-                    onClick={() => { if (confirm('¿Editar la orden emitida? Podrás corregir la línea de captura, el vencimiento, el link o el PDF. La orden se re-emitirá con los nuevos datos.')) setEditando(true); }}
+                    onClick={() => setModal('editar')}
                     className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50">
                     <Pencil size={13} /> Editar orden (requiere confirmación)
                   </button>
@@ -474,31 +475,29 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
             </div>
           )}
 
-          {/* Esperando comprobante */}
+          {/* Esperando comprobante — NO se puede marcar pagado sin él */}
           {p.estado === 'emitida' && !p.tieneComprobante && (
             <div className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-2">
               <Clock size={14} className="shrink-0 mt-0.5 text-blue-500" />
-              <span>Orden emitida. Esperando que el gestor/alumno pague y suba su comprobante. También puedes marcarla pagada directamente si concilias contra la plataforma del Estado.</span>
+              <span>Orden emitida. <strong>Esperando el comprobante</strong> del gestor/alumno. No se puede marcar pagado hasta que lo suban.</span>
             </div>
           )}
 
-          {/* Conciliar (validar) / rechazar */}
-          {(p.estado === 'emitida' || p.estado === 'en_revision') && (
+          {/* Validar comprobante (= marcar pagado). Solo cuando ya lo subieron. */}
+          {p.estado === 'en_revision' && (
             <div className="space-y-2 bg-white border border-stone-200 rounded-xl p-4">
               <label className="block text-xs font-semibold text-stone-600 mb-1">Notas (opcional)</label>
               <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} placeholder="Referencia bancaria, observación de conciliación…" className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 resize-none" />
               <button onClick={() => accion('conciliar', 'Pago conciliado', { notas })} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">
-                <CheckCircle2 size={15} /> {p.estado === 'en_revision' ? 'Validar comprobante y marcar pagado' : 'Marcar pagado (conciliar)'}
+                <CheckCircle2 size={15} /> Validar comprobante y marcar pagado
               </button>
-              {p.estado === 'en_revision' && (
-                <button onClick={() => { const m = prompt('Motivo del rechazo del comprobante:') ?? undefined; if (m !== undefined) accion('rechazar-comprobante', 'Comprobante rechazado', { motivo: m }); }} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2 border border-amber-300 text-amber-700 text-sm font-semibold rounded-lg hover:bg-amber-50 disabled:opacity-50">
-                  <XCircle size={15} /> Rechazar comprobante
-                </button>
-              )}
+              <button onClick={() => setModal('rechazar')} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2 border border-amber-300 text-amber-700 text-sm font-semibold rounded-lg hover:bg-amber-50 disabled:opacity-50">
+                <XCircle size={15} /> Rechazar comprobante
+              </button>
             </div>
           )}
           {p.estado !== 'pagado' && p.estado !== 'cancelado' && (
-            <button onClick={() => { if (confirm('¿Cancelar esta orden de pago?')) accion('cancelar', 'Orden cancelada'); }} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-sm font-semibold rounded-lg hover:bg-stone-50 disabled:opacity-50">
+            <button onClick={() => setModal('cancelar')} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-sm font-semibold rounded-lg hover:bg-stone-50 disabled:opacity-50">
               <Ban size={14} /> Cancelar orden
             </button>
           )}
@@ -516,7 +515,76 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
           )}
         </div>
       </div>
+
+      {/* ── Modales de confirmación ── */}
+      {modal === 'editar' && (
+        <ConfirmModal
+          icon={<Pencil size={20} />}
+          title="Editar orden emitida"
+          message="Podrás corregir la línea de captura, el vencimiento, el link o el PDF. La orden se re-emitirá con los nuevos datos y seguirá vigente."
+          confirmLabel="Editar orden"
+          onConfirm={() => { setEditando(true); setModal(null); }}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal === 'cancelar' && (
+        <ConfirmModal
+          danger icon={<Ban size={20} />}
+          title="Cancelar orden de pago"
+          message="La orden quedará cancelada y los exámenes volverán a quedar libres para solicitarse. Esta acción no se puede deshacer."
+          confirmLabel="Sí, cancelar orden"
+          onConfirm={() => { setModal(null); accion('cancelar', 'Orden cancelada'); }}
+          onClose={() => setModal(null)}
+        />
+      )}
+      {modal === 'rechazar' && (
+        <ConfirmModal
+          danger icon={<XCircle size={20} />}
+          title="Rechazar comprobante"
+          message="El comprobante se rechazará y la orden volverá a estado 'emitida' para que suban uno nuevo. Indica el motivo:"
+          confirmLabel="Rechazar comprobante"
+          withInput inputPlaceholder="Motivo del rechazo (ej. comprobante ilegible, monto incorrecto)…"
+          onConfirm={(motivo) => { setModal(null); accion('rechazar-comprobante', 'Comprobante rechazado', { motivo: motivo || 'Comprobante no válido' }); }}
+          onClose={() => setModal(null)}
+        />
+      )}
     </>
+  );
+}
+
+// ─── Modal de confirmación (profesional, no confirm() del navegador) ────────
+function ConfirmModal({ icon, title, message, confirmLabel, danger, withInput, inputPlaceholder, onConfirm, onClose }: {
+  icon?: React.ReactNode; title: string; message: string; confirmLabel: string; danger?: boolean;
+  withInput?: boolean; inputPlaceholder?: string; onConfirm: (input?: string) => void; onClose: () => void;
+}) {
+  const [val, setVal] = useState('');
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)' }} onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${danger ? 'bg-red-100 text-red-600' : 'bg-[var(--color-guinda-100,#f3dbe4)] text-[var(--color-guinda-700)]'}`}>
+              {icon}
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-serif text-lg font-bold text-stone-900">{title}</h3>
+              <p className="text-sm text-stone-600 mt-1 leading-relaxed">{message}</p>
+            </div>
+            <button onClick={onClose} className="text-stone-400 hover:text-stone-600 shrink-0"><X size={18} /></button>
+          </div>
+          {withInput && (
+            <textarea value={val} onChange={(e) => setVal(e.target.value)} rows={2} placeholder={inputPlaceholder}
+              className="w-full mt-3 text-sm border border-stone-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-[var(--color-guinda-700)]" autoFocus />
+          )}
+        </div>
+        <div className="flex gap-2 px-5 py-3 bg-stone-50 border-t border-stone-100">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-600 text-sm font-semibold hover:bg-white">Cancelar</button>
+          <button onClick={() => onConfirm(val)} className={`flex-1 py-2.5 rounded-lg text-white text-sm font-semibold ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-800)]'}`}>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -755,6 +755,11 @@ router.post('/:id/conciliar', async (req, res) => {
     const [p] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
     if (!p) return res.status(404).json({ error: 'No existe' });
 
+    // No se puede marcar pagado sin que el gestor/alumno haya subido comprobante.
+    if (!p.comprobantePath) {
+      return res.status(409).json({ error: 'No se puede marcar pagado sin comprobante. Espera a que el gestor o alumno lo suba.' });
+    }
+
     try {
       assertTransicion(p.estado as PagoExamenEstado, 'pagado');
     } catch {
