@@ -886,9 +886,14 @@ export default function AdminAlumnoDetalle() {
               <Edit2 size={12} /> Editar
             </button>
           </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <a href={`/api/admin/alumnos/${alumnoId}/cedula/pdf`} download="" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: 'var(--color-guinda-700)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}>
-              <ClipboardList size={12} /> Cédula de inscripción
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <a href={`/api/admin/alumnos/${alumnoId}/cedula/pdf`} target="_blank" rel="noreferrer"
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--color-guinda-700)', fontSize: 13, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+              <ClipboardList size={14} /> Ver cédula de inscripción
+            </a>
+            <a href={`/api/admin/alumnos/${alumnoId}/cedula/pdf`} download
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid #eadfd7', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, color: '#443e39', textDecoration: 'none' }}>
+              <Download size={13} /> Descargar
             </a>
           </div>
         </div>
