@@ -65,6 +65,7 @@ import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { tryAuditLog } from '../utils/audit';
 import { QR_SECRET } from '../config/env';
+import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 
 // ── Multer para expediente ────────────────────────────────────────────────
 const EXPEDIENTE_DIR = process.env.STORAGE_DIR
@@ -2134,12 +2135,12 @@ router.get('/mi-identificacion', async (req, res) => {
   const curp = est.curp ?? '';
   const curpMask = curp.length >= 10 ? `${curp.slice(0, 6)}••••${curp.slice(10)}` : curp;
 
-  // Fechas de emisión y vigencia (1 año)
+  // Fechas de emisión y vigencia (regla: VIGENCIA_CREDENCIAL_MESES)
   const fmtDate = (d: Date) =>
     d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' });
   const emisionDate = est.licenciaEmitidaEn ? new Date(est.licenciaEmitidaEn) : null;
   const vigenciaDate = emisionDate ? new Date(emisionDate.getTime()) : null;
-  if (vigenciaDate) vigenciaDate.setFullYear(vigenciaDate.getFullYear() + 1);
+  if (vigenciaDate) vigenciaDate.setMonth(vigenciaDate.getMonth() + VIGENCIA_CREDENCIAL_MESES);
 
   const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
 
@@ -2212,7 +2213,7 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
     `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
   const emisionDate = est.licenciaEmitidaEn ? new Date(est.licenciaEmitidaEn) : null;
   const vigenciaDate = emisionDate ? new Date(emisionDate.getTime()) : null;
-  if (vigenciaDate) vigenciaDate.setFullYear(vigenciaDate.getFullYear() + 1);
+  if (vigenciaDate) vigenciaDate.setMonth(vigenciaDate.getMonth() + VIGENCIA_CREDENCIAL_MESES);
   const emision = emisionDate ? fmtShort(emisionDate) : '—';
   const vigencia = vigenciaDate ? fmtShort(vigenciaDate) : '—';
   const sede = municipio?.nombre ?? '—';
