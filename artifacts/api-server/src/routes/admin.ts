@@ -1950,6 +1950,7 @@ router.get('/alumnos/:id', async (req, res) => {
       estado: string;
       calificacion: number | null;
       created_at: Date;
+      pago_estado: string | null;
     };
 
     const [alumnoResult, docs, pagosRows, examenResult] = await Promise.all([
@@ -1992,7 +1993,13 @@ router.get('/alumnos/:id', async (req, res) => {
           mo.numero AS modulo_numero, mo.nombre AS modulo_nombre,
           ce.clave AS etapa_clave, ce.etapa, ce.fase, ce.anio,
           ce.examen_sabado::text AS examen_sabado, ce.examen_domingo::text AS examen_domingo,
-          cmh.dia, cmh.hora
+          cmh.dia, cmh.hora,
+          (SELECT pe.estado FROM pagos_examen_inscripciones pei
+             JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+             WHERE pei.examen_inscripcion_id = ei.id
+             ORDER BY CASE pe.estado
+               WHEN 'pagado' THEN 1 WHEN 'en_revision' THEN 2 WHEN 'emitida' THEN 3 WHEN 'pendiente_emision' THEN 4 ELSE 5 END
+             LIMIT 1) AS pago_estado
         FROM examenes_inscripciones ei
         LEFT JOIN modulos mo ON ei.modulo_id = mo.id
         LEFT JOIN convocatorias_etapas ce ON ei.etapa_id = ce.id
@@ -2091,6 +2098,12 @@ router.get('/alumnos/:id', async (req, res) => {
         hora: e.hora ?? null,
         fechaExamen: e.dia === 'domingo' ? (e.examen_domingo ?? null) : (e.examen_sabado ?? null),
         estado: e.estado,
+        // Estado del proceso de pago del módulo: pagado (Inscrito) / en_pago / solicitado.
+        moduloEstado: e.pago_estado === 'pagado'
+          ? 'pagado'
+          : (e.pago_estado === 'emitida' || e.pago_estado === 'en_revision' || e.pago_estado === 'pendiente_emision')
+            ? 'en_pago'
+            : 'solicitado',
         calificacion: e.calificacion ?? null,
         createdAt: new Date(e.created_at as string | Date).toISOString(),
       })),

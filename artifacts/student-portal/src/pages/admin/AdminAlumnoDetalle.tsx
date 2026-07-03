@@ -80,6 +80,7 @@ type Examen = {
   hora: string | null;
   fechaExamen: string | null;
   estado: string;
+  moduloEstado: 'pagado' | 'en_pago' | 'solicitado';
   calificacion: number | null;
   createdAt: string;
 };
@@ -536,11 +537,11 @@ function fmtFechaExamen(iso: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-const ESTADO_MODULO_CFG: Record<string, { label: string; bg: string; color: string }> = {
-  inscrito:    { label: 'Inscrito',    bg: '#fef9c3', color: '#854d0e' },
-  presentado:  { label: 'Presentado',  bg: '#dbeafe', color: '#1e40af' },
-  aprobado:    { label: 'Aprobado',    bg: '#d1fae5', color: '#166534' },
-  reprobado:   { label: 'Reprobado',   bg: '#fee2e2', color: '#991b1b' },
+// Estado del módulo según el proceso de pago: Solicitado → En pago → Inscrito (pagado, verde).
+const MODULO_ESTADO_CFG: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  pagado:     { label: 'Inscrito',    bg: '#d1fae5', color: '#166534', dot: '#16a34a' },
+  en_pago:    { label: 'En pago',     bg: '#dbeafe', color: '#1e40af', dot: '#2563eb' },
+  solicitado: { label: 'Solicitado',  bg: '#fef9c3', color: '#854d0e', dot: '#d97706' },
 };
 
 function ModulosInscritos({ examenes }: { examenes: Examen[] }) {
@@ -572,7 +573,7 @@ function ModulosInscritos({ examenes }: { examenes: Examen[] }) {
           {/* Módulos con su tiempo de aplicación */}
           <div>
             {g.items.map((e) => {
-              const cfg = ESTADO_MODULO_CFG[e.estado] ?? { label: e.estado, bg: '#f7f2ed', color: '#6b635e' };
+              const cfg = MODULO_ESTADO_CFG[e.moduloEstado] ?? MODULO_ESTADO_CFG.solicitado;
               return (
                 <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: '1px solid #f7f2ed' }}>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -585,7 +586,8 @@ function ModulosInscritos({ examenes }: { examenes: Examen[] }) {
                       {e.hora && <span style={{ color: '#a89a8e' }}>· {e.hora} h</span>}
                     </div>
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: cfg.bg, color: cfg.color, flexShrink: 0 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: cfg.bg, color: cfg.color, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: 99, background: cfg.dot }} />
                     {cfg.label}
                   </span>
                 </div>
