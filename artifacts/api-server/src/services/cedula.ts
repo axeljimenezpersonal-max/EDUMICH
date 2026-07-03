@@ -290,7 +290,9 @@ export async function generarCedulaPdf(
   set('Nombre completo y firma estudiante', datos.nombreCompleto);
   set('Nombre y firma del responsable de la inscripción', datos.responsableNombre);
 
-  // ── Fotografía (recuadro superior izquierdo) ──
+  // ── Fotografía (recuadro rotulado "FOTOGRAFÍA", lado derecho) ──
+  // Se ajusta SIEMPRE al recuadro con aspect-fit y se centra, sin importar el
+  // tamaño/orientación de la imagen subida, para que quepa y se vea consistente.
   if (fotoPath) {
     try {
       const bytes = readFileSync(fotoPath);
@@ -298,7 +300,7 @@ export async function generarCedulaPdf(
       const esJpg = bytes[0] === 0xff && bytes[1] === 0xd8;
       if (esPng || esJpg) {
         const img = esPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        const boxW = 116, boxH = 118, boxX = 58, boxY = 560;
+        const boxW = 72, boxH = 84, boxX = 450, boxY = 496;
         const escala = Math.min(boxW / img.width, boxH / img.height);
         const w = img.width * escala, h = img.height * escala;
         page.drawImage(img, { x: boxX + (boxW - w) / 2, y: boxY + (boxH - h) / 2, width: w, height: h });

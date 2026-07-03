@@ -3527,12 +3527,29 @@ async function servirDocExpedienteAdmin(
     return;
   }
 
-  const safe = doc.nombreOriginal.replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'documento';
   const mime = doc.rutaArchivo.match(/\.(jpe?g)$/i)
     ? 'image/jpeg'
     : doc.rutaArchivo.match(/\.png$/i)
     ? 'image/png'
     : 'application/pdf';
+  const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'pdf';
+
+  // Nombre de archivo definido por nosotros: <Tipo>_<folio o matrícula>.<ext>
+  const TIPO_ARCHIVO: Record<string, string> = {
+    curp: 'CURP',
+    acta_nacimiento: 'Acta-de-nacimiento',
+    ine: 'Identificacion-oficial',
+    comprobante_domicilio: 'Comprobante-de-domicilio',
+    certificado_secundaria: 'Certificado-de-secundaria',
+    foto: 'Fotografia',
+  };
+  const [est] = await db
+    .select({ folio: estudiantes.folioPreregistro, matricula: estudiantes.matriculaOficialDGB })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, alumnoId));
+  const idInterno = est?.folio || est?.matricula || `alumno-${alumnoId}`;
+  const safe = `${TIPO_ARCHIVO[tipo] ?? tipo}_${idInterno}.${ext}`.replace(/[^a-zA-Z0-9_\-.]/g, '');
+
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
   createReadStream(doc.rutaArchivo).pipe(res);
