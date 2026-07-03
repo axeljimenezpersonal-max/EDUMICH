@@ -1116,7 +1116,17 @@ export default function AdminAlumnoDetalle() {
           )}
           {activeTab === 'pagos' && (
             pagosData.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay pagos registrados</p>
+              ? (
+                <div className="flex flex-col items-center justify-center text-center rounded-xl border-2 border-dashed border-stone-200 py-12 px-6">
+                  <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: '#f7f2ed' }}>
+                    <CreditCard size={24} style={{ color: '#c4b5a5' }} />
+                  </div>
+                  <div className="text-sm font-bold" style={{ color: '#57534e' }}>Sin pagos registrados</div>
+                  <div className="text-xs mt-1 max-w-xs" style={{ color: '#a89a8e' }}>
+                    Aquí aparecerán los pagos de derecho de examen del alumno una vez que se generen desde la pestaña <span className="font-semibold">Pagos</span>.
+                  </div>
+                </div>
+              )
               : pagosData.map((p) => <PagoRow key={p.id} pago={p} />)
           )}
           {activeTab === 'examenes' && (
