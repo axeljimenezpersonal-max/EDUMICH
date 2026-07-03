@@ -899,6 +899,69 @@ export default function AdminAlumnoDetalle() {
         </div>
       )}
 
+      {/* ── TABS ────────────────────────────────────────────────── */}
+      <div id="tabs-alumno" className="bg-white border border-stone-200 rounded-xl overflow-hidden scroll-mt-24 mb-6">
+        {/* Tab bar */}
+        <div className="flex border-b border-stone-100">
+          {TABS.map((t) => (
+            <button
+              key={t.key}
+              onClick={() => setActiveTab(t.key)}
+              className="flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors"
+              style={{
+                color: activeTab === t.key ? 'var(--color-guinda-700)' : '#6b635e',
+                background: 'none',
+                border: 'none',
+                borderBottom: activeTab === t.key ? '2px solid var(--color-guinda-700)' : '2px solid transparent',
+                cursor: 'pointer',
+              }}
+            >
+              <t.icon size={14} />
+              {t.label}
+              {t.count !== undefined && t.count > 0 && (
+                <span
+                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                  style={{ background: activeTab === t.key ? '#fbe6ea' : '#f7f2ed', color: activeTab === t.key ? 'var(--color-guinda-700)' : '#6b635e' }}
+                >
+                  {t.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div className="p-5">
+          {activeTab === 'docs' && (
+            documentos.length === 0
+              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay documentos registrados</p>
+              : documentos.map((d) => (
+                  <DocRow
+                    key={d.id}
+                    doc={d}
+                    alumnoId={alumnoId}
+                    onAprobar={(doc) => setModalAprobar(doc)}
+                    onRechazar={(doc) => setModalRechazar(doc)}
+                  />
+                ))
+          )}
+          {activeTab === 'pagos' && (
+            pagosData.length === 0
+              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay pagos registrados</p>
+              : pagosData.map((p) => <PagoRow key={p.id} pago={p} />)
+          )}
+          {activeTab === 'examenes' && (
+            <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
+          )}
+          {activeTab === 'cedula' && (
+            <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} />
+          )}
+          {activeTab === 'calificaciones' && (
+            <CalificacionesAdminTab estudianteId={alumnoId} />
+          )}
+        </div>
+      </div>
+
       {/* ── LICENCIA DIGITAL ────────────────────────────────────── */}
       {!alumno.licenciaDigital ? (
         <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
@@ -1007,68 +1070,6 @@ export default function AdminAlumnoDetalle() {
         );
       })()}
 
-      {/* ── TABS ────────────────────────────────────────────────── */}
-      <div id="tabs-alumno" className="bg-white border border-stone-200 rounded-xl overflow-hidden scroll-mt-24">
-        {/* Tab bar */}
-        <div className="flex border-b border-stone-100">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setActiveTab(t.key)}
-              className="flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors"
-              style={{
-                color: activeTab === t.key ? 'var(--color-guinda-700)' : '#6b635e',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === t.key ? '2px solid var(--color-guinda-700)' : '2px solid transparent',
-                cursor: 'pointer',
-              }}
-            >
-              <t.icon size={14} />
-              {t.label}
-              {t.count !== undefined && t.count > 0 && (
-                <span
-                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                  style={{ background: activeTab === t.key ? '#fbe6ea' : '#f7f2ed', color: activeTab === t.key ? 'var(--color-guinda-700)' : '#6b635e' }}
-                >
-                  {t.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-
-        {/* Tab content */}
-        <div className="p-5">
-          {activeTab === 'docs' && (
-            documentos.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay documentos registrados</p>
-              : documentos.map((d) => (
-                  <DocRow
-                    key={d.id}
-                    doc={d}
-                    alumnoId={alumnoId}
-                    onAprobar={(doc) => setModalAprobar(doc)}
-                    onRechazar={(doc) => setModalRechazar(doc)}
-                  />
-                ))
-          )}
-          {activeTab === 'pagos' && (
-            pagosData.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay pagos registrados</p>
-              : pagosData.map((p) => <PagoRow key={p.id} pago={p} />)
-          )}
-          {activeTab === 'examenes' && (
-            <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
-          )}
-          {activeTab === 'cedula' && (
-            <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} />
-          )}
-          {activeTab === 'calificaciones' && (
-            <CalificacionesAdminTab estudianteId={alumnoId} />
-          )}
-        </div>
-      </div>
       {/* Modal aprobar */}
       {modalAprobar && (
         <ModalAprobar
