@@ -593,8 +593,11 @@ function PagosTab({
     (p) => p.concepto === 'derecho_examen' && p.estado !== 'rechazado'
   ) ?? null;
 
-  const showPaymentForm = inscripcionesActivas.length > 0 && !pagoVigente && !ordenActiva;
-  const showPaymentStatus = inscripcionesActivas.length > 0 && !!pagoVigente && !ordenActiva;
+  // Flujo LEGACY de pago (tabla `pagos`) retirado: el pago del derecho de examen
+  // vive por completo en las órdenes de pago (pagos_examen / OrdenesPagoExamen).
+  void pagoVigente;
+  const showPaymentForm = false;
+  const showPaymentStatus = false;
 
   function copyText(text: string) {
     navigator.clipboard.writeText(text).catch(() => {});
@@ -613,27 +616,6 @@ function PagosTab({
 
   return (
     <div className="space-y-5">
-
-      {/* ── Resumen general ── */}
-      {pagosData && (
-        <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-xl p-5 flex flex-wrap gap-4 items-center">
-          <div className="flex-1 min-w-[140px]">
-            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">Total pagado y verificado</div>
-            <div className="text-3xl sm:text-4xl font-bold leading-none">
-              ${pagosData.resumen.totalPagado.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
-            </div>
-          </div>
-          <div className="hidden sm:block h-14 w-px bg-white/20" />
-          <div className="text-center">
-            <div className="text-3xl sm:text-4xl font-bold">{pagosData.resumen.verificados}</div>
-            <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Verificados</div>
-          </div>
-          <div className="text-center">
-            <div className="text-3xl sm:text-4xl font-bold">{pagosData.resumen.pendientes}</div>
-            <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Pendientes</div>
-          </div>
-        </div>
-      )}
 
       {/* ── Órdenes de pago (Tesorería del Estado) ── */}
       <OrdenesPagoExamen onEstado={setOrdenActiva} />
@@ -784,25 +766,7 @@ function PagosTab({
         </div>
       )}
 
-      {/* ── Historial de pagos ── */}
-      {pagosData && pagosData.pagos.length > 0 && (
-        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-stone-100">
-            <h3 className="text-sm font-bold text-stone-900">Historial de pagos</h3>
-          </div>
-          <div className="divide-y divide-stone-100">
-            {pagosData.pagos.map((pago) => (
-              <PagoCard
-                key={pago.id}
-                pago={pago}
-                onVerComprobante={(p) => window.open(`/api/pagos/${p.id}/comprobante`, '_blank')}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {pagosData && pagosData.pagos.length === 0 && inscripcionesActivas.length === 0 && !ordenActiva && (
+      {inscripcionesActivas.length === 0 && !ordenActiva && (
         <div className="text-center text-stone-400 py-8 text-sm">Sin pagos registrados.</div>
       )}
 

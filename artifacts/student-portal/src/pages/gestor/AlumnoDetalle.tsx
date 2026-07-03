@@ -1329,73 +1329,8 @@ function ConvocatoriaTab({
         </div>
       </div>
 
-      {/* ── Pago de derechos ── */}
-      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
-          <Receipt size={15} className="text-[var(--color-guinda-700)]" />
-          <h3 className="text-sm font-bold text-stone-900">Pago de derechos de examen</h3>
-        </div>
-
-        <div className="p-5 space-y-6">
-
-          {/* Status si ya hay pago */}
-          {data.pagoDerechos && (
-            <div className={`rounded-xl border p-4 flex items-start gap-3 ${
-              data.pagoDerechos.estado === 'verificado'   ? 'bg-green-50 border-green-200' :
-              data.pagoDerechos.estado === 'rechazado'    ? 'bg-red-50 border-red-200'     :
-                                                            'bg-amber-50 border-amber-200'
-            }`}>
-              {data.pagoDerechos.estado === 'verificado'  ? <CheckCircle2 size={18} className="text-green-600 shrink-0 mt-0.5" /> :
-               data.pagoDerechos.estado === 'rechazado'   ? <AlertCircle  size={18} className="text-red-600 shrink-0 mt-0.5" />   :
-                                                            <Clock        size={18} className="text-amber-500 shrink-0 mt-0.5" />}
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-stone-800">
-                  {data.pagoDerechos.estado === 'verificado' ? 'Pago verificado ✓' :
-                   data.pagoDerechos.estado === 'rechazado'  ? 'Comprobante rechazado' :
-                                                               'Comprobante enviado — en revisión'}
-                </div>
-                <div className="text-xs text-stone-500 mt-0.5">
-                  ${Number(data.pagoDerechos.monto).toLocaleString('es-MX')} MXN · {fmtDate(data.pagoDerechos.fechaPago)}
-                </div>
-                {data.pagoDerechos.estado === 'rechazado' && (
-                  <p className="text-xs text-red-700 mt-1.5">
-                    El administrador rechazó este comprobante. Sube uno nuevo para confirmar.
-                  </p>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* El pago ahora se realiza ante la Tesorería del Estado, vía la sección Pagos */}
-          {showPaymentForm && (
-            <div className="rounded-xl border border-stone-200 bg-stone-50 p-5">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] flex items-center justify-center shrink-0">
-                  <Landmark size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-bold text-stone-800">
-                    El pago se realiza ante la Tesorería del Estado de Michoacán
-                  </div>
-                  <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Genera tu ficha de pago (de este alumno o de varios a la vez), paga en la
-                    Tesorería / Secretaría de Finanzas y sube tu comprobante en la sección{' '}
-                    <strong>Pagos</strong>. La administración lo verificará y los exámenes
-                    quedarán cubiertos.
-                  </p>
-                  <a
-                    href="/gestor/pagos"
-                    className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-xs font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors"
-                  >
-                    <CreditCard size={13} /> Ir a Pagos
-                  </a>
-                </div>
-              </div>
-            </div>
-          )}
-
-        </div>
-      </div>
+      {/* El pago del derecho de examen vive en la sección Pagos (órdenes de
+          pago vía Tesorería del Estado). Aquí ya no se muestra estado de pago. */}
     </div>
   );
 }
