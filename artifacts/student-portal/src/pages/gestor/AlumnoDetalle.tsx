@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { Link, useLocation, useRoute } from 'wouter';
 import {
   ArrowLeft,
@@ -1006,11 +1006,11 @@ function PlanDeEstudiosTab({
     const ocupado = slotOcupado(m);
     return (
       <label
-        className={`flex items-center gap-3 p-3 rounded-lg border transition-colors select-none ${
+        className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all select-none ${
           ocupado
-            ? 'border-stone-200 bg-stone-50 opacity-60 cursor-not-allowed'
+            ? 'border-amber-300 bg-amber-50 cursor-not-allowed animate-[choque_0.45s_ease-in-out]'
             : checked
-              ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] cursor-pointer'
+              ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] cursor-pointer ring-1 ring-[var(--color-guinda-700)]'
               : 'border-stone-200 bg-white hover:bg-stone-50 cursor-pointer'
         }`}
       >
@@ -1019,19 +1019,20 @@ function PlanDeEstudiosTab({
           checked={checked}
           disabled={ocupado}
           onChange={() => !ocupado && toggle(m.id)}
-          className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]"
+          className="w-4 h-4 shrink-0 mt-0.5 accent-[var(--color-guinda-700)]"
         />
         <div className="min-w-0 flex-1">
-          <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
-            Módulo {m.numero}
+          <div className="flex items-center gap-1.5">
+            <span className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : ocupado ? 'text-amber-700' : 'text-stone-400'}`}>
+              Módulo {m.numero}
+            </span>
+            {m.nivel && <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-stone-100 text-stone-500">Nivel {m.nivel}</span>}
           </div>
-          <div className="text-xs text-stone-700 leading-snug truncate">{m.nombre}</div>
-          <div className="text-[10px] text-stone-400 mt-0.5">
-            {DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}
-          </div>
+          <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
           {ocupado && (
-            <div className="text-[10px] text-amber-600 font-semibold mt-0.5">
-              Choca con otro módulo (mismo día y hora)
+            <div className="flex items-center gap-1 text-[10px] text-amber-700 font-semibold mt-1 animate-pulse">
+              <AlertTriangle size={10} className="shrink-0" />
+              Ya elegiste otro módulo en este mismo día y hora
             </div>
           )}
         </div>
@@ -1039,7 +1040,27 @@ function PlanDeEstudiosTab({
     );
   }
 
-  const niveles = [1, 2, 3, 4];
+  // Inscritos y disponibles se muestran juntos en cada celda día×hora.
+  function ModuloInscrito({ m }: { m: ModDisp }) {
+    return (
+      <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-blue-200 bg-blue-50/60 select-none">
+        <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-blue-600" />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] font-bold text-blue-700">Módulo {m.numero}</span>
+            {m.nivel && <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-blue-100 text-blue-600">Nivel {m.nivel}</span>}
+          </div>
+          <div className="text-xs text-stone-600 leading-snug">{m.nombre}</div>
+          <div className="text-[10px] text-blue-600 font-bold mt-0.5">✓ Ya inscrito</div>
+        </div>
+      </div>
+    );
+  }
+
+  // Slots día×hora presentes en la convocatoria (para armar la tabla).
+  const ORDEN_DIA: Record<string, number> = { sabado: 0, domingo: 1 };
+  const diasOrd = [...new Set(modulosDisponibles.map((m) => m.dia))].sort((a, b) => (ORDEN_DIA[a] ?? 9) - (ORDEN_DIA[b] ?? 9));
+  const horasOrd = [...new Set(modulosDisponibles.map((m) => m.hora))].sort();
 
   return (
     <div className="space-y-5">
@@ -1088,66 +1109,61 @@ function PlanDeEstudiosTab({
         </div>
       ) : (
         <>
-          {/* Modules by nivel */}
-          {niveles.map((nivel) => {
-            const pend = pendientes.filter((m) => m.nivel === nivel);
-            const insc = inscritos.filter((m) => m.nivel === nivel);
-            if (pend.length === 0 && insc.length === 0) return null;
-            return (
-              <section key={nivel}>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">
-                  Nivel {nivel} — {NIVEL_LABELS[nivel]}
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {insc.map((m) => (
-                    <div
-                      key={m.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 bg-stone-50 select-none"
-                    >
-                      <input type="checkbox" checked disabled className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]" />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-bold text-stone-400">Módulo {m.numero}</div>
-                        <div className="text-xs text-stone-600 leading-snug truncate">{m.nombre}</div>
-                        <div className="text-[10px] text-stone-400 mt-0.5">
-                          {DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}
+          {/* Horario de exámenes — tabla por día y hora */}
+          <div>
+            <div className="flex items-baseline justify-between mb-3 flex-wrap gap-1">
+              <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500">
+                Horario de exámenes · elige por día y hora
+              </h3>
+              <span className="text-[11px] text-stone-400">
+                Los módulos en un mismo bloque comparten día y hora — solo puedes inscribir uno de cada bloque.
+              </span>
+            </div>
+            <div className="overflow-x-auto -mx-1 px-1 pb-1">
+              <div
+                className="grid gap-2 min-w-[560px]"
+                style={{ gridTemplateColumns: `64px repeat(${diasOrd.length}, minmax(0,1fr))` }}
+              >
+                {/* Encabezado: días */}
+                <div />
+                {diasOrd.map((d) => (
+                  <div key={`h-${d}`} className="text-center text-xs font-bold uppercase tracking-wide text-[var(--color-guinda-700)] pb-1.5 border-b-2 border-[var(--color-guinda-200,#e8c4d4)]">
+                    {DIA_LABEL[d] ?? d}
+                  </div>
+                ))}
+                {/* Filas: una por hora */}
+                {horasOrd.map((h) => (
+                  <Fragment key={`row-${h}`}>
+                    <div className="flex items-center justify-end pr-1.5 text-[11px] font-bold text-stone-500">
+                      <Clock size={11} className="mr-1 text-stone-400 shrink-0" />{HORA_LABEL[h] ?? h}
+                    </div>
+                    {diasOrd.map((d) => {
+                      const slotMods = modulosDisponibles.filter((m) => m.dia === d && m.hora === h);
+                      const selectables = slotMods.filter((m) => !m.yaInscrito);
+                      return (
+                        <div key={`c-${d}-${h}`} className="rounded-xl border border-stone-100 bg-stone-50/40 p-1.5 space-y-1.5">
+                          {slotMods.length === 0 ? (
+                            <div className="flex items-center justify-center text-[11px] text-stone-300 py-4">—</div>
+                          ) : (
+                            <>
+                              {slotMods.map((m) => m.yaInscrito
+                                ? <ModuloInscrito key={m.id} m={m} />
+                                : <ModuloPendiente key={m.id} m={m} />)}
+                              {selectables.length > 1 && (
+                                <div className="flex items-center justify-center gap-1 text-[9px] text-amber-600 font-bold uppercase tracking-wide">
+                                  <AlertTriangle size={9} /> Empalmados · solo uno
+                                </div>
+                              )}
+                            </>
+                          )}
                         </div>
-                      </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">
-                        ✓ Inscrito
-                      </span>
-                    </div>
-                  ))}
-                  {pend.map((m) => <ModuloPendiente key={m.id} m={m} />)}
-                </div>
-              </section>
-            );
-          })}
-
-          {/* Modules without nivel */}
-          {(() => {
-            const pend = pendientes.filter((m) => !m.nivel);
-            const insc = inscritos.filter((m) => !m.nivel);
-            if (pend.length === 0 && insc.length === 0) return null;
-            return (
-              <section>
-                <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 mb-3">Otros módulos</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                  {insc.map((m) => (
-                    <div key={m.id} className="flex items-center gap-3 p-3 rounded-lg border border-stone-200 bg-stone-50 select-none">
-                      <input type="checkbox" checked disabled className="w-4 h-4 shrink-0 accent-[var(--color-guinda-700)]" />
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[11px] font-bold text-stone-400">Módulo {m.numero}</div>
-                        <div className="text-xs text-stone-600 leading-snug truncate">{m.nombre}</div>
-                        <div className="text-[10px] text-stone-400 mt-0.5">{DIA_LABEL[m.dia] ?? m.dia} · {HORA_LABEL[m.hora] ?? m.hora}</div>
-                      </div>
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 font-bold shrink-0">✓ Inscrito</span>
-                    </div>
-                  ))}
-                  {pend.map((m) => <ModuloPendiente key={m.id} m={m} />)}
-                </div>
-              </section>
-            );
-          })()}
+                      );
+                    })}
+                  </Fragment>
+                ))}
+              </div>
+            </div>
+          </div>
 
           {/* Footer: count + inscribe button */}
           <div className="flex items-center justify-between pt-4 border-t border-stone-200">
