@@ -334,13 +334,8 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
             <div className="grid grid-cols-2 gap-3 text-sm">
               <Dato label="Concepto" val="Derecho de examen" />
               <Dato label="Exámenes" val={String(p.cantidadExamenes)} />
-              <Dato label="Total (alumno ve)" val={fmtMoney(p.montoTotal)} />
+              <Dato label="Total" val={fmtMoney(p.montoTotal)} />
               <Dato label="Vencimiento" val={fmtFecha(p.fechaVencimiento)} />
-            </div>
-            {/* Split interno — solo admin */}
-            <div className="mt-3 pt-3 border-t border-dashed border-stone-200 grid grid-cols-2 gap-3 text-sm">
-              <Dato label="IEMSyS (interno)" val={fmtMoney(p.montoIemsys)} />
-              <Dato label="Synapsis (interno)" val={fmtMoney(p.montoSynapsis)} />
             </div>
           </div>
 
