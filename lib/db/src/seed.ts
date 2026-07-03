@@ -54,7 +54,7 @@ async function main() {
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle(pool);
 
-  console.log('🌱 Iniciando seed de Prepa Abierta Michoacán...\n');
+  console.log('🌱 Iniciando seed de Preparatoria Abierta Michoacán...\n');
 
   // ── Municipios ─────────────────────────────────────────────────────
   console.log('📍 Sembrando municipios...');
@@ -333,7 +333,7 @@ async function main() {
 
     await db.insert(administradores).values({
       userId: adminUser.id,
-      nombreCompleto: 'Dirección de Prepa Abierta Michoacán',
+      nombreCompleto: 'Dirección de Preparatoria Abierta Michoacán',
       puesto: 'Director(a)',
       emailPublico: 'contacto@michoacan.gob.mx',
       telefonoPublico: '443-322-9250',
@@ -385,9 +385,9 @@ async function main() {
   if (adminForAvisos) {
     const avisosData = [
       {
-        titulo: 'Bienvenido al Sistema Prepa Abierta',
+        titulo: 'Bienvenido al Sistema Preparatoria Abierta',
         contenido:
-          'Te damos la bienvenida al Sistema de Gestión de Prepa Abierta Michoacán. ' +
+          'Te damos la bienvenida al Sistema de Gestión de Preparatoria Abierta Michoacán. ' +
           'Aquí podrás consultar el estado de tu inscripción, revisar los avisos de la institución ' +
           'y estar al tanto de los próximos pasos en tu proceso de registro. ' +
           'Cualquier duda, contacta a tu gestor municipal asignado.',
@@ -1683,7 +1683,7 @@ async function main() {
   const confConceptosCount = await db.select({ c: sql<number>`count(*)` }).from(conceptosPago);
   if (Number(confConceptosCount[0].c) === 0) {
     await db.insert(conceptosPago).values([
-      { clave: 'inscripcion_inicial', nombre: 'Inscripción inicial', descripcion: 'Derecho de inscripción al sistema Prepa Abierta', monto: '850.00', vigencia: 2026, activo: true },
+      { clave: 'inscripcion_inicial', nombre: 'Inscripción inicial', descripcion: 'Derecho de inscripción al sistema Preparatoria Abierta', monto: '850.00', vigencia: 2026, activo: true },
       { clave: 'examen_modulo', nombre: 'Examen por módulo', descripcion: 'Derecho de examen por cada módulo ordinario', monto: '95.00', vigencia: 2026, activo: true },
       { clave: 'examen_extraordinario', nombre: 'Examen extraordinario', descripcion: 'Derecho de examen en convocatoria extraordinaria', monto: '95.00', vigencia: 2026, activo: true },
       { clave: 'reposicion_credencial', nombre: 'Reposición de credencial', descripcion: 'Reposición por extravío o deterioro', monto: '44.00', vigencia: 2026, activo: true },
@@ -1710,7 +1710,7 @@ async function main() {
   // ── Plantillas de correo ────────────────────────────────────────────────
   const confPlantillasCount = await db.select({ c: sql<number>`count(*)` }).from(plantillasCorreo);
   if (Number(confPlantillasCount[0].c) === 0) {
-    const headerHtml = `<div style="background:#6B0F3C;padding:20px 32px;margin-bottom:0"><p style="color:white;font-size:11px;margin:0;font-family:sans-serif;letter-spacing:0.1em;text-transform:uppercase">GOBIERNO DEL ESTADO DE MICHOACÁN</p><h1 style="color:white;font-size:20px;margin:8px 0 0;font-family:sans-serif;font-weight:700">Prepa Abierta Michoacán</h1></div>`;
+    const headerHtml = `<div style="background:#6B0F3C;padding:20px 32px;margin-bottom:0"><p style="color:white;font-size:11px;margin:0;font-family:sans-serif;letter-spacing:0.1em;text-transform:uppercase">GOBIERNO DEL ESTADO DE MICHOACÁN</p><h1 style="color:white;font-size:20px;margin:8px 0 0;font-family:sans-serif;font-weight:700">Preparatoria Abierta Michoacán</h1></div>`;
     const footerHtml = `<div style="background:#f5f0ea;padding:16px 32px;margin-top:32px;border-top:3px solid #6B0F3C"><p style="color:#78716c;font-size:11px;margin:0;font-family:sans-serif">Instituto de Educación Media Superior y Superior · Michoacán<br>prepaabierta.michoacan.gob.mx · soporte.preparatoria@michoacan.gob.mx</p></div>`;
     const wrap = (body: string) => `${headerHtml}<div style="padding:32px;font-family:sans-serif;color:#2a2a2a">${body}</div>${footerHtml}`;
 
@@ -1719,8 +1719,8 @@ async function main() {
         clave: 'bienvenida_credenciales',
         nombre: 'Bienvenida con credenciales',
         descripcion: 'Se envía al alumno cuando el gestor crea su cuenta',
-        asunto: 'Bienvenido a Prepa Abierta Michoacán — Tus credenciales de acceso',
-        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Bienvenido, {{nombreCompleto}}</h2><p>Tu cuenta ha sido creada exitosamente en el Sistema de Prepa Abierta Michoacán.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0 0 8px"><strong>Correo:</strong> {{email}}</p><p style="margin:0"><strong>Contraseña temporal:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:15px">{{passwordTemporal}}</code></p></div><p>Tu gestor asignado es <strong>{{gestorNombre}}</strong> ({{gestorEmail}}).</p><p>Por seguridad, deberás cambiar tu contraseña en tu primer ingreso.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">Ingresar al portal</a>`),
+        asunto: 'Bienvenido a Preparatoria Abierta Michoacán — Tus credenciales de acceso',
+        contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Bienvenido, {{nombreCompleto}}</h2><p>Tu cuenta ha sido creada exitosamente en el Sistema de Preparatoria Abierta Michoacán.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0 0 8px"><strong>Correo:</strong> {{email}}</p><p style="margin:0"><strong>Contraseña temporal:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px;font-size:15px">{{passwordTemporal}}</code></p></div><p>Tu gestor asignado es <strong>{{gestorNombre}}</strong> ({{gestorEmail}}).</p><p>Por seguridad, deberás cambiar tu contraseña en tu primer ingreso.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin-top:8px">Ingresar al portal</a>`),
         variablesDisponibles: ['nombreCompleto', 'email', 'passwordTemporal', 'gestorNombre', 'gestorEmail', 'linkPortal'],
         activa: true,
       },
@@ -1728,7 +1728,7 @@ async function main() {
         clave: 'verificacion_codigo',
         nombre: 'Verificación de correo (código)',
         descripcion: 'Código de 6 dígitos para verificar el correo en auto-registro',
-        asunto: 'Prepa Abierta — Tu código de verificación: {{codigo}}',
+        asunto: 'Preparatoria Abierta — Tu código de verificación: {{codigo}}',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Verifica tu correo electrónico</h2><p>Usa el siguiente código para completar tu registro:</p><div style="text-align:center;margin:32px 0"><span style="font-size:40px;font-weight:800;letter-spacing:0.3em;color:#6B0F3C;font-family:monospace">{{codigo}}</span></div><p style="color:#78716c;font-size:13px">Este código expira en 15 minutos. Si no solicitaste esto, ignora este correo.</p>`),
         variablesDisponibles: ['codigo', 'email'],
         activa: true,
@@ -1737,7 +1737,7 @@ async function main() {
         clave: 'recuperacion_password',
         nombre: 'Recuperación de contraseña',
         descripcion: 'Enlace de reset cuando el usuario solicita recuperar su contraseña',
-        asunto: 'Prepa Abierta — Recupera tu contraseña',
+        asunto: 'Preparatoria Abierta — Recupera tu contraseña',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Restablecer contraseña</h2><p>Recibimos una solicitud para restablecer la contraseña de <strong>{{email}}</strong>.</p><a href="{{linkReset}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600;margin:16px 0">Restablecer contraseña</a><p style="color:#78716c;font-size:13px">Este enlace expira en 2 horas. Si no solicitaste el cambio, ignora este correo.</p>`),
         variablesDisponibles: ['email', 'linkReset', 'nombreCompleto'],
         activa: true,
@@ -1746,7 +1746,7 @@ async function main() {
         clave: 'solicitud_aprobada',
         nombre: 'Solicitud aprobada',
         descripcion: 'Notifica al solicitante que su solicitud fue aprobada y le da sus credenciales',
-        asunto: 'Prepa Abierta — Tu solicitud fue aprobada',
+        asunto: 'Preparatoria Abierta — Tu solicitud fue aprobada',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">¡Tu solicitud fue aprobada!</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, nos complace informarte que tu solicitud de inscripción ha sido aprobada.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0 0 8px"><strong>Correo:</strong> {{email}}</p><p style="margin:0"><strong>Contraseña temporal:</strong> <code style="background:#e5e7eb;padding:2px 6px;border-radius:3px">{{passwordTemporal}}</code></p></div><p>Tu gestor asignado: <strong>{{gestorNombre}}</strong></p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">Ingresar al portal</a>`),
         variablesDisponibles: ['nombreCompleto', 'email', 'passwordTemporal', 'gestorNombre', 'linkPortal'],
         activa: true,
@@ -1755,7 +1755,7 @@ async function main() {
         clave: 'solicitud_rechazada',
         nombre: 'Solicitud rechazada',
         descripcion: 'Notifica al solicitante que su solicitud fue rechazada con el motivo',
-        asunto: 'Prepa Abierta — Actualización sobre tu solicitud',
+        asunto: 'Preparatoria Abierta — Actualización sobre tu solicitud',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Actualización sobre tu solicitud</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, hemos revisado tu solicitud y lamentamos informarte que no fue posible aprobarla en este momento.</p><div style="background:#fff5f5;border-left:4px solid #ef4444;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0"><strong>Motivo:</strong> {{motivoRechazo}}</p></div><p>Si tienes dudas, comunícate con nosotros en soporte.preparatoria@michoacan.gob.mx</p>`),
         variablesDisponibles: ['nombreCompleto', 'motivoRechazo', 'email'],
         activa: true,
@@ -1764,7 +1764,7 @@ async function main() {
         clave: 'anuncio_institucional',
         nombre: 'Anuncio institucional',
         descripcion: 'Plantilla genérica para comunicados y anuncios del sistema',
-        asunto: '{{asuntoAnuncio}} — Prepa Abierta Michoacán',
+        asunto: '{{asuntoAnuncio}} — Preparatoria Abierta Michoacán',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">{{tituloAnuncio}}</h2><div>{{contenidoAnuncio}}</div><p style="color:#78716c;font-size:12px;margin-top:24px">Para más información visita <a href="{{linkPortal}}" style="color:#6B0F3C">tu portal</a>.</p>`),
         variablesDisponibles: ['tituloAnuncio', 'asuntoAnuncio', 'contenidoAnuncio', 'linkPortal'],
         activa: true,
@@ -1773,7 +1773,7 @@ async function main() {
         clave: 'documento_rechazado',
         nombre: 'Documento rechazado',
         descripcion: 'Notifica al alumno que un documento de su expediente fue rechazado',
-        asunto: 'Prepa Abierta — Documento requiere atención',
+        asunto: 'Preparatoria Abierta — Documento requiere atención',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">Documento requiere atención</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, tu documento <strong>"{{tipoDocumento}}"</strong> fue revisado y requiere corrección.</p><div style="background:#fff5f5;border-left:4px solid #ef4444;padding:16px 20px;margin:20px 0;border-radius:4px"><p style="margin:0"><strong>Motivo:</strong> {{motivoRechazo}}</p></div><p>Vuelve a subir el documento corregido desde tu portal.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">Ir a mi expediente</a>`),
         variablesDisponibles: ['nombreCompleto', 'tipoDocumento', 'motivoRechazo', 'linkPortal'],
         activa: true,
@@ -1782,7 +1782,7 @@ async function main() {
         clave: 'matricula_asignada',
         nombre: 'Matrícula DGB asignada',
         descripcion: 'Notifica al alumno cuando se le captura su matrícula oficial DGB',
-        asunto: 'Prepa Abierta — Tu matrícula oficial ha sido asignada',
+        asunto: 'Preparatoria Abierta — Tu matrícula oficial ha sido asignada',
         contenidoHtml: wrap(`<h2 style="color:#6B0F3C">¡Matrícula oficial asignada!</h2><p>Estimado/a <strong>{{nombreCompleto}}</strong>, nos complace informarte que tu matrícula oficial DGB ha sido registrada en el sistema.</p><div style="background:#fdf6fa;border-left:4px solid #6B0F3C;padding:16px 20px;margin:20px 0;border-radius:4px;text-align:center"><p style="margin:0 0 4px;font-size:12px;color:#78716c;text-transform:uppercase;letter-spacing:0.1em">Matrícula oficial DGB</p><p style="margin:0;font-size:24px;font-weight:800;color:#6B0F3C;font-family:monospace">{{matriculaDGB}}</p></div><p>Descarga tu ficha de registro oficial desde tu portal.</p><a href="{{linkPortal}}" style="display:inline-block;background:#6B0F3C;color:white;padding:10px 24px;border-radius:6px;text-decoration:none;font-weight:600">Ver mi ficha de registro</a>`),
         variablesDisponibles: ['nombreCompleto', 'matriculaDGB', 'linkPortal'],
         activa: true,
@@ -1964,8 +1964,8 @@ async function main() {
         toEmail: 'ana.lopez@correo.com',
         toName: 'Ana López',
         fromEmail: FROM_EMAIL,
-        fromName: 'Prepa Abierta Michoacán',
-        subject: '¡Bienvenida a Prepa Abierta Michoacán! Tus datos de acceso',
+        fromName: 'Preparatoria Abierta Michoacán',
+        subject: '¡Bienvenida a Preparatoria Abierta Michoacán! Tus datos de acceso',
         html: `<p>Bienvenida Ana, tus credenciales son: ana.lopez@correo.com / demo1234</p>`,
         evento: 'cuenta_creada_alumno',
         estado: 'demo_mode',
@@ -1979,8 +1979,8 @@ async function main() {
         toEmail: 'r.vargas@correo.com',
         toName: 'Roberto Vargas Méndez',
         fromEmail: FROM_EMAIL,
-        fromName: 'Prepa Abierta Michoacán',
-        subject: '¡Bienvenido a Prepa Abierta Michoacán! Tus datos de acceso',
+        fromName: 'Preparatoria Abierta Michoacán',
+        subject: '¡Bienvenido a Preparatoria Abierta Michoacán! Tus datos de acceso',
         html: `<p>Bienvenido Roberto, tus credenciales son: r.vargas@correo.com / demo1234</p>`,
         evento: 'cuenta_creada_alumno',
         estado: 'demo_mode',
@@ -1994,8 +1994,8 @@ async function main() {
         toEmail: 'elena.cisneros@correo.com',
         toName: 'Elena Cisneros',
         fromEmail: FROM_EMAIL,
-        fromName: 'Prepa Abierta Michoacán',
-        subject: '¡Bienvenida a Prepa Abierta Michoacán! Tus datos de acceso',
+        fromName: 'Preparatoria Abierta Michoacán',
+        subject: '¡Bienvenida a Preparatoria Abierta Michoacán! Tus datos de acceso',
         html: `<p>Bienvenida Elena, tus credenciales son: elena.cisneros@correo.com / demo1234</p>`,
         evento: 'cuenta_creada_alumno',
         estado: 'demo_mode',
@@ -2009,8 +2009,8 @@ async function main() {
         toEmail: 'm.ramirez@michoacan.gob.mx',
         toName: 'Manuel Ramírez',
         fromEmail: FROM_EMAIL,
-        fromName: 'Prepa Abierta Michoacán',
-        subject: 'Bienvenido al sistema de gestión — Prepa Abierta Michoacán',
+        fromName: 'Preparatoria Abierta Michoacán',
+        subject: 'Bienvenido al sistema de gestión — Preparatoria Abierta Michoacán',
         html: `<p>Bienvenido Manuel, eres Gestor Municipal de Pátzcuaro.</p>`,
         evento: 'cuenta_creada_gestor',
         estado: 'demo_mode',
@@ -2024,7 +2024,7 @@ async function main() {
         toEmail: 'admin@michoacan.gob.mx',
         toName: 'Administración IEMSyS',
         fromEmail: FROM_EMAIL,
-        fromName: 'Prepa Abierta Michoacán',
+        fromName: 'Preparatoria Abierta Michoacán',
         subject: 'Nueva solicitud de registro — Sofía Castañeda Reyes',
         html: `<p>Nueva solicitud de cuenta de Sofía Castañeda Reyes, municipio Morelia.</p>`,
         evento: 'notificacion_admin_autoregistro',
@@ -2037,8 +2037,8 @@ async function main() {
         toEmail: 'juana.rodriguez@correo.com',
         toName: 'Juana Rodríguez Mendoza',
         fromEmail: FROM_EMAIL,
-        fromName: 'Prepa Abierta Michoacán',
-        subject: 'Recibimos tu solicitud — Prepa Abierta Michoacán',
+        fromName: 'Preparatoria Abierta Michoacán',
+        subject: 'Recibimos tu solicitud — Preparatoria Abierta Michoacán',
         html: `<p>Hola Juana, recibimos tu solicitud de inscripción. Un gestor te contactará pronto.</p>`,
         evento: 'autoregistro_alumno',
         estado: 'demo_mode',

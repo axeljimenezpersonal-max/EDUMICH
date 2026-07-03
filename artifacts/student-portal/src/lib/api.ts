@@ -1,5 +1,5 @@
 /**
- * Cliente HTTP simple — Prepa Abierta Michoacán
+ * Cliente HTTP simple — Preparatoria Abierta Michoacán
  * Manda credentials para que la cookie de sesión viaje en cada request.
  *
  * Ubicación destino en Replit: artifacts/student-portal/src/lib/api.ts

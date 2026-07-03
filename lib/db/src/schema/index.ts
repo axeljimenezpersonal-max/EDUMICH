@@ -1,5 +1,5 @@
 /**
- * Schema de base de datos — Prepa Abierta Michoacán
+ * Schema de base de datos — Preparatoria Abierta Michoacán
  *
  * Modelo central:
  *   users → (gestores | estudiantes | administradores)
@@ -1509,7 +1509,7 @@ export const outbox = pgTable('outbox', {
   toName: text('to_name'),
   ccEmail: text('cc_email'),
   fromEmail: text('from_email').notNull(),
-  fromName: text('from_name').notNull().default('Prepa Abierta Michoacán'),
+  fromName: text('from_name').notNull().default('Preparatoria Abierta Michoacán'),
   subject: text('subject').notNull(),
   html: text('html').notNull(),
   textPlain: text('text_plain'),

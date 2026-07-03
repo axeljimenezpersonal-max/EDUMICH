@@ -49,7 +49,7 @@ export async function sendEmail(
   const mode = getEmailMode();
   const cc = process.env.INSTITUTIONAL_CC_EMAIL ?? undefined;
   const fromEmail = process.env.EMAIL_FROM ?? 'noreply@edumich.up.railway.app';
-  const fromName = 'Prepa Abierta Michoacán';
+  const fromName = 'Preparatoria Abierta Michoacán';
 
   if (mode === 'dev') {
     console.log(`\n📧 [DEV EMAIL] ${opts.evento} → ${opts.to} | ${opts.subject}\n`);
@@ -198,7 +198,7 @@ export async function sendRecuperarPassword(
   return sendEmail({
     to: email,
     toName: data.nombre,
-    subject: 'Recupera tu contraseña — Prepa Abierta Michoacán',
+    subject: 'Recupera tu contraseña — Preparatoria Abierta Michoacán',
     html,
     evento: 'recuperar_password',
     relatedUserId: opts?.relatedUserId,
@@ -222,7 +222,7 @@ export async function sendAvisoEliminacion(
   return sendEmail({
     to: email,
     toName: data.nombreCompleto,
-    subject: 'Tu cuenta de Prepa Abierta Michoacán será eliminada en 5 días',
+    subject: 'Tu cuenta de Preparatoria Abierta Michoacán será eliminada en 5 días',
     html,
     evento: 'aviso_eliminacion_cuenta',
     relatedUserId: opts?.relatedUserId,
@@ -261,7 +261,7 @@ function getRecuperarPasswordHTML(data: RecuperarPasswordData): string {
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
         <tr><td style="background:#7b1e3a;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
         </td></tr>
         <tr><td style="padding:32px 32px 24px 32px;">
@@ -303,7 +303,7 @@ function getAvisoEliminacionHTML(data: AvisoEliminacionData): string {
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
         <tr><td style="background:#7b1e3a;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;">Prepa Abierta · IEMSyS</div>
+          <div style="color:#fff;font-size:16px;font-weight:bold;">Preparatoria Abierta · IEMSyS</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
         </td></tr>
         <tr><td style="padding:28px 32px 0 32px;">
@@ -339,7 +339,7 @@ function getVerificationEmailHTML(codigo: string): string {
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;border:1px solid #e2d9d0;">
         <tr><td style="background:#7b1e3a;padding:24px 32px;">
-          <div style="color:#fff;font-size:15px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+          <div style="color:#fff;font-size:15px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
           <div style="color:rgba(255,255,255,0.75);font-size:11px;letter-spacing:1px;">GOBIERNO DE MICHOACÁN</div>
         </td></tr>
         <tr><td style="padding:32px;">

@@ -163,7 +163,7 @@ export default function PaseExamen() {
           {/* Card header */}
           <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[#9b2a4e] px-5 py-4 text-white">
             <p className="text-xs uppercase tracking-widest opacity-70 mb-1">
-              IEMSyS — Prepa Abierta Michoacán
+              IEMSyS — Preparatoria Abierta Michoacán
             </p>
             <p className="font-bold text-lg">Pase de Examen</p>
             <p className="font-mono text-sm opacity-90 mt-0.5">{pase.folio}</p>

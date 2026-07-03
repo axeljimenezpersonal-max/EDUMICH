@@ -13,7 +13,7 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
   html: string;
   textPlain: string;
 } {
-  const subject = `Bienvenido al sistema de gestión — Prepa Abierta Michoacán`;
+  const subject = `Bienvenido al sistema de gestión — Preparatoria Abierta Michoacán`;
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -23,13 +23,13 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
         <tr><td style="background:#7b1e3a;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
           <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:10px;">Designación como gestor municipal</div>
           <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Bienvenido(a), ${escapeHtml(data.nombreGestor)}</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Has sido designado(a) como <strong>Gestor Municipal de ${escapeHtml(data.municipio)}</strong> en el Sistema de Prepa Abierta del Gobierno de Michoacán.</p>
+          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Has sido designado(a) como <strong>Gestor Municipal de ${escapeHtml(data.municipio)}</strong> en el Sistema de Preparatoria Abierta del Gobierno de Michoacán.</p>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Como gestor podrás dar de alta aspirantes, subir documentación de expediente y dar seguimiento personalizado a cada alumno de tu municipio.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">
@@ -70,7 +70,7 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
 </body>
 </html>`;
 
-  const textPlain = `Bienvenido(a) ${data.nombreGestor},\n\nFuiste designado(a) Gestor Municipal de ${data.municipio} en Prepa Abierta Michoacán.\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n\nAccede en: ${data.portalUrl}`;
+  const textPlain = `Bienvenido(a) ${data.nombreGestor},\n\nFuiste designado(a) Gestor Municipal de ${data.municipio} en Preparatoria Abierta Michoacán.\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n\nAccede en: ${data.portalUrl}`;
 
   return { subject, html, textPlain };
 }

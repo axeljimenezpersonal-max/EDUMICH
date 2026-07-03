@@ -350,7 +350,7 @@ export default function SolicitarCuenta() {
             ¡Solicitud enviada!
           </h1>
           <p className="text-stone-600 mb-6 max-w-sm mx-auto">
-            Recibimos tu solicitud de cuenta. La administración de Prepa Abierta Michoacán
+            Recibimos tu solicitud de cuenta. La administración de Preparatoria Abierta Michoacán
             la revisará y se pondrá en contacto contigo en los próximos días hábiles.
           </p>
           <div className="bg-[var(--color-crema-100)] border border-stone-200 rounded-md p-4 text-left mb-6 text-sm text-stone-700">

@@ -380,7 +380,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   border: '1px solid #e8c4d4', borderRadius: 4,
                   padding: '1px 5px', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
                 }}>
-                  PREPA ABIERTA
+                  PREPARATORIA ABIERTA
                 </span>
               </div>
             </div>

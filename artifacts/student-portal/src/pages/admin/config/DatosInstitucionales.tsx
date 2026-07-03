@@ -142,7 +142,7 @@ export default function DatosInstitucionales({ onDirty }: { onDirty: (d: boolean
                   value={form.nombreCorto}
                   onChange={(e) => set('nombreCorto', e.target.value)}
                   maxLength={50}
-                  placeholder="Ej. Prepa Abierta Michoacan"
+                  placeholder="Ej. Preparatoria Abierta Michoacan"
                 />
                 <span className="text-[11px]" style={{ color: '#a89a8e' }}>
                   {form.nombreCorto.length}/50 caracteres

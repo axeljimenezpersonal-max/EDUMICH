@@ -1952,7 +1952,7 @@ router.get('/alumnos/:id/ficha-pago', async (req, res) => {
     monto: config.costoExamen,
     referencia,
     banco: config.banco?.banco ?? 'Banco no configurado',
-    titular: config.banco?.titular ?? 'IEMSyS — Prepa Abierta Michoacán',
+    titular: config.banco?.titular ?? 'IEMSyS — Preparatoria Abierta Michoacán',
     clabe: config.banco?.clabe ?? '000000000000000000',
     numeroCuenta: config.banco?.numeroCuenta ?? null,
     convenio: config.banco?.convenio ?? null,

@@ -1,5 +1,5 @@
 /**
- * Ficha de depósito de un PAGO GRUPAL (gestor) — Prepa Abierta Michoacán.
+ * Ficha de depósito de un PAGO GRUPAL (gestor) — Preparatoria Abierta Michoacán.
  *
  * El gestor paga N exámenes de una sola vez ante la Tesorería / Secretaría de
  * Finanzas del Estado de Michoacán (formato de pago de derechos) y usa esta

@@ -275,7 +275,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
             </div>
             {/* Mobile: solo nombre corto */}
             <div className="sm:hidden leading-tight">
-              <div className="font-serif text-xs font-bold text-[var(--color-guinda-800)]">Prepa Abierta</div>
+              <div className="font-serif text-xs font-bold text-[var(--color-guinda-800)]">Preparatoria Abierta</div>
               <div className="text-[9px] text-stone-500">EDUMICH · IEMSyS</div>
             </div>
           </div>
@@ -286,7 +286,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
           {/* Identidad del sistema */}
           <div className="hidden md:block leading-tight">
             <div className="font-serif text-lg font-bold text-[var(--color-piedra-900)]">
-              Prepa Abierta
+              Preparatoria Abierta
             </div>
             <div className="text-xs text-stone-600" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               Sistema de Gestión · IEMSyS

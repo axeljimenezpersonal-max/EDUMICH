@@ -161,7 +161,7 @@ function EditarBancariosModal({
               className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
               value={form.concepto}
               onChange={(e) => set('concepto', e.target.value)}
-              placeholder="Ej. Inscripcion Prepa Abierta Michoacan"
+              placeholder="Ej. Inscripcion Preparatoria Abierta Michoacan"
             />
           </div>
 

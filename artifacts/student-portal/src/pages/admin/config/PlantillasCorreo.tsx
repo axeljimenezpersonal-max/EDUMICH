@@ -164,7 +164,7 @@ function EmailPreview({ html, mobile }: { html: string; mobile: boolean }) {
         className="px-5 py-3 text-[10px] text-stone-500 border-t border-stone-100"
         style={{ background: '#f8f4ec' }}
       >
-        <div className="font-semibold mb-0.5">Prepa Abierta Michoacan</div>
+        <div className="font-semibold mb-0.5">Preparatoria Abierta Michoacan</div>
         <div>prepaabierta.michoacan.gob.mx · Morelia, Michoacan</div>
         <div className="mt-1 text-[9px] text-stone-400">
           Este correo es generado automaticamente, no responder a esta direccion.

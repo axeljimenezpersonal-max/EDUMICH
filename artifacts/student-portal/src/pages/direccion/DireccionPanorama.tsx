@@ -66,7 +66,7 @@ export default function DireccionPanorama() {
           Panorama del programa
         </h1>
         <p className="text-[13px]" style={{ color: '#6b635e' }}>
-          Indicadores generales de Prepa Abierta Michoacán · datos agregados en tiempo real
+          Indicadores generales de Preparatoria Abierta Michoacán · datos agregados en tiempo real
         </p>
       </div>
 

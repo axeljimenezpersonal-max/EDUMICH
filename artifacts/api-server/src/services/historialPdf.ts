@@ -1,5 +1,5 @@
 /**
- * Historial Académico del estudiante en PDF (Prepa Abierta Michoacán).
+ * Historial Académico del estudiante en PDF (Preparatoria Abierta Michoacán).
  * Documento informativo, descargable por el propio alumno: resumen de avance,
  * análisis por nivel y la tabla completa de exámenes presentados.
  */

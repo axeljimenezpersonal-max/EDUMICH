@@ -26,6 +26,15 @@ const migrations = [
   `INSERT INTO conceptos_pago (clave, nombre, descripcion, monto, vigencia, activo)
      VALUES ('derecho_examen', 'Derecho de examen', 'Pago de derecho de examen ante la Tesorería del Estado', 145.00, 2026, true)
      ON CONFLICT (clave) DO NOTHING`,
+  // Renombre de marca "Prepa Abierta" → "Preparatoria Abierta" en datos ya
+  // sembrados en producción. Idempotente (solo afecta filas con el texto viejo).
+  `UPDATE plantillas_correo SET
+     asunto = REPLACE(asunto, 'Prepa Abierta', 'Preparatoria Abierta'),
+     contenido_html = REPLACE(contenido_html, 'Prepa Abierta', 'Preparatoria Abierta'),
+     contenido_texto = REPLACE(COALESCE(contenido_texto, ''), 'Prepa Abierta', 'Preparatoria Abierta')
+     WHERE asunto LIKE '%Prepa Abierta%' OR contenido_html LIKE '%Prepa Abierta%' OR contenido_texto LIKE '%Prepa Abierta%'`,
+  `UPDATE conceptos_pago SET descripcion = REPLACE(descripcion, 'Prepa Abierta', 'Preparatoria Abierta') WHERE descripcion LIKE '%Prepa Abierta%'`,
+  `UPDATE outbox SET from_name = REPLACE(from_name, 'Prepa Abierta', 'Preparatoria Abierta') WHERE from_name LIKE '%Prepa Abierta%'`,
 ];
 
 export async function runStartupMigrations() {

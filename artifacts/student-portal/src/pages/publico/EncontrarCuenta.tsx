@@ -319,7 +319,7 @@ export default function EncontrarCuenta() {
             ¿Necesitas ayuda? Contáctanos
           </div>
           <div className="text-[12px] font-semibold text-stone-800 mb-2">
-            {contacto?.nombre ?? 'Coordinación de Prepa Abierta Michoacán'}
+            {contacto?.nombre ?? 'Coordinación de Preparatoria Abierta Michoacán'}
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
             <div

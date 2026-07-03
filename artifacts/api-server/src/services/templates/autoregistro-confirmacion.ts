@@ -11,7 +11,7 @@ export function autoregistroConfirmacionTemplate(data: AutoregistroConfirmacionD
   html: string;
   textPlain: string;
 } {
-  const subject = 'Recibimos tu solicitud — Prepa Abierta Michoacán';
+  const subject = 'Recibimos tu solicitud — Preparatoria Abierta Michoacán';
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -21,12 +21,12 @@ export function autoregistroConfirmacionTemplate(data: AutoregistroConfirmacionD
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
         <tr><td style="background:#7b1e3a;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
           <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Hola, ${escapeHtml(data.nombreCompleto)}</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Recibimos tu solicitud de inscripción al programa <strong>Prepa Abierta Michoacán</strong>. Nos da mucho gusto que quieras continuar tu formación académica.</p>
+          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Recibimos tu solicitud de inscripción al programa <strong>Preparatoria Abierta Michoacán</strong>. Nos da mucho gusto que quieras continuar tu formación académica.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:20px;">
@@ -60,7 +60,7 @@ export function autoregistroConfirmacionTemplate(data: AutoregistroConfirmacionD
 </body>
 </html>`;
 
-  const textPlain = `Hola ${data.nombreCompleto},\n\nRecibimos tu solicitud de inscripción a Prepa Abierta Michoacán.\n\nUn gestor de ${data.municipio} te contactará pronto.\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+  const textPlain = `Hola ${data.nombreCompleto},\n\nRecibimos tu solicitud de inscripción a Preparatoria Abierta Michoacán.\n\nUn gestor de ${data.municipio} te contactará pronto.\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }

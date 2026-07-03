@@ -6,8 +6,8 @@ export const BRANDING = {
     descripcion: 'Sistema institucional de gestión educativa del Estado de Michoacán',
   },
   modulo: {
-    nombre: 'Prepa Abierta',
-    nombreCompleto: 'Prepa Abierta · Plan Modular',
+    nombre: 'Preparatoria Abierta',
+    nombreCompleto: 'Preparatoria Abierta · Plan Modular',
     descripcion: 'Sistema de gestión institucional de Preparatoria Abierta',
   },
   institucion: {

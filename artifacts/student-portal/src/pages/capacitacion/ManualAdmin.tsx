@@ -45,7 +45,7 @@ const escenas: Escena[] = [
     ),
     content: (
       <>
-        <div className="ghi">Hola, Dirección de Prepa Abierta · <b>8 tareas pendientes hoy</b></div>
+        <div className="ghi">Hola, Dirección de Preparatoria Abierta · <b>8 tareas pendientes hoy</b></div>
         <div className="ktiles">
           <div className="ktile"><div className="n">2,371</div><div className="l">Alumnos activos</div></div>
           <div className="ktile"><div className="n">1,284</div><div className="l">Inscritos 2026-1</div></div>

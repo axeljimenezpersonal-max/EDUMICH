@@ -1,5 +1,5 @@
 /**
- * Rutas del administrador — Prepa Abierta Michoacán
+ * Rutas del administrador — Preparatoria Abierta Michoacán
  *
  * POST /admin/convocatoria/pase/validar  — escaneo QR en sede
  */

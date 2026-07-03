@@ -71,7 +71,7 @@ export default function CambiarPasswordPrimerLogin() {
             <div className="text-sm font-medium text-stone-700 mb-0.5">Bienvenido a EDUMICH</div>
             <div className="text-xs text-stone-500">
               La plataforma educativa digital del Gobierno de Michoacán.<br />
-              Aquí podrás gestionar tu inscripción a Prepa Abierta del IEMSyS.
+              Aquí podrás gestionar tu inscripción a Preparatoria Abierta del IEMSyS.
             </div>
           </div>
 

@@ -161,7 +161,7 @@ function AdminDashboard() {
     <div className="min-h-screen bg-stone-100 flex items-center justify-center">
       <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-md text-center">
         <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-2">Panel Administrativo</div>
-        <h1 className="font-serif text-2xl font-bold text-stone-900 mb-4">Prepa Abierta Michoacán</h1>
+        <h1 className="font-serif text-2xl font-bold text-stone-900 mb-4">Preparatoria Abierta Michoacán</h1>
         <div className="flex flex-col gap-2">
           <a href="/admin/solicitudes" className="block px-4 py-2 bg-[var(--color-guinda-700)] text-white rounded-lg text-sm font-semibold hover:bg-[var(--color-guinda-800)]">
             Solicitudes de cuenta

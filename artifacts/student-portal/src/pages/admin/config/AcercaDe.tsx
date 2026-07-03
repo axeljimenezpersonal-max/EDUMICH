@@ -46,11 +46,11 @@ export default function AcercaDe() {
           {
             icon: Zap,
             titulo: 'La plataforma',
-            desc: 'EDUMICH es la capa tecnológica que integra y moderniza los procesos institucionales del IEMSyS, comenzando por la gestión de Prepa Abierta.',
+            desc: 'EDUMICH es la capa tecnológica que integra y moderniza los procesos institucionales del IEMSyS, comenzando por la gestión de Preparatoria Abierta.',
           },
           {
             icon: BookOpen,
-            titulo: 'Prepa Abierta',
+            titulo: 'Preparatoria Abierta',
             desc: 'El módulo activo de EDUMICH gestiona las inscripciones, expedientes, calificaciones y comunicación del Plan Modular de Preparatoria Abierta.',
           },
           {
@@ -105,7 +105,7 @@ export default function AcercaDe() {
         </div>
         {[
           { num: '1', nombre: 'EDUMICH', desc: 'La marca tecnológica — el nombre del proyecto/plataforma', color: 'var(--color-guinda-700)' },
-          { num: '2', nombre: 'Prepa Abierta', desc: 'El servicio educativo principal que se gestiona', color: '#443e39' },
+          { num: '2', nombre: 'Preparatoria Abierta', desc: 'El servicio educativo principal que se gestiona', color: '#443e39' },
           { num: '3', nombre: 'IEMSyS', desc: 'La institución que opera el sistema', color: '#6b635e' },
           { num: '4', nombre: 'Gobierno de Michoacán', desc: 'El ente gubernamental que respalda todo', color: '#a89a8e' },
         ].map(({ num, nombre, desc, color }) => (
@@ -127,7 +127,7 @@ export default function AcercaDe() {
 
       {/* Version info */}
       <div style={{ fontSize: 11, color: '#a89a8e', textAlign: 'center', lineHeight: 1.6 }}>
-        EDUMICH v0.1 (demo) · Módulo Prepa Abierta · {new Date().getFullYear()}<br />
+        EDUMICH v0.1 (demo) · Módulo Preparatoria Abierta · {new Date().getFullYear()}<br />
         Gobierno del Estado de Michoacán · Instituto de Educación Media Superior y Superior
       </div>
     </div>

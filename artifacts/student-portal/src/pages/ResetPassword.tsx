@@ -68,7 +68,7 @@ export default function ResetPassword() {
         </div>
       </div>
       <div className="relative" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 32, paddingBottom: 32 }}>
-        <h1 className="font-serif font-bold" style={{ fontSize: 44, lineHeight: 1.1, marginBottom: 16, textAlign: 'center' }}>Prepa Abierta</h1>
+        <h1 className="font-serif font-bold" style={{ fontSize: 44, lineHeight: 1.1, marginBottom: 16, textAlign: 'center' }}>Preparatoria Abierta</h1>
         <p style={{ fontSize: 15, lineHeight: 1.55, opacity: 0.88, textAlign: 'center' }}>
           Crea una nueva contraseña segura para tu cuenta.
         </p>

@@ -1,5 +1,5 @@
 /**
- * Generador de fichas PDF — Prepa Abierta Michoacán
+ * Generador de fichas PDF — Preparatoria Abierta Michoacán
  * pdf-lib (puro JS, sin canvas/chromium).
  */
 
@@ -155,7 +155,7 @@ function drawFooter(page: PDFPage, regular: PDFFont, folio: string, extra?: stri
   drawLine(page, MARGIN, y + 10, PAGE_W - MARGIN, y + 10);
   drawText(page, folio, MARGIN, y - 2, regular, 7.5, GRIS);
   if (extra) drawText(page, extra, MARGIN + 200, y - 2, regular, 7.5, GRIS);
-  drawText(page, 'EDUMICH · Prepa Abierta · IEMSyS Michoacán', PAGE_W / 2 - 100, y - 2, regular, 7.5, GRIS);
+  drawText(page, 'EDUMICH · Preparatoria Abierta · IEMSyS Michoacán', PAGE_W / 2 - 100, y - 2, regular, 7.5, GRIS);
   drawText(page, 'edumich.michoacan.gob.mx', PAGE_W - MARGIN - 120, y - 2, regular, 7.5, GRIS);
 }
 
@@ -303,7 +303,7 @@ export async function generarFichaPago(data: FichaPagoData): Promise<Buffer> {
       { label: 'Banco destino',   value: data.banco },
       { label: 'Beneficiario',    value: data.titular },
       { label: 'CLABE interbancaria', value: data.clabe },
-      { label: 'Concepto',        value: `PREPA ABIERTA — ${data.referencia}` },
+      { label: 'Concepto',        value: `PREPARATORIA ABIERTA — ${data.referencia}` },
       { label: 'Monto exacto',    value: `$${data.monto.toFixed(2)} MXN` },
     ], MARGIN, y, PAGE_W - 2 * MARGIN, lightColor);
 
@@ -312,7 +312,7 @@ export async function generarFichaPago(data: FichaPagoData): Promise<Buffer> {
       'Accede a tu banca en línea o app de tu banco.',
       'Selecciona "Transferencia SPEI" e ingresa la CLABE de 18 dígitos mostrada arriba.',
       'Ingresa el monto EXACTO de $' + data.monto.toFixed(2) + ' MXN.',
-      `En el campo "Concepto" o "Referencia" escribe: PREPA ABIERTA — ${data.referencia}`,
+      `En el campo "Concepto" o "Referencia" escribe: PREPARATORIA ABIERTA — ${data.referencia}`,
       'Guarda el comprobante con número de operación y súbelo al portal.',
     ], MARGIN, y - 4);
 
@@ -429,7 +429,7 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
   const diasRestantes = vigencia ? Math.ceil((vigencia.getTime() - ahora.getTime()) / 86400000) : null;
 
   // Watermark background
-  drawWatermark(page, bold, 'PREPA ABIERTA');
+  drawWatermark(page, bold, 'PREPARATORIA ABIERTA');
   if (estaVencido) {
     drawWatermark(page, bold, 'VENCIDO', 0.12);
   }
@@ -733,7 +733,7 @@ export async function generarFichaRegistro(data: RegistroOficialData): Promise<B
   drawRect(page, MARGIN, y - notasH, PAGE_W - 2 * MARGIN, notasH, GRIS_L);
   drawText(page, 'NOTAS LEGALES', MARGIN + 12, y - 14, bold, 7.5, VERDE);
   const notas = [
-    '• Este documento certifica el registro del estudiante en el sistema estatal de Prepa Abierta Michoacan.',
+    '• Este documento certifica el registro del estudiante en el sistema estatal de Preparatoria Abierta Michoacan.',
     '• La matricula oficial DGB es UNICA, INTRANSFERIBLE y VALIDA EN TODO EL PAIS.',
     '• Conserve este documento para futuros tramites con la SEP-DGB.',
   ];

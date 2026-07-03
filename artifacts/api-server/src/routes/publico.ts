@@ -271,13 +271,13 @@ router.get('/contacto', async (_req, res) => {
       .from(datosInstitucionales)
       .limit(1);
     res.json({
-      nombre: datos?.nombre || datos?.nombreOficial || 'Coordinación de Prepa Abierta Michoacán',
+      nombre: datos?.nombre || datos?.nombreOficial || 'Coordinación de Preparatoria Abierta Michoacán',
       correo: datos?.correo || 'contacto@michoacan.gob.mx',
       telefono: datos?.telefono || '443-322-9250',
     });
   } catch {
     res.json({
-      nombre: 'Coordinación de Prepa Abierta Michoacán',
+      nombre: 'Coordinación de Preparatoria Abierta Michoacán',
       correo: 'contacto@michoacan.gob.mx',
       telefono: '443-322-9250',
     });
@@ -735,7 +735,7 @@ router.get('/verificar/:folio', async (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Verificar Pre-registro — Prepa Abierta Michoacán</title>
+  <title>Verificar Pre-registro — Preparatoria Abierta Michoacán</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f4;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
@@ -766,7 +766,7 @@ router.get('/verificar/:folio', async (req, res) => {
     <div class="header">
       <div class="header-logo">Gobierno del Estado de Michoacán</div>
       <div class="header-title">EDUMICH · Sistema de Verificación de Documentos</div>
-      <div class="header-sub">Plataforma Educativa Digital · Prepa Abierta · IEMSyS Michoacán</div>
+      <div class="header-sub">Plataforma Educativa Digital · Preparatoria Abierta · IEMSyS Michoacán</div>
     </div>
     <div class="body">
       <div class="verified-badge">

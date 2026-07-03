@@ -50,7 +50,7 @@ function subCabeceraEstilo(ws: ExcelJS.Worksheet, row: ExcelJS.Row) {
 
 export async function generarExcelReporte(data: ReporteData): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
-  wb.creator = 'EDUMICH · Sistema Prepa Abierta';
+  wb.creator = 'EDUMICH · Sistema Preparatoria Abierta';
   wb.created = data.generadoEn;
 
   // ── Hoja 1: Resumen ──
@@ -67,7 +67,7 @@ export async function generarExcelReporte(data: ReporteData): Promise<Buffer> {
   // Logo / encabezado institucional
   wsResumen.mergeCells('A1:D1');
   const titleCell = wsResumen.getCell('A1');
-  titleCell.value = 'EDUMICH · Sistema Prepa Abierta — IEMSyS Michoacán';
+  titleCell.value = 'EDUMICH · Sistema Preparatoria Abierta — IEMSyS Michoacán';
   titleCell.font = { bold: true, size: 14, color: { argb: WHITE } };
   titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: GUINDA } };
   titleCell.alignment = { vertical: 'middle', horizontal: 'center' };

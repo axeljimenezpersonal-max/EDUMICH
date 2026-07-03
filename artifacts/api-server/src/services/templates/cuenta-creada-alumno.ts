@@ -13,7 +13,7 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
   html: string;
   textPlain: string;
 } {
-  const subject = '¡Bienvenido a Prepa Abierta Michoacán! Tus datos de acceso';
+  const subject = '¡Bienvenido a Preparatoria Abierta Michoacán! Tus datos de acceso';
 
   const gestorSection = data.gestor
     ? `<tr><td style="padding:0 32px 24px 32px;">
@@ -46,14 +46,14 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
         <tr><td style="background:#7b1e3a;padding:24px 32px;">
           <table cellpadding="0" cellspacing="0"><tr>
             <td style="padding-left:0;">
-              <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Prepa Abierta · IEMSyS</div>
+              <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
               <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
             </td>
           </tr></table>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
           <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">¡Hola, ${escapeHtml(data.nombreAlumno)}!</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Te damos la bienvenida al <strong>Sistema de Gestión de Prepa Abierta</strong> del Gobierno de Michoacán.</p>
+          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Te damos la bienvenida al <strong>Sistema de Gestión de Preparatoria Abierta</strong> del Gobierno de Michoacán.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf8f9;border:2px solid #7b1e3a;border-radius:8px;overflow:hidden;">
@@ -81,7 +81,7 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
 </body>
 </html>`;
 
-  const textPlain = `Hola ${data.nombreAlumno},\n\nBienvenido a Prepa Abierta Michoacán.\n\nTus datos de acceso:\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n\nAccede en: ${data.portalUrl}\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+  const textPlain = `Hola ${data.nombreAlumno},\n\nBienvenido a Preparatoria Abierta Michoacán.\n\nTus datos de acceso:\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n\nAccede en: ${data.portalUrl}\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }

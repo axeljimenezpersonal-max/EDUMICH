@@ -328,7 +328,7 @@ export default function MiIdentificacion() {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'credencial-digital-prepa-abierta.pdf';
+      a.download = 'credencial-digital-preparatoria-abierta.pdf';
       a.click();
       URL.revokeObjectURL(url);
     } catch {

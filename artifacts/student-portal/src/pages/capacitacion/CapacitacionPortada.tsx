@@ -165,7 +165,7 @@ export default function CapacitacionPortada() {
       <footer className="footer">
         <div className="bs">EDUMICH</div>
         Centro de capacitación · Preparatoria Abierta
-        <div className="hier">EDUMICH · Prepa Abierta · IEMSyS · Gobierno de Michoacán</div>
+        <div className="hier">EDUMICH · Preparatoria Abierta · IEMSyS · Gobierno de Michoacán</div>
       </footer>
     </div>
   );

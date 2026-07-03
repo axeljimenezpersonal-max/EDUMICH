@@ -1,5 +1,5 @@
 /**
- * Generador de la Cédula de Inscripción (Prepa Abierta Michoacán).
+ * Generador de la Cédula de Inscripción (Preparatoria Abierta Michoacán).
  *
  * Carga la plantilla AcroForm `assets/cedula-inscripcion.pdf`, autollena los
  * campos con los datos del alumno (que ahora viven desglosados en `estudiantes`),

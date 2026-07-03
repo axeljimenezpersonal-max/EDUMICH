@@ -82,7 +82,7 @@ export default function Login() {
             className="relative"
             style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 20, paddingBottom: 20 }}
           >
-            {/* Prepa Abierta pill (programa) — EDUMICH es la marca principal */}
+            {/* Preparatoria Abierta pill (programa) — EDUMICH es la marca principal */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -92,7 +92,7 @@ export default function Login() {
                 color: 'white', opacity: 0.9,
               }}>
                 <GraduationCap size={10} />
-                Prepa Abierta
+                Preparatoria Abierta
                 <span style={{ opacity: 0.5 }}>·</span>
                 Michoacán
               </div>

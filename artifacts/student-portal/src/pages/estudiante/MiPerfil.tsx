@@ -152,7 +152,7 @@ export default function MiPerfil() {
 
           {/* Footer text */}
           <p className="text-center text-[11px] text-stone-400 mt-4 leading-relaxed">
-            Sistema de Gestión Prepa Abierta · IEMSyS
+            Sistema de Gestión Preparatoria Abierta · IEMSyS
             <br />
             Gobierno del Estado de Michoacán
           </p>

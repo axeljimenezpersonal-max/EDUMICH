@@ -45,7 +45,7 @@ function drawText(
 function addHeader(page: PDFPage, boldFont: PDFFont, regularFont: PDFFont, title: string, pageNum: number, total: number) {
   // Guinda header bar
   drawRect(page, 0, PAGE_H - 50, PAGE_W, 50, GUINDA);
-  drawText(page, 'PREPA ABIERTA MICHOACAN — Sistema de Gestion Escolar', MARGIN, PAGE_H - 20, boldFont, 11, WHITE);
+  drawText(page, 'PREPARATORIA ABIERTA MICHOACAN — Sistema de Gestion Escolar', MARGIN, PAGE_H - 20, boldFont, 11, WHITE);
   drawText(page, title, MARGIN, PAGE_H - 38, regularFont, 9, GOLD);
   const pageLabel = `Pag. ${pageNum}/${total}`;
   const pw = regularFont.widthOfTextAtSize(pageLabel, 9);
@@ -57,7 +57,7 @@ function addFooter(page: PDFPage, regularFont: PDFFont, generadoEn: Date) {
   drawRect(page, 0, 0, PAGE_W, footerY + 10, GUINDA);
   const dateStr = generadoEn.toLocaleString('es-MX');
   drawText(page, `Generado: ${dateStr}`, MARGIN, footerY, regularFont, 7, WHITE);
-  const disclaimer = 'EDUMICH · Prepa Abierta · IEMSyS Michoacan';
+  const disclaimer = 'EDUMICH · Preparatoria Abierta · IEMSyS Michoacan';
   const dw = regularFont.widthOfTextAtSize(disclaimer, 7);
   drawText(page, disclaimer, PAGE_W - MARGIN - dw, footerY, regularFont, 7, GOLD);
 }
@@ -81,7 +81,7 @@ export async function generarPDFReporte(data: ReporteData): Promise<Buffer> {
   drawRect(portada, 0, PAGE_H - 220, PAGE_W, 220, GUINDA);
 
   // Institution name
-  drawText(portada, 'EDUMICH · Prepa Abierta', MARGIN, PAGE_H - 80, boldFont, 22, WHITE);
+  drawText(portada, 'EDUMICH · Preparatoria Abierta', MARGIN, PAGE_H - 80, boldFont, 22, WHITE);
   drawText(portada, 'Sistema de Gestion Escolar — IEMSyS Michoacan', MARGIN, PAGE_H - 105, regularFont, 13, GOLD);
 
   // Gold divider

@@ -1,5 +1,5 @@
 /**
- * Catálogo oficial de los 21 módulos del Plan Modular de Prepa Abierta.
+ * Catálogo oficial de los 21 módulos del Plan Modular de Preparatoria Abierta.
  * Fuente: temarios oficiales del Instituto de Educación Media Superior y Superior
  * del Estado de Michoacán (IEMSyS).
  *

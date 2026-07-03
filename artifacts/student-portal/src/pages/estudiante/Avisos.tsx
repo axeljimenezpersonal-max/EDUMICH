@@ -45,7 +45,7 @@ export default function Avisos() {
           <h1 className="font-serif text-xl font-bold text-stone-900">Avisos institucionales</h1>
         </div>
         <p className="text-sm text-stone-500">
-          Información oficial de la administración de Prepa Abierta Michoacán.
+          Información oficial de la administración de Preparatoria Abierta Michoacán.
         </p>
 
         {loading && (

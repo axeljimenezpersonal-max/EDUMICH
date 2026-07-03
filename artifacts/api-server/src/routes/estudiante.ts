@@ -99,7 +99,7 @@ function generarPdfStub(titulo: string): Buffer {
   const stream =
     `BT /F1 14 Tf 72 720 Td (${safe}) Tj ` +
     `0 -30 Td /F1 10 Tf (Material en preparacion - estara disponible proximamente.) Tj ` +
-    `0 -20 Td (IEMSyS - Prepa Abierta Michoacan) Tj ET`;
+    `0 -20 Td (IEMSyS - Preparatoria Abierta Michoacan) Tj ET`;
 
   const parts: string[] = [];
   const offsets: number[] = [0];
@@ -1660,7 +1660,7 @@ async function generarPasePDF(data: {
   // ── Header ──────────────────────────────────────────────────────────────
   const HDR = 118;
   page.drawRectangle({ x: 0, y: H - HDR, width: W, height: HDR, color: GUINDA });
-  page.drawText('IEMSyS - Prepa Abierta Michoacan', {
+  page.drawText('IEMSyS - Preparatoria Abierta Michoacan', {
     x: 40, y: H - 30, font: regFont, size: 8, color: PINK,
   });
   page.drawText('PASE DE EXAMEN PROVISIONAL', {
@@ -1743,7 +1743,7 @@ async function generarPasePDF(data: {
   // ── Footer ────────────────────────────────────────────────────────────────
   page.drawRectangle({ x: 0, y: 0, width: W, height: 40, color: GUINDA });
   page.drawText(
-    'Gobierno del Estado de Michoacan  -  IEMSyS  -  Prepa Abierta Michoacan',
+    'Gobierno del Estado de Michoacan  -  IEMSyS  -  Preparatoria Abierta Michoacan',
     { x: 40, y: 15, font: regFont, size: 8, color: PINK }
   );
 
@@ -2355,7 +2355,7 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   const pdfBytes = await doc.save();
 
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', 'attachment; filename="credencial-digital-prepa-abierta.pdf"');
+  res.setHeader('Content-Disposition', 'attachment; filename="credencial-digital-preparatoria-abierta.pdf"');
   res.send(Buffer.from(pdfBytes));
 });
 

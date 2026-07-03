@@ -352,7 +352,7 @@ export default function EstudianteDashboard() {
                     {data.licenciaDigital}
                   </div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 5 }}>
-                    Emitida por IEMSyS · Prepa Abierta Michoacán
+                    Emitida por IEMSyS · Preparatoria Abierta Michoacán
                   </div>
                 </div>
                 <div style={{ borderTop: '1px solid rgba(255,255,255,0.12)', padding: '10px 18px' }}>

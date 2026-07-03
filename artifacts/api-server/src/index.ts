@@ -1,5 +1,5 @@
 /**
- * API server principal — Prepa Abierta Michoacán
+ * API server principal — Preparatoria Abierta Michoacán
  *
  * Ubicación destino en Replit: artifacts/api-server/src/index.ts
  * (reemplaza el index.ts existente del template TEC)
@@ -160,7 +160,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 const PORT = Number(process.env.PORT) || 3001;
 app.listen(PORT, '0.0.0.0', async () => {
-  console.log(`🚀 Prepa Abierta Michoacán API escuchando en :${PORT}`);
+  console.log(`🚀 Preparatoria Abierta Michoacán API escuchando en :${PORT}`);
   await runStartupMigrations();
   console.log('✅ Migraciones de arranque completadas');
 });
