@@ -43,6 +43,7 @@ import { sendBienvenidaCredenciales, sendBienvenidaGestor } from '../services/em
 import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
 import { tryAuditLog } from '../utils/audit';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
@@ -1512,15 +1513,16 @@ router.get('/municipios', async (req, res) => {
 // ─── GET /admin/gestores-list ─────────────────────────────────────────────
 router.get('/gestores-list', async (_req, res) => {
   try {
-    type GestorRow = { user_id: number; nombre_completo: string; municipio_id: number | null; municipio_nombre: string | null; alumnos_count: number };
+    type GestorRow = { user_id: number; nombre_completo: string; municipio_id: number | null; municipio_nombre: string | null; alumnos_count: number; centro_asesoria: string | null; clave_centro: string | null; rfc_centro: string | null };
     const result = await db.execute<GestorRow>(sql`
       SELECT g.user_id, g.nombre_completo, g.municipio_id, m.nombre AS municipio_nombre,
+             g.centro_asesoria, g.clave_centro, g.rfc_centro,
              COUNT(e.user_id)::int AS alumnos_count
       FROM gestores g
       LEFT JOIN municipios m ON g.municipio_id = m.id
       LEFT JOIN estudiantes e ON e.gestor_id = g.user_id
       WHERE g.estado = 'activo'
-      GROUP BY g.user_id, g.nombre_completo, g.municipio_id, m.nombre
+      GROUP BY g.user_id, g.nombre_completo, g.municipio_id, m.nombre, g.centro_asesoria, g.clave_centro, g.rfc_centro
       ORDER BY g.nombre_completo ASC
     `);
     res.json({
@@ -1534,6 +1536,9 @@ router.get('/gestores-list', async (_req, res) => {
           municipioId: r.municipio_id ?? null,
           municipioNombre: r.municipio_nombre ?? null,
           alumnosCount: Number(r.alumnos_count),
+          centroAsesoria: r.centro_asesoria ?? null,
+          claveCentro: r.clave_centro ?? null,
+          rfcCentro: r.rfc_centro ?? null,
         };
       }),
     });
@@ -2428,6 +2433,9 @@ const patchGestorSchema = z.object({
   titulo: z.string().optional(),
   telefono: z.string().optional(),
   capacidadMaxima: z.number().int().positive().optional(),
+  centroAsesoria: z.string().optional(),
+  claveCentro: z.string().optional(),
+  rfcCentro: z.string().optional(),
 });
 
 router.patch('/gestores/:gestorId', async (req, res) => {
@@ -2452,6 +2460,9 @@ router.patch('/gestores/:gestorId', async (req, res) => {
     if (data.titulo !== undefined) setValues.titulo = data.titulo;
     if (data.telefono !== undefined) setValues.telefono = data.telefono;
     if (data.capacidadMaxima !== undefined) setValues.capacidadMaxima = data.capacidadMaxima;
+    if (data.centroAsesoria !== undefined) setValues.centroAsesoria = data.centroAsesoria;
+    if (data.claveCentro !== undefined) setValues.claveCentro = data.claveCentro;
+    if (data.rfcCentro !== undefined) setValues.rfcCentro = data.rfcCentro;
 
     await db.update(gestores).set(setValues).where(eq(gestores.userId, gestorId));
 
@@ -2459,6 +2470,22 @@ router.patch('/gestores/:gestorId', async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });
+  }
+});
+
+// ─── GET /admin/relacion-examenes/pdf?etapaId=&gestorId= ───────────────────
+// Documento oficial "Relación de exámenes solicitados" por centro (gestor)+etapa.
+router.get('/relacion-examenes/pdf', async (req, res) => {
+  const etapaId = Number(req.query.etapaId);
+  const gestorId = Number(req.query.gestorId);
+  if (!etapaId || !gestorId) { res.status(400).json({ error: 'Faltan etapa y gestor' }); return; }
+  try {
+    const { pdf, nombreArchivo } = await generarRelacionExamenes(etapaId, gestorId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
+    res.send(Buffer.from(pdf));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error al generar el documento' });
   }
 });
 

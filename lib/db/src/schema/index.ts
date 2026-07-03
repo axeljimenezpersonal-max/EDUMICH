@@ -217,6 +217,10 @@ export const gestores = pgTable('gestores', {
   municipioId: integer('municipio_id')
     .notNull()
     .references(() => municipios.id),
+  // Datos del centro de asesoría (para la Relación de exámenes solicitados)
+  centroAsesoria: varchar('centro_asesoria', { length: 200 }),
+  claveCentro: varchar('clave_centro', { length: 20 }),
+  rfcCentro: varchar('rfc_centro', { length: 20 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   titulo: varchar('titulo', { length: 80 }).notNull().default('Gestor Municipal'),
   capacidadMaxima: integer('capacidad_maxima').notNull().default(50),

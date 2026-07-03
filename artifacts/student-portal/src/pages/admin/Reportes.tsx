@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import {
   BarChart2, Users, FileText, DollarSign, GraduationCap,
   UserCheck, Calendar, Inbox, TrendingUp, Download, RefreshCw,
@@ -284,6 +284,9 @@ export default function Reportes() {
             </button>
           </div>
         </div>
+
+        {/* ── Documento oficial: Relación de exámenes solicitados ── */}
+        <RelacionExamenesCard />
 
         {/* ── Report type grid ── */}
         <div className="grid grid-cols-4 gap-3 mb-6">
@@ -620,5 +623,110 @@ export default function Reportes() {
 
       </div>
     </AdminLayout>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Relación de exámenes solicitados (documento oficial IEMSyS)
+// ─────────────────────────────────────────────────────────────
+interface EtapaOpt { id: number; clave: string; etapa: string; fase: string; anio: number; examenSabado?: string }
+interface GestorOpt { id: number; nombreCompleto: string; municipioNombre: string | null; centroAsesoria: string | null; claveCentro: string | null; rfcCentro: string | null }
+
+function RelacionExamenesCard() {
+  const GUINDA = '#7a1430';
+  const [etapas, setEtapas] = useState<EtapaOpt[]>([]);
+  const [gestores, setGestores] = useState<GestorOpt[]>([]);
+  const [etapaId, setEtapaId] = useState('');
+  const [gestorId, setGestorId] = useState('');
+  const [centro, setCentro] = useState({ centroAsesoria: '', claveCentro: '', rfcCentro: '' });
+  const [guardando, setGuardando] = useState(false);
+  const [ok, setOk] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/etapas', { credentials: 'include' }).then(r => r.json()).then(d => setEtapas(d.etapas ?? [])).catch(() => {});
+    fetch('/api/admin/gestores-list', { credentials: 'include' }).then(r => r.json()).then(d => setGestores(d.gestores ?? [])).catch(() => {});
+  }, []);
+
+  const gestorSel = gestores.find(g => String(g.id) === gestorId) ?? null;
+  useEffect(() => {
+    if (gestorSel) setCentro({
+      centroAsesoria: gestorSel.centroAsesoria ?? '',
+      claveCentro: gestorSel.claveCentro ?? '',
+      rfcCentro: gestorSel.rfcCentro ?? '',
+    });
+  }, [gestorId]); // eslint-disable-line
+
+  async function guardarCentro() {
+    if (!gestorId) return;
+    setGuardando(true); setOk(false);
+    try {
+      await fetch(`/api/admin/gestores/${gestorId}`, {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(centro),
+      });
+      setGestores(gs => gs.map(g => String(g.id) === gestorId ? { ...g, ...centro } : g));
+      setOk(true); setTimeout(() => setOk(false), 2500);
+    } finally { setGuardando(false); }
+  }
+
+  const puede = etapaId && gestorId;
+
+  return (
+    <div className="rounded-xl border mb-6 overflow-hidden" style={{ borderColor: '#e8c4d4' }}>
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'linear-gradient(135deg,#7a1430,#a01d45)' }}>
+        <FileText size={16} className="text-white" />
+        <div className="text-white font-semibold text-sm">Relación de exámenes solicitados</div>
+        <span className="ml-auto text-[10px] uppercase tracking-widest text-white/70">Documento oficial IEMSyS</span>
+      </div>
+      <div className="p-5 bg-white">
+        <p className="text-sm text-stone-500 mb-4 max-w-3xl">
+          Genera el documento oficial por centro de asesoría (gestor) y etapa, con la lista de alumnos, sus módulos, CURP e importe.
+          Se autollena con los datos del sistema.
+        </p>
+        <div className="grid md:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1">Etapa y fase</label>
+            <select value={etapaId} onChange={e => setEtapaId(e.target.value)} className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white">
+              <option value="">Elige la etapa…</option>
+              {etapas.map(et => <option key={et.id} value={et.id}>{et.etapa} {et.fase} · {et.anio}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1">Centro de asesoría (gestor)</label>
+            <select value={gestorId} onChange={e => setGestorId(e.target.value)} className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white">
+              <option value="">Elige el gestor…</option>
+              {gestores.map(g => <option key={g.id} value={g.id}>{g.nombreCompleto}{g.municipioNombre ? ` · ${g.municipioNombre}` : ''}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {gestorSel && (
+          <div className="rounded-lg border border-stone-200 bg-stone-50 p-3 mb-4">
+            <div className="text-xs font-semibold text-stone-600 mb-2">Datos del centro (se guardan en el gestor y se autollenan en el documento)</div>
+            <div className="grid md:grid-cols-3 gap-2">
+              <input value={centro.centroAsesoria} onChange={e => setCentro(c => ({ ...c, centroAsesoria: e.target.value }))} placeholder="Nombre del centro (ej. Instituto IDEA)" className="text-sm border border-stone-300 rounded-lg px-3 py-2" />
+              <input value={centro.claveCentro} onChange={e => setCentro(c => ({ ...c, claveCentro: e.target.value }))} placeholder="Clave (ej. 010)" className="text-sm border border-stone-300 rounded-lg px-3 py-2" />
+              <input value={centro.rfcCentro} onChange={e => setCentro(c => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro" className="text-sm border border-stone-300 rounded-lg px-3 py-2" />
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+              <button onClick={guardarCentro} disabled={guardando} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 hover:bg-white disabled:opacity-50">
+                {guardando ? 'Guardando…' : 'Guardar datos del centro'}
+              </button>
+              {ok && <span className="text-xs text-green-600 font-semibold">Guardado ✓</span>}
+            </div>
+          </div>
+        )}
+
+        <button
+          disabled={!puede}
+          onClick={() => window.open(`/api/admin/relacion-examenes/pdf?etapaId=${etapaId}&gestorId=${gestorId}`, '_blank')}
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-40"
+          style={{ background: GUINDA }}
+        >
+          <Download size={15} /> Generar documento (PDF)
+        </button>
+      </div>
+    </div>
   );
 }
