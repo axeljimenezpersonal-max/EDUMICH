@@ -1011,9 +1011,9 @@ function PlanDeEstudiosTab({
     const ocupado = slotOcupado(m);
     return (
       <label
-        className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all select-none ${
+        className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all duration-200 select-none ${
           ocupado
-            ? 'border-amber-300 bg-amber-50 cursor-not-allowed animate-[choque_0.45s_ease-in-out]'
+            ? 'border-stone-200 bg-stone-50 opacity-55 cursor-not-allowed'
             : checked
               ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] cursor-pointer ring-1 ring-[var(--color-guinda-700)]'
               : 'border-stone-200 bg-white hover:bg-stone-50 cursor-pointer'
@@ -1028,16 +1028,15 @@ function PlanDeEstudiosTab({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : ocupado ? 'text-amber-700' : 'text-stone-400'}`}>
+            <span className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
               Módulo {m.numero}
             </span>
             {m.nivel && <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-stone-100 text-stone-500">Nivel {m.nivel}</span>}
           </div>
           <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
           {ocupado && (
-            <div className="flex items-center gap-1 text-[10px] text-amber-700 font-semibold mt-1 animate-pulse">
-              <AlertTriangle size={10} className="shrink-0" />
-              Ya elegiste otro módulo en este mismo día y hora
+            <div className="text-[10px] text-stone-400 mt-1">
+              Ya elegiste otro módulo en este día y hora
             </div>
           )}
         </div>
@@ -1159,8 +1158,8 @@ function PlanDeEstudiosTab({
                                 ? <ModuloInscrito key={m.id} m={m} />
                                 : <ModuloPendiente key={m.id} m={m} />)}
                               {selectables.length > 1 && (
-                                <div className="flex items-center justify-center gap-1 text-[9px] text-amber-600 font-bold uppercase tracking-wide">
-                                  <AlertTriangle size={9} /> Empalmados · solo uno
+                                <div className="text-center text-[9px] text-stone-400 font-semibold uppercase tracking-wide">
+                                  Empalmados · elige uno
                                 </div>
                               )}
                             </>
