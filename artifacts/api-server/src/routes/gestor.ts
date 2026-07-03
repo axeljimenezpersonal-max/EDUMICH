@@ -54,7 +54,7 @@ import {
   dispositionCedula,
   cedulaDatosSchema,
 } from '../services/cedula';
-import { generarCredencialPdf } from '../services/credencialPdf';
+import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
@@ -1223,13 +1223,24 @@ router.get('/alumnos/:id/credencial/pdf', async (req, res) => {
   try {
     const cred = await generarCredencialPdf(alumnoId);
     if (!cred) { res.status(409).json({ error: 'El alumno aún no tiene credencial digital emitida.' }); return; }
-    const nombre = `Credencial-digital_${(cred.matricula || cred.folio).replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
+    const nombre = `${cred.folio.replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${nombre}"`);
     res.send(Buffer.from(cred.pdf));
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la credencial' });
   }
+});
+
+// GET /gestor/alumnos/:id/credencial — datos de la credencial (preview)
+router.get('/alumnos/:id/credencial', async (req, res) => {
+  const alumnoId = Number(req.params.id as string);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  const data = await obtenerDatosCredencial(alumnoId);
+  if (!data) { res.json({ emitida: false }); return; }
+  res.json({ emitida: true, ...data, fotoUrl: data.tieneFoto ? `/api/gestor/alumnos/${alumnoId}/expediente/documento/foto/preview` : null });
 });
 
 // ─── GET helper: find a gestors student by doc id ────────────────────

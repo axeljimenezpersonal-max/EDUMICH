@@ -40,9 +40,24 @@ function fitImg(page: PDFPage, img: PDFImage, bx: number, by: number, bw: number
   page.drawImage(img, { x: bx + (bw - w) / 2, y: by + (bh - h) / 2, width: w, height: h });
 }
 
-export async function generarCredencialPdf(
+export interface CredencialData {
+  folio: string;
+  nombre: string;
+  matricula: string | null;
+  curp: string;
+  sede: string;
+  plan: string;
+  emision: string | null;
+  vigencia: string | null;
+  vencida: boolean;
+  convocatorias: string[];
+  verifyUrl: string;
+  tieneFoto: boolean;
+}
+
+async function reunirDatosCredencial(
   estudianteId: number
-): Promise<{ pdf: Uint8Array; folio: string; matricula: string | null } | null> {
+): Promise<{ data: CredencialData; fotoPath: string | null } | null> {
   const [est] = await db
     .select({
       nombreCompleto: estudiantes.nombreCompleto,
@@ -61,31 +76,60 @@ export async function generarCredencialPdf(
     ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
     : [null];
 
-  // Foto SOLO si está aprobada (regla única compartida).
   const fotoPath = await rutaFotoAprobada(estudianteId);
 
-  // Convocatorias en las que se ha inscrito a examen (distintas).
   const convsRaw = await db
     .selectDistinct({ clave: convocatoriasEtapas.clave, anio: convocatoriasEtapas.anio })
     .from(examenesInscripciones)
     .innerJoin(convocatoriasEtapas, eq(examenesInscripciones.etapaId, convocatoriasEtapas.id))
     .where(eq(examenesInscripciones.estudianteId, estudianteId));
-  const convocatorias = convsRaw
-    .map((c) => `${c.clave}-${c.anio}`)
-    .sort();
+  const convocatorias = convsRaw.map((c) => `${c.clave}-${c.anio}`).sort();
 
   const fmtDate = (d: Date) =>
     d.toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Mexico_City' });
-  const emision = est.licenciaEmitidaEn ? new Date(est.licenciaEmitidaEn) : null;
-  const vigencia = emision ? new Date(emision.getTime()) : null;
-  if (vigencia) vigencia.setMonth(vigencia.getMonth() + VIGENCIA_CREDENCIAL_MESES);
-  const vencida = vigencia ? vigencia.getTime() < Date.now() : false;
+  const emisionDate = est.licenciaEmitidaEn ? new Date(est.licenciaEmitidaEn) : null;
+  const vigenciaDate = emisionDate ? new Date(emisionDate.getTime()) : null;
+  if (vigenciaDate) vigenciaDate.setMonth(vigenciaDate.getMonth() + VIGENCIA_CREDENCIAL_MESES);
 
-  const curp = est.curp ?? '';
-  const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
+  return {
+    data: {
+      folio: est.licenciaDigital,
+      nombre: est.nombreCompleto ?? '',
+      matricula: est.matriculaOficialDGB ?? null,
+      curp: est.curp ?? '',
+      sede: muni?.nombre ?? '',
+      plan: 'Plan 22 · Modular',
+      emision: emisionDate ? fmtDate(emisionDate) : null,
+      vigencia: vigenciaDate ? fmtDate(vigenciaDate) : null,
+      vencida: vigenciaDate ? vigenciaDate.getTime() < Date.now() : false,
+      convocatorias,
+      verifyUrl: `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`,
+      tieneFoto: fotoPath !== null,
+    },
+    fotoPath,
+  };
+}
+
+/** Datos de la credencial para render en pantalla (preview). null si no hay credencial. */
+export async function obtenerDatosCredencial(estudianteId: number): Promise<CredencialData | null> {
+  const r = await reunirDatosCredencial(estudianteId);
+  return r?.data ?? null;
+}
+
+export async function generarCredencialPdf(
+  estudianteId: number
+): Promise<{ pdf: Uint8Array; folio: string; matricula: string | null } | null> {
+  const reunido = await reunirDatosCredencial(estudianteId);
+  if (!reunido) return null;
+  const { data, fotoPath } = reunido;
+  const { curp, verifyUrl, convocatorias, vencida } = data;
+  const emision = data.emision;
+  const vigencia = data.vigencia;
 
   // ── Documento ──
   const doc = await PDFDocument.create();
+  doc.setTitle(data.folio);
+  doc.setSubject('Credencial digital del estudiante');
   const page = doc.addPage([612, 792]);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const reg = await doc.embedFont(StandardFonts.Helvetica);
@@ -127,9 +171,9 @@ export async function generarCredencialPdf(
     txt(page, label, dX, y, bold, 6.5, PIEDRA_500);
     txt(page, valor || '—', dX, y - 12, mono ? bold : bold, mono ? 11 : 12, PIEDRA_900);
   };
-  campo('NOMBRE', est.nombreCompleto ?? '', fY + CH - 62);
-  campo('MATRÍCULA OFICIAL DGB', est.matriculaOficialDGB ?? 'Sin asignar', fY + CH - 100, true);
-  campo('FOLIO DE CREDENCIAL', est.licenciaDigital, fY + CH - 138, true);
+  campo('NOMBRE', data.nombre, fY + CH - 62);
+  campo('MATRÍCULA OFICIAL DGB', data.matricula ?? 'Sin asignar', fY + CH - 100, true);
+  campo('FOLIO DE CREDENCIAL', data.folio, fY + CH - 138, true);
 
   // QR frente
   const qrS = 52;
@@ -149,11 +193,11 @@ export async function generarCredencialPdf(
     txt(page, valor || '—', x, rowY(i) - 11, reg, 9, PIEDRA_900);
   };
   dato('CURP', curp, 0, 0);
-  dato('CENTRO DE SERVICIOS', muni?.nombre ?? '—', 0, 1);
-  dato('PLAN', 'Plan 22 · Modular', 1, 0);
+  dato('CENTRO DE SERVICIOS', data.sede || '—', 0, 1);
+  dato('PLAN', data.plan, 1, 0);
   dato('ESTADO', vencida ? 'VENCIDA' : 'VIGENTE', 1, 1);
-  dato('EMISIÓN', emision ? fmtDate(emision) : '—', 2, 0);
-  dato('VIGENTE HASTA', vigencia ? fmtDate(vigencia) : '—', 2, 1);
+  dato('EMISIÓN', emision ?? '—', 2, 0);
+  dato('VIGENTE HASTA', vigencia ?? '—', 2, 1);
 
   // Convocatorias inscritas
   const cvY = rowY(3) + 2;
@@ -163,8 +207,8 @@ export async function generarCredencialPdf(
 
   // Pie
   page.drawRectangle({ x: CX, y: bY, width: CW, height: 18, color: rgb(0.96, 0.94, 0.90) });
-  txt(page, `Folio ${est.licenciaDigital}  ·  verifica.edumich.michoacan.gob.mx`, CX + 12, bY + 6, reg, 6.5, PIEDRA_500);
+  txt(page, `Folio ${data.folio}  ·  verifica.edumich.michoacan.gob.mx`, CX + 12, bY + 6, reg, 6.5, PIEDRA_500);
 
   const pdf = await doc.save();
-  return { pdf, folio: est.licenciaDigital, matricula: est.matriculaOficialDGB ?? null };
+  return { pdf, folio: data.folio, matricula: data.matricula };
 }

@@ -12,6 +12,7 @@ import { api } from '../../lib/api';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { CedulaEditor } from '../../components/CedulaEditor';
+import { CredencialPreview } from '../../components/CredencialPreview';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -1098,35 +1099,25 @@ export default function AdminAlumnoDetalle() {
                 )}
               </div>
             ) : (
-              <div className="space-y-4">
-                <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg,#f5f3ff 0%,#fff 100%)', border: '1px solid #c4b5fd' }}>
-                  <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#7c3aed' }}>Folio de credencial</div>
-                  <div className="font-mono text-xl font-bold" style={{ color: '#7c3aed', letterSpacing: '0.05em' }}>{alumno.licenciaDigital}</div>
-                  <div className="text-xs mt-1" style={{ color: '#6b635e' }}>
-                    Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-                  </div>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <a href={`/api/admin/alumnos/${alumnoId}/credencial/pdf`} target="_blank" rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg" style={{ background: '#7c3aed' }}>
-                    <BadgeCheck size={14} /> Ver credencial (PDF)
-                  </a>
+              <div className="space-y-5">
+                {/* Preview del carnet (frente + reverso) */}
+                <CredencialPreview basePath={`/admin/alumnos/${alumnoId}`} />
+
+                <div className="flex flex-wrap items-center gap-2 justify-center">
                   <a href={`/api/admin/alumnos/${alumnoId}/credencial/pdf`} download
-                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-stone-300" style={{ color: '#443e39' }}>
-                    <Download size={14} /> Descargar
+                    className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg" style={{ background: 'var(--color-guinda-700)' }}>
+                    <Download size={15} /> Descargar credencial
                   </a>
-                </div>
-                <div className="flex flex-wrap gap-2 pt-1">
                   <button onClick={() => setModalLicencia('renovar')} disabled={emitiendo}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white disabled:opacity-60" style={{ color: '#7c3aed', border: '1px solid #c4b5fd' }}>
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-lg bg-white disabled:opacity-60" style={{ color: '#7c3aed', border: '1px solid #c4b5fd' }}>
                     <RefreshCw size={13} /> Renovar vigencia
                   </button>
                   <button onClick={() => setModalLicencia('reponer')} disabled={emitiendo}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white disabled:opacity-60" style={{ color: '#6b635e', border: '1px solid #eadfd7' }}>
+                    className="inline-flex items-center gap-1.5 px-3 py-2.5 text-xs font-semibold rounded-lg bg-white disabled:opacity-60" style={{ color: '#6b635e', border: '1px solid #eadfd7' }}>
                     <BadgeCheck size={13} /> Reponer (folio nuevo)
                   </button>
                 </div>
-                <p className="text-[11px]" style={{ color: '#a89a8e' }}>
+                <p className="text-[11px] text-center" style={{ color: '#a89a8e' }}>
                   La credencial usa la fotografía aprobada del expediente. Si no hay foto aprobada, el carnet se genera sin fotografía.
                 </p>
               </div>

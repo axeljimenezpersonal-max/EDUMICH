@@ -2196,7 +2196,7 @@ router.get('/credencial/pdf', async (req, res) => {
   try {
     const cred = await generarCredencialPdf(userId);
     if (!cred) { res.status(409).json({ error: 'Aún no tienes credencial digital emitida.' }); return; }
-    const nombre = `Credencial-digital_${(cred.matricula || cred.folio).replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
+    const nombre = `${cred.folio.replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${nombre}"`);
     res.send(Buffer.from(cred.pdf));

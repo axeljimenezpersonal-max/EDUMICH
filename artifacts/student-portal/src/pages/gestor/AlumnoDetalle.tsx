@@ -52,6 +52,7 @@ import {
 import { StatusBadge } from '../../components/StatusBadge';
 import DocumentoUploader from '../../components/DocumentoUploader';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
+import { CredencialPreview } from '../../components/CredencialPreview';
 import FirmaPad from '../../components/FirmaPad';
 import { CampoCopiable } from '../../components/CampoCopiable';
 
@@ -99,7 +100,7 @@ const NIVEL_LABELS: Record<number, string> = {
 };
 
 
-type ActiveTab = 'docs' | 'cedula' | 'plan' | 'convocatoria' | 'calificaciones';
+type ActiveTab = 'docs' | 'cedula' | 'plan' | 'convocatoria' | 'calificaciones' | 'credencial';
 
 interface ToastState {
   msg: string;
@@ -399,6 +400,12 @@ export default function AlumnoDetalle() {
       icon: <GraduationCap size={15} />,
       badge: '—',
     },
+    {
+      key: 'credencial',
+      label: 'Credencial',
+      icon: <Award size={15} />,
+      badge: alumno.licenciaDigital ? '✓' : '—',
+    },
   ];
 
   const bienvenidaFecha = alumno.bienvenidaEnviadaEn
@@ -630,40 +637,7 @@ export default function AlumnoDetalle() {
             </div>
           )}
 
-          {/* Credencial digital */}
-          {alumno.licenciaDigital && (
-            <div className="bg-gradient-to-br from-violet-50 to-white border border-violet-200 rounded-xl p-4 mb-4">
-              <div className="flex items-start gap-3 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-violet-100 flex items-center justify-center shrink-0">
-                  <Award size={16} className="text-violet-600" />
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-stone-800">Credencial digital</div>
-                  <div className="text-xs text-stone-500 mt-0.5">
-                    Emitida el {alumno.licenciaEmitidaEn
-                      ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
-                      : '—'}
-                  </div>
-                </div>
-              </div>
-              <div className="bg-white border border-stone-200 rounded-lg px-4 py-3">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">CREDENCIAL DIGITAL</div>
-                <div className="font-mono text-lg font-bold text-violet-700 tracking-wide">
-                  {alumno.licenciaDigital}
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 mt-3">
-                <a href={`/api/gestor/alumnos/${id}/credencial/pdf`} target="_blank" rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-white rounded-lg bg-violet-600 hover:bg-violet-700">
-                  <Award size={13} /> Ver credencial (PDF)
-                </a>
-                <a href={`/api/gestor/alumnos/${id}/credencial/pdf`} download
-                  className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
-                  <Download size={13} /> Descargar
-                </a>
-              </div>
-            </div>
-          )}
+          {/* La credencial digital ahora vive en su propia pestaña "Credencial". */}
 
           {/* Acceso del alumno — va después de matrícula y licencia */}
           {alumno.passwordTemporal ? (
@@ -846,6 +820,33 @@ export default function AlumnoDetalle() {
       {/* ══════════════ TAB: Calificaciones ══════════════ */}
       {activeTab === 'calificaciones' && id !== null && (
         <CalificacionesTabContent estudianteId={id} readOnly={true} />
+      )}
+
+      {/* ══════════════ TAB: Credencial digital ══════════════ */}
+      {activeTab === 'credencial' && id !== null && (
+        <div className="bg-white border border-stone-200 rounded-xl p-5">
+          {alumno.licenciaDigital ? (
+            <div className="space-y-5">
+              <CredencialPreview basePath={`/gestor/alumnos/${id}`} />
+              <div className="flex justify-center">
+                <a href={`/api/gestor/alumnos/${id}/credencial/pdf`} download
+                  className="inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white rounded-lg" style={{ background: 'var(--color-guinda-700)' }}>
+                  <Download size={15} /> Descargar credencial
+                </a>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: '#ede9fe' }}>
+                <Award size={22} className="text-violet-600" />
+              </div>
+              <div className="text-sm font-bold text-stone-800">Credencial digital sin emitir</div>
+              <p className="text-xs mt-1 max-w-sm mx-auto text-stone-500">
+                La administración emite la credencial una vez que el alumno tiene matrícula oficial.
+              </p>
+            </div>
+          )}
+        </div>
       )}
 
       {/* ── Modal: Editar alumno ── */}
