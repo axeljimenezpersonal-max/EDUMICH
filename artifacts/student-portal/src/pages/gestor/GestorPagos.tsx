@@ -323,52 +323,63 @@ function NuevoView({ onCancel, onCreado, onError }: {
   );
 }
 
-// ─── Aviso "Ficha solicitada" — grande, con pulso + stepper del flujo ───────
-function FichaSolicitada({ estado }: { estado: PagoExamenEstado }) {
-  const pasos = ['Solicitada', 'Emisión', 'Pago', 'Confirmado'];
-  const actual = estado === 'pendiente_emision' ? 0 : estado === 'emitida' ? 1 : estado === 'en_revision' ? 2 : 3;
-  return (
-    <div className="relative overflow-hidden rounded-2xl border border-[#e8c4d4] p-6"
-      style={{ background: 'linear-gradient(135deg, #fdf6f8 0%, #ffffff 60%)' }}>
-      {/* halo decorativo */}
-      <div className="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full opacity-[0.06]" style={{ background: 'var(--color-guinda-700)' }} />
+// ─── Stepper del proceso de pago (siempre visible, con descripción del paso) ──
+const PASOS_PAGO: { label: string; desc: string; icon: React.ReactNode }[] = [
+  { label: 'Solicitada', desc: 'Se solicitó la ficha de pago de estos exámenes. En espera de que la coordinación la emita.', icon: <FileText size={26} /> },
+  { label: 'Emisión', desc: 'La coordinación revisó y emitió la orden con su línea de captura. Ya puedes pagar.', icon: <Landmark size={26} /> },
+  { label: 'Pago', desc: 'Descarga la orden, paga ante la Tesorería del Estado y sube tu comprobante.', icon: <UploadCloud size={26} /> },
+  { label: 'Confirmado', desc: 'La coordinación validó el pago. Los alumnos quedan inscritos oficialmente.', icon: <CheckCircle2 size={26} /> },
+];
 
-      <div className="flex items-center gap-4 mb-4">
+function PagoStepper({ estado }: { estado: PagoExamenEstado }) {
+  const actual = estado === 'pendiente_emision' ? 0 : estado === 'emitida' ? 1 : estado === 'en_revision' ? 2 : 3;
+  const terminado = estado === 'pagado';
+  const cancelado = estado === 'cancelado' || estado === 'vencido';
+  const accent = cancelado ? '#b91c1c' : terminado ? '#15803d' : 'var(--color-guinda-700)';
+  const paso = PASOS_PAGO[actual];
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border p-6"
+      style={{ borderColor: cancelado ? '#fecaca' : terminado ? '#bbf7d0' : '#e8c4d4', background: 'linear-gradient(135deg, #fbf7f8 0%, #ffffff 62%)' }}>
+      <div className="pointer-events-none absolute -right-16 -top-16 w-48 h-48 rounded-full" style={{ background: accent, opacity: 0.05 }} />
+
+      {/* Encabezado del paso actual */}
+      <div className="relative flex items-center gap-4 mb-5">
         <div className="relative shrink-0">
-          <span className="absolute inset-0 rounded-full animate-ping" style={{ background: 'var(--color-guinda-700)', opacity: 0.25 }} />
-          <span className="relative w-14 h-14 rounded-full flex items-center justify-center text-white" style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
-            <Clock size={26} />
+          {!terminado && !cancelado && <span className="absolute inset-0 rounded-full animate-ping" style={{ background: accent, opacity: 0.22 }} />}
+          <span className="relative w-14 h-14 rounded-full flex items-center justify-center text-white"
+            style={{ background: cancelado ? 'linear-gradient(135deg,#b91c1c,#ef4444)' : terminado ? 'linear-gradient(135deg,#15803d,#22c55e)' : 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
+            {cancelado ? <Ban size={26} /> : paso.icon}
           </span>
         </div>
         <div>
-          <div className="text-[11px] uppercase tracking-[0.2em] font-bold text-[var(--color-guinda-700)]">En proceso</div>
-          <h3 className="text-2xl font-bold text-stone-900 leading-tight">Ficha solicitada</h3>
+          <div className="text-[11px] uppercase tracking-[0.2em] font-bold" style={{ color: accent }}>
+            {cancelado ? (estado === 'vencido' ? 'Vencida' : 'Cancelada') : terminado ? 'Completado' : `Paso ${actual + 1} de 4 · En proceso`}
+          </div>
+          <h3 className="text-2xl font-bold text-stone-900 leading-tight">
+            {cancelado ? (estado === 'vencido' ? 'Ficha vencida' : 'Ficha cancelada') : paso.label}
+          </h3>
         </div>
       </div>
-
-      <p className="text-stone-600 text-[15px] leading-relaxed max-w-2xl mb-6">
-        La coordinación la revisará y emitirá con su <strong className="text-stone-800">línea de captura</strong>. Vuelve pronto para pagar y subir tu comprobante.
+      <p className="relative text-stone-600 text-[15px] leading-relaxed max-w-2xl mb-6">
+        {cancelado ? (estado === 'vencido' ? 'La ficha venció sin pagarse. Solicita una nueva a la coordinación.' : 'Esta ficha fue cancelada; los exámenes quedaron libres.') : paso.desc}
       </p>
 
-      {/* Stepper del flujo */}
-      <div className="flex items-center">
-        {pasos.map((label, i) => {
-          const done = i < actual;
-          const active = i === actual;
+      {/* Barra de pasos */}
+      <div className="relative flex items-center">
+        {PASOS_PAGO.map((s, i) => {
+          const done = !cancelado && (i < actual || (terminado && i === actual));
+          const active = !cancelado && !terminado && i === actual;
           return (
-            <div key={label} className="flex items-center" style={{ flex: i < pasos.length - 1 ? 1 : '0 0 auto' }}>
+            <div key={s.label} className="flex items-center" style={{ flex: i < PASOS_PAGO.length - 1 ? 1 : '0 0 auto' }}>
               <div className="flex flex-col items-center gap-1.5 shrink-0">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                  done ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)] text-white'
-                  : active ? 'border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white'
-                  : 'border-stone-200 text-stone-300 bg-white'}`}>
-                  {done ? <Check size={14} /> : active ? <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)] animate-pulse" /> : i + 1}
+                <span className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors"
+                  style={{ background: done ? accent : '#fff', borderColor: done || active ? accent : '#e7e0d9', color: done ? '#fff' : active ? accent : '#d6d3d1' }}>
+                  {done ? <Check size={14} /> : active ? <span className="w-2 h-2 rounded-full animate-pulse" style={{ background: accent }} /> : i + 1}
                 </span>
-                <span className={`text-[10px] font-semibold uppercase tracking-wide ${active ? 'text-[var(--color-guinda-700)]' : done ? 'text-stone-600' : 'text-stone-300'}`}>{label}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: done ? '#57534e' : active ? accent : '#d6d3d1' }}>{s.label}</span>
               </div>
-              {i < pasos.length - 1 && (
-                <div className="flex-1 h-0.5 mx-1 rounded-full -mt-4" style={{ background: done ? 'var(--color-guinda-700)' : '#e7e0d9' }} />
-              )}
+              {i < PASOS_PAGO.length - 1 && <div className="flex-1 h-0.5 mx-1 rounded-full -mt-4" style={{ background: done ? accent : '#e7e0d9' }} />}
             </div>
           );
         })}
@@ -452,7 +463,7 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
       <div className="grid md:grid-cols-3 gap-4">
         <div className="md:col-span-2 space-y-4">
           {/* Estado por fase */}
-          {p.estado === 'pendiente_emision' && <FichaSolicitada estado={p.estado} />}
+          <PagoStepper estado={p.estado} />
 
           {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'vencido') && (
             <div className="bg-white border border-stone-200 rounded-xl p-4">
