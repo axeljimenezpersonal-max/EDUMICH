@@ -21,7 +21,7 @@ type Alumno = {
   email: string;
   municipio: { id: number; nombre: string } | null;
   gestor: { id: number; nombreCompleto: string; iniciales: string } | null;
-  estadoExpediente: 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
+  estadoExpediente: 'activo' | 'esperando_matricula' | 'modulos_pendientes' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
   estadoCuenta: 'activa' | 'aviso_enviado' | 'soft_deleted' | 'hard_deleted';
   docsAprobados: number;
   docsTotal: number;
@@ -55,7 +55,8 @@ const FILTRO_DESC: Record<string, string> = {
 const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; color: string }> = {
   activo:              { label: 'Activo',                dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
   esperando_matricula: { label: 'Esperando matrícula',   dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
-  pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
+  modulos_pendientes:  { label: 'Módulos pendientes',    dot: '#2563eb', bg: '#dbeafe', color: '#1e40af' },
+  pago_pendiente:      { label: 'Pago pendiente',        dot: '#ea580c', bg: '#ffedd5', color: '#c2410c' },
   en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
   rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },
   sin_documentos:      { label: 'Sin documentos',        dot: '#6b635e', bg: '#f7f2ed', color: '#6b635e' },
@@ -73,6 +74,7 @@ const ESTADO_OPTIONS = [
   { value: '', label: 'Estado' },
   { value: 'activo', label: 'Activo' },
   { value: 'esperando_matricula', label: 'Esperando matrícula' },
+  { value: 'modulos_pendientes', label: 'Módulos pendientes' },
   { value: 'pago_pendiente', label: 'Pago pendiente' },
   { value: 'en_proceso', label: 'En proceso' },
   { value: 'rechazado', label: 'Doc. rechazado' },

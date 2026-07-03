@@ -1708,11 +1708,15 @@ router.get('/alumnos', async (req, res) => {
     ? sql`AND e.estado_cuenta = ${estadoCuentaParam}`
     : sql`AND COALESCE(e.estado_cuenta, 'activa') != 'soft_deleted' AND COALESCE(e.estado_cuenta, 'activa') != 'hard_deleted'`;
 
-  const VALID_ESTADO_EXP = ['activo', 'esperando_matricula', 'pago_pendiente', 'en_proceso', 'rechazado', 'sin_documentos', 'inactivo'];
+  const VALID_ESTADO_EXP = ['activo', 'esperando_matricula', 'pago_pendiente', 'modulos_pendientes', 'en_proceso', 'rechazado', 'sin_documentos', 'inactivo'];
+  const DOCS_OK = `(SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) >= 5`;
+  const TIENE_MODULOS = `EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = e.user_id)`;
+  const TIENE_PAGO = `EXISTS (SELECT 1 FROM examenes_inscripciones ei JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id JOIN pagos_examen pe ON pe.id = pei.pago_examen_id WHERE ei.estudiante_id = e.user_id AND pe.estado = 'pagado')`;
   const estadoExpSnippets: Record<string, string> = {
-    activo: `AND u.activo = true AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) >= 5 AND EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') AND e.matricula_oficial_dgb IS NOT NULL`,
-    esperando_matricula: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) >= 5 AND EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') AND e.matricula_oficial_dgb IS NULL`,
-    pago_pendiente: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) >= 5 AND NOT EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado')`,
+    activo: `AND u.activo = true AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') AND ${DOCS_OK} AND ${TIENE_MODULOS} AND ${TIENE_PAGO} AND e.matricula_oficial_dgb IS NOT NULL`,
+    esperando_matricula: `AND ${DOCS_OK} AND ${TIENE_MODULOS} AND ${TIENE_PAGO} AND e.matricula_oficial_dgb IS NULL`,
+    pago_pendiente: `AND ${DOCS_OK} AND ${TIENE_MODULOS} AND NOT ${TIENE_PAGO}`,
+    modulos_pendientes: `AND ${DOCS_OK} AND NOT ${TIENE_MODULOS}`,
     en_proceso: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id) AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) < 5`,
     rechazado: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado')`,
     sin_documentos: `AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)`,
@@ -1787,7 +1791,8 @@ router.get('/alumnos', async (req, res) => {
             WHEN EXISTS (SELECT 1 FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'rechazado') THEN 'rechazado'
             WHEN NOT EXISTS (SELECT 1 FROM expediente_documentos x WHERE x.estudiante_id = e.user_id) THEN 'sin_documentos'
             WHEN (SELECT count(DISTINCT tipo) FROM expediente_documentos x WHERE x.estudiante_id = e.user_id AND x.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) < 5 THEN 'en_proceso'
-            WHEN NOT EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') THEN 'pago_pendiente'
+            WHEN NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = e.user_id) THEN 'modulos_pendientes'
+            WHEN NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id JOIN pagos_examen pe ON pe.id = pei.pago_examen_id WHERE ei.estudiante_id = e.user_id AND pe.estado = 'pagado') THEN 'pago_pendiente'
             WHEN e.matricula_oficial_dgb IS NULL THEN 'esperando_matricula'
             ELSE 'activo'
           END AS estado_expediente,
@@ -1860,7 +1865,7 @@ router.get('/alumnos', async (req, res) => {
         email: r.email,
         municipio: r.municipio_id ? { id: r.municipio_id, nombre: r.municipio_nombre ?? '' } : null,
         gestor: r.gestor_id ? { id: r.gestor_id, nombreCompleto: r.gestor_nombre ?? '', iniciales: gestorIniciales } : null,
-        estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
+        estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'modulos_pendientes' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
         estadoCuenta: (r.estado_cuenta ?? 'activa') as 'activa' | 'aviso_enviado' | 'soft_deleted' | 'hard_deleted',
         docsAprobados,
         docsTotal: Number(r.docs_total ?? 0),
@@ -1965,7 +1970,8 @@ router.get('/alumnos/:id', async (req, res) => {
             WHEN EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') THEN 'rechazado'
             WHEN NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id) THEN 'sin_documentos'
             WHEN (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) < 5 THEN 'en_proceso'
-            WHEN NOT EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'verificado') THEN 'pago_pendiente'
+            WHEN NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = e.user_id) THEN 'modulos_pendientes'
+            WHEN NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id JOIN pagos_examen pe ON pe.id = pei.pago_examen_id WHERE ei.estudiante_id = e.user_id AND pe.estado = 'pagado') THEN 'pago_pendiente'
             WHEN e.matricula_oficial_dgb IS NULL THEN 'esperando_matricula'
             ELSE 'activo'
           END AS estado_expediente,
@@ -2017,7 +2023,7 @@ router.get('/alumnos/:id', async (req, res) => {
         passwordTemporal: r.password_temporal ?? false,
         bienvenidaEnviadaEn: r.bienvenida_enviada_en ? new Date(r.bienvenida_enviada_en as string | Date).toISOString() : null,
         ultimaActividad: r.ultimo_login ? new Date(r.ultimo_login as string | Date).toISOString() : null,
-        estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
+        estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'modulos_pendientes' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
         docsAprobados: Number(r.docs_aprobados ?? 0),
         docsTotal: Number(r.docs_total ?? 0),
         creadoEn: new Date(r.created_at as string | Date).toISOString(),
