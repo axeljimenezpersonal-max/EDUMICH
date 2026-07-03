@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import { api, type PagoExamenAdmin, type PagoExamenEstado, type PagoExamenCandidato, type PagoExamenDesglose } from '../../lib/api';
 
 const FILTROS: { key: string; label: string }[] = [
@@ -549,42 +550,6 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
         />
       )}
     </>
-  );
-}
-
-// ─── Modal de confirmación (profesional, no confirm() del navegador) ────────
-function ConfirmModal({ icon, title, message, confirmLabel, danger, withInput, inputPlaceholder, onConfirm, onClose }: {
-  icon?: React.ReactNode; title: string; message: string; confirmLabel: string; danger?: boolean;
-  withInput?: boolean; inputPlaceholder?: string; onConfirm: (input?: string) => void; onClose: () => void;
-}) {
-  const [val, setVal] = useState('');
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)' }} onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="p-5">
-          <div className="flex items-start gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${danger ? 'bg-red-100 text-red-600' : 'bg-[var(--color-guinda-100,#f3dbe4)] text-[var(--color-guinda-700)]'}`}>
-              {icon}
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-serif text-lg font-bold text-stone-900">{title}</h3>
-              <p className="text-sm text-stone-600 mt-1 leading-relaxed">{message}</p>
-            </div>
-            <button onClick={onClose} className="text-stone-400 hover:text-stone-600 shrink-0"><X size={18} /></button>
-          </div>
-          {withInput && (
-            <textarea value={val} onChange={(e) => setVal(e.target.value)} rows={2} placeholder={inputPlaceholder}
-              className="w-full mt-3 text-sm border border-stone-300 rounded-lg px-3 py-2 resize-none focus:outline-none focus:border-[var(--color-guinda-700)]" autoFocus />
-          )}
-        </div>
-        <div className="flex gap-2 px-5 py-3 bg-stone-50 border-t border-stone-100">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-600 text-sm font-semibold hover:bg-white">Cancelar</button>
-          <button onClick={() => onConfirm(val)} className={`flex-1 py-2.5 rounded-lg text-white text-sm font-semibold ${danger ? 'bg-red-600 hover:bg-red-700' : 'bg-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-800)]'}`}>
-            {confirmLabel}
-          </button>
-        </div>
-      </div>
-    </div>
   );
 }
 

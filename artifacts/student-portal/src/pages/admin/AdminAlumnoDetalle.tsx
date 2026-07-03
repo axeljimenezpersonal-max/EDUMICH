@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
+import { ConfirmModal } from '../../components/ConfirmModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { CalificacionesAdminTab } from '../../components/CalificacionesAdminTab';
 import { CedulaEditor } from '../../components/CedulaEditor';
@@ -463,6 +464,7 @@ export default function AdminAlumnoDetalle() {
   const [matriculaError, setMatriculaError] = useState('');
   const [renovando, setRenovando] = useState(false);
   const [emitiendo, setEmitiendo] = useState(false);
+  const [modalLicencia, setModalLicencia] = useState<null | 'renovar' | 'reponer'>(null);
   const [confirmarLicencia, setConfirmarLicencia] = useState(false);
 
   useEffect(() => {
@@ -575,10 +577,7 @@ export default function AdminAlumnoDetalle() {
   }
 
   async function handleRenovarLicencia(motivo: 'vencimiento' | 'reposicion') {
-    const msg = motivo === 'reposicion'
-      ? '¿Reponer la credencial? Se generará un folio nuevo y se reiniciará la vigencia (6 meses).'
-      : '¿Renovar la credencial? Se reiniciará la vigencia (6 meses) conservando el folio.';
-    if (!confirm(msg)) return;
+    setModalLicencia(null);
     setEmitiendo(true);
     try {
       await api.post(`/admin/alumnos/${alumnoId}/renovar-licencia`, { motivo });
@@ -954,14 +953,14 @@ export default function AdminAlumnoDetalle() {
           {/* Renovar / Reponer credencial (vigencia 6 meses) */}
           <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
             <button
-              onClick={() => handleRenovarLicencia('vencimiento')}
+              onClick={() => setModalLicencia('renovar')}
               disabled={emitiendo}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
             >
               <RefreshCw size={13} /> Renovar vigencia
             </button>
             <button
-              onClick={() => handleRenovarLicencia('reposicion')}
+              onClick={() => setModalLicencia('reponer')}
               disabled={emitiendo}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#6b635e', border: '1px solid #eadfd7', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
             >
@@ -1086,6 +1085,29 @@ export default function AdminAlumnoDetalle() {
           loading={docActionLoading}
           onConfirm={(motivo) => handleRechazarDoc(modalRechazar, motivo)}
           onCancel={() => setModalRechazar(null)}
+        />
+      )}
+
+      {modalLicencia === 'renovar' && (
+        <ConfirmModal
+          icon={<RefreshCw size={20} />}
+          title="Renovar vigencia de la credencial"
+          message="Se reiniciará la vigencia a 6 meses conservando el mismo folio. Úsalo cuando la credencial venció o está por vencer."
+          confirmLabel="Renovar vigencia"
+          onConfirm={() => handleRenovarLicencia('vencimiento')}
+          onClose={() => setModalLicencia(null)}
+        />
+      )}
+      {modalLicencia === 'reponer' && (
+        <ConfirmModal
+          danger
+          icon={<BadgeCheck size={20} />}
+          title="Reponer credencial (folio nuevo)"
+          message={<>Esto <strong>invalida el folio actual</strong> y emite una credencial <strong>nueva</strong> con folio distinto y vigencia de 6 meses. Úsalo solo por <strong>pérdida de la credencial física</strong>. No se puede deshacer.</>}
+          confirmLabel="Reponer credencial"
+          requireText="REPONER"
+          onConfirm={() => handleRenovarLicencia('reposicion')}
+          onClose={() => setModalLicencia(null)}
         />
       )}
 
