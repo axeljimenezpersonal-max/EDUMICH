@@ -196,7 +196,7 @@ router.get('/alumnos', async (req, res) => {
 
       // Documentos del EXPEDIENTE: obligatorios aprobados (0-5) + opcionales faltantes
       const OBLIG_LISTA = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
-      const OPCIONALES_LISTA = ['foto', 'comprobante_pago'];
+      const OPCIONALES_LISTA = ['foto'];
       const docsRows = await db
         .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado })
         .from(expedienteDocumentos)
@@ -877,7 +877,7 @@ const uploadExpedienteGestor = multer({
 
 const TIPOS_EXPEDIENTE = [
   'curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio',
-  'certificado_secundaria', 'foto', 'comprobante_pago',
+  'certificado_secundaria', 'foto',
 ] as const;
 type TipoExpediente = (typeof TIPOS_EXPEDIENTE)[number];
 

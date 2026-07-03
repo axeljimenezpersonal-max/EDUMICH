@@ -740,7 +740,6 @@ const TIPOS_VALIDOS = [
   'comprobante_domicilio',
   'foto',
   'certificado_secundaria',
-  'comprobante_pago',
 ] as const;
 
 type TipoDoc = (typeof TIPOS_VALIDOS)[number];

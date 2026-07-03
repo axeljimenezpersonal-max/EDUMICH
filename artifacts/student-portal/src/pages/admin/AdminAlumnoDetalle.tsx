@@ -307,8 +307,8 @@ function DocumentosChecklist({
           : <DocFaltante key={r.tipo} label={r.label} descripcion={r.descripcion} />;
       })}
 
-      {/* Opcionales (se muestran siempre y también se verifican) */}
-      <h4 className="text-xs font-bold uppercase tracking-widest text-stone-500 mt-5 mb-2">Documentos opcionales</h4>
+      {/* Documentos para la credencial (se muestran siempre y también se verifican) */}
+      <h4 className="text-xs font-bold uppercase tracking-widest text-stone-500 mt-5 mb-2">Documentos para la credencial</h4>
       {DOCS_OPCIONALES.map((r) => {
         const doc = porTipo.get(r.tipo);
         return (
