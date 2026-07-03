@@ -21,6 +21,7 @@ import adminRoutes from './routes/admin';
 import direccionRoutes from './routes/direccion';
 import pagosRoutes from './routes/pagos';
 import pagosExamenRoutes, { vencerPagosExamen } from './routes/pagos-examen';
+import { sincronizarEstadosEtapas } from './services/etapasEstado';
 import calificacionesRoutes from './routes/calificaciones';
 import anunciosRoutes from './routes/anuncios';
 import notificacionesRoutes from './routes/notificaciones';
@@ -130,6 +131,13 @@ cron.schedule('15 * * * *', () => {
     .catch((e) => console.error('[Pagos examen Cron]', e));
 });
 
+// Cron: sincronizar el estado de las etapas con sus fechas (cada hora + al arrancar)
+cron.schedule('20 * * * *', () => {
+  sincronizarEstadosEtapas()
+    .then((n) => { if (n > 0) console.log(`[Etapas] ${n} etapa(s) actualizaron su estado`); })
+    .catch((e) => console.error('[Etapas Cron]', e));
+});
+
 // Cron: depuración automática de cuentas inactivas (03:00 AM Mexico City)
 iniciarCronDepuracion();
 
@@ -163,6 +171,9 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Preparatoria Abierta Michoacán API escuchando en :${PORT}`);
   await runStartupMigrations();
   console.log('✅ Migraciones de arranque completadas');
+  await sincronizarEstadosEtapas()
+    .then((n) => console.log(`✅ Estados de etapas sincronizados (${n} cambios)`))
+    .catch((e) => console.error('[Etapas] Error al sincronizar:', e));
 });
 
 export default app;
