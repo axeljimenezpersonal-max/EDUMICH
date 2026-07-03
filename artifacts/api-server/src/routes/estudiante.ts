@@ -54,6 +54,7 @@ import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
+import { generarCredencialPdf } from '../services/credencialPdf';
 import {
   obtenerDatosCedula,
   guardarDatosCedula,
@@ -2186,6 +2187,21 @@ router.get('/mi-identificacion', async (req, res) => {
       verifyUrl,
     },
   });
+});
+
+// ─── GET /estudiante/credencial/pdf — carnet de la credencial digital ────────
+router.get('/credencial/pdf', async (req, res) => {
+  const userId = req.user!.userId;
+  try {
+    const cred = await generarCredencialPdf(userId);
+    if (!cred) { res.status(409).json({ error: 'Aún no tienes credencial digital emitida.' }); return; }
+    const nombre = `Credencial_${(cred.matricula || cred.folio).replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombre}"`);
+    res.send(Buffer.from(cred.pdf));
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la credencial' });
+  }
 });
 
 // ─── POST /estudiante/solicitar-renovacion-credencial ─────────────────────

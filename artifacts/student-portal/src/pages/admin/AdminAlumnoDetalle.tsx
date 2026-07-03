@@ -90,7 +90,7 @@ type DetalleResp = {
   examenes: Examen[];
 };
 
-type ActiveTab = 'docs' | 'cedula' | 'pagos' | 'modulos' | 'examenes';
+type ActiveTab = 'docs' | 'cedula' | 'pagos' | 'modulos' | 'examenes' | 'credencial';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -799,6 +799,7 @@ export default function AdminAlumnoDetalle() {
     { key: 'cedula',  label: 'Cédula',       icon: ClipboardList },
     { key: 'modulos', label: 'Módulos inscritos', icon: CalendarClock, count: examenes.length },
     { key: 'pagos',   label: 'Pagos',        icon: CreditCard,   count: pagosData.length },
+    { key: 'credencial', label: 'Credencial digital', icon: BadgeCheck },
     { key: 'examenes', label: 'Evaluaciones', icon: GraduationCap, count: examenes.length },
   ];
 
@@ -1138,80 +1139,71 @@ export default function AdminAlumnoDetalle() {
           {activeTab === 'modulos' && (
             <ModulosInscritos examenes={examenes} />
           )}
+          {activeTab === 'credencial' && (
+            !alumno.licenciaDigital ? (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: '#ede9fe' }}>
+                  <BadgeCheck size={22} style={{ color: '#7c3aed' }} />
+                </div>
+                <div className="text-sm font-bold" style={{ color: '#2a2a2a' }}>Credencial digital sin emitir</div>
+                <p className="text-xs mt-1 mb-4 max-w-sm mx-auto" style={{ color: '#6b635e' }}>
+                  {!alumno.matriculaOficialDGB
+                    ? 'Primero asigna la matrícula oficial DGB; después podrás emitir la credencial digital.'
+                    : 'Emite la credencial digital para generar el carnet (PDF) del alumno.'}
+                </p>
+                {alumno.matriculaOficialDGB ? (
+                  <button
+                    onClick={() => setConfirmarLicencia(true)}
+                    disabled={emitiendo}
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-60"
+                    style={{ background: '#7c3aed' }}
+                  >
+                    {emitiendo ? <Loader2 size={14} className="animate-spin" /> : <BadgeCheck size={14} />}
+                    {emitiendo ? 'Emitiendo…' : 'Emitir credencial digital'}
+                  </button>
+                ) : (
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg" style={{ color: '#b45309', background: '#fff7ed', border: '1px solid #fed7aa' }}>
+                    <AlertTriangle size={12} /> Falta la matrícula oficial DGB
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="rounded-xl p-4" style={{ background: 'linear-gradient(135deg,#f5f3ff 0%,#fff 100%)', border: '1px solid #c4b5fd' }}>
+                  <div className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: '#7c3aed' }}>Folio de credencial</div>
+                  <div className="font-mono text-xl font-bold" style={{ color: '#7c3aed', letterSpacing: '0.05em' }}>{alumno.licenciaDigital}</div>
+                  <div className="text-xs mt-1" style={{ color: '#6b635e' }}>
+                    Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <a href={`/api/admin/alumnos/${alumnoId}/credencial/pdf`} target="_blank" rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg" style={{ background: '#7c3aed' }}>
+                    <BadgeCheck size={14} /> Ver credencial (PDF)
+                  </a>
+                  <a href={`/api/admin/alumnos/${alumnoId}/credencial/pdf`} download
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg border border-stone-300" style={{ color: '#443e39' }}>
+                    <Download size={14} /> Descargar
+                  </a>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button onClick={() => setModalLicencia('renovar')} disabled={emitiendo}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white disabled:opacity-60" style={{ color: '#7c3aed', border: '1px solid #c4b5fd' }}>
+                    <RefreshCw size={13} /> Renovar vigencia
+                  </button>
+                  <button onClick={() => setModalLicencia('reponer')} disabled={emitiendo}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold rounded-lg bg-white disabled:opacity-60" style={{ color: '#6b635e', border: '1px solid #eadfd7' }}>
+                    <BadgeCheck size={13} /> Reponer (folio nuevo)
+                  </button>
+                </div>
+                <p className="text-[11px]" style={{ color: '#a89a8e' }}>
+                  La credencial usa la fotografía aprobada del expediente. Si no hay foto aprobada, el carnet se genera sin fotografía.
+                </p>
+              </div>
+            )
+          )}
         </div>
       </div>
-
-      {/* ── CREDENCIAL DIGITAL ────────────────────────────────────── */}
-      {!alumno.licenciaDigital ? (
-        <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Credencial digital</h3>
-              <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
-                {!alumno.matriculaOficialDGB
-                  ? 'Se requiere matrícula oficial antes de emitir la credencial digital.'
-                  : 'Aún no se ha emitido la credencial digital para este alumno.'}
-              </p>
-            </div>
-          </div>
-          {alumno.matriculaOficialDGB && (
-            <button
-              onClick={() => setConfirmarLicencia(true)}
-              disabled={emitiendo}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
-            >
-              {emitiendo ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <BadgeCheck size={13} />}
-              {emitiendo ? 'Emitiendo...' : 'Emitir credencial digital'}
-            </button>
-          )}
-          {!alumno.matriculaOficialDGB && (
-            <div style={{ fontSize: 12, color: '#b45309', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 6, padding: '8px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-              <AlertTriangle size={12} style={{ flexShrink: 0 }} />
-              Asigna primero la matrícula oficial DGB.
-            </div>
-          )}
-        </div>
-      ) : (
-        <div style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #fff 100%)', border: '1px solid #c4b5fd', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: '#ede9fe', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
-            </div>
-            <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Credencial digital</h3>
-              <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
-                Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
-              </p>
-            </div>
-          </div>
-          <div style={{ background: '#faf8ff', border: '1px solid #eadfd7', borderRadius: 10, padding: '14px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', marginBottom: 3 }}>CREDENCIAL DIGITAL</div>
-            <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
-              {alumno.licenciaDigital}
-            </div>
-          </div>
-          {/* Renovar / Reponer credencial (vigencia 6 meses) */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            <button
-              onClick={() => setModalLicencia('renovar')}
-              disabled={emitiendo}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
-            >
-              <RefreshCw size={13} /> Renovar vigencia
-            </button>
-            <button
-              onClick={() => setModalLicencia('reponer')}
-              disabled={emitiendo}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#6b635e', border: '1px solid #eadfd7', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
-            >
-              <BadgeCheck size={13} /> Reponer (folio nuevo)
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* ── FOLIO PRE-REGISTRO ──────────────────────────────────── */}
       {alumno.folioPreregistro && (() => {

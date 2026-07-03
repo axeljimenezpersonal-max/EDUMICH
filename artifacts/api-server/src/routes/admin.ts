@@ -53,6 +53,7 @@ import {
   dispositionCedula,
   cedulaDatosSchema,
 } from '../services/cedula';
+import { generarCredencialPdf } from '../services/credencialPdf';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 
@@ -3796,6 +3797,23 @@ router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
     res.send(Buffer.from(pdf));
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
+  }
+});
+
+// GET /admin/alumnos/:id/credencial/pdf — carnet de la credencial digital
+router.get('/alumnos/:id/credencial/pdf', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  try {
+    const cred = await generarCredencialPdf(alumnoId);
+    if (!cred) { res.status(409).json({ error: 'El alumno aún no tiene credencial digital emitida.' }); return; }
+    const nombre = `Credencial_${(cred.matricula || cred.folio).replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombre}"`);
+    res.send(Buffer.from(cred.pdf));
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la credencial' });
   }
 });
 
