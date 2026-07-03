@@ -439,32 +439,22 @@ export default function AlumnoDetalle() {
         Volver a mis alumnos
       </Link>
 
-      {/* ── Cabecera ── */}
-      <div className="bg-white border border-stone-200 rounded-xl p-6 mb-4">
-        <div className="flex items-start justify-between gap-6 flex-wrap">
+      {/* ── Cabecera (compacta) ── */}
+      <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 mb-4">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="flex-1 min-w-0">
-            <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">
+            <div className="text-[10px] uppercase tracking-widest text-[var(--color-guinda-700)] font-bold mb-0.5">
               Alumno
             </div>
-            <h1 className="font-serif text-3xl font-bold text-stone-900 mb-1">
+            <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: 'var(--color-guinda-700)' }}>
               {alumno.nombreCompleto}
             </h1>
-            <div className="font-mono text-sm text-stone-500 mb-3">{alumno.curp}</div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-2 gap-x-8 text-sm">
-              <DataRow icon={Mail} label="Correo" value={alumno.email} />
-              <DataRow icon={Phone} label="Teléfono" value={alumno.telefono ?? '—'} />
-              <DataRow
-                icon={Calendar}
-                label="Fecha de nacimiento"
-                value={
-                  alumno.fechaNacimiento
-                    ? new Date(alumno.fechaNacimiento).toLocaleDateString('es-MX', {
-                        day: 'numeric', month: 'long', year: 'numeric',
-                      })
-                    : '—'
-                }
-              />
-              <DataRow icon={MapPin} label="Dirección" value={alumno.direccion ?? '—'} />
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2.5 text-xs" style={{ color: '#443e39' }}>
+              <span className="inline-flex items-center gap-1.5"><span className="text-[9px] font-bold uppercase tracking-wide text-stone-400">CURP</span><span className="font-mono">{alumno.curp ?? '—'}</span></span>
+              <span className="inline-flex items-center gap-1.5"><Mail size={12} className="text-stone-400" /><span className="truncate max-w-[220px]">{alumno.email}</span></span>
+              <span className="inline-flex items-center gap-1.5"><Phone size={12} className="text-stone-400" />{alumno.telefono ?? '—'}</span>
+              <span className="inline-flex items-center gap-1.5"><Calendar size={12} className="text-stone-400" />{alumno.fechaNacimiento ? new Date(alumno.fechaNacimiento).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</span>
+              <span className="inline-flex items-center gap-1.5"><MapPin size={12} className="text-stone-400" /><span className="truncate max-w-[240px]">{alumno.direccion ?? '—'}</span></span>
             </div>
           </div>
 
