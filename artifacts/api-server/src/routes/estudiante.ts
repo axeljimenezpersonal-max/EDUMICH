@@ -55,6 +55,7 @@ import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarCredencialPdf } from '../services/credencialPdf';
+import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import {
   obtenerDatosCedula,
   guardarDatosCedula,
@@ -1975,7 +1976,7 @@ router.get('/ficha-preregistro', async (req, res) => {
     email: userRow?.email ?? '',
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
-    fotoPath: (est as any).foto ?? null,
+    fotoPath: await rutaFotoAprobada(est.userId),
     qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
   });
 

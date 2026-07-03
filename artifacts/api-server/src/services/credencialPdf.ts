@@ -20,6 +20,7 @@ import {
   convocatoriasEtapas,
 } from '@workspace/db/schema';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
+import { rutaFotoAprobada } from '../utils/fotoExpediente';
 
 const GUINDA = rgb(0.42, 0.09, 0.19);
 const GUINDA_D = rgb(0.30, 0.05, 0.13);
@@ -60,16 +61,8 @@ export async function generarCredencialPdf(
     ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
     : [null];
 
-  // Foto SOLO si está aprobada (regla).
-  const [fotoDoc] = await db
-    .select({ rutaArchivo: expedienteDocumentos.rutaArchivo })
-    .from(expedienteDocumentos)
-    .where(and(
-      eq(expedienteDocumentos.estudianteId, estudianteId),
-      eq(expedienteDocumentos.tipo, 'foto'),
-      eq(expedienteDocumentos.estado, 'aprobado'),
-    ));
-  const fotoPath = fotoDoc && existsSync(fotoDoc.rutaArchivo) ? fotoDoc.rutaArchivo : null;
+  // Foto SOLO si está aprobada (regla única compartida).
+  const fotoPath = await rutaFotoAprobada(estudianteId);
 
   // Convocatorias en las que se ha inscrito a examen (distintas).
   const convsRaw = await db

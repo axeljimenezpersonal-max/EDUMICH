@@ -55,6 +55,7 @@ import {
   cedulaDatosSchema,
 } from '../services/cedula';
 import { generarCredencialPdf } from '../services/credencialPdf';
+import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
@@ -1042,12 +1043,24 @@ async function servirDocExpedienteGestor(
     return;
   }
 
-  const safe = doc.nombreOriginal.replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'documento';
   const mime = doc.rutaArchivo.match(/\.(jpe?g)$/i)
     ? 'image/jpeg'
     : doc.rutaArchivo.match(/\.png$/i)
     ? 'image/png'
     : 'application/pdf';
+  const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'pdf';
+
+  // Nombre definido por nosotros: <Tipo>_<matrícula o folio>.<ext>
+  const TIPO_ARCHIVO: Record<string, string> = {
+    curp: 'CURP', acta_nacimiento: 'Acta-de-nacimiento', ine: 'Identificacion-oficial',
+    comprobante_domicilio: 'Comprobante-de-domicilio', certificado_secundaria: 'Certificado-de-secundaria', foto: 'Fotografia',
+  };
+  const [est] = await db
+    .select({ folio: estudiantes.folioPreregistro, matricula: estudiantes.matriculaOficialDGB })
+    .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  const idInterno = est?.matricula || est?.folio || `alumno-${alumnoId}`;
+  const safe = `${TIPO_ARCHIVO[tipo] ?? tipo}_${idInterno}.${ext}`.replace(/[^a-zA-Z0-9_\-.]/g, '');
+
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
   createReadStream(doc.rutaArchivo).pipe(res);
@@ -1315,7 +1328,7 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
     email: userRow?.email ?? '',
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
-    fotoPath: (est as any).foto ?? null,
+    fotoPath: await rutaFotoAprobada(est.userId),
     qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
   });
 

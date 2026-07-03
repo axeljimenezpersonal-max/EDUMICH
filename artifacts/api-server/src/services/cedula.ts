@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { estudiantes, users, gestores, firmasUsuario, expedienteDocumentos } from '@workspace/db/schema';
+import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 
 // ── Resolución de la plantilla (funciona en dev y en Docker/Railway) ────────
@@ -127,12 +128,8 @@ async function reunirDatos(estudianteId: number): Promise<{
   const [fa] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, estudianteId));
   const firmaAlumno = firmaActiva(fa);
 
-  // Fotografía del expediente (tipo 'foto')
-  const [foto] = await db
-    .select()
-    .from(expedienteDocumentos)
-    .where(and(eq(expedienteDocumentos.estudianteId, estudianteId), eq(expedienteDocumentos.tipo, 'foto')));
-  const fotoPath = foto && existsSync(foto.rutaArchivo) ? foto.rutaArchivo : null;
+  // Fotografía del expediente — SOLO si está aprobada (regla única).
+  const fotoPath = await rutaFotoAprobada(estudianteId);
 
   const datos: CedulaDatosResueltos = {
     matricula: est.matriculaOficialDGB ?? '',
