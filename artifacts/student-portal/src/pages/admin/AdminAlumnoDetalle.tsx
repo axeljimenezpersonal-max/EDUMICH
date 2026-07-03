@@ -5,7 +5,7 @@ import {
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
   Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2, ClipboardList,
-  CalendarClock,
+  CalendarClock, ExternalLink,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
@@ -84,11 +84,32 @@ type Examen = {
   createdAt: string;
 };
 
+type OrdenPago = {
+  id: number;
+  folio: string | null;
+  estado: string;
+  montoTotal: string;
+  cantidadExamenes: number;
+  fechaVencimiento: string | null;
+  esGrupal: boolean;
+  modulosAlumno: string | null;
+};
+
 type DetalleResp = {
   alumno: Alumno;
   documentos: Documento[];
   pagos: Pago[];
   examenes: Examen[];
+  ordenesPago: OrdenPago[];
+};
+
+const ORDEN_PAGO_CFG: Record<string, { label: string; bg: string; color: string }> = {
+  pendiente_emision: { label: 'Por emitir',    bg: '#fef9c3', color: '#92400e' },
+  emitida:           { label: 'Emitida',       bg: '#dbeafe', color: '#1e40af' },
+  en_revision:       { label: 'En revisión',   bg: '#ede9fe', color: '#6d28d9' },
+  pagado:            { label: 'Pagado',        bg: '#d1fae5', color: '#166534' },
+  vencido:           { label: 'Vencido',       bg: '#fee2e2', color: '#b91c1c' },
+  cancelado:         { label: 'Cancelado',     bg: '#f5f5f4', color: '#78716c' },
 };
 
 type ActiveTab = 'docs' | 'cedula' | 'pagos' | 'modulos' | 'examenes' | 'credencial';
@@ -792,7 +813,7 @@ export default function AdminAlumnoDetalle() {
     );
   }
 
-  const { alumno, documentos, pagos: pagosData, examenes } = data;
+  const { alumno, documentos, pagos: pagosData, examenes, ordenesPago } = data;
   const expCfg = ESTADO_EXP_CFG[alumno.estadoExpediente] ?? ESTADO_EXP_CFG.sin_documentos;
   const edad = calcEdad(alumno.fechaNacimiento);
 
@@ -1048,19 +1069,51 @@ export default function AdminAlumnoDetalle() {
             />
           )}
           {activeTab === 'pagos' && (
-            pagosData.length === 0
+            (ordenesPago.length === 0 && pagosData.length === 0)
               ? (
                 <div className="flex flex-col items-center justify-center text-center rounded-xl border-2 border-dashed border-stone-200 py-12 px-6">
                   <div className="w-14 h-14 rounded-full flex items-center justify-center mb-3" style={{ background: '#f7f2ed' }}>
                     <CreditCard size={24} style={{ color: '#c4b5a5' }} />
                   </div>
-                  <div className="text-sm font-bold" style={{ color: '#57534e' }}>Sin pagos registrados</div>
+                  <div className="text-sm font-bold" style={{ color: '#57534e' }}>Sin órdenes de pago</div>
                   <div className="text-xs mt-1 max-w-xs" style={{ color: '#a89a8e' }}>
-                    Aquí aparecerán los pagos de derecho de examen del alumno una vez que se generen desde la pestaña <span className="font-semibold">Pagos</span>.
+                    Aquí aparecerán las órdenes de pago (derecho de examen) en las que este alumno esté incluido.
                   </div>
                 </div>
               )
-              : pagosData.map((p) => <PagoRow key={p.id} pago={p} />)
+              : (
+                <div className="space-y-3">
+                  {ordenesPago.length > 0 && (
+                    <div className="text-[11px] font-bold uppercase tracking-widest mb-1" style={{ color: '#a89a8e' }}>Órdenes de pago · Tesorería</div>
+                  )}
+                  {ordenesPago.map((o) => {
+                    const cfg = ORDEN_PAGO_CFG[o.estado] ?? { label: o.estado, bg: '#f5f5f4', color: '#78716c' };
+                    return (
+                      <div key={o.id} className="flex items-center gap-3 rounded-xl border border-stone-200 p-3.5">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: '#fbe6ea' }}>
+                          <CreditCard size={18} style={{ color: 'var(--color-guinda-700)' }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="font-mono text-sm font-bold" style={{ color: 'var(--color-guinda-700)' }}>{o.folio ?? `Orden #${o.id}`}</span>
+                            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: cfg.bg, color: cfg.color }}>{cfg.label}</span>
+                            {o.esGrupal && <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: '#f7f2ed', color: '#6b635e' }}>Grupal</span>}
+                          </div>
+                          <div className="text-xs mt-0.5" style={{ color: '#6b635e' }}>
+                            {o.modulosAlumno ?? '—'}
+                            {o.fechaVencimiento && <span style={{ color: '#a89a8e' }}> · Vence {fmtDate(o.fechaVencimiento)}</span>}
+                          </div>
+                        </div>
+                        <a href={`/admin/ordenes-pago?orden=${o.id}`}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-stone-300 flex-shrink-0" style={{ color: 'var(--color-guinda-700)' }}>
+                          Ver orden <ExternalLink size={12} />
+                        </a>
+                      </div>
+                    );
+                  })}
+                  {pagosData.map((p) => <PagoRow key={p.id} pago={p} />)}
+                </div>
+              )
           )}
           {activeTab === 'examenes' && (
             <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />

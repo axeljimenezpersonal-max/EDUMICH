@@ -82,7 +82,10 @@ export default function AdminOrdenesPago() {
   const [q, setQ] = useState('');
   const [pagos, setPagos] = useState<PagoExamenAdmin[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sel, setSel] = useState<number | null>(null);
+  const [sel, setSel] = useState<number | null>(() => {
+    const q = new URLSearchParams(window.location.search).get('orden');
+    return q ? Number(q) || null : null;
+  });
   const [nuevo, setNuevo] = useState(false);
   const [reporte, setReporte] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
@@ -310,8 +313,8 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
       </button>
 
       {/* Folio de la orden — protagonista arriba */}
-      <div className="rounded-xl overflow-hidden border border-[#e8c4d4] mb-4">
-        <div className="px-5 py-4 flex items-start justify-between gap-3" style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
+      <div className="rounded-xl overflow-hidden border border-[#e8c4d4] mb-5">
+        <div className="px-5 py-4 flex items-start justify-between gap-3" style={{ background: 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)' }}>
           <div className="text-white">
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">Folio de la orden de pago</div>
             <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight leading-none mt-1">{p.folio}</div>
@@ -325,7 +328,9 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
         </div>
       </div>
 
-      <PagoStepper estado={p.estado} perspectiva="admin" />
+      <div className="mb-5">
+        <PagoStepper estado={p.estado} perspectiva="admin" />
+      </div>
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Columna izq: datos + exámenes */}
@@ -434,16 +439,17 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
 
           {/* ── Formulario de emisión / edición ── */}
           {(p.estado === 'pendiente_emision' || p.estado === 'vencido' || editando) && (
-            <div className="bg-white border-2 border-[var(--color-guinda-200,#e8c4d4)] rounded-xl p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-bold text-stone-800">
+            <div className="rounded-xl overflow-hidden border-2 border-[#e8c4d4]">
+              <div className="px-4 py-2.5 flex items-center justify-between text-white" style={{ background: 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)' }}>
+                <div className="text-sm font-bold">
                   {editando ? 'Editar orden emitida' : p.estado === 'vencido' ? 'Re-emitir orden' : 'Cargar orden de pago'}
                 </div>
                 {editando && (
-                  <button onClick={() => { setEditando(false); cargar(); }} className="text-xs text-stone-400 hover:text-stone-600 inline-flex items-center gap-1"><X size={13} /> Cancelar</button>
+                  <button onClick={() => { setEditando(false); cargar(); }} className="text-xs text-white/80 hover:text-white inline-flex items-center gap-1"><X size={13} /> Cancelar</button>
                 )}
               </div>
-              <p className="text-[11px] text-stone-500 leading-snug -mt-1">
+              <div className="p-4 space-y-3 bg-white">
+              <p className="text-[11px] text-stone-500 leading-snug">
                 Captura la línea de captura y sube la orden de pago que emitió la plataforma del Estado.
               </p>
               <div>
@@ -476,6 +482,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               <button onClick={emitir} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
                 {busy ? <Loader2 size={15} className="animate-spin" /> : editando ? <Check size={15} /> : <FileUp size={15} />} {editando ? 'Guardar cambios' : 'Emitir orden'}
               </button>
+              </div>
             </div>
           )}
 

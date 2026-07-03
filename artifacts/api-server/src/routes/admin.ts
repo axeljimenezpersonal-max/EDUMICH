@@ -2008,6 +2008,27 @@ router.get('/alumnos/:id', async (req, res) => {
     const palabras = r.nombre_completo.trim().split(/\s+/);
     const iniciales = palabras.slice(0, 2).map((p: string) => p[0]?.toUpperCase() ?? '').join('');
 
+    // Órdenes de pago (Tesorería) en las que este alumno está incluido.
+    const ordenesRes = await db.execute<{
+      id: number; folio: string | null; estado: string; monto_total: string;
+      cantidad_examenes: number; fecha_vencimiento: string | null; es_grupal: boolean; modulos_alumno: string | null;
+    }>(sql`
+      SELECT pe.id, pe.folio, pe.estado, pe.monto_total::text AS monto_total, pe.cantidad_examenes,
+        pe.fecha_vencimiento::text AS fecha_vencimiento, (pe.gestor_id IS NOT NULL) AS es_grupal,
+        (SELECT string_agg('Módulo ' || mo.numero, ', ' ORDER BY mo.numero)
+           FROM pagos_examen_inscripciones pei
+           JOIN examenes_inscripciones ei ON ei.id = pei.examen_inscripcion_id
+           JOIN modulos mo ON mo.id = ei.modulo_id
+           WHERE pei.pago_examen_id = pe.id AND ei.estudiante_id = ${alumnoId}) AS modulos_alumno
+      FROM pagos_examen pe
+      WHERE EXISTS (
+        SELECT 1 FROM pagos_examen_inscripciones pei
+        JOIN examenes_inscripciones ei ON ei.id = pei.examen_inscripcion_id
+        WHERE pei.pago_examen_id = pe.id AND ei.estudiante_id = ${alumnoId}
+      )
+      ORDER BY pe.id DESC
+    `);
+
     res.json({
       alumno: {
         id: r.user_id,
@@ -2072,6 +2093,16 @@ router.get('/alumnos/:id', async (req, res) => {
         estado: e.estado,
         calificacion: e.calificacion ?? null,
         createdAt: new Date(e.created_at as string | Date).toISOString(),
+      })),
+      ordenesPago: ordenesRes.rows.map((o) => ({
+        id: o.id,
+        folio: o.folio ?? null,
+        estado: o.estado,
+        montoTotal: o.monto_total,
+        cantidadExamenes: Number(o.cantidad_examenes ?? 0),
+        fechaVencimiento: o.fecha_vencimiento ?? null,
+        esGrupal: !!o.es_grupal,
+        modulosAlumno: o.modulos_alumno ?? null,
       })),
     });
   } catch (err) {
