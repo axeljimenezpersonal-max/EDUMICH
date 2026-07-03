@@ -807,6 +807,8 @@ export interface PagoExamenItem {
   moduloNumero: number;
   moduloNombre: string;
   alumno?: string;
+  estudianteId?: number;
+  matricula?: string | null;
 }
 
 // Método de pago declarado al subir el comprobante

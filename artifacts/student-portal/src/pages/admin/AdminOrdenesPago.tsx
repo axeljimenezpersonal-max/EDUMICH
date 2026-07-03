@@ -12,9 +12,11 @@ import {
   XCircle, Ban, Copy, Check, Download, BarChart3, Clock, AlertCircle, ClipboardList, X,
   Lock, Pencil, ExternalLink,
 } from 'lucide-react';
+import { Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { PagoStepper } from '../../components/PagoStepper';
 import { api, type PagoExamenAdmin, type PagoExamenEstado, type PagoExamenCandidato, type PagoExamenDesglose } from '../../lib/api';
 
 const FILTROS: { key: string; label: string }[] = [
@@ -39,6 +41,29 @@ const ESTADO_CFG: Record<PagoExamenEstado, { label: string; bg: string; color: s
 const fmtMoney = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
 const fmtFecha = (iso: string | null) =>
   iso ? new Date(iso.length === 10 ? iso + 'T12:00:00' : iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+
+// ─── Agrupación de exámenes por alumno (para "Alumnos involucrados") ──────────
+type GrupoAlumno = {
+  estudianteId: number | null;
+  nombre: string;
+  matricula: string | null;
+  examenes: PagoExamenAdmin['examenes'];
+};
+function agruparPorAlumno(examenes: PagoExamenAdmin['examenes']): GrupoAlumno[] {
+  const mapa = new Map<string, GrupoAlumno>();
+  for (const e of examenes) {
+    const key = e.estudianteId != null ? `id:${e.estudianteId}` : `n:${e.alumno ?? 'Alumno'}`;
+    let g = mapa.get(key);
+    if (!g) {
+      g = { estudianteId: e.estudianteId ?? null, nombre: e.alumno ?? 'Alumno', matricula: e.matricula ?? null, examenes: [] };
+      mapa.set(key, g);
+    }
+    g.examenes.push(e);
+  }
+  return [...mapa.values()];
+}
+const nAlumnos = (p: PagoExamenAdmin) => agruparPorAlumno(p.examenes).length;
+const esGrupal = (p: PagoExamenAdmin) => nAlumnos(p) > 1;
 
 function EstadoChip({ estado }: { estado: PagoExamenEstado }) {
   const c = ESTADO_CFG[estado];
@@ -228,38 +253,6 @@ export default function AdminOrdenesPago() {
   );
 }
 
-// ─── Stepper del proceso (mismo que ve el gestor) ──────────────────────────
-function PagoStepper({ estado }: { estado: PagoExamenEstado }) {
-  const pasos = ['Solicitada', 'Emisión', 'Pago', 'Confirmado'];
-  const idx = estado === 'pendiente_emision' ? 0 : estado === 'emitida' ? 1 : estado === 'en_revision' ? 2 : estado === 'pagado' ? 3 : 1;
-  const cancelado = estado === 'cancelado' || estado === 'vencido';
-  return (
-    <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 mb-4">
-      <div className="flex items-center">
-        {pasos.map((label, i) => {
-          const done = !cancelado && i < idx;
-          const active = !cancelado && i === idx;
-          return (
-            <div key={label} className="flex items-center" style={{ flex: i < pasos.length - 1 ? 1 : '0 0 auto' }}>
-              <div className="flex flex-col items-center gap-1.5 shrink-0">
-                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
-                  done ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)] text-white'
-                  : active ? 'border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white'
-                  : 'border-stone-200 text-stone-300 bg-white'}`}>
-                  {done ? <Check size={14} /> : active ? <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)] animate-pulse" /> : i + 1}
-                </span>
-                <span className={`text-[10px] font-semibold uppercase tracking-wide ${active ? 'text-[var(--color-guinda-700)]' : done ? 'text-stone-600' : 'text-stone-300'}`}>{label}</span>
-              </div>
-              {i < pasos.length - 1 && <div className="flex-1 h-0.5 mx-1 -mt-4 rounded-full" style={{ background: done ? 'var(--color-guinda-700)' : '#e7e0d9' }} />}
-            </div>
-          );
-        })}
-      </div>
-      {cancelado && <div className="text-[11px] text-red-600 font-semibold mt-2 text-center">{estado === 'vencido' ? 'Orden vencida — requiere re-emisión.' : 'Orden cancelada.'}</div>}
-    </div>
-  );
-}
-
 // ─── Detalle + acciones ────────────────────────────────────────────────────
 function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onToast: (m: string, ok?: boolean) => void }) {
   const [p, setP] = useState<PagoExamenAdmin | null>(null);
@@ -316,12 +309,20 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
         <ChevronLeft size={15} /> Volver a órdenes
       </button>
 
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">{p.alumno ?? `Alumno #${p.estudianteId}`}</h1>
-          <div className="text-xs text-stone-500 font-mono mt-0.5">Ref: {p.matricula || p.curp || '—'}</div>
+      {/* Folio de la orden — protagonista arriba */}
+      <div className="rounded-xl overflow-hidden border border-[#e8c4d4] mb-4">
+        <div className="px-5 py-4 flex items-start justify-between gap-3" style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
+          <div className="text-white">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">Folio de la orden de pago</div>
+            <div className="font-mono text-2xl sm:text-3xl font-bold tracking-tight leading-none mt-1">{p.folio}</div>
+            <div className="text-[12px] opacity-90 mt-1.5">
+              {(p.gestor || esGrupal(p))
+                ? `${p.cantidadExamenes} examen${p.cantidadExamenes === 1 ? '' : 'es'} · ${nAlumnos(p)} alumno${nAlumnos(p) === 1 ? '' : 's'}`
+                : (p.alumno ?? `Alumno #${p.estudianteId}`)}
+            </div>
+          </div>
+          <div className="shrink-0"><EstadoChip estado={p.estado} /></div>
         </div>
-        <EstadoChip estado={p.estado} />
       </div>
 
       <PagoStepper estado={p.estado} />
@@ -344,14 +345,36 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
           </div>
 
           <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-2.5 bg-[var(--color-crema-100)] border-b border-stone-200 text-xs font-bold uppercase tracking-wide text-stone-600">
-              Exámenes cubiertos
+            <div className="px-4 py-2.5 bg-[var(--color-crema-100)] border-b border-stone-200 text-xs font-bold uppercase tracking-wide text-stone-600 flex items-center justify-between">
+              <span>Alumnos involucrados</span>
+              <span className="text-[10px] text-stone-400 font-semibold">{nAlumnos(p)} · {p.examenes.length} examen{p.examenes.length === 1 ? '' : 'es'}</span>
             </div>
             <div className="divide-y divide-stone-100">
-              {p.examenes.map((e) => (
-                <div key={e.inscripcionId} className="px-4 py-2.5 flex items-center justify-between text-sm">
-                  <span className="text-stone-800">Módulo {e.moduloNumero} — {e.moduloNombre}</span>
-                  <span className="font-mono text-[11px] text-stone-400">{e.folio}</span>
+              {agruparPorAlumno(p.examenes).map((grupo) => (
+                <div key={grupo.estudianteId ?? grupo.nombre} className="px-4 py-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-stone-900 truncate">{grupo.nombre}</div>
+                      {grupo.matricula && (
+                        <div className="text-[11px] font-mono text-stone-400 mt-0.5">Matrícula: {grupo.matricula}</div>
+                      )}
+                    </div>
+                    {grupo.estudianteId != null && (
+                      <Link
+                        href={`/admin/alumnos/${grupo.estudianteId}`}
+                        className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-300 text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)]">
+                        <ExternalLink size={12} /> Ver alumno
+                      </Link>
+                    )}
+                  </div>
+                  <div className="mt-2 space-y-1">
+                    {grupo.examenes.map((e) => (
+                      <div key={e.inscripcionId} className="flex items-center justify-between text-[12px]">
+                        <span className="text-stone-600">Módulo {e.moduloNumero} — {e.moduloNombre}</span>
+                        <span className="font-mono text-[10px] text-stone-400">{e.folio}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>

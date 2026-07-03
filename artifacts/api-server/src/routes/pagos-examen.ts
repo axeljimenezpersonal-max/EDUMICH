@@ -130,6 +130,9 @@ async function detallePago(pagoId: number) {
       folio: examenesInscripciones.folio,
       moduloNumero: modulos.numero,
       moduloNombre: modulos.nombre,
+      estudianteId: examenesInscripciones.estudianteId,
+      alumno: estudiantes.nombreCompleto,
+      matricula: estudiantes.matriculaOficialDGB,
     })
     .from(pagosExamenInscripciones)
     .innerJoin(
@@ -137,6 +140,7 @@ async function detallePago(pagoId: number) {
       eq(pagosExamenInscripciones.examenInscripcionId, examenesInscripciones.id)
     )
     .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
+    .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
     .where(eq(pagosExamenInscripciones.pagoExamenId, pagoId));
 
   return { pago, items };
