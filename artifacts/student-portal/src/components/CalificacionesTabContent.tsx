@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Lock, GraduationCap, Grid3x3, List, Download } from 'lucide-react';
-import { api, type CalificacionesResponse, type CalifRow } from '../lib/api';
+import { Lock, GraduationCap, Grid3x3, List, Download, Award, ClipboardCheck, Clock } from 'lucide-react';
+import { api, type CalificacionesResponse, type CalifRow, type CalificacionExamen } from '../lib/api';
 
 // Metas del Plan Modular por nivel (total 21)
 const META_NIVEL: Record<number, number> = { 1: 4, 2: 6, 3: 6, 4: 5 };
@@ -11,11 +11,13 @@ interface Props {
 }
 
 type SubTab = 'aprobados' | 'historial';
+type Vista = 'calificaciones' | 'evaluaciones';
 
 export default function CalificacionesTabContent({ estudianteId, readOnly = true }: Props) {
   const [data, setData] = useState<CalificacionesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [subTab, setSubTab] = useState<SubTab>('aprobados');
+  const [vista, setVista] = useState<Vista>('calificaciones');
 
   useEffect(() => {
     api
@@ -42,6 +44,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
   }
 
   const { modulosAprobados, historial, resumen } = data;
+  const calificacionesExamen: CalificacionExamen[] = data.calificacionesExamen ?? [];
 
   const MES_LABELS = [
     'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
@@ -76,7 +79,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
     <div>
       {/* Encabezado con descarga del historial */}
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="font-serif text-base font-bold text-stone-900">Calificaciones</h2>
+        <h2 className="font-serif text-base font-bold text-stone-900">Calificaciones y evaluaciones</h2>
         <a
           href={`/api/calificaciones/estudiantes/${estudianteId}/pdf`}
           download=""
@@ -97,6 +100,74 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
         </div>
       )}
 
+      {/* ── Tabs principales: Calificaciones / Evaluaciones ── */}
+      <div className="flex border-b-2 border-stone-200 mb-4 gap-0.5">
+        {(['calificaciones', 'evaluaciones'] as Vista[]).map((v) => {
+          const active = vista === v;
+          const cnt = v === 'calificaciones' ? calificacionesExamen.length : modulosAprobados.length;
+          return (
+            <button
+              key={v}
+              onClick={() => setVista(v)}
+              className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
+                active ? 'text-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'text-stone-500 border-transparent hover:text-stone-700'
+              }`}
+              style={{ fontFamily: "'Poppins', sans-serif" }}
+            >
+              {v === 'calificaciones' ? <Award size={15} /> : <ClipboardCheck size={15} />}
+              {v === 'calificaciones' ? 'Calificaciones' : 'Evaluaciones'}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-[var(--color-guinda-100)] text-[var(--color-guinda-700)]' : 'bg-[var(--color-crema-200)] text-stone-700'}`}>{cnt}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── VISTA: Calificaciones (exámenes pagados con folio; automático) ── */}
+      {vista === 'calificaciones' && (
+        <div className="mb-2">
+          <p className="text-xs text-stone-500 mb-3">
+            Exámenes que el alumno pagó. La calificación aparece automáticamente cuando la administración la captura.
+          </p>
+          {calificacionesExamen.length === 0 ? (
+            <EmptyState icon={<Award size={22} />} title="Sin exámenes pagados aún"
+              desc="Aquí aparecerán los exámenes pagados con su folio; la calificación se registra automáticamente al capturarla la administración." />
+          ) : (
+            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
+                  <tr>
+                    <th className="px-4 py-2.5 font-semibold">Folio</th>
+                    <th className="px-4 py-2.5 font-semibold">Módulo</th>
+                    <th className="px-4 py-2.5 font-semibold text-center">Calificación</th>
+                    <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {calificacionesExamen.map((c) => (
+                    <tr key={c.inscripcionId} className="border-b border-stone-100 last:border-0">
+                      <td className="px-4 py-2.5 font-mono text-xs text-stone-700">{c.folio}</td>
+                      <td className="px-4 py-2.5 text-stone-800">Módulo {c.moduloNumero} — {c.moduloNombre}</td>
+                      <td className="px-4 py-2.5 text-center">
+                        {c.capturada
+                          ? <span className={`font-bold ${c.aprobado ? 'text-emerald-700' : 'text-red-600'}`}>{c.calificacion}</span>
+                          : <span className="text-stone-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        {c.capturada
+                          ? <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{c.aprobado ? 'Aprobado' : 'No aprobado'}</span>
+                          : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"><Clock size={11} /> Pendiente de captura</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── VISTA: Evaluaciones (módulos del Plan Modular) ── */}
+      {vista === 'evaluaciones' && (<>
       {/* Summary card — green gradient */}
       <div
         className="rounded-xl p-5 mb-4 text-white"
@@ -340,6 +411,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
           )}
         </>
       )}
+      </>)}
     </div>
   );
 }

@@ -3,7 +3,7 @@
  * Accesible por alumno (propio), gestor (su alumno), admin.
  */
 import { Router } from 'express';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, sql } from 'drizzle-orm';
 import { createReadStream, existsSync } from 'node:fs';
 import { db } from '../db';
 import {
@@ -91,7 +91,37 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     .from(estudiantes)
     .where(eq(estudiantes.userId, estudianteId));
 
+  // CALIFICACIONES = exámenes que el alumno PAGÓ (con folio). La calificación
+  // aparece automáticamente cuando el admin la captura (ligada por folio/examen).
+  const pagadosRows = await db.execute<{
+    inscripcion_id: number; folio: string; modulo_numero: number; modulo_nombre: string;
+    calificacion: number | null; aprobado: boolean | null; fecha_examen: string | null; estado: string;
+  }>(sql`
+    SELECT ei.id AS inscripcion_id, ei.folio, ei.estado,
+           m.numero AS modulo_numero, m.nombre AS modulo_nombre,
+           c.calificacion, c.aprobado, c.fecha_examen::text AS fecha_examen
+    FROM examenes_inscripciones ei
+    JOIN modulos m ON m.id = ei.modulo_id
+    JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id
+    JOIN pagos_examen pe ON pe.id = pei.pago_examen_id AND pe.estado = 'pagado'
+    LEFT JOIN calificaciones c ON c.inscripcion_examen_id = ei.id
+    WHERE ei.estudiante_id = ${estudianteId} AND ei.estado <> 'cancelado'
+    GROUP BY ei.id, ei.folio, ei.estado, m.numero, m.nombre, c.calificacion, c.aprobado, c.fecha_examen
+    ORDER BY m.numero
+  `);
+  const calificacionesExamen = pagadosRows.rows.map((r) => ({
+    inscripcionId: Number(r.inscripcion_id),
+    folio: r.folio,
+    moduloNumero: Number(r.modulo_numero),
+    moduloNombre: r.modulo_nombre,
+    calificacion: r.calificacion,
+    aprobado: r.aprobado,
+    fechaExamen: r.fecha_examen,
+    capturada: r.calificacion != null,
+  }));
+
   res.json({
+    calificacionesExamen,
     modulosAprobados,
     historial: rows,
     resumen: { totalAprobados, promedioGlobal, examenesPresentados, porcentajeAvance },

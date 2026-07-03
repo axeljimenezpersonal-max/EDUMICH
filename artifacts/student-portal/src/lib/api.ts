@@ -607,7 +607,20 @@ export interface CalifRow {
   sedeNombre: string | null;
 }
 
+// CALIFICACIONES = examen pagado (con folio) + su calificación (capturada por admin)
+export interface CalificacionExamen {
+  inscripcionId: number;
+  folio: string;
+  moduloNumero: number;
+  moduloNombre: string;
+  calificacion: number | null;
+  aprobado: boolean | null;
+  fechaExamen: string | null;
+  capturada: boolean;
+}
+
 export interface CalificacionesResponse {
+  calificacionesExamen?: CalificacionExamen[];
   modulosAprobados: CalifRow[];
   historial: CalifRow[];
   resumen: {
