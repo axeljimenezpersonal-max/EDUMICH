@@ -241,7 +241,21 @@ router.get('/:id/orden', async (req, res) => {
 });
 
 // POST /api/pagos-examen/:id/comprobante — alumno o gestor sube comprobante + método
-router.post('/:id/comprobante', upload.single('comprobante'), async (req, res) => {
+function subirComprobanteMw(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) {
+  upload.single('comprobante')(req, res, (err: unknown) => {
+    if (err) {
+      const code = (err as { code?: string }).code;
+      const msg = code === 'LIMIT_FILE_SIZE'
+        ? 'El comprobante supera el máximo de 10 MB. Sube un archivo más ligero.'
+        : 'No se pudo procesar el archivo del comprobante.';
+      res.status(400).json({ error: msg });
+      return;
+    }
+    next();
+  });
+}
+
+router.post('/:id/comprobante', subirComprobanteMw, async (req, res) => {
   if (req.user!.rol !== 'estudiante' && req.user!.rol !== 'gestor') {
     return res.status(403).json({ error: 'Solo alumno o gestor' });
   }
@@ -272,8 +286,9 @@ router.post('/:id/comprobante', upload.single('comprobante'), async (req, res) =
       .where(eq(pagosExamen.id, id));
 
     return res.json({ ok: true });
-  } catch {
-    return res.status(500).json({ error: 'Error al subir el comprobante' });
+  } catch (e) {
+    console.error('[pagos-examen/comprobante] error:', e);
+    return res.status(500).json({ error: e instanceof Error ? e.message : 'Error al subir el comprobante' });
   }
 });
 
