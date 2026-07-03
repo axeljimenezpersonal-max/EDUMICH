@@ -32,6 +32,13 @@ import { authRequired } from '../middleware/auth';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen';
 import { DIAS_ANTES_EXAMEN_VENCE_PAGO } from '../config/reglas';
+import { STORAGE_ES_EFIMERO } from '../services/storage';
+
+// Mensaje claro cuando un archivo (orden/comprobante) figura en la BD pero su
+// archivo físico ya no existe (almacenamiento efímero de Railway hasta migrar a S3).
+const MSG_ARCHIVO_PERDIDO = STORAGE_ES_EFIMERO
+  ? 'El archivo no está disponible: el almacenamiento es temporal y se reinició en el último despliegue. Vuelve a subirlo (migración a almacenamiento permanente pendiente).'
+  : 'El archivo no está disponible.';
 
 // Fecha del examen de una etapa + vencimiento del pago (regla: N días antes).
 // Devuelve strings 'YYYY-MM-DD' o null si el pago no tiene etapa.
@@ -216,8 +223,11 @@ router.get('/:id/orden', async (req, res) => {
     if (!(await tieneAcceso(p, req.user!))) {
       return res.status(403).json({ error: 'Sin permiso' });
     }
-    if (!p.ordenPagoPath || !existsSync(p.ordenPagoPath)) {
+    if (!p.ordenPagoPath) {
       return res.status(404).json({ error: 'Orden de pago aún no disponible' });
+    }
+    if (!existsSync(p.ordenPagoPath)) {
+      return res.status(404).json({ error: MSG_ARCHIVO_PERDIDO });
     }
     res.setHeader('Content-Disposition', `inline; filename="${p.ordenPagoNombre ?? 'orden-de-pago.pdf'}"`);
     return createReadStream(p.ordenPagoPath).pipe(res);
@@ -272,8 +282,11 @@ router.get('/:id/comprobante', async (req, res) => {
     if (!(await tieneAcceso(p, req.user!))) {
       return res.status(403).json({ error: 'Sin permiso' });
     }
-    if (!p.comprobantePath || !existsSync(p.comprobantePath)) {
+    if (!p.comprobantePath) {
       return res.status(404).json({ error: 'Sin comprobante' });
+    }
+    if (!existsSync(p.comprobantePath)) {
+      return res.status(404).json({ error: MSG_ARCHIVO_PERDIDO });
     }
     res.setHeader('Content-Disposition', `inline; filename="${p.comprobanteNombre ?? 'comprobante'}"`);
     return createReadStream(p.comprobantePath).pipe(res);
