@@ -7,14 +7,36 @@ import type { ReactNode } from 'react';
 import { FileText, Landmark, UploadCloud, CheckCircle2, Check, Ban } from 'lucide-react';
 import type { PagoExamenEstado } from '../lib/api';
 
-const PASOS: { label: string; desc: string; icon: ReactNode }[] = [
-  { label: 'Solicitada', desc: 'Se solicitó la ficha de pago de estos exámenes. En espera de que la coordinación la emita.', icon: <FileText size={26} /> },
-  { label: 'Emisión', desc: 'La coordinación revisó y emitió la orden con su línea de captura. Ya puedes pagar.', icon: <Landmark size={26} /> },
-  { label: 'Pago', desc: 'Descarga la orden, paga ante la Tesorería del Estado y sube tu comprobante.', icon: <UploadCloud size={26} /> },
-  { label: 'Confirmado', desc: 'La coordinación validó el pago. Los alumnos quedan inscritos oficialmente.', icon: <CheckCircle2 size={26} /> },
+// `desc` = texto para quien paga (gestor/alumno, 2ª persona).
+// `descAdmin` = texto para la coordinación/admin (3ª persona, acción del admin).
+const PASOS: { label: string; desc: string; descAdmin: string; icon: ReactNode }[] = [
+  {
+    label: 'Solicitada',
+    desc: 'Se solicitó la ficha de pago de estos exámenes. En espera de que la coordinación la emita.',
+    descAdmin: 'El gestor/alumno solicitó esta ficha. Emite la orden con su línea de captura para que pueda pagar.',
+    icon: <FileText size={26} />,
+  },
+  {
+    label: 'Emisión',
+    desc: 'La coordinación revisó y emitió la orden con su línea de captura. Ya puedes pagar.',
+    descAdmin: 'Orden emitida. El gestor/alumno ya puede pagar ante la Tesorería del Estado y subir su comprobante.',
+    icon: <Landmark size={26} />,
+  },
+  {
+    label: 'Pago',
+    desc: 'Descarga la orden, paga ante la Tesorería del Estado y sube tu comprobante.',
+    descAdmin: 'El gestor/alumno subió su comprobante de pago. Verifícalo y concilia la orden.',
+    icon: <UploadCloud size={26} />,
+  },
+  {
+    label: 'Confirmado',
+    desc: 'La coordinación validó el pago. Los alumnos quedan inscritos oficialmente.',
+    descAdmin: 'Validaste el pago. Los alumnos quedan inscritos oficialmente.',
+    icon: <CheckCircle2 size={26} />,
+  },
 ];
 
-export function PagoStepper({ estado }: { estado: PagoExamenEstado }) {
+export function PagoStepper({ estado, perspectiva = 'propia' }: { estado: PagoExamenEstado; perspectiva?: 'propia' | 'admin' }) {
   const actual = estado === 'pendiente_emision' ? 0 : estado === 'emitida' ? 1 : estado === 'en_revision' ? 2 : 3;
   const terminado = estado === 'pagado';
   const cancelado = estado === 'cancelado' || estado === 'vencido';
@@ -45,7 +67,11 @@ export function PagoStepper({ estado }: { estado: PagoExamenEstado }) {
         </div>
       </div>
       <p className="relative text-stone-600 text-sm sm:text-[15px] leading-relaxed max-w-2xl mb-6">
-        {cancelado ? (estado === 'vencido' ? 'La ficha venció sin pagarse. Solicita una nueva a la coordinación.' : 'Esta ficha fue cancelada; los exámenes quedaron libres.') : paso.desc}
+        {cancelado
+          ? (estado === 'vencido'
+              ? (perspectiva === 'admin' ? 'La ficha venció sin pagarse. Puedes re-emitirla con una nueva línea de captura.' : 'La ficha venció sin pagarse. Solicita una nueva a la coordinación.')
+              : 'Esta ficha fue cancelada; los exámenes quedaron libres.')
+          : (perspectiva === 'admin' ? paso.descAdmin : paso.desc)}
       </p>
 
       {/* Barra de pasos */}

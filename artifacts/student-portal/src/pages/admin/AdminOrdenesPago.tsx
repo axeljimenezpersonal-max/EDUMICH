@@ -325,7 +325,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
         </div>
       </div>
 
-      <PagoStepper estado={p.estado} />
+      <PagoStepper estado={p.estado} perspectiva="admin" />
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Columna izq: datos + exámenes */}
