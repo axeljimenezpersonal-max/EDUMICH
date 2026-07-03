@@ -711,10 +711,15 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
       return res.status(400).json({ error: 'Captura al menos la línea de captura o la orden de pago' });
     }
 
-    try {
-      assertTransicion(p.estado as PagoExamenEstado, 'emitida');
-    } catch {
-      return res.status(409).json({ error: `No se puede emitir desde el estado ${p.estado}` });
+    // Se puede emitir desde pendiente_emision/vencido, y RE-emitir (actualizar)
+    // una orden que ya está 'emitida' — en ese caso solo se actualizan los datos.
+    const yaEmitida = p.estado === 'emitida';
+    if (!yaEmitida) {
+      try {
+        assertTransicion(p.estado as PagoExamenEstado, 'emitida');
+      } catch {
+        return res.status(409).json({ error: `No se puede emitir desde el estado ${p.estado}` });
+      }
     }
 
     // Regla: el pago vence una semana antes del examen. Si el admin no capturó

@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import {
   Landmark, Plus, Search, Loader2, ChevronLeft, FileUp, CheckCircle2,
   XCircle, Ban, Copy, Check, Download, BarChart3, Clock, AlertCircle, ClipboardList, X,
+  Lock, Pencil, ExternalLink,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
@@ -271,6 +272,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
   const [link, setLink] = useState('');
   const [orden, setOrden] = useState<File | null>(null);
   const [notas, setNotas] = useState('');
+  const [editando, setEditando] = useState(false);
 
   function cargar() {
     setLoading(true);
@@ -291,7 +293,9 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
       if (link) fd.append('linkPago', link);
       if (orden) fd.append('orden', orden);
       await api.post(`/pagos-examen/${id}/emitir`, fd);
-      onToast('Orden emitida');
+      onToast(editando ? 'Orden actualizada' : 'Orden emitida');
+      setEditando(false);
+      setOrden(null);
       cargar();
     } catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); } finally { setBusy(false); }
   }
@@ -360,10 +364,64 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
 
         {/* Columna der: acciones según estado */}
         <div className="space-y-4">
-          {(p.estado === 'pendiente_emision' || p.estado === 'emitida' || p.estado === 'vencido') && (
-            <div className="bg-white border border-stone-200 rounded-xl p-4 space-y-3">
-              <div className="text-sm font-bold text-stone-800">
-                {p.estado === 'pendiente_emision' ? 'Cargar orden de pago' : 'Actualizar orden'}
+          {/* ── Orden EMITIDA y bloqueada (candado) ── */}
+          {(p.estado === 'emitida' || p.estado === 'en_revision') && !editando && (
+            <div className="rounded-xl overflow-hidden border border-[#e8c4d4]">
+              <div className="flex items-center gap-2 px-4 py-2.5 text-white" style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
+                <Lock size={14} /> <span className="text-sm font-bold">Orden emitida</span>
+                <span className="ml-auto text-[10px] uppercase tracking-widest opacity-80">Bloqueada</span>
+              </div>
+              <div className="p-4 space-y-3 bg-white">
+                {p.lineaCaptura ? (
+                  <div>
+                    <div className="text-[10px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
+                    <div className="flex items-center gap-2 bg-stone-50 border border-stone-200 rounded-lg px-3 py-2">
+                      <code className="flex-1 text-sm font-mono text-stone-800 break-all">{p.lineaCaptura}</code>
+                      <button onClick={() => { navigator.clipboard.writeText(p.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0">
+                        {copiado ? <Check size={15} /> : <Copy size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-[11px] text-stone-500">Sin línea de captura (se emitió con orden PDF o link).</div>
+                )}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <Dato label="Vence" val={fmtFecha(p.fechaVencimiento)} />
+                  <Dato label="Emitida" val={p.tieneOrden ? 'Con PDF' : '—'} />
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {p.tieneOrden && (
+                    <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                      <Download size={14} /> Ver orden (PDF)
+                    </a>
+                  )}
+                  {p.linkPago && (
+                    <a href={p.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                      <ExternalLink size={14} /> Link de pago
+                    </a>
+                  )}
+                </div>
+                {p.estado === 'emitida' && (
+                  <button
+                    onClick={() => { if (confirm('¿Editar la orden emitida? Podrás corregir la línea de captura, el vencimiento, el link o el PDF. La orden se re-emitirá con los nuevos datos.')) setEditando(true); }}
+                    className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50">
+                    <Pencil size={13} /> Editar orden (requiere confirmación)
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Formulario de emisión / edición ── */}
+          {(p.estado === 'pendiente_emision' || p.estado === 'vencido' || editando) && (
+            <div className="bg-white border-2 border-[var(--color-guinda-200,#e8c4d4)] rounded-xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-bold text-stone-800">
+                  {editando ? 'Editar orden emitida' : p.estado === 'vencido' ? 'Re-emitir orden' : 'Cargar orden de pago'}
+                </div>
+                {editando && (
+                  <button onClick={() => { setEditando(false); cargar(); }} className="text-xs text-stone-400 hover:text-stone-600 inline-flex items-center gap-1"><X size={13} /> Cancelar</button>
+                )}
               </div>
               <p className="text-[11px] text-stone-500 leading-snug -mt-1">
                 Captura la línea de captura y sube la orden de pago que emitió la plataforma del Estado.
@@ -392,29 +450,12 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               </div>
               <label className={`flex items-center gap-2 border-2 border-dashed rounded-lg p-3 cursor-pointer text-sm ${orden ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] text-[var(--color-guinda-700)]' : 'border-stone-300 text-stone-500'}`}>
                 <FileUp size={16} />
-                <span className="truncate flex-1">{orden ? orden.name : 'Orden de pago (PDF)'}</span>
+                <span className="truncate flex-1">{orden ? orden.name : (p.tieneOrden ? 'Reemplazar orden (PDF) — opcional' : 'Orden de pago (PDF)')}</span>
                 <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setOrden(e.target.files?.[0] ?? null)} />
               </label>
               <button onClick={emitir} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
-                {busy ? <Loader2 size={15} className="animate-spin" /> : <FileUp size={15} />} Emitir orden
+                {busy ? <Loader2 size={15} className="animate-spin" /> : editando ? <Check size={15} /> : <FileUp size={15} />} {editando ? 'Guardar cambios' : 'Emitir orden'}
               </button>
-            </div>
-          )}
-
-          {p.lineaCaptura && (
-            <div className="bg-white border border-stone-200 rounded-xl p-4">
-              <div className="text-xs font-semibold text-stone-600 mb-1">Línea de captura</div>
-              <div className="flex items-center gap-2">
-                <code className="flex-1 text-sm font-mono text-stone-800 break-all">{p.lineaCaptura}</code>
-                <button onClick={() => { navigator.clipboard.writeText(p.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)]">
-                  {copiado ? <Check size={15} /> : <Copy size={15} />}
-                </button>
-              </div>
-              {p.tieneOrden && (
-                <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-guinda-700)] hover:underline">
-                  <Download size={13} /> Descargar orden (PDF)
-                </a>
-              )}
             </div>
           )}
 
