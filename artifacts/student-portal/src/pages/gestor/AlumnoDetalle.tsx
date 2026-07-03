@@ -88,7 +88,7 @@ const DOCUMENTOS_EXPEDIENTE: DocDef[] = [
   { tipo: 'ine', label: 'Identificación oficial', descripcion: 'INE / IFE vigente por ambos lados', obligatorio: true },
   { tipo: 'comprobante_domicilio', label: 'Comprobante de domicilio', descripcion: 'No mayor a 3 meses de antigüedad', obligatorio: true },
   { tipo: 'certificado_secundaria', label: 'Certificado de secundaria', descripcion: 'Certificado o constancia de secundaria (PDF, ambos lados)', obligatorio: true },
-  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco. Se usa para la credencial (licencia digital).', obligatorio: false, acceptImages: true },
+  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco. Se usa para la credencial (credencial digital).', obligatorio: false, acceptImages: true },
 ];
 
 const NIVEL_LABELS: Record<number, string> = {
@@ -619,7 +619,7 @@ export default function AlumnoDetalle() {
             </div>
           )}
 
-          {/* Licencia digital */}
+          {/* Credencial digital */}
           {alumno.licenciaDigital && (
             <div className="bg-gradient-to-br from-violet-50 to-white border border-violet-200 rounded-xl p-4 mb-4">
               <div className="flex items-start gap-3 mb-3">
@@ -627,7 +627,7 @@ export default function AlumnoDetalle() {
                   <Award size={16} className="text-violet-600" />
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-stone-800">Licencia digital</div>
+                  <div className="text-sm font-bold text-stone-800">Credencial digital</div>
                   <div className="text-xs text-stone-500 mt-0.5">
                     Emitida el {alumno.licenciaEmitidaEn
                       ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -636,7 +636,7 @@ export default function AlumnoDetalle() {
                 </div>
               </div>
               <div className="bg-white border border-stone-200 rounded-lg px-4 py-3">
-                <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">LICENCIA DIGITAL</div>
+                <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400 mb-1">CREDENCIAL DIGITAL</div>
                 <div className="font-mono text-lg font-bold text-violet-700 tracking-wide">
                   {alumno.licenciaDigital}
                 </div>

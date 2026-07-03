@@ -124,9 +124,9 @@ const DOCS_REQUERIDOS: { tipo: string; label: string; descripcion: string }[] = 
 ];
 
 // Documentos opcionales que igual se muestran y se verifican.
-// REGLA: la fotografía se usa para la credencial / licencia digital del alumno.
+// REGLA: la fotografía se usa para la credencial digital del alumno.
 const DOCS_OPCIONALES: { tipo: string; label: string; descripcion: string; nota?: string }[] = [
-  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco (JPG, PNG o PDF)', nota: 'Se usa para la credencial / licencia digital del alumno.' },
+  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco (JPG, PNG o PDF)', nota: 'Se usa para la credencial digital del alumno.' },
 ];
 
 const DOC_ESTADO_CFG: Record<string, { label: string; icon: typeof CheckCircle; color: string; bg: string }> = {
@@ -740,11 +740,11 @@ export default function AdminAlumnoDetalle() {
     setEmitiendo(true);
     try {
       await api.post(`/admin/alumnos/${alumnoId}/licencia`, {});
-      showToast('Licencia digital emitida correctamente', true);
+      showToast('Credencial digital emitida correctamente', true);
       const fresh = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
       setData(fresh);
     } catch (e) {
-      showToast((e as Error).message || 'Error al emitir la licencia', false);
+      showToast((e as Error).message || 'Error al emitir la credencial', false);
     } finally {
       setEmitiendo(false);
     }
@@ -1141,7 +1141,7 @@ export default function AdminAlumnoDetalle() {
         </div>
       </div>
 
-      {/* ── LICENCIA DIGITAL ────────────────────────────────────── */}
+      {/* ── CREDENCIAL DIGITAL ────────────────────────────────────── */}
       {!alumno.licenciaDigital ? (
         <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '20px 24px', marginBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
@@ -1149,11 +1149,11 @@ export default function AdminAlumnoDetalle() {
               <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
             </div>
             <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Credencial digital</h3>
               <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
                 {!alumno.matriculaOficialDGB
-                  ? 'Se requiere matrícula oficial antes de emitir la licencia digital.'
-                  : 'Aún no se ha emitido la licencia digital para este alumno.'}
+                  ? 'Se requiere matrícula oficial antes de emitir la credencial digital.'
+                  : 'Aún no se ha emitido la credencial digital para este alumno.'}
               </p>
             </div>
           </div>
@@ -1164,7 +1164,7 @@ export default function AdminAlumnoDetalle() {
               style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
             >
               {emitiendo ? <Loader2 size={13} style={{ animation: 'spin 1s linear infinite' }} /> : <BadgeCheck size={13} />}
-              {emitiendo ? 'Emitiendo...' : 'Emitir licencia digital'}
+              {emitiendo ? 'Emitiendo...' : 'Emitir credencial digital'}
             </button>
           )}
           {!alumno.matriculaOficialDGB && (
@@ -1181,14 +1181,14 @@ export default function AdminAlumnoDetalle() {
               <BadgeCheck size={18} style={{ color: '#7c3aed' }} />
             </div>
             <div>
-              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Licencia digital</h3>
+              <h3 style={{ fontSize: 14, fontWeight: 700, margin: 0, color: '#2a2a2a' }}>Credencial digital</h3>
               <p style={{ fontSize: 12, color: '#6b635e', margin: '3px 0 0' }}>
                 Emitida el {alumno.licenciaEmitidaEn ? new Date(alumno.licenciaEmitidaEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
               </p>
             </div>
           </div>
           <div style={{ background: '#faf8ff', border: '1px solid #eadfd7', borderRadius: 10, padding: '14px 18px' }}>
-            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', marginBottom: 3 }}>LICENCIA DIGITAL</div>
+            <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', marginBottom: 3 }}>CREDENCIAL DIGITAL</div>
             <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
               {alumno.licenciaDigital}
             </div>
@@ -1373,7 +1373,7 @@ export default function AdminAlumnoDetalle() {
                 <BadgeCheck size={20} style={{ color: '#7c3aed' }} />
               </div>
               <div>
-                <h3 className="font-bold text-base" style={{ color: '#1a1a1a' }}>Emitir licencia digital</h3>
+                <h3 className="font-bold text-base" style={{ color: '#1a1a1a' }}>Emitir credencial digital</h3>
                 <p className="text-xs" style={{ color: '#6b635e' }}>Esta acción genera un folio único e irreversible.</p>
               </div>
             </div>
@@ -1383,7 +1383,7 @@ export default function AdminAlumnoDetalle() {
               <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Matrícula: {alumno.matriculaOficialDGB}</div>
             </div>
             <div className="rounded-lg p-3 mb-5 text-xs" style={{ background: '#fff7ed', color: '#92400e', border: '1px solid #fed7aa' }}>
-              <strong>Importante:</strong> La licencia digital se genera automáticamente con un folio único del sistema. Una vez emitida no puede eliminarse, solo el administrador puede verla.
+              <strong>Importante:</strong> La credencial digital se genera automáticamente con un folio único del sistema. Una vez emitida no puede eliminarse, solo el administrador puede verla.
             </div>
             <div className="flex gap-2 justify-end">
               <button
@@ -1400,7 +1400,7 @@ export default function AdminAlumnoDetalle() {
                 style={{ background: '#7c3aed', color: 'white' }}
               >
                 {emitiendo && <Loader2 size={13} className="animate-spin" />}
-                Sí, emitir licencia
+                Sí, emitir credencial
               </button>
             </div>
           </div>
