@@ -574,6 +574,24 @@ export default function AdminAlumnoDetalle() {
     }
   }
 
+  async function handleRenovarLicencia(motivo: 'vencimiento' | 'reposicion') {
+    const msg = motivo === 'reposicion'
+      ? '¿Reponer la credencial? Se generará un folio nuevo y se reiniciará la vigencia (6 meses).'
+      : '¿Renovar la credencial? Se reiniciará la vigencia (6 meses) conservando el folio.';
+    if (!confirm(msg)) return;
+    setEmitiendo(true);
+    try {
+      await api.post(`/admin/alumnos/${alumnoId}/renovar-licencia`, { motivo });
+      showToast(motivo === 'reposicion' ? 'Credencial repuesta (folio nuevo)' : 'Credencial renovada', true);
+      const fresh = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
+      setData(fresh);
+    } catch (e) {
+      showToast((e as Error).message || 'Error al renovar la credencial', false);
+    } finally {
+      setEmitiendo(false);
+    }
+  }
+
   if (loading) {
     return (
       <AdminLayout>
@@ -927,6 +945,23 @@ export default function AdminAlumnoDetalle() {
             <div style={{ fontFamily: "'JetBrains Mono', 'Courier New', monospace", fontSize: 20, fontWeight: 700, color: '#7c3aed', letterSpacing: '0.05em' }}>
               {alumno.licenciaDigital}
             </div>
+          </div>
+          {/* Renovar / Reponer credencial (vigencia 6 meses) */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+            <button
+              onClick={() => handleRenovarLicencia('vencimiento')}
+              disabled={emitiendo}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#7c3aed', border: '1px solid #c4b5fd', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
+            >
+              <RefreshCw size={13} /> Renovar vigencia
+            </button>
+            <button
+              onClick={() => handleRenovarLicencia('reposicion')}
+              disabled={emitiendo}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', color: '#6b635e', border: '1px solid #eadfd7', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, opacity: emitiendo ? 0.6 : 1 }}
+            >
+              <BadgeCheck size={13} /> Reponer (folio nuevo)
+            </button>
           </div>
         </div>
       )}

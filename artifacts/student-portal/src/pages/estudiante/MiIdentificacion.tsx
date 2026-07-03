@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Link } from 'wouter';
-import { BadgeCheck, Download, Loader2, Lock, RotateCcw, Shield } from 'lucide-react';
+import { BadgeCheck, Download, Loader2, Lock, RotateCcw, Shield, RefreshCw } from 'lucide-react';
 import { QRCodeSVG as QRCodeReact } from 'qrcode.react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api } from '../../lib/api';
@@ -34,6 +34,8 @@ interface IdentificacionData {
   licenciaEmitidaEn: string | null;
   emision: string | null;
   vigencia: string | null;
+  vencida?: boolean;
+  diasParaVencer?: number | null;
   plan: string;
   modulosAprobados: number;
   modulosTotales: number;
@@ -309,6 +311,24 @@ export default function MiIdentificacion() {
   const [loading, setLoading] = useState(true);
   const [descargando, setDescargando] = useState(false);
   const [flipped, setFlipped] = useState(false);
+  const [mostrarRenovar, setMostrarRenovar] = useState(false);
+  const [solicitando, setSolicitando] = useState(false);
+  const [solicitOk, setSolicitOk] = useState(false);
+
+  async function handleSolicitarRenovacion(motivo: 'vencimiento' | 'reposicion') {
+    setSolicitando(true);
+    try {
+      const res = await fetch('/api/estudiante/solicitar-renovacion-credencial', {
+        method: 'POST', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ motivo }),
+      });
+      if (!res.ok) throw new Error();
+      setSolicitOk(true); setMostrarRenovar(false);
+    } catch {
+      alert('No se pudo enviar la solicitud. Intenta de nuevo.');
+    } finally { setSolicitando(false); }
+  }
 
   useEffect(() => {
     api
@@ -421,6 +441,19 @@ export default function MiIdentificacion() {
         )}
       </p>
 
+      {/* Aviso de vigencia */}
+      {id.vencida ? (
+        <div className="mb-5 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-sm text-red-800 flex items-start gap-2" style={{ maxWidth: 340 }}>
+          <BadgeCheck size={14} className="shrink-0 mt-0.5 text-red-600" />
+          <span>Tu credencial <strong>venció</strong>. Solicita su renovación para mantenerla vigente.</span>
+        </div>
+      ) : typeof id.diasParaVencer === 'number' && id.diasParaVencer <= 30 ? (
+        <div className="mb-5 bg-amber-50 border border-amber-200 rounded-lg px-4 py-3 text-sm text-amber-800 flex items-start gap-2" style={{ maxWidth: 340 }}>
+          <BadgeCheck size={14} className="shrink-0 mt-0.5 text-amber-600" />
+          <span>Tu credencial vence en <strong>{id.diasParaVencer} día{id.diasParaVencer !== 1 ? 's' : ''}</strong>. Puedes solicitar su renovación.</span>
+        </div>
+      ) : null}
+
       <div style={{ maxWidth: 340 }}>
         {/* ── Tarjeta con flip ────────────────────────────────────── */}
         <div
@@ -478,7 +511,46 @@ export default function MiIdentificacion() {
             <RotateCcw size={15} />
             {flipped ? 'Ver frente' : 'Ver reverso / QR'}
           </button>
+
+          <button
+            onClick={() => { setMostrarRenovar((v) => !v); setSolicitOk(false); }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-stone-200 text-stone-700 hover:bg-stone-50 transition-colors"
+          >
+            <RefreshCw size={15} /> Renovar / reponer
+          </button>
         </div>
+
+        {/* Panel de renovación */}
+        {solicitOk && (
+          <div className="mt-4 bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800">
+            Solicitud enviada. La administración renovará tu credencial y te avisará.
+          </div>
+        )}
+        {mostrarRenovar && !solicitOk && (
+          <div className="mt-4 bg-white border border-stone-200 rounded-xl p-4" style={{ maxWidth: 340 }}>
+            <div className="text-sm font-bold text-stone-800 mb-1">¿Por qué necesitas renovarla?</div>
+            <p className="text-xs text-stone-500 mb-3">La administración la renueva y te avisa. La credencial es válida por 6 meses.</p>
+            <div className="space-y-2">
+              <button
+                onClick={() => handleSolicitarRenovacion('vencimiento')}
+                disabled={solicitando}
+                className="w-full text-left px-3 py-2.5 rounded-lg border border-stone-200 hover:border-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors disabled:opacity-50"
+              >
+                <div className="text-sm font-semibold text-stone-800">Venció o está por vencer</div>
+                <div className="text-xs text-stone-500">Renovar la vigencia</div>
+              </button>
+              <button
+                onClick={() => handleSolicitarRenovacion('reposicion')}
+                disabled={solicitando}
+                className="w-full text-left px-3 py-2.5 rounded-lg border border-stone-200 hover:border-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors disabled:opacity-50"
+              >
+                <div className="text-sm font-semibold text-stone-800">Perdí la credencial física</div>
+                <div className="text-xs text-stone-500">Reposición (folio nuevo)</div>
+              </button>
+            </div>
+            {solicitando && <div className="mt-2 text-xs text-stone-400 flex items-center gap-1.5"><Loader2 size={12} className="animate-spin" /> Enviando…</div>}
+          </div>
+        )}
 
         {/* ── Nota ─────────────────────────────────────────────────── */}
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-xs text-blue-800 flex items-start gap-2">

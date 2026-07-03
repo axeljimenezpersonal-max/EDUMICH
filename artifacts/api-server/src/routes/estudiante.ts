@@ -64,6 +64,7 @@ import {
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { tryAuditLog } from '../utils/audit';
+import { notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 
@@ -2170,12 +2171,43 @@ router.get('/mi-identificacion', async (req, res) => {
       licenciaEmitidaEn: est.licenciaEmitidaEn?.toISOString() ?? null,
       emision: emisionDate ? fmtDate(emisionDate) : null,
       vigencia: vigenciaDate ? fmtDate(vigenciaDate) : null,
+      vencida: vigenciaDate ? vigenciaDate.getTime() < Date.now() : false,
+      diasParaVencer: vigenciaDate ? Math.ceil((vigenciaDate.getTime() - Date.now()) / 86400000) : null,
       plan: 'Plan 22 · Modular',
       modulosAprobados,
       modulosTotales: 21,
       verifyUrl,
     },
   });
+});
+
+// ─── POST /estudiante/solicitar-renovacion-credencial ─────────────────────
+// El alumno pide a la administración renovar su credencial (vencida o por
+// pérdida de la física). Solo notifica; el admin la renueva.
+router.post('/solicitar-renovacion-credencial', async (req, res) => {
+  const userId = req.user!.userId;
+  try {
+    const [est] = await db
+      .select({ nombreCompleto: estudiantes.nombreCompleto, licenciaDigital: estudiantes.licenciaDigital })
+      .from(estudiantes).where(eq(estudiantes.userId, userId));
+    if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+    if (!est.licenciaDigital) { res.status(422).json({ error: 'Aún no tienes credencial emitida.' }); return; }
+
+    const motivo = ((req.body?.motivo as string) || 'vencimiento').toLowerCase();
+    const motivoLabel = motivo === 'reposicion' ? 'reposición por pérdida de la física' : 'renovación por vigencia';
+
+    await notificarATodosLosAdmins({
+      tipo: 'solicitud_renovacion_credencial',
+      prioridad: 'normal',
+      titulo: 'Solicitud de renovación de credencial',
+      cuerpo: `${est.nombreCompleto} solicita ${motivoLabel} de su credencial.`,
+      enlace: `/admin/alumnos/${userId}`,
+    });
+
+    res.json({ ok: true });
+  } catch {
+    res.status(500).json({ error: 'No se pudo enviar la solicitud' });
+  }
 });
 
 // ─── GET /estudiante/mi-identificacion/descargar ──────────────────────────

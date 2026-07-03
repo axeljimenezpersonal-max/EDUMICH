@@ -3898,6 +3898,61 @@ router.post('/alumnos/:id/licencia', async (req, res) => {
   res.status(201).json({ ok: true, licencia });
 });
 
+// ─── POST /admin/alumnos/:id/renovar-licencia ────────────────────────────────
+// Renueva la credencial (reinicia la vigencia). Motivo:
+//  - 'vencimiento'  → renueva conservando el folio.
+//  - 'reposicion'   → pérdida de la física: genera folio nuevo.
+//  - 'otro'
+router.post('/alumnos/:id/renovar-licencia', async (req, res) => {
+  const adminId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const motivo = ((req.body?.motivo as string) || 'vencimiento').toLowerCase();
+  const regenerarFolio = motivo === 'reposicion' || req.body?.regenerarFolio === true;
+
+  const [alumno] = await db
+    .select({ licenciaDigital: estudiantes.licenciaDigital, nombreCompleto: estudiantes.nombreCompleto })
+    .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  if (!alumno.licenciaDigital) {
+    res.status(422).json({ error: 'El alumno no tiene credencial emitida. Usa "Emitir credencial".' });
+    return;
+  }
+
+  const nuevoFolio = regenerarFolio ? await generarFolioLicencia() : alumno.licenciaDigital;
+  await db.update(estudiantes).set({
+    licenciaDigital: nuevoFolio,
+    licenciaEmitidaEn: new Date(),
+    licenciaEmitidaPor: adminId,
+    updatedAt: new Date(),
+  }).where(eq(estudiantes.userId, alumnoId));
+
+  const motivoLabel = motivo === 'reposicion' ? 'reposición por pérdida' : motivo === 'otro' ? 'renovación' : 'vencimiento';
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'renovar_licencia',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Renovó credencial (${motivoLabel})${regenerarFolio ? ` — nuevo folio ${nuevoFolio}` : ''}`,
+    metadata: { motivo, folio: nuevoFolio, regenerarFolio },
+    req,
+  });
+
+  await notificar({
+    userId: alumnoId,
+    tipo: 'credencial_renovada',
+    prioridad: 'normal',
+    titulo: 'Tu credencial fue renovada',
+    cuerpo: regenerarFolio
+      ? `Se emitió una nueva credencial (folio ${nuevoFolio}) por ${motivoLabel}. Ya está vigente.`
+      : `Tu credencial se renovó por ${motivoLabel}. Ya está vigente de nuevo.`,
+    enlace: '/estudiante/identificacion',
+  }).catch(() => {});
+
+  res.json({ ok: true, licencia: nuevoFolio, motivo });
+});
+
 // ─── GET /admin/alumnos/:id/ficha-preregistro ────────────────────────────────
 router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
   const alumnoId = Number(req.params.id);

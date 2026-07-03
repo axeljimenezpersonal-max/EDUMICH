@@ -1465,6 +1465,8 @@ export const notifTipoEnum = pgEnum('notif_tipo', [
   'mensaje_admin',
   'cuenta_aviso_eliminacion',
   'cuentas_eliminadas_lote',
+  'credencial_renovada',
+  'solicitud_renovacion_credencial',
 ]);
 
 export const notifPrioridadEnum = pgEnum('notif_prioridad', ['baja', 'normal', 'alta', 'urgente']);

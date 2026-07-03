@@ -13,6 +13,9 @@ const migrations = [
   `CREATE EXTENSION IF NOT EXISTS unaccent`,
   // Rol de dirección de programa (perfil ejecutivo solo-lectura)
   `ALTER TYPE rol ADD VALUE IF NOT EXISTS 'direccion'`,
+  // Tipos de notificación para renovación de credencial
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'credencial_renovada'`,
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'solicitud_renovacion_credencial'`,
   `CREATE TABLE IF NOT EXISTS directores (
      user_id integer PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
      nombre_completo varchar(200) NOT NULL,
