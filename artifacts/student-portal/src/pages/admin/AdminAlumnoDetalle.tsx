@@ -830,8 +830,8 @@ export default function AdminAlumnoDetalle() {
 
       {/* ── HEADER CARD (fondo guinda) ──────────────────────────── */}
       <div className="border border-stone-200 rounded-xl mb-6 overflow-hidden">
-        {/* Bloque del alumno sobre fondo guinda fuerte */}
-        <div style={{ background: 'var(--color-guinda-700)', padding: '20px 24px' }}>
+        {/* Bloque del alumno sobre fondo guinda fuerte (guinda-800, igual que el panel) */}
+        <div style={{ background: 'var(--color-guinda-800)', padding: '20px 24px' }}>
           <div style={{ display: 'flex', gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             {/* Avatar */}
             <div style={{
