@@ -886,10 +886,11 @@ export default function AdminAlumnoDetalle() {
             </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-            <a href={`/api/admin/alumnos/${alumnoId}/cedula/pdf`} target="_blank" rel="noreferrer"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--color-guinda-700)', fontSize: 13, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>
+            <button type="button"
+              onClick={() => { setActiveTab('cedula'); document.getElementById('tabs-alumno')?.scrollIntoView({ behavior: 'smooth' }); }}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'var(--color-guinda-700)', fontSize: 13, fontWeight: 600, textDecoration: 'underline', textUnderlineOffset: 3 }}>
               <ClipboardList size={14} /> Ver cédula de inscripción
-            </a>
+            </button>
             <a href={`/api/admin/alumnos/${alumnoId}/cedula/pdf`} download
               style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', border: '1px solid #eadfd7', borderRadius: 8, background: '#fff', fontSize: 12, fontWeight: 600, color: '#443e39', textDecoration: 'none' }}>
               <Download size={13} /> Descargar
@@ -1007,7 +1008,7 @@ export default function AdminAlumnoDetalle() {
       })()}
 
       {/* ── TABS ────────────────────────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+      <div id="tabs-alumno" className="bg-white border border-stone-200 rounded-xl overflow-hidden scroll-mt-24">
         {/* Tab bar */}
         <div className="flex border-b border-stone-100">
           {TABS.map((t) => (
