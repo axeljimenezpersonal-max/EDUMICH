@@ -401,6 +401,29 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
           {/* Estado por fase */}
           <PagoStepper estado={p.estado} />
 
+          {/* ── Alertas destacadas (arriba de todo) ── */}
+          {p.motivoRechazo && p.estado === 'emitida' && (
+            <div className="rounded-xl border-2 border-red-200 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0"><AlertCircle size={20} className="text-red-600" /></div>
+                <div className="min-w-0">
+                  <div className="text-base font-bold text-red-800">Comprobante rechazado</div>
+                  <div className="text-sm text-red-700 mt-1"><span className="font-semibold">Motivo:</span> {p.motivoRechazo}</div>
+                  <div className="text-xs text-red-600 mt-1.5">Corrige lo indicado y vuelve a subir tu comprobante más abajo.</div>
+                </div>
+              </div>
+            </div>
+          )}
+          {p.estado === 'en_revision' && (
+            <div className="rounded-xl border-2 border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center shrink-0"><Clock size={20} className="text-amber-600" /></div>
+              <div className="min-w-0">
+                <div className="text-base font-bold text-amber-800">Comprobante en revisión</div>
+                <div className="text-sm text-amber-700 mt-1">La coordinación está validando tu comprobante. Te avisaremos en cuanto se confirme el pago.</div>
+              </div>
+            </div>
+          )}
+
           {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'vencido') && (
             <div className="bg-white border border-stone-200 rounded-xl p-4">
               <div className="flex items-center gap-2 mb-1"><Landmark size={16} className="text-[var(--color-guinda-700)]" /><h3 className="text-sm font-bold text-stone-900">Orden de pago emitida por la coordinación</h3></div>
@@ -477,12 +500,6 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
             </div>
           )}
 
-          {p.estado === 'en_revision' && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 text-sm text-amber-800"><Clock size={16} className="shrink-0 mt-0.5" /> Tu comprobante está en revisión de la coordinación.</div>
-          )}
-          {p.motivoRechazo && p.estado === 'emitida' && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-3 flex gap-2 text-sm text-red-700"><AlertCircle size={16} className="shrink-0 mt-0.5" /> Comprobante rechazado: {p.motivoRechazo}</div>
-          )}
           {p.estado === 'pagado' && (
             <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex gap-2 text-sm text-green-700"><CheckCircle2 size={16} className="shrink-0 mt-0.5" /> Pago confirmado{p.fechaPago ? ` el ${fmtFecha(p.fechaPago)}` : ''}. Alumnos inscritos oficialmente.</div>
           )}
