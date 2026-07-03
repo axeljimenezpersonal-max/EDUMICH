@@ -33,6 +33,7 @@ import {
   modulos,
   inscripcionModulos,
   examenesInscripciones,
+  pagosExamenInscripciones,
   convocatoriasEtapas,
   convocatoriasModulosHorarios,
   sedes,
@@ -1215,6 +1216,54 @@ router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
 });
 
 // GET /gestor/alumnos/:id/credencial/pdf — carnet de la credencial digital
+// DELETE /gestor/alumnos/:id/examenes/:inscId — quitar un módulo inscrito (si no está pagado)
+router.delete('/alumnos/:id/examenes/:inscId', async (req, res) => {
+  const alumnoId = Number(req.params.id as string);
+  const inscId = Number(req.params.inscId as string);
+  if (!alumnoId || !inscId) { res.status(400).json({ error: 'Parámetros inválidos' }); return; }
+  const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
+  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+  const [insc] = await db
+    .select({ id: examenesInscripciones.id, estado: examenesInscripciones.estado })
+    .from(examenesInscripciones)
+    .where(and(eq(examenesInscripciones.id, inscId), eq(examenesInscripciones.estudianteId, alumnoId)));
+  if (!insc) { res.status(404).json({ error: 'Inscripción no encontrada' }); return; }
+  if (insc.estado === 'presentado') { res.status(409).json({ error: 'No se puede quitar: el examen ya se presentó.' }); return; }
+
+  // Órdenes de pago ligadas a esta inscripción.
+  const linked = await db.execute<{ id: number; estado: string }>(sql`
+    SELECT pe.id, pe.estado FROM pagos_examen pe
+    JOIN pagos_examen_inscripciones pei ON pei.pago_examen_id = pe.id
+    WHERE pei.examen_inscripcion_id = ${inscId}`);
+  if (linked.rows.some((o) => o.estado === 'pagado' || o.estado === 'en_revision')) {
+    res.status(409).json({ error: 'No se puede quitar: la orden ya está pagada o en revisión. Cancélala primero.' });
+    return;
+  }
+  const ordenIds = linked.rows.map((o) => o.id);
+
+  try {
+    await db.transaction(async (tx) => {
+      if (ordenIds.length) {
+        // Recalcular cada orden afectada (baja una inscripción): monto proporcional; si queda en 0, se cancela.
+        await tx.execute(sql`
+          UPDATE pagos_examen SET
+            cantidad_examenes = GREATEST(cantidad_examenes - 1, 0),
+            monto_total   = ROUND(monto_total   * (GREATEST(cantidad_examenes - 1, 0))::numeric / NULLIF(cantidad_examenes,0), 2),
+            monto_iemsys  = ROUND(monto_iemsys  * (GREATEST(cantidad_examenes - 1, 0))::numeric / NULLIF(cantidad_examenes,0), 2),
+            monto_synapsis= ROUND(monto_synapsis* (GREATEST(cantidad_examenes - 1, 0))::numeric / NULLIF(cantidad_examenes,0), 2),
+            estado = CASE WHEN cantidad_examenes - 1 <= 0 THEN 'cancelado' ELSE estado END
+          WHERE id = ANY(${sql`ARRAY[${sql.join(ordenIds.map((i) => sql`${i}`), sql`, `)}]`})`);
+      }
+      await tx.delete(pagosExamenInscripciones).where(eq(pagosExamenInscripciones.examenInscripcionId, inscId));
+      await tx.delete(examenesInscripciones).where(eq(examenesInscripciones.id, inscId));
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo quitar el módulo' });
+  }
+});
+
 router.get('/alumnos/:id/credencial/pdf', async (req, res) => {
   const alumnoId = Number(req.params.id as string);
   if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }

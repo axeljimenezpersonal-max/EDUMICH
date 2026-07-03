@@ -782,6 +782,8 @@ export default function AlumnoDetalle() {
             setSeleccion={setConvSeleccion}
             inscribiendo={convInscribiendo}
             onInscribir={handleInscribir}
+            alumnoId={id!}
+            onReload={reloadConvocatoria}
           />
         ) : (
           <InscripcionBloqueada
@@ -962,6 +964,8 @@ function PlanDeEstudiosTab({
   setSeleccion,
   inscribiendo,
   onInscribir,
+  alumnoId,
+  onReload,
 }: {
   data: GestorConvocatoriaResponse | null;
   loading: boolean;
@@ -969,7 +973,27 @@ function PlanDeEstudiosTab({
   setSeleccion: React.Dispatch<React.SetStateAction<Set<number>>>;
   inscribiendo: boolean;
   onInscribir: () => void;
+  alumnoId: number;
+  onReload: () => void | Promise<void>;
 }) {
+  const [quitando, setQuitando] = useState<number | null>(null);
+  // moduloId -> { inscId, pagoEstado } de las inscripciones activas del alumno.
+  const inscPorModulo = new Map<number, { inscId: number; pagoEstado?: string }>(
+    (data?.inscripcionesActivas ?? []).map((i) => [i.moduloId, { inscId: i.id, pagoEstado: i.pagoEstado }])
+  );
+
+  async function quitarModulo(inscId: number) {
+    if (!window.confirm('¿Quitar este módulo de la inscripción del alumno?')) return;
+    setQuitando(inscId);
+    try {
+      await api.delete(`/gestor/alumnos/${alumnoId}/examenes/${inscId}`);
+      await onReload();
+    } catch (e) {
+      window.alert((e as Error).message || 'No se pudo quitar el módulo.');
+    } finally {
+      setQuitando(null);
+    }
+  }
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-stone-400 gap-2 text-sm">
@@ -1067,6 +1091,8 @@ function PlanDeEstudiosTab({
 
   // Inscritos y disponibles se muestran juntos en cada celda día×hora.
   function ModuloInscrito({ m }: { m: ModDisp }) {
+    const ins = inscPorModulo.get(m.id);
+    const puedeQuitar = ins && (ins.pagoEstado === 'sin_pagar' || !ins.pagoEstado);
     return (
       <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-blue-200 bg-blue-50/60 select-none">
         <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-blue-600" />
@@ -1076,7 +1102,20 @@ function PlanDeEstudiosTab({
             {m.nivel && <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-blue-100 text-blue-600">Nivel {m.nivel}</span>}
           </div>
           <div className="text-xs text-stone-600 leading-snug">{m.nombre}</div>
-          <div className="text-[10px] text-blue-600 font-bold mt-0.5">✓ Ya inscrito</div>
+          <div className="flex items-center justify-between gap-2 mt-0.5">
+            <span className="text-[10px] text-blue-600 font-bold">✓ Ya inscrito</span>
+            {puedeQuitar ? (
+              <button
+                onClick={() => quitarModulo(ins!.inscId)}
+                disabled={quitando === ins!.inscId}
+                className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
+              >
+                {quitando === ins!.inscId ? <Loader2 size={10} className="animate-spin" /> : <X size={11} />} Quitar
+              </button>
+            ) : ins?.pagoEstado && ins.pagoEstado !== 'sin_pagar' ? (
+              <span className="text-[9px] text-stone-400">Pagado — no editable</span>
+            ) : null}
+          </div>
         </div>
       </div>
     );
