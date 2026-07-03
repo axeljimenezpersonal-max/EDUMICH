@@ -206,14 +206,37 @@ router.get('/alumnos', async (req, res) => {
       const obligAprobados = new Set(
         docsRows.filter((d) => d.estado === 'aprobado' && OBLIG_LISTA.includes(d.tipo)).map((d) => d.tipo)
       ).size;
+      const obligRechazados = docsRows.filter((d) => d.estado === 'rechazado' && OBLIG_LISTA.includes(d.tipo)).length;
       const opcSubidos = new Set(docsRows.filter((d) => OPCIONALES_LISTA.includes(d.tipo)).map((d) => d.tipo)).size;
+
+      // Inscripción a examen (módulos) y pago conciliado, para el estado de proceso.
+      const examRes = await db.execute<{ inscritos: number; pagados: number }>(sql`
+        SELECT
+          (SELECT count(*) FROM examenes_inscripciones ei WHERE ei.estudiante_id = ${r.userId})::int AS inscritos,
+          (SELECT count(*) FROM examenes_inscripciones ei
+             JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id
+             JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+             WHERE ei.estudiante_id = ${r.userId} AND pe.estado = 'pagado')::int AS pagados
+      `);
+      const examInscritos = Number((examRes.rows[0] as { inscritos?: number } | undefined)?.inscritos ?? 0);
+      const examPagados = Number((examRes.rows[0] as { pagados?: number } | undefined)?.pagados ?? 0);
+
+      // Pipeline del alumno (por prioridad):
+      let estadoProceso: string;
+      if (obligRechazados > 0) estadoProceso = 'documento_rechazado';
+      else if (obligAprobados < OBLIG_LISTA.length) estadoProceso = 'faltan_documentos';
+      else if (examInscritos === 0) estadoProceso = 'listo_inscribir';
+      else if (examPagados === 0) estadoProceso = 'pago_pendiente';
+      else estadoProceso = 'al_corriente';
 
       return {
         ...r,
         inscripcion: insc ?? null,
         obligAprobados,
+        obligRechazados,
         obligTotal: OBLIG_LISTA.length,
         opcionalesFaltantes: OPCIONALES_LISTA.length - opcSubidos,
+        estadoProceso,
       };
     })
   );

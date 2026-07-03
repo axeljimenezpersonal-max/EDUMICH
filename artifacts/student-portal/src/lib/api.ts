@@ -120,8 +120,10 @@ export interface AlumnoListItem {
     convocatoriaNombre: string | null;
   } | null;
   obligAprobados: number;
+  obligRechazados: number;
   obligTotal: number;
   opcionalesFaltantes: number;
+  estadoProceso: 'documento_rechazado' | 'faltan_documentos' | 'listo_inscribir' | 'pago_pendiente' | 'al_corriente';
 }
 
 export interface DocumentoItem {

@@ -11,6 +11,15 @@ import { GestorLayout } from './GestorLayout';
 import { api, type AlumnoListItem } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 
+// Estado del alumno en el proceso (pipeline), del más urgente al final.
+const ESTADO_PROCESO: Record<string, { label: string; bg: string; color: string; dot: string }> = {
+  documento_rechazado: { label: 'Documento rechazado', bg: '#fee2e2', color: '#b91c1c', dot: '#dc2626' },
+  faltan_documentos:   { label: 'Faltan documentos',    bg: '#fef9c3', color: '#92400e', dot: '#d97706' },
+  listo_inscribir:     { label: 'Listo para inscribir', bg: '#dbeafe', color: '#1e40af', dot: '#2563eb' },
+  pago_pendiente:      { label: 'Pago pendiente',       bg: '#ffedd5', color: '#c2410c', dot: '#ea580c' },
+  al_corriente:        { label: 'Al corriente',         bg: '#d1fae5', color: '#166534', dot: '#16a34a' },
+};
+
 export default function AlumnosList() {
   const [alumnos, setAlumnos] = useState<AlumnoListItem[] | null>(null);
   const [filtro, setFiltro] = useState('');
@@ -129,11 +138,15 @@ export default function AlumnosList() {
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-stone-700">{a.curp}</td>
                   <td className="px-4 py-3">
-                    {a.inscripcion ? (
-                      <StatusBadge estado={a.inscripcion.estado} />
-                    ) : (
-                      <span className="text-xs text-stone-400">—</span>
-                    )}
+                    {(() => {
+                      const cfg = ESTADO_PROCESO[a.estadoProceso] ?? ESTADO_PROCESO.faltan_documentos;
+                      return (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
+                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+                          {cfg.label}
+                        </span>
+                      );
+                    })()}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {a.obligAprobados < a.obligTotal ? (
