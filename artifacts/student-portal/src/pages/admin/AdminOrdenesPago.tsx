@@ -4,7 +4,7 @@
  * EDUMICH no cobra ni genera líneas de captura: aquí el enlace CARGA la orden de
  * pago (línea de captura + PDF + vencimiento) que emitió la plataforma del Estado,
  * y CONCILIA los pagos (marca 'pagado' solo tras verificar). Incluye el reporte
- * interno del desglose $115 IEMSyS / $30 Synapsis.
+ * de ingresos por examen (órdenes conciliadas).
  */
 import { useEffect, useState } from 'react';
 import {
@@ -703,18 +703,16 @@ function ReporteDesglose({ onBack }: { onBack: () => void }) {
       <button onClick={onBack} className="text-sm text-stone-600 hover:text-[var(--color-guinda-700)] inline-flex items-center gap-1.5 mb-5">
         <ChevronLeft size={15} /> Volver a órdenes
       </button>
-      <h1 className="font-serif text-2xl font-bold text-stone-900 mb-1">Desglose de ingresos</h1>
-      <p className="text-stone-500 text-sm mb-5">Solo órdenes conciliadas (pagadas). Split interno $115 IEMSyS / $30 Synapsis.</p>
+      <h1 className="font-serif text-2xl font-bold text-stone-900 mb-1">Ingresos por examen</h1>
+      <p className="text-stone-500 text-sm mb-5">Solo órdenes conciliadas (pagadas).</p>
 
       {loading || !data ? (
         <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>
       ) : (
         <div className="space-y-5">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <Tarjeta label="Órdenes pagadas" val={String(data.totales.pagos)} />
             <Tarjeta label="Total recaudado" val={fmtMoney(data.totales.total)} destacado />
-            <Tarjeta label="IEMSyS" val={fmtMoney(data.totales.iemsys)} />
-            <Tarjeta label="Synapsis" val={fmtMoney(data.totales.synapsis)} />
           </div>
 
           <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
@@ -725,8 +723,6 @@ function ReporteDesglose({ onBack }: { onBack: () => void }) {
                   <th className="px-4 py-2 font-semibold">Municipio</th>
                   <th className="px-4 py-2 font-semibold text-center">Pagos</th>
                   <th className="px-4 py-2 font-semibold text-right">Total</th>
-                  <th className="px-4 py-2 font-semibold text-right">IEMSyS</th>
-                  <th className="px-4 py-2 font-semibold text-right">Synapsis</th>
                 </tr>
               </thead>
               <tbody>
@@ -735,12 +731,10 @@ function ReporteDesglose({ onBack }: { onBack: () => void }) {
                     <td className="px-4 py-2.5 text-stone-800">{m.municipio}</td>
                     <td className="px-4 py-2.5 text-center text-stone-600">{m.pagos}</td>
                     <td className="px-4 py-2.5 text-right font-semibold text-stone-800">{fmtMoney(m.total)}</td>
-                    <td className="px-4 py-2.5 text-right text-stone-600">{fmtMoney(m.iemsys)}</td>
-                    <td className="px-4 py-2.5 text-right text-stone-600">{fmtMoney(m.synapsis)}</td>
                   </tr>
                 ))}
                 {data.porMunicipio.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-6 text-center text-stone-400 text-sm">Aún no hay pagos conciliados.</td></tr>
+                  <tr><td colSpan={3} className="px-4 py-6 text-center text-stone-400 text-sm">Aún no hay pagos conciliados.</td></tr>
                 )}
               </tbody>
             </table>
