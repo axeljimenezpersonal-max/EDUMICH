@@ -326,11 +326,10 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin/alumnos',    icon: Users,    label: 'Alumnos',    badge: sidebar.totalAlumnos,    muted: true },
     { href: '/admin/gestores',   icon: UserCheck, label: 'Gestores',  badge: sidebar.totalGestores,   muted: true },
     { href: '/admin/solicitudes', icon: Inbox,   label: 'Solicitudes', badge: sidebar.solicitudesPendientes, muted: false },
+    { href: '/admin/ordenes-pago', icon: CreditCard, label: 'Pagos', muted: false },
   ];
 
   const otrosItems = [
-    { href: '/admin/ordenes-pago', icon: CreditCard, label: 'Pagos', muted: false },
-    { href: '/admin/contabilidad-examenes', icon: ClipboardList, label: 'Contabilidad de exámenes' },
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación de pase' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
@@ -473,7 +472,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                     style={linkStyle(href)}
                   >
                     <Icon size={14} /> {label}
-                    <SidebarBadge count={badge} muted={muted} />
+                    <SidebarBadge count={badge ?? 0} muted={muted} />
                   </a>
                 </li>
               ))}

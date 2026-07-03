@@ -3,8 +3,7 @@
  * Cada examen tiene su folio y su estado: registrado / pagado / aprobado.
  */
 import { useEffect, useState } from 'react';
-import { ClipboardList, Search, CheckCircle2, Clock, XCircle, Loader2 } from 'lucide-react';
-import { AdminLayout } from './AdminLayout';
+import { Search, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
 import { api, type ContabilidadExamenes, type ExamenContable } from '../../lib/api';
 
 type Filtro = 'todos' | 'pagados' | 'sin_pagar' | 'en_proceso' | 'aprobados';
@@ -16,7 +15,7 @@ function Flag({ on, label, tone }: { on: boolean; label: string; tone: 'green' |
   return <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold ${cfg}`}>{label}</span>;
 }
 
-export default function AdminContabilidadExamenes() {
+export function ContabilidadExamenesPanel() {
   const [data, setData] = useState<ContabilidadExamenes | null>(null);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState('');
@@ -46,12 +45,8 @@ export default function AdminContabilidadExamenes() {
   ];
 
   return (
-    <AdminLayout>
-      <div className="mb-5">
-        <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">Control interno</div>
-        <h1 className="font-serif text-3xl font-bold text-stone-900 flex items-center gap-2"><ClipboardList size={26} /> Contabilidad de exámenes</h1>
-        <p className="text-stone-600 mt-1 text-sm max-w-2xl">Cada examen (alumno + módulo) con su folio y su estado: registrado, pagado y aprobado.</p>
-      </div>
+    <>
+      <p className="text-stone-600 mb-4 text-sm max-w-2xl">Cada examen (alumno + módulo) con su folio y su estado: registrado, pagado y aprobado.</p>
 
       {/* Resumen */}
       {data && (
@@ -126,7 +121,7 @@ export default function AdminContabilidadExamenes() {
           </table>
         </div>
       )}
-    </AdminLayout>
+    </>
   );
 }
 

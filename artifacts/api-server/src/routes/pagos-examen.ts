@@ -22,6 +22,7 @@ import {
   pagosExamenInscripciones,
   examenesInscripciones,
   estudiantes,
+  gestores,
   modulos,
   convocatoriasEtapas,
   municipios,
@@ -522,25 +523,43 @@ router.post('/:id/quitar-examen', async (req, res) => {
 // ADMIN / ENLACE DE TESORERÍA
 // ═══════════════════════════════════════════════════════════════════════════
 
-// GET /api/pagos-examen — listado admin (filtro opcional ?estado=)
+// GET /api/pagos-examen — listado admin con filtros (estado, gestorId, etapaId, q)
 router.get('/', async (req, res) => {
   if (!esAdmin(req.user!.rol)) return res.status(403).json({ error: 'Solo administración' });
   try {
-    const estado = typeof req.query.estado === 'string' ? req.query.estado : null;
-    const base = db
+    const estado = typeof req.query.estado === 'string' && req.query.estado ? req.query.estado : null;
+    const gestorId = req.query.gestorId ? Number(req.query.gestorId) : null;
+    const etapaId = req.query.etapaId ? Number(req.query.etapaId) : null;
+    const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+
+    const cond = [] as ReturnType<typeof eq>[];
+    if (estado) cond.push(eq(pagosExamen.estado, estado as PagoExamenEstado));
+    if (gestorId) cond.push(eq(pagosExamen.gestorId, gestorId));
+    if (etapaId) cond.push(eq(pagosExamen.etapaId, etapaId));
+    if (q) {
+      cond.push(sql`(
+        ${estudiantes.nombreCompleto} ILIKE ${'%' + q + '%'} OR
+        ${estudiantes.matriculaOficialDGB} ILIKE ${'%' + q + '%'} OR
+        ${pagosExamen.folio} ILIKE ${'%' + q + '%'} OR
+        ${gestores.nombreCompleto} ILIKE ${'%' + q + '%'}
+      )` as any);
+    }
+
+    const filas = await db
       .select({
         pago: pagosExamen,
         alumno: estudiantes.nombreCompleto,
         matricula: estudiantes.matriculaOficialDGB,
         curp: estudiantes.curp,
+        gestor: gestores.nombreCompleto,
+        etapa: convocatoriasEtapas.clave,
       })
       .from(pagosExamen)
       .leftJoin(estudiantes, eq(pagosExamen.estudianteId, estudiantes.userId))
+      .leftJoin(gestores, eq(pagosExamen.gestorId, gestores.userId))
+      .leftJoin(convocatoriasEtapas, eq(pagosExamen.etapaId, convocatoriasEtapas.id))
+      .where(cond.length ? and(...cond) : undefined)
       .orderBy(desc(pagosExamen.createdAt));
-
-    const filas = estado
-      ? await base.where(eq(pagosExamen.estado, estado as PagoExamenEstado))
-      : await base;
 
     return res.json({
       pagos: filas.map((f) => ({
@@ -548,6 +567,9 @@ router.get('/', async (req, res) => {
         alumno: f.alumno ?? (f.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'),
         matricula: f.matricula,
         curp: f.curp,
+        gestor: f.gestor ?? null,
+        solicitante: f.gestor ? `Gestor · ${f.gestor}` : 'Alumno',
+        etapaClave: f.etapa ?? null,
       })),
     });
   } catch {

@@ -39,7 +39,6 @@ import PagosPendientes from './pages/admin/PagosPendientes';
 import PagosAdmin from './pages/admin/PagosAdmin';
 import AdminPagosGrupales from './pages/admin/AdminPagosGrupales';
 import AdminOrdenesPago from './pages/admin/AdminOrdenesPago';
-import AdminContabilidadExamenes from './pages/admin/AdminContabilidadExamenes';
 import AlumnosCalificaciones from './pages/admin/AlumnosCalificaciones';
 import Solicitudes from './pages/admin/SolicitudesLista';
 import AdminInicio from './pages/admin/AdminInicio';
@@ -110,7 +109,6 @@ export default function App() {
       <Route path="/admin/pagos" component={PagosAdmin} />
       <Route path="/admin/pagos-grupales" component={AdminPagosGrupales} />
       <Route path="/admin/ordenes-pago" component={AdminOrdenesPago} />
-      <Route path="/admin/contabilidad-examenes" component={AdminContabilidadExamenes} />
       <Route path="/admin/pagos-pendientes" component={PagosPendientes} />
       <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
       <Route path="/admin/alumnos" component={AdminAlumnosLista} />

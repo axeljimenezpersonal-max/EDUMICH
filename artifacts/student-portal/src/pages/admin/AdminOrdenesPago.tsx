@@ -9,9 +9,10 @@
 import { useEffect, useState } from 'react';
 import {
   Landmark, Plus, Search, Loader2, ChevronLeft, FileUp, CheckCircle2,
-  XCircle, Ban, Copy, Check, Download, BarChart3, Clock, AlertCircle,
+  XCircle, Ban, Copy, Check, Download, BarChart3, Clock, AlertCircle, ClipboardList, X,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { api, type PagoExamenAdmin, type PagoExamenEstado, type PagoExamenCandidato, type PagoExamenDesglose } from '../../lib/api';
 
 const FILTROS: { key: string; label: string }[] = [
@@ -47,29 +48,49 @@ function EstadoChip({ estado }: { estado: PagoExamenEstado }) {
 }
 
 export default function AdminOrdenesPago() {
+  const [seccion, setSeccion] = useState<'ordenes' | 'contabilidad'>('ordenes');
   const [filtro, setFiltro] = useState('');
+  const [gestorId, setGestorId] = useState('');
+  const [etapaId, setEtapaId] = useState('');
+  const [q, setQ] = useState('');
   const [pagos, setPagos] = useState<PagoExamenAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<number | null>(null);
   const [nuevo, setNuevo] = useState(false);
   const [reporte, setReporte] = useState(false);
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [gestores, setGestores] = useState<{ id: number; nombreCompleto: string }[]>([]);
+  const [etapas, setEtapas] = useState<{ id: number; etapa: string; fase: string; anio: number }[]>([]);
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok });
     setTimeout(() => setToast(null), 4000);
   }
 
-  function cargar(f = filtro) {
+  function cargar(over?: { estado?: string; gestorId?: string; etapaId?: string; q?: string }) {
+    const est = over?.estado ?? filtro;
+    const gid = over?.gestorId ?? gestorId;
+    const eid = over?.etapaId ?? etapaId;
+    const query = over?.q ?? q;
+    const params = new URLSearchParams();
+    if (est) params.set('estado', est);
+    if (gid) params.set('gestorId', gid);
+    if (eid) params.set('etapaId', eid);
+    if (query.trim()) params.set('q', query.trim());
     setLoading(true);
     return api
-      .get<{ pagos: PagoExamenAdmin[] }>(`/pagos-examen${f ? `?estado=${f}` : ''}`)
+      .get<{ pagos: PagoExamenAdmin[] }>(`/pagos-examen${params.toString() ? `?${params}` : ''}`)
       .then((r) => setPagos(r.pagos))
       .catch(() => showToast('Error al cargar', false))
       .finally(() => setLoading(false));
   }
 
-  useEffect(() => { cargar(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => {
+    cargar();
+    api.get<{ gestores: { id: number; nombreCompleto: string }[] }>('/admin/gestores-list').then((r) => setGestores(r.gestores)).catch(() => {});
+    api.get<{ etapas: { id: number; etapa: string; fase: string; anio: number }[] }>('/admin/etapas').then((r) => setEtapas(r.etapas)).catch(() => {});
+    /* eslint-disable-next-line */
+  }, []);
 
   return (
     <AdminLayout>
@@ -87,33 +108,71 @@ export default function AdminOrdenesPago() {
         <ReporteDesglose onBack={() => setReporte(false)} />
       ) : (
         <>
-          <div className="flex items-start justify-between gap-4 mb-5">
+          <div className="flex items-start justify-between gap-4 mb-4">
             <div>
               <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">Tesorería del Estado</div>
-              <h1 className="font-serif text-3xl font-bold text-stone-900">Órdenes de pago</h1>
-              <p className="text-stone-600 mt-1 text-sm max-w-2xl">
-                Carga la línea de captura y la orden de pago que emitió la plataforma del Estado, y concilia los pagos. EDUMICH no cobra ni genera líneas de captura.
-              </p>
+              <h1 className="font-serif text-3xl font-bold text-stone-900">Pagos</h1>
             </div>
-            <div className="flex gap-2 shrink-0">
-              <button onClick={() => setReporte(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
-                <BarChart3 size={15} /> Desglose
-              </button>
-              <button onClick={() => setNuevo(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]">
-                <Plus size={15} /> Nueva orden
-              </button>
-            </div>
+            {seccion === 'ordenes' && (
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => setReporte(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                  <BarChart3 size={15} /> Desglose
+                </button>
+                <button onClick={() => setNuevo(true)} className="inline-flex items-center gap-1.5 text-sm font-semibold px-3.5 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]">
+                  <Plus size={15} /> Nueva orden
+                </button>
+              </div>
+            )}
           </div>
 
+          {/* Tabs internos */}
+          <div className="flex border-b-2 border-stone-200 mb-5 gap-0.5">
+            {([['ordenes', 'Órdenes de pago', Landmark], ['contabilidad', 'Contabilidad de exámenes', ClipboardList]] as const).map(([key, label, Icon]) => {
+              const active = seccion === key;
+              return (
+                <button key={key} onClick={() => setSeccion(key)}
+                  className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${active ? 'text-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'text-stone-500 border-transparent hover:text-stone-700'}`}>
+                  <Icon size={15} /> {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {seccion === 'contabilidad' ? (
+            <ContabilidadExamenesPanel />
+          ) : (
+          <>
+          {/* Filtros profesionales */}
+          <div className="bg-white border border-stone-200 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-2">
+            <div className="relative flex-1 min-w-[200px]">
+              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+              <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && cargar()}
+                placeholder="Buscar por alumno, folio, matrícula o gestor…" className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-3 py-2" />
+            </div>
+            <select value={gestorId} onChange={(e) => { setGestorId(e.target.value); cargar({ gestorId: e.target.value }); }}
+              className="text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white max-w-[200px]">
+              <option value="">Todos los gestores</option>
+              {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}</option>)}
+            </select>
+            <select value={etapaId} onChange={(e) => { setEtapaId(e.target.value); cargar({ etapaId: e.target.value }); }}
+              className="text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white">
+              <option value="">Todas las etapas</option>
+              {etapas.map((et) => <option key={et.id} value={et.id}>{et.etapa} {et.fase} · {et.anio}</option>)}
+            </select>
+            <button onClick={() => cargar()} className="text-sm font-semibold px-3 py-2 rounded-lg bg-stone-100 text-stone-700 hover:bg-stone-200">Buscar</button>
+            {(q || gestorId || etapaId || filtro) && (
+              <button onClick={() => { setQ(''); setGestorId(''); setEtapaId(''); setFiltro(''); cargar({ estado: '', gestorId: '', etapaId: '', q: '' }); }}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-stone-700 px-2">
+                <X size={13} /> Limpiar
+              </button>
+            )}
+          </div>
+
+          {/* Chips de estado */}
           <div className="flex flex-wrap gap-1.5 mb-4">
             {FILTROS.map((f) => (
-              <button
-                key={f.key}
-                onClick={() => { setFiltro(f.key); cargar(f.key); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                  filtro === f.key ? 'bg-[var(--color-guinda-700)] text-white border-[var(--color-guinda-700)]' : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'
-                }`}
-              >
+              <button key={f.key} onClick={() => { setFiltro(f.key); cargar({ estado: f.key }); }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${filtro === f.key ? 'bg-[var(--color-guinda-700)] text-white border-[var(--color-guinda-700)]' : 'bg-white text-stone-600 border-stone-200 hover:border-stone-300'}`}>
                 {f.label}
               </button>
             ))}
@@ -124,15 +183,16 @@ export default function AdminOrdenesPago() {
           ) : pagos.length === 0 ? (
             <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
               <Landmark size={30} className="mx-auto text-stone-300 mb-3" />
-              <div className="font-bold text-stone-900 mb-1">Sin órdenes en este filtro</div>
+              <div className="font-bold text-stone-900 mb-1">Sin órdenes con estos filtros</div>
             </div>
           ) : (
-            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
+              <table className="w-full text-sm min-w-[760px]">
                 <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
                   <tr>
+                    <th className="px-4 py-3 font-semibold">Folio</th>
                     <th className="px-4 py-3 font-semibold">Alumno</th>
-                    <th className="px-4 py-3 font-semibold">Referencia</th>
+                    <th className="px-4 py-3 font-semibold">Solicitante</th>
                     <th className="px-4 py-3 font-semibold text-center">Exám.</th>
                     <th className="px-4 py-3 font-semibold text-right">Total</th>
                     <th className="px-4 py-3 font-semibold">Estado</th>
@@ -142,8 +202,12 @@ export default function AdminOrdenesPago() {
                 <tbody>
                   {pagos.map((p) => (
                     <tr key={p.id} onClick={() => setSel(p.id)} className="border-b border-stone-100 last:border-0 hover:bg-[var(--color-crema-50)] cursor-pointer">
-                      <td className="px-4 py-3 font-medium text-stone-900">{p.alumno ?? `#${p.estudianteId}`}</td>
-                      <td className="px-4 py-3 font-mono text-xs text-stone-600">{p.matricula || p.curp || '—'}</td>
+                      <td className="px-4 py-3 font-mono text-xs text-stone-600">{p.folio ?? `#${p.id}`}</td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-stone-900">{p.alumno ?? `#${p.estudianteId}`}</div>
+                        <div className="text-[11px] text-stone-400 font-mono">{p.matricula || p.curp || '—'}{p.etapaClave ? ` · ${p.etapaClave}` : ''}</div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-stone-600">{p.solicitante ?? (p.gestor ? `Gestor · ${p.gestor}` : 'Alumno')}</td>
                       <td className="px-4 py-3 text-center text-stone-700">{p.cantidadExamenes}</td>
                       <td className="px-4 py-3 text-right font-bold text-stone-800">{fmtMoney(p.montoTotal)}</td>
                       <td className="px-4 py-3"><EstadoChip estado={p.estado} /></td>
@@ -153,6 +217,8 @@ export default function AdminOrdenesPago() {
                 </tbody>
               </table>
             </div>
+          )}
+          </>
           )}
         </>
       )}
