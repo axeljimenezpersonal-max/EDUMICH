@@ -55,12 +55,53 @@ import {
 } from '../services/cedula';
 import { generarCredencialPdf } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
+import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 
 const router = Router();
 
 router.use(authRequired, requireRol('admin'));
+
+// ─── POST /admin/credencial/validar ───────────────────────────────────────
+// Escaneo del QR de la credencial digital: resuelve el folio -> alumno para
+// que el operador abra su ficha dentro de administración.
+router.post('/credencial/validar', async (req, res) => {
+  const raw = String(req.body?.qr ?? '').trim();
+  if (!raw) { res.status(400).json({ error: 'QR vacío' }); return; }
+  // El QR trae la URL .../c/<folio>; también aceptamos el folio pelón.
+  const m = raw.match(/\/c\/([A-Za-z0-9_-]+)/);
+  const folio = (m ? m[1] : raw).trim();
+
+  const [est] = await db
+    .select({
+      userId: estudiantes.userId,
+      nombre: estudiantes.nombreCompleto,
+      matricula: estudiantes.matriculaOficialDGB,
+      curp: estudiantes.curp,
+      emitida: estudiantes.licenciaEmitidaEn,
+    })
+    .from(estudiantes)
+    .where(eq(estudiantes.licenciaDigital, folio));
+
+  if (!est) { res.status(404).json({ error: 'Credencial no encontrada o no válida', folio }); return; }
+
+  const emitida = est.emitida ? new Date(est.emitida) : null;
+  const vence = emitida ? new Date(emitida) : null;
+  if (vence) vence.setMonth(vence.getMonth() + VIGENCIA_CREDENCIAL_MESES);
+  const vencida = vence ? vence.getTime() < Date.now() : false;
+
+  res.json({
+    ok: true,
+    alumnoId: est.userId,
+    nombre: est.nombre,
+    matricula: est.matricula ?? null,
+    curp: est.curp ?? null,
+    folio,
+    vencida,
+    vigenteHasta: vence ? vence.toISOString() : null,
+  });
+});
 
 // ─── POST /admin/convocatoria/pase/validar ────────────────────────────────
 const validarPaseSchema = z.object({

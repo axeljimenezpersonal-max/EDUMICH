@@ -331,7 +331,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const otrosItems = [
-    { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación de pase' },
+    { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
     { href: '/admin/correos-enviados', icon: Mail,    label: 'Correos enviados' },

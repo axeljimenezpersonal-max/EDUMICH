@@ -6,6 +6,7 @@
  */
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useLocation } from 'wouter';
 import jsQR from 'jsqr';
 import {
   Camera,
@@ -17,6 +18,8 @@ import {
   BookOpen,
   QrCode,
   Loader2,
+  IdCard,
+  ExternalLink,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
@@ -30,11 +33,24 @@ interface ValidarPaseResult {
   modulo: { numero: number; nombre: string };
 }
 
+interface ValidarCredencialResult {
+  ok: boolean;
+  alumnoId: number;
+  nombre: string;
+  matricula: string | null;
+  curp: string | null;
+  folio: string;
+  vencida: boolean;
+}
+
+type Modo = 'pase' | 'credencial';
+
 type ScanState =
   | { tipo: 'idle' }
   | { tipo: 'scanning' }
   | { tipo: 'validando' }
   | { tipo: 'ok'; data: ValidarPaseResult }
+  | { tipo: 'okCred'; data: ValidarCredencialResult }
   | { tipo: 'error'; mensaje: string; folio?: string };
 
 // ── Componente principal ──────────────────────────────────────────────────
@@ -48,6 +64,8 @@ export default function VerificacionPase() {
 
   const [state, setState] = useState<ScanState>({ tipo: 'idle' });
   const [camError, setCamError] = useState<string | null>(null);
+  const [modo, setModo] = useState<Modo>('pase');
+  const [, setLocation] = useLocation();
 
   // ── Cámara ────────────────────────────────────────────────────────────
 
@@ -102,16 +120,24 @@ export default function VerificacionPase() {
     detenerCamara();
 
     try {
-      const result = await api.post<ValidarPaseResult>(
-        '/admin/convocatoria/pase/validar',
-        { qrPayload: qrText }
-      );
-      setState({ tipo: 'ok', data: result });
+      if (modo === 'credencial') {
+        const result = await api.post<ValidarCredencialResult>(
+          '/admin/credencial/validar',
+          { qr: qrText }
+        );
+        setState({ tipo: 'okCred', data: result });
+      } else {
+        const result = await api.post<ValidarPaseResult>(
+          '/admin/convocatoria/pase/validar',
+          { qrPayload: qrText }
+        );
+        setState({ tipo: 'ok', data: result });
+      }
     } catch (e) {
-      const msg = (e as Error).message || 'Error al validar el pase';
+      const msg = (e as Error).message || (modo === 'credencial' ? 'No se pudo verificar la credencial' : 'Error al validar el pase');
       setState({ tipo: 'error', mensaje: msg, folio });
     }
-  }, [detenerCamara]);
+  }, [detenerCamara, modo]);
 
   // ── Loop de escaneo ────────────────────────────────────────────────────
 
@@ -169,13 +195,35 @@ export default function VerificacionPase() {
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
           ADMINISTRACIÓN
         </div>
-        <h1 className="font-serif text-2xl font-bold text-stone-900">Verificación de Pase</h1>
+        <h1 className="font-serif text-2xl font-bold text-stone-900">Verificación</h1>
         <p className="text-stone-500 text-sm mt-1">
-          Escanea el código QR del pase de examen del alumno para validar su identidad en sede.
+          Escanea el código QR del <strong>pase de examen</strong> o de la <strong>credencial digital</strong> del alumno.
         </p>
       </div>
 
       <div className="max-w-lg mx-auto space-y-5">
+
+        {/* ── Selector de modo ─────────────────────────────────────────────── */}
+        {(state.tipo === 'idle') && (
+          <div className="bg-white border border-stone-200 rounded-2xl p-1.5 flex gap-1.5">
+            {([
+              { key: 'pase' as Modo, label: 'Pase de examen' },
+              { key: 'credencial' as Modo, label: 'Alumno (credencial)' },
+            ]).map((m) => (
+              <button
+                key={m.key}
+                onClick={() => setModo(m.key)}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors"
+                style={modo === m.key
+                  ? { background: 'var(--color-guinda-700)', color: 'white' }
+                  : { background: 'transparent', color: '#6b635e' }}
+              >
+                {m.key === 'pase' ? <QrCode size={15} /> : <IdCard size={15} />}
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* ── Estado: IDLE ────────────────────────────────────────────────── */}
         {state.tipo === 'idle' && !camError && (
@@ -184,13 +232,15 @@ export default function VerificacionPase() {
               className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
               style={{ background: 'var(--color-guinda-700)' }}
             >
-              <QrCode size={28} className="text-white" />
+              {modo === 'credencial' ? <IdCard size={28} className="text-white" /> : <QrCode size={28} className="text-white" />}
             </div>
             <h2 className="font-serif text-lg font-bold text-stone-900 mb-2">
-              Escanear pase de examen
+              {modo === 'credencial' ? 'Escanear credencial del alumno' : 'Escanear pase de examen'}
             </h2>
             <p className="text-sm text-stone-500 mb-6">
-              Pide al alumno que muestre el código QR de su pase provisional. Apunta la cámara al código para verificar y registrar su asistencia.
+              {modo === 'credencial'
+                ? 'Pide al alumno que muestre el QR de su credencial digital. Al escanearlo, abrirás su expediente en administración.'
+                : 'Pide al alumno que muestre el código QR de su pase provisional. Apunta la cámara al código para verificar y registrar su asistencia.'}
             </p>
             <button
               onClick={iniciarCamara}
@@ -339,6 +389,49 @@ export default function VerificacionPase() {
               >
                 <QrCode size={14} />
                 Escanear otro pase
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Resultado: CREDENCIAL VÁLIDA ──────────────────────────────────── */}
+        {state.tipo === 'okCred' && (
+          <div className="bg-white border border-stone-200 rounded-2xl overflow-hidden">
+            <div className={`px-5 py-4 flex items-center gap-3 text-white ${state.data.vencida ? 'bg-amber-600' : 'bg-green-600'}`}>
+              {state.data.vencida ? <AlertCircle size={22} /> : <CheckCircle2 size={22} />}
+              <div>
+                <div className="font-bold text-sm">{state.data.vencida ? 'Credencial vencida' : 'Credencial válida'}</div>
+                <div className="text-xs opacity-80 font-mono mt-0.5">{state.data.folio}</div>
+              </div>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ background: '#f5f0eb', color: 'var(--color-guinda-700)' }}>
+                  <IdCard size={18} />
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs uppercase tracking-widest text-stone-400 mb-0.5">Alumno</div>
+                  <div className="font-bold text-stone-900">{state.data.nombre}</div>
+                  {state.data.matricula && <div className="font-mono text-sm text-stone-500">Matrícula: {state.data.matricula}</div>}
+                  {state.data.curp && <div className="font-mono text-xs text-stone-400">{state.data.curp}</div>}
+                </div>
+              </div>
+            </div>
+
+            <div className="px-5 pb-5 space-y-2">
+              <button
+                onClick={() => setLocation(`/admin/alumnos/${state.data.alumnoId}`)}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold text-white rounded-xl"
+                style={{ background: 'var(--color-guinda-700)' }}
+              >
+                <ExternalLink size={14} /> Ver alumno
+              </button>
+              <button
+                onClick={reiniciar}
+                className="w-full flex items-center justify-center gap-2 py-2.5 text-sm font-semibold border border-stone-200 rounded-xl text-stone-700 hover:bg-stone-50 transition-colors"
+              >
+                <IdCard size={14} /> Escanear otra credencial
               </button>
             </div>
           </div>
