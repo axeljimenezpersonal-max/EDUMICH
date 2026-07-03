@@ -38,16 +38,33 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: {
-      ...(init.body && !(init.body instanceof FormData)
-        ? { 'Content-Type': 'application/json' }
-        : {}),
-      ...init.headers,
-    },
-  });
+  // Timeout de seguridad: si el servidor no responde (p. ej. durante un
+  // redeploy), abortamos en vez de dejar el spinner girando indefinidamente.
+  const controller = new AbortController();
+  const timeoutMs = 90_000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      credentials: 'include',
+      signal: init.signal ?? controller.signal,
+      headers: {
+        ...(init.body && !(init.body instanceof FormData)
+          ? { 'Content-Type': 'application/json' }
+          : {}),
+        ...init.headers,
+      },
+    });
+  } catch (e) {
+    if (e instanceof DOMException && e.name === 'AbortError') {
+      throw new ApiError('La solicitud tardó demasiado (posible reinicio del servidor). Inténtalo de nuevo.', 0);
+    }
+    throw new ApiError('No se pudo conectar con el servidor. Revisa tu conexión e inténtalo de nuevo.', 0);
+  } finally {
+    clearTimeout(timer);
+  }
 
   if (!res.ok) {
     let msg = `${res.status}`;
