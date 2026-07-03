@@ -844,6 +844,7 @@ export interface PagoExamenAdmin extends PagoExamenAlumno {
   etapaId: number | null;
   montoIemsys: number;
   montoSynapsis: number;
+  notas?: string | null;
   verificadoPorUserId: number | null;
   verificadoEn: string | null;
   createdAt: string;

@@ -226,6 +226,38 @@ export default function AdminOrdenesPago() {
   );
 }
 
+// ─── Stepper del proceso (mismo que ve el gestor) ──────────────────────────
+function PagoStepper({ estado }: { estado: PagoExamenEstado }) {
+  const pasos = ['Solicitada', 'Emisión', 'Pago', 'Confirmado'];
+  const idx = estado === 'pendiente_emision' ? 0 : estado === 'emitida' ? 1 : estado === 'en_revision' ? 2 : estado === 'pagado' ? 3 : 1;
+  const cancelado = estado === 'cancelado' || estado === 'vencido';
+  return (
+    <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 mb-4">
+      <div className="flex items-center">
+        {pasos.map((label, i) => {
+          const done = !cancelado && i < idx;
+          const active = !cancelado && i === idx;
+          return (
+            <div key={label} className="flex items-center" style={{ flex: i < pasos.length - 1 ? 1 : '0 0 auto' }}>
+              <div className="flex flex-col items-center gap-1.5 shrink-0">
+                <span className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                  done ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)] text-white'
+                  : active ? 'border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white'
+                  : 'border-stone-200 text-stone-300 bg-white'}`}>
+                  {done ? <Check size={14} /> : active ? <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)] animate-pulse" /> : i + 1}
+                </span>
+                <span className={`text-[10px] font-semibold uppercase tracking-wide ${active ? 'text-[var(--color-guinda-700)]' : done ? 'text-stone-600' : 'text-stone-300'}`}>{label}</span>
+              </div>
+              {i < pasos.length - 1 && <div className="flex-1 h-0.5 mx-1 -mt-4 rounded-full" style={{ background: done ? 'var(--color-guinda-700)' : '#e7e0d9' }} />}
+            </div>
+          );
+        })}
+      </div>
+      {cancelado && <div className="text-[11px] text-red-600 font-semibold mt-2 text-center">{estado === 'vencido' ? 'Orden vencida — requiere re-emisión.' : 'Orden cancelada.'}</div>}
+    </div>
+  );
+}
+
 // ─── Detalle + acciones ────────────────────────────────────────────────────
 function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onToast: (m: string, ok?: boolean) => void }) {
   const [p, setP] = useState<PagoExamenAdmin | null>(null);
@@ -238,11 +270,12 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
   const [venc, setVenc] = useState('');
   const [link, setLink] = useState('');
   const [orden, setOrden] = useState<File | null>(null);
+  const [notas, setNotas] = useState('');
 
   function cargar() {
     setLoading(true);
     return api.get<PagoExamenAdmin>(`/pagos-examen/${id}/detalle`)
-      .then((d) => { setP(d); setLinea(d.lineaCaptura ?? ''); setVenc(d.fechaVencimiento ?? d.vencimientoSugerido ?? ''); setLink(d.linkPago ?? ''); })
+      .then((d) => { setP(d); setLinea(d.lineaCaptura ?? ''); setVenc(d.fechaVencimiento ?? d.vencimientoSugerido ?? ''); setLink(d.linkPago ?? ''); setNotas(d.notas ?? ''); })
       .catch(() => onToast('Error al cargar', false))
       .finally(() => setLoading(false));
   }
@@ -284,6 +317,8 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
         </div>
         <EstadoChip estado={p.estado} />
       </div>
+
+      <PagoStepper estado={p.estado} />
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Columna izq: datos + exámenes */}
@@ -383,14 +418,39 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
             </div>
           )}
 
-          {/* Conciliar / rechazar / cancelar */}
+          {/* Comprobante en revisión: validar = pagar */}
+          {p.estado === 'en_revision' && (
+            <div className="bg-white border-2 border-[var(--color-guinda-200,#e8c4d4)] rounded-xl p-4 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-stone-800">
+                <Clock size={15} className="text-amber-600" /> Comprobante por validar
+              </div>
+              <p className="text-[11px] text-stone-500 -mt-1">El gestor/alumno subió su comprobante. Revísalo: al validarlo, la orden se marca pagada automáticamente.</p>
+              {p.tieneComprobante && (
+                <a href={`/api/pagos-examen/${id}/comprobante`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 w-full justify-center">
+                  <Download size={15} /> Ver comprobante
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Esperando comprobante */}
+          {p.estado === 'emitida' && !p.tieneComprobante && (
+            <div className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-lg p-3 flex gap-2">
+              <Clock size={14} className="shrink-0 mt-0.5 text-blue-500" />
+              <span>Orden emitida. Esperando que el gestor/alumno pague y suba su comprobante. También puedes marcarla pagada directamente si concilias contra la plataforma del Estado.</span>
+            </div>
+          )}
+
+          {/* Conciliar (validar) / rechazar */}
           {(p.estado === 'emitida' || p.estado === 'en_revision') && (
-            <div className="space-y-2">
-              <button onClick={() => accion('conciliar', 'Pago conciliado')} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">
-                <CheckCircle2 size={15} /> Marcar pagado (conciliar)
+            <div className="space-y-2 bg-white border border-stone-200 rounded-xl p-4">
+              <label className="block text-xs font-semibold text-stone-600 mb-1">Notas (opcional)</label>
+              <textarea value={notas} onChange={(e) => setNotas(e.target.value)} rows={2} placeholder="Referencia bancaria, observación de conciliación…" className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 resize-none" />
+              <button onClick={() => accion('conciliar', 'Pago conciliado', { notas })} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50">
+                <CheckCircle2 size={15} /> {p.estado === 'en_revision' ? 'Validar comprobante y marcar pagado' : 'Marcar pagado (conciliar)'}
               </button>
               {p.estado === 'en_revision' && (
-                <button onClick={() => { const m = prompt('Motivo del rechazo del comprobante:') ?? undefined; if (m !== undefined) accion('rechazar-comprobante', 'Comprobante rechazado', { motivo: m }); }} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 border border-amber-300 text-amber-700 text-sm font-semibold rounded-lg hover:bg-amber-50 disabled:opacity-50">
+                <button onClick={() => { const m = prompt('Motivo del rechazo del comprobante:') ?? undefined; if (m !== undefined) accion('rechazar-comprobante', 'Comprobante rechazado', { motivo: m }); }} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2 border border-amber-300 text-amber-700 text-sm font-semibold rounded-lg hover:bg-amber-50 disabled:opacity-50">
                   <XCircle size={15} /> Rechazar comprobante
                 </button>
               )}
@@ -408,8 +468,9 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
             </div>
           )}
           {p.estado === 'pagado' && (
-            <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg p-2.5 flex gap-2">
-              <CheckCircle2 size={14} className="shrink-0 mt-0.5" /> Conciliado el {fmtFecha(p.fechaPago)}.
+            <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg p-2.5 space-y-1">
+              <div className="flex gap-2"><CheckCircle2 size={14} className="shrink-0 mt-0.5" /> Conciliado el {fmtFecha(p.fechaPago)}. Alumno inscrito oficialmente.</div>
+              {p.notas && <div className="text-stone-600 pl-6"><strong>Notas:</strong> {p.notas}</div>}
             </div>
           )}
         </div>

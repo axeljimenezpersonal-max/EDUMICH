@@ -166,6 +166,7 @@ function vistaAdmin(pago: typeof pagosExamen.$inferSelect, items: any[]) {
     etapaId: pago.etapaId,
     montoIemsys: Number(pago.montoIemsys),
     montoSynapsis: Number(pago.montoSynapsis),
+    notas: pago.notas,
     verificadoPorUserId: pago.verificadoPorUserId,
     verificadoEn: pago.verificadoEn,
     createdAt: pago.createdAt,
@@ -755,12 +756,13 @@ router.post('/:id/conciliar', async (req, res) => {
       return res.status(409).json({ error: `No se puede conciliar desde el estado ${p.estado}` });
     }
 
-    const { fechaPago } = req.body as { fechaPago?: string };
+    const { fechaPago, notas } = req.body as { fechaPago?: string; notas?: string };
     await db
       .update(pagosExamen)
       .set({
         estado: 'pagado',
         fechaPago: fechaPago || new Date().toISOString().slice(0, 10),
+        notas: notas ?? p.notas,
         verificadoPorUserId: req.user!.userId,
         verificadoEn: new Date(),
         motivoRechazo: null,

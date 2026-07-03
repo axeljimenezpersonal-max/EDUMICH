@@ -592,6 +592,8 @@ export const pagosExamen = pgTable(
     comprobanteNombre: varchar('comprobante_nombre', { length: 240 }),
     estado: pagoExamenEstadoEnum('estado').notNull().default('pendiente_emision'),
     motivoRechazo: text('motivo_rechazo'),
+    // Notas de la administración al conciliar (opcional pero útil para auditoría)
+    notas: text('notas'),
     verificadoPorUserId: integer('verificado_por_user_id').references(() => users.id),
     verificadoEn: timestamp('verificado_en'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
