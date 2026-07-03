@@ -797,8 +797,8 @@ export default function AdminAlumnoDetalle() {
   const TABS: { key: ActiveTab; label: string; icon: typeof FileText; count?: number }[] = [
     { key: 'docs',    label: 'Documentos',   icon: FileText,     count: documentos.length },
     { key: 'cedula',  label: 'Cédula',       icon: ClipboardList },
-    { key: 'pagos',   label: 'Pagos',        icon: CreditCard,   count: pagosData.length },
     { key: 'modulos', label: 'Módulos inscritos', icon: CalendarClock, count: examenes.length },
+    { key: 'pagos',   label: 'Pagos',        icon: CreditCard,   count: pagosData.length },
     { key: 'examenes', label: 'Evaluaciones', icon: GraduationCap, count: examenes.length },
   ];
 
