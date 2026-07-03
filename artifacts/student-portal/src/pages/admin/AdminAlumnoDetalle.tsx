@@ -114,6 +114,15 @@ const DOC_TIPO_LABEL: Record<string, string> = {
   otro: 'Otro',
 };
 
+// Lista canónica de documentos obligatorios del expediente (los 5).
+const DOCS_REQUERIDOS: { tipo: string; label: string; descripcion: string }[] = [
+  { tipo: 'curp', label: 'CURP', descripcion: 'Clave Única de Registro de Población (PDF oficial)' },
+  { tipo: 'acta_nacimiento', label: 'Acta de nacimiento', descripcion: 'Acta oficial o copia certificada' },
+  { tipo: 'ine', label: 'Identificación oficial', descripcion: 'INE / IFE vigente por ambos lados' },
+  { tipo: 'comprobante_domicilio', label: 'Comprobante de domicilio', descripcion: 'No mayor a 3 meses de antigüedad' },
+  { tipo: 'certificado_secundaria', label: 'Certificado de secundaria', descripcion: 'Certificado o constancia de secundaria' },
+];
+
 const DOC_ESTADO_CFG: Record<string, { label: string; icon: typeof CheckCircle; color: string; bg: string }> = {
   aprobado:           { label: 'Aprobado',                 icon: CheckCircle,    color: '#2d7d46', bg: '#d1fae5' },
   pendiente_revision: { label: 'Pendiente de aprobación',  icon: Clock3,         color: '#92400e', bg: '#fef9c3' },
@@ -230,6 +239,75 @@ function DocRow({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+// Fila para un documento obligatorio que el alumno AÚN NO ha subido.
+function DocFaltante({ label, descripcion }: { label: string; descripcion: string }) {
+  return (
+    <div className="flex items-start gap-3 py-3 border-b border-stone-50 last:border-b-0">
+      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5" style={{ background: '#f5f5f4' }}>
+        <Clock3 size={15} style={{ color: '#a8a29e' }} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold" style={{ color: '#57534e' }}>{label}</span>
+          <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: '#f5f5f4', color: '#a8a29e' }}>
+            Falta subir
+          </span>
+        </div>
+        <div className="text-xs mt-0.5" style={{ color: '#a89a8e' }}>{descripcion}</div>
+        <div className="text-[11px] mt-1" style={{ color: '#c4bcb2' }}>El alumno o su gestor aún no lo ha subido.</div>
+      </div>
+    </div>
+  );
+}
+
+// Checklist completo: muestra los 5 obligatorios (subidos o no) + adicionales.
+function DocumentosChecklist({
+  documentos, alumnoId, onAprobar, onRechazar,
+}: {
+  documentos: Documento[];
+  alumnoId: number;
+  onAprobar: (doc: Documento) => void;
+  onRechazar: (doc: Documento) => void;
+}) {
+  const porTipo = new Map(documentos.map((d) => [d.tipo, d]));
+  const tiposReq = new Set(DOCS_REQUERIDOS.map((r) => r.tipo));
+  const subidos = DOCS_REQUERIDOS.filter((r) => porTipo.has(r.tipo)).length;
+  const aprobados = DOCS_REQUERIDOS.filter((r) => porTipo.get(r.tipo)?.estado === 'aprobado').length;
+  const adicionales = documentos.filter((d) => !tiposReq.has(d.tipo));
+  const pct = Math.round((aprobados / DOCS_REQUERIDOS.length) * 100);
+
+  return (
+    <div>
+      {/* Cabecera con progreso */}
+      <div className="flex items-center justify-between gap-3 mb-2 flex-wrap">
+        <h4 className="text-xs font-bold uppercase tracking-widest text-stone-500">Documentos obligatorios</h4>
+        <span className="text-[11px] font-semibold" style={{ color: aprobados === DOCS_REQUERIDOS.length ? '#2d7d46' : '#6b635e' }}>
+          {aprobados}/{DOCS_REQUERIDOS.length} aprobados · {subidos}/{DOCS_REQUERIDOS.length} subidos
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ background: '#eadfd7' }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, background: pct >= 100 ? '#2d7d46' : 'var(--color-guinda-700)' }} />
+      </div>
+
+      {DOCS_REQUERIDOS.map((r) => {
+        const doc = porTipo.get(r.tipo);
+        return doc
+          ? <DocRow key={r.tipo} doc={doc} alumnoId={alumnoId} onAprobar={onAprobar} onRechazar={onRechazar} />
+          : <DocFaltante key={r.tipo} label={r.label} descripcion={r.descripcion} />;
+      })}
+
+      {adicionales.length > 0 && (
+        <>
+          <h4 className="text-xs font-bold uppercase tracking-widest text-stone-500 mt-5 mb-2">Documentos adicionales</h4>
+          {adicionales.map((d) => (
+            <DocRow key={d.id} doc={d} alumnoId={alumnoId} onAprobar={onAprobar} onRechazar={onRechazar} />
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -1004,17 +1082,12 @@ export default function AdminAlumnoDetalle() {
         {/* Tab content */}
         <div className="p-5">
           {activeTab === 'docs' && (
-            documentos.length === 0
-              ? <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>No hay documentos registrados</p>
-              : documentos.map((d) => (
-                  <DocRow
-                    key={d.id}
-                    doc={d}
-                    alumnoId={alumnoId}
-                    onAprobar={(doc) => setModalAprobar(doc)}
-                    onRechazar={(doc) => setModalRechazar(doc)}
-                  />
-                ))
+            <DocumentosChecklist
+              documentos={documentos}
+              alumnoId={alumnoId}
+              onAprobar={(doc) => setModalAprobar(doc)}
+              onRechazar={(doc) => setModalRechazar(doc)}
+            />
           )}
           {activeTab === 'pagos' && (
             pagosData.length === 0
