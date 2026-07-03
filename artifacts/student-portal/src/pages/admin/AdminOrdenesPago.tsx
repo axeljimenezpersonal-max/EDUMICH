@@ -414,25 +414,25 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
                   <Dato label="Vence" val={fmtFecha(p.fechaVencimiento)} />
                   <Dato label="Emitida" val={p.tieneOrden ? 'Con PDF' : '—'} />
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-col gap-2">
                   {p.tieneOrden && (
-                    <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                    <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-50">
                       <Download size={14} /> Ver orden (PDF)
                     </a>
                   )}
                   {p.linkPago && (
-                    <a href={p.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                    <a href={p.linkPago} target="_blank" rel="noreferrer" className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-50">
                       <ExternalLink size={14} /> Link de pago
                     </a>
                   )}
+                  {p.estado === 'emitida' && (
+                    <button
+                      onClick={() => setModal('editar')}
+                      className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50">
+                      <Pencil size={13} /> Editar orden (requiere confirmación)
+                    </button>
+                  )}
                 </div>
-                {p.estado === 'emitida' && (
-                  <button
-                    onClick={() => setModal('editar')}
-                    className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50">
-                    <Pencil size={13} /> Editar orden (requiere confirmación)
-                  </button>
-                )}
               </div>
             </div>
           )}
