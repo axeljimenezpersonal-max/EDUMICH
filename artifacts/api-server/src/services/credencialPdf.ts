@@ -101,12 +101,10 @@ export async function generarCredencialPdf(
 
   const CW = 348, CH = 214, CX = (612 - CW) / 2;
 
-  // Título de la hoja
-  txt(page, 'CREDENCIAL DIGITAL DEL ESTUDIANTE', CX, 740, bold, 13, GUINDA);
-  txt(page, 'Preparatoria Abierta · IEMSyS · Gobierno de Michoacán', CX, 725, reg, 8.5, PIEDRA_500);
+  // Sin título de hoja: solo el carnet (frente + reverso).
 
   // ═══ FRENTE ═══
-  const fY = 486;
+  const fY = 500;
   page.drawRectangle({ x: CX, y: fY, width: CW, height: CH, color: CREMA, borderColor: rgb(0.85, 0.80, 0.74), borderWidth: 1 });
   // Banda superior guinda
   page.drawRectangle({ x: CX, y: fY + CH - 40, width: CW, height: 40, color: GUINDA });
@@ -139,7 +137,7 @@ export async function generarCredencialPdf(
   txt(page, 'Verifica', CX + CW - qrS - 14, fY + 6, reg, 6, PIEDRA_500);
 
   // ═══ REVERSO ═══
-  const bY = 210;
+  const bY = 240;
   page.drawRectangle({ x: CX, y: bY, width: CW, height: CH, color: rgb(1, 1, 1), borderColor: rgb(0.85, 0.80, 0.74), borderWidth: 1 });
   page.drawRectangle({ x: CX, y: bY + CH - 30, width: CW, height: 30, color: GUINDA_D });
   txt(page, 'DATOS DE LA CREDENCIAL', CX + 16, bY + CH - 20, bold, 9, BLANCO);

@@ -3810,7 +3810,7 @@ router.get('/alumnos/:id/credencial/pdf', async (req, res) => {
   try {
     const cred = await generarCredencialPdf(alumnoId);
     if (!cred) { res.status(409).json({ error: 'El alumno aún no tiene credencial digital emitida.' }); return; }
-    const nombre = `Credencial_${(cred.matricula || cred.folio).replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
+    const nombre = `Credencial-digital_${(cred.matricula || cred.folio).replace(/[^a-zA-Z0-9_\-.]/g, '')}.pdf`;
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${nombre}"`);
     res.send(Buffer.from(cred.pdf));
@@ -3914,7 +3914,7 @@ router.post('/alumnos/:id/licencia', async (req, res) => {
   if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
 
   if (!alumno.matriculaOficialDGB) {
-    res.status(422).json({ error: 'El alumno debe tener matrícula oficial asignada antes de emitir una licencia digital' });
+    res.status(422).json({ error: 'El alumno debe tener matrícula oficial asignada antes de emitir una credencial digital' });
     return;
   }
 
