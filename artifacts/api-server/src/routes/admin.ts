@@ -1895,6 +1895,10 @@ router.get('/alumnos/:id', async (req, res) => {
       etapa: string | null;
       fase: string | null;
       anio: number | null;
+      examen_sabado: string | null;
+      examen_domingo: string | null;
+      dia: string | null;
+      hora: string | null;
       estado: string;
       calificacion: number | null;
       created_at: Date;
@@ -1937,10 +1941,13 @@ router.get('/alumnos/:id', async (req, res) => {
         SELECT
           ei.id, ei.modulo_id, ei.etapa_id, ei.estado, ei.calificacion, ei.created_at,
           mo.numero AS modulo_numero, mo.nombre AS modulo_nombre,
-          ce.clave AS etapa_clave, ce.etapa, ce.fase, ce.anio
+          ce.clave AS etapa_clave, ce.etapa, ce.fase, ce.anio,
+          ce.examen_sabado::text AS examen_sabado, ce.examen_domingo::text AS examen_domingo,
+          cmh.dia, cmh.hora
         FROM examenes_inscripciones ei
         LEFT JOIN modulos mo ON ei.modulo_id = mo.id
         LEFT JOIN convocatorias_etapas ce ON ei.etapa_id = ce.id
+        LEFT JOIN convocatorias_modulos_horarios cmh ON ei.horario_id = cmh.id
         WHERE ei.estudiante_id = ${alumnoId}
         ORDER BY ei.created_at DESC
       `),
@@ -2010,6 +2017,9 @@ router.get('/alumnos/:id', async (req, res) => {
         etapaClave: e.etapa_clave ?? null,
         etapaFase: e.fase ?? null,
         etapaAnio: e.anio ?? null,
+        dia: e.dia ?? null,
+        hora: e.hora ?? null,
+        fechaExamen: e.dia === 'domingo' ? (e.examen_domingo ?? null) : (e.examen_sabado ?? null),
         estado: e.estado,
         calificacion: e.calificacion ?? null,
         createdAt: new Date(e.created_at as string | Date).toISOString(),

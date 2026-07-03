@@ -5,12 +5,12 @@ import {
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
   Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2, ClipboardList,
+  CalendarClock,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
-import { CalificacionesAdminTab } from '../../components/CalificacionesAdminTab';
 import { CedulaEditor } from '../../components/CedulaEditor';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -75,6 +75,9 @@ type Examen = {
   etapaClave: string | null;
   etapaFase: string | null;
   etapaAnio: number | null;
+  dia: string | null;
+  hora: string | null;
+  fechaExamen: string | null;
   estado: string;
   calificacion: number | null;
   createdAt: string;
@@ -87,7 +90,7 @@ type DetalleResp = {
   examenes: Examen[];
 };
 
-type ActiveTab = 'docs' | 'cedula' | 'pagos' | 'calificaciones' | 'examenes';
+type ActiveTab = 'docs' | 'cedula' | 'pagos' | 'modulos' | 'examenes';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 
@@ -401,6 +404,74 @@ function PagoRow({ pago }: { pago: Pago }) {
   );
 }
 
+// ─── Módulos inscritos (por convocatoria + tiempo de aplicación) ────────────
+function fmtFechaExamen(iso: string): string {
+  const s = new Date(iso + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const ESTADO_MODULO_CFG: Record<string, { label: string; bg: string; color: string }> = {
+  inscrito:    { label: 'Inscrito',    bg: '#fef9c3', color: '#854d0e' },
+  presentado:  { label: 'Presentado',  bg: '#dbeafe', color: '#1e40af' },
+  aprobado:    { label: 'Aprobado',    bg: '#d1fae5', color: '#166534' },
+  reprobado:   { label: 'Reprobado',   bg: '#fee2e2', color: '#991b1b' },
+};
+
+function ModulosInscritos({ examenes }: { examenes: Examen[] }) {
+  if (examenes.length === 0) {
+    return <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>Este alumno no tiene módulos inscritos todavía.</p>;
+  }
+  // Agrupar por convocatoria (etapa)
+  const grupos = new Map<number, { clave: string; anio: number | null; items: Examen[] }>();
+  for (const e of examenes) {
+    let g = grupos.get(e.etapaId);
+    if (!g) { g = { clave: e.etapaClave ?? `Etapa #${e.etapaId}`, anio: e.etapaAnio, items: [] }; grupos.set(e.etapaId, g); }
+    g.items.push(e);
+  }
+  return (
+    <div className="space-y-4">
+      {[...grupos.values()].map((g) => (
+        <div key={g.clave} style={{ border: '1px solid #eadfd7', borderRadius: 12, overflow: 'hidden' }}>
+          {/* Encabezado de la convocatoria */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'linear-gradient(135deg,#fbf7f8,#fff)', borderBottom: '1px solid #f0e9e3' }}>
+            <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fbe6ea', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CalendarClock size={17} style={{ color: 'var(--color-guinda-700)' }} />
+            </div>
+            <div>
+              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a89a8e' }}>Convocatoria</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}>{g.clave}{g.anio ? ` · ${g.anio}` : ''}</div>
+            </div>
+            <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#6b635e' }}>{g.items.length} módulo{g.items.length === 1 ? '' : 's'}</span>
+          </div>
+          {/* Módulos con su tiempo de aplicación */}
+          <div>
+            {g.items.map((e) => {
+              const cfg = ESTADO_MODULO_CFG[e.estado] ?? { label: e.estado, bg: '#f7f2ed', color: '#6b635e' };
+              return (
+                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: '1px solid #f7f2ed' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2a2a2a' }}>
+                      {e.moduloNumero != null ? `Módulo ${e.moduloNumero} — ` : ''}{e.moduloNombre ?? 'Módulo'}
+                    </div>
+                    <div style={{ fontSize: 12, color: '#6b635e', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <CalendarClock size={12} style={{ color: '#a89a8e', flexShrink: 0 }} />
+                      {e.fechaExamen ? fmtFechaExamen(e.fechaExamen) : 'Fecha por definir'}
+                      {e.hora && <span style={{ color: '#a89a8e' }}>· {e.hora} h</span>}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: cfg.bg, color: cfg.color, flexShrink: 0 }}>
+                    {cfg.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function ExamenRow({ examen }: { examen: Examen }) {
   const aprobado = examen.calificacion !== null && examen.calificacion >= 60;
   const pendiente = examen.estado === 'inscrito' || examen.estado === 'presentado';
@@ -624,7 +695,7 @@ export default function AdminAlumnoDetalle() {
     { key: 'docs',    label: 'Documentos',   icon: FileText,     count: documentos.length },
     { key: 'cedula',  label: 'Cédula',       icon: ClipboardList },
     { key: 'pagos',   label: 'Pagos',        icon: CreditCard,   count: pagosData.length },
-    { key: 'calificaciones', label: 'Calificaciones', icon: Award },
+    { key: 'modulos', label: 'Módulos inscritos', icon: CalendarClock, count: examenes.length },
     { key: 'examenes', label: 'Evaluaciones', icon: GraduationCap, count: examenes.length },
   ];
 
@@ -956,8 +1027,8 @@ export default function AdminAlumnoDetalle() {
           {activeTab === 'cedula' && (
             <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} />
           )}
-          {activeTab === 'calificaciones' && (
-            <CalificacionesAdminTab estudianteId={alumnoId} />
+          {activeTab === 'modulos' && (
+            <ModulosInscritos examenes={examenes} />
           )}
         </div>
       </div>
