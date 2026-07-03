@@ -69,17 +69,6 @@ const ESTADO_CUENTA_OPTIONS = [
   { value: 'soft_deleted', label: 'En soft delete' },
 ];
 
-function actividadBadge(diasSinActividad: number | null, ultimaActividadEn: string | null) {
-  if (!ultimaActividadEn && diasSinActividad === null) {
-    return { label: 'Sin actividad', bg: '#eadfd7', color: '#6b635e' };
-  }
-  const dias = diasSinActividad ?? 0;
-  if (dias < 7) return { label: `Hace ${dias}d`, bg: '#d1fae5', color: '#065f46' };
-  if (dias < 20) return { label: `Hace ${dias}d`, bg: '#fef9c3', color: '#92400e' };
-  if (dias < 25) return { label: `Hace ${dias}d`, bg: '#fed7aa', color: '#c2410c' };
-  return { label: `Hace ${dias}d`, bg: '#fee2e2', color: '#991b1b' };
-}
-
 const ESTADO_OPTIONS = [
   { value: '', label: 'Estado' },
   { value: 'activo', label: 'Activo' },
@@ -560,14 +549,13 @@ export default function AlumnosLista() {
             {/* Table header */}
             <div
               className="grid px-5 py-3 border-b border-stone-100"
-              style={{ gridTemplateColumns: '44px 1fr 150px 180px 130px 110px 90px 80px', gap: 10, background: '#fafaf9' }}
+              style={{ gridTemplateColumns: '44px 1fr 150px 180px 130px 90px 80px', gap: 10, background: '#fafaf9' }}
             >
               <div />
               <SortTh label="Alumno"      col="nombre"   sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <SortTh label="Municipio"   col="municipio" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <SortTh label="Gestor"      col="gestor"   sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <SortTh label="Expediente"  col="estado"   sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
-              <SortTh label="Actividad"   col="actividad" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <SortTh label="Registro"    col="registro" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} />
               <div />
             </div>
@@ -651,7 +639,7 @@ function AlumnoRow({
   return (
     <div
       className="group grid items-center px-5 py-3 border-b border-stone-50 last:border-b-0 hover:bg-stone-50 transition-colors cursor-pointer relative"
-      style={{ gridTemplateColumns: '44px 1fr 150px 180px 130px 110px 90px 80px', gap: 10 }}
+      style={{ gridTemplateColumns: '44px 1fr 150px 180px 130px 90px 80px', gap: 10 }}
       onClick={onViewDetail}
     >
       {/* Avatar */}
@@ -728,21 +716,6 @@ function AlumnoRow({
             <span className="text-[10px]" style={{ color: '#6b635e' }}>{alumno.docsAprobados}/{alumno.docsTotal}</span>
           </div>
         )}
-      </div>
-
-      {/* Última actividad (docs/pagos) */}
-      <div>
-        {(() => {
-          const badge = actividadBadge(alumno.diasSinActividad, alumno.ultimaActividadEn);
-          return (
-            <span style={{
-              background: badge.bg, color: badge.color,
-              padding: '2px 7px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-            }}>
-              {badge.label}
-            </span>
-          );
-        })()}
         {alumno.estadoCuenta === 'aviso_enviado' && (
           <div style={{ marginTop: 3, fontSize: 10, color: '#dc2626', fontWeight: 700 }}>
             ⚠ AVISO ENVIADO
