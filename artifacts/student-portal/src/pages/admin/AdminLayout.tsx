@@ -4,6 +4,7 @@ import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
+  MessageSquare,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
@@ -334,7 +335,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
-    { href: '/admin/correos-enviados', icon: Mail,    label: 'Correos enviados' },
+    { href: '/admin/chat',          icon: MessageSquare, label: 'Chat en vivo' },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes' },
     { href: '/admin/configuracion', icon: Settings,   label: 'Configuración' },
   ];

@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList, MessageSquare } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
@@ -12,6 +12,7 @@ const NAV = [
   { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar },
   { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen },
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck },
+  { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare },
 ];
 
 export function EstudianteLayout({ children }: { children: ReactNode }) {

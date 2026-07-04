@@ -47,6 +47,37 @@ const migrations = [
        || '-' || LPAD(EXTRACT(MONTH FROM COALESCE(preregistro_generado_en, created_at))::text, 2, '0')
        || '-' || EXTRACT(YEAR FROM COALESCE(preregistro_generado_en, created_at))::text
      WHERE folio_preregistro LIKE 'PRE-%MICH-%'`,
+  // Chat con la Secretaría: nuevo tipo de notificación + tablas.
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'chat_mensaje'`,
+  `CREATE TABLE IF NOT EXISTS chat_conversaciones (
+     id serial PRIMARY KEY,
+     participante_user_id integer NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+     participante_rol varchar(20) NOT NULL,
+     asunto varchar(160),
+     cerrada boolean NOT NULL DEFAULT false,
+     ultimo_mensaje_en timestamp NOT NULL DEFAULT now(),
+     ultimo_mensaje_texto varchar(300),
+     no_leidos_admin integer NOT NULL DEFAULT 0,
+     no_leidos_participante integer NOT NULL DEFAULT 0,
+     created_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE TABLE IF NOT EXISTS chat_mensajes (
+     id serial PRIMARY KEY,
+     conversacion_id integer NOT NULL REFERENCES chat_conversaciones(id) ON DELETE CASCADE,
+     remitente_user_id integer NOT NULL REFERENCES users(id),
+     remitente_rol varchar(20) NOT NULL,
+     es_secretaria boolean NOT NULL DEFAULT false,
+     cuerpo text NOT NULL,
+     created_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE INDEX IF NOT EXISTS chat_mensajes_conv_idx ON chat_mensajes(conversacion_id, created_at)`,
+  `CREATE TABLE IF NOT EXISTS chat_consentimientos (
+     id serial PRIMARY KEY,
+     user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     rol varchar(20) NOT NULL,
+     aceptado_en timestamp NOT NULL DEFAULT now(),
+     ip varchar(60)
+   )`,
 ];
 
 export async function runStartupMigrations() {

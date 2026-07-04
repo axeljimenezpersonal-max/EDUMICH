@@ -1213,6 +1213,59 @@ export const passwordResetTokens = pgTable('password_reset_tokens', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 
+// ─────────────────────────────────────────────────────────────────────────
+// Chat con la Secretaría (mensajería alumno/gestor ↔ administración)
+// Una conversación por participante (alumno o gestor). El alumno/gestor solo
+// puede escribir a la Secretaría; la Secretaría (admin) puede escribir a
+// cualquiera. Los mensajes se conservan por temas legales/privacidad.
+// ─────────────────────────────────────────────────────────────────────────
+
+export const chatConversaciones = pgTable('chat_conversaciones', {
+  id: serial('id').primaryKey(),
+  participanteUserId: integer('participante_user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' })
+    .unique(),
+  participanteRol: varchar('participante_rol', { length: 20 }).notNull(), // 'estudiante' | 'gestor'
+  asunto: varchar('asunto', { length: 160 }),
+  cerrada: boolean('cerrada').notNull().default(false),
+  ultimoMensajeEn: timestamp('ultimo_mensaje_en').notNull().defaultNow(),
+  ultimoMensajeTexto: varchar('ultimo_mensaje_texto', { length: 300 }),
+  noLeidosAdmin: integer('no_leidos_admin').notNull().default(0),
+  noLeidosParticipante: integer('no_leidos_participante').notNull().default(0),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const chatMensajes = pgTable(
+  'chat_mensajes',
+  {
+    id: serial('id').primaryKey(),
+    conversacionId: integer('conversacion_id')
+      .notNull()
+      .references(() => chatConversaciones.id, { onDelete: 'cascade' }),
+    remitenteUserId: integer('remitente_user_id')
+      .notNull()
+      .references(() => users.id),
+    remitenteRol: varchar('remitente_rol', { length: 20 }).notNull(), // 'estudiante' | 'gestor' | 'administrador'
+    esSecretaria: boolean('es_secretaria').notNull().default(false),
+    cuerpo: text('cuerpo').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    convIdx: index('chat_mensajes_conv_idx').on(t.conversacionId, t.createdAt),
+  })
+);
+
+export const chatConsentimientos = pgTable('chat_consentimientos', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  rol: varchar('rol', { length: 20 }).notNull(),
+  aceptadoEn: timestamp('aceptado_en').notNull().defaultNow(),
+  ip: varchar('ip', { length: 60 }),
+});
+
 export const calificacionesRelations = relations(calificaciones, ({ one }) => ({
   estudiante: one(estudiantes, {
     fields: [calificaciones.estudianteId],
@@ -1469,6 +1522,7 @@ export const notifTipoEnum = pgEnum('notif_tipo', [
   'cuentas_eliminadas_lote',
   'credencial_renovada',
   'solicitud_renovacion_credencial',
+  'chat_mensaje',
 ]);
 
 export const notifPrioridadEnum = pgEnum('notif_prioridad', ['baja', 'normal', 'alta', 'urgente']);

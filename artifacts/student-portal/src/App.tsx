@@ -27,6 +27,8 @@ import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import PaseExamen from './pages/estudiante/PaseExamen';
 import MiIdentificacion from './pages/estudiante/MiIdentificacion';
 import MiCedula from './pages/estudiante/MiCedula';
+import EstudianteMensajes from './pages/estudiante/Mensajes';
+import GestorMensajes from './pages/gestor/GestorMensajes';
 import AutoRegistroEmail from './pages/publico/AutoRegistroEmail';
 import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
@@ -51,7 +53,7 @@ import AdminAlumnoDetalle from './pages/admin/AdminAlumnoDetalle';
 import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import AnunciosLista from './pages/admin/AnunciosLista';
-import CorreosEnviados from './pages/admin/CorreosEnviados';
+import AdminChat from './pages/admin/AdminChat';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
 import VerificacionPase from './pages/admin/VerificacionPase';
@@ -78,6 +80,7 @@ export default function App() {
       <Route path="/gestor/alumnos/nuevo" component={NuevoAlumno} />
       <Route path="/gestor/pagos" component={GestorPagos} />
       <Route path="/gestor/calificaciones" component={GestorCalificaciones} />
+      <Route path="/gestor/mensajes" component={GestorMensajes} />
       <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
 
       {/* Rutas del estudiante */}
@@ -94,6 +97,7 @@ export default function App() {
       <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
       <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
       <Route path="/estudiante/identificacion" component={MiIdentificacion} />
+      <Route path="/estudiante/mensajes" component={EstudianteMensajes} />
 
       {/* Rutas públicas de registro */}
       <Route path="/registro/email" component={AutoRegistroEmail} />
@@ -120,7 +124,7 @@ export default function App() {
       <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
       <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
       <Route path="/admin/anuncios" component={AnunciosLista} />
-      <Route path="/admin/correos-enviados" component={CorreosEnviados} />
+      <Route path="/admin/chat" component={AdminChat} />
       <Route path="/admin/verificacion-pase" component={VerificacionPase} />
       <Route path="/admin/reportes" component={Reportes} />
       <Route path="/admin/configuracion/:seccion" component={Configuracion} />
