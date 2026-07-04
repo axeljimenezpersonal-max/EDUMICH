@@ -46,7 +46,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales } from '../services/email';
-import { generarPasswordTemporal } from '../utils/password';
+import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
 import {
@@ -313,7 +313,7 @@ router.post('/alumnos', async (req, res) => {
     return;
   }
 
-  const tempPassword = generarPasswordTemporal();
+  const tempPassword = generarCodigoTemporal();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
 
   const [user] = await db
@@ -484,7 +484,7 @@ router.post(
 
     try {
       const result = await db.transaction(async (tx) => {
-        const tempPassword = generarPasswordTemporal();
+        const tempPassword = generarCodigoTemporal();
         const passwordHash = await bcrypt.hash(tempPassword, 10);
 
         const [user] = await tx
@@ -1229,7 +1229,7 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     return;
   }
 
-  const newPassword = generarPasswordTemporal();
+  const newPassword = generarCodigoTemporal();
   const passwordHash = await bcrypt.hash(newPassword, 10);
 
   await db.update(users)

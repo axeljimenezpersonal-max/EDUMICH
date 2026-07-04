@@ -42,7 +42,7 @@ import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
-import { generarPasswordTemporal } from '../utils/password';
+import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
@@ -770,7 +770,7 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
     return;
   }
 
-  const tempPassword = generarPasswordTemporal();
+  const tempPassword = generarCodigoTemporal();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
   const adminId = req.user!.userId;
 
@@ -971,7 +971,7 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     return;
   }
 
-  const newPassword = generarPasswordTemporal();
+  const newPassword = generarCodigoTemporal();
   const passwordHash = await bcrypt.hash(newPassword, 10);
 
   await db.update(users)
@@ -3305,7 +3305,7 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
     }
   }
 
-  const tempPassword = generarPasswordTemporal();
+  const tempPassword = generarCodigoTemporal();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
   const adminId = req.user!.userId;
 
@@ -3501,7 +3501,7 @@ router.get('/solicitudes/:solicitudId/correo/aprobacion', async (req, res) => {
   const { html } = cuentaCreadaAlumnoTemplate({
     nombreAlumno: s.nombreCompleto,
     email: s.email,
-    passwordTemporal: '••••••••', // se genera al aprobar
+    passwordTemporal: '•••••', // código de 5 dígitos — se genera al aprobar
     portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
   });
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
