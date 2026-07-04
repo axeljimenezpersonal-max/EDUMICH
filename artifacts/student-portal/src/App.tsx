@@ -54,6 +54,7 @@ import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import AnunciosLista from './pages/admin/AnunciosLista';
 import AdminChat from './pages/admin/AdminChat';
+import AdminCalificaciones from './pages/admin/AdminCalificaciones';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
 import VerificacionPase from './pages/admin/VerificacionPase';
@@ -119,6 +120,7 @@ export default function App() {
       <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
       <Route path="/admin/alumnos" component={AdminAlumnosLista} />
       <Route path="/admin/captura-masiva-calificaciones" component={CapturaMasivaCalificaciones} />
+      <Route path="/admin/calificaciones" component={AdminCalificaciones} />
       <Route path="/admin/gestores/:id" component={GestorDetalle} />
       <Route path="/admin/gestores" component={GestoresLista} />
       <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />

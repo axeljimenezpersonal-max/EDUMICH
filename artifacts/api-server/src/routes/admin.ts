@@ -46,6 +46,7 @@ import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
+import { generarPlantillaCalificaciones, parsearExcelCalificaciones } from '../services/calificacionesExcel';
 import { tryAuditLog } from '../utils/audit';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
@@ -2219,6 +2220,81 @@ router.get('/calificaciones/batch-list', async (req, res) => {
   }
 });
 
+// ─── Guardado de calificaciones (compartido: captura manual y Excel) ─────
+type ItemCalif = { inscripcionId: number; calificacion?: number; noPresento?: boolean };
+
+async function aplicarCalificacionesLote(items: ItemCalif[], userId: number): Promise<void> {
+  await db.transaction(async (tx) => {
+    for (const item of items) {
+      const [inscripcion] = await tx
+        .select()
+        .from(examenesInscripciones)
+        .where(eq(examenesInscripciones.id, item.inscripcionId));
+
+      if (!inscripcion) continue;
+
+      if (item.noPresento) {
+        await tx
+          .update(examenesInscripciones)
+          .set({ estado: 'no_presento' })
+          .where(eq(examenesInscripciones.id, item.inscripcionId));
+        continue;
+      }
+
+      if (item.calificacion === undefined) continue;
+
+      const calif = item.calificacion;
+      const aprobado = calif >= 60;
+      const nuevoEstado = aprobado ? 'aprobado' : 'reprobado';
+
+      await tx
+        .update(examenesInscripciones)
+        .set({ calificacion: calif, estado: nuevoEstado })
+        .where(eq(examenesInscripciones.id, item.inscripcionId));
+
+      const [etapa] = await tx
+        .select({ clave: convocatoriasEtapas.clave, examenSabado: convocatoriasEtapas.examenSabado })
+        .from(convocatoriasEtapas)
+        .where(eq(convocatoriasEtapas.id, inscripcion.etapaId));
+
+      await tx.insert(calificaciones).values({
+        estudianteId: inscripcion.estudianteId,
+        moduloId: inscripcion.moduloId,
+        inscripcionExamenId: item.inscripcionId,
+        etapaClave: etapa?.clave ?? 'DESCONOCIDA',
+        calificacion: calif,
+        aprobado,
+        intento: 1,
+        fechaExamen: etapa?.examenSabado ?? new Date().toISOString().slice(0, 10),
+        sedeId: inscripcion.sedeId,
+        capturadoPorUserId: userId,
+      }).onConflictDoNothing();
+
+      if (aprobado) {
+        await tx
+          .insert(estudiantesModulosProgreso)
+          .values({
+            estudianteId: inscripcion.estudianteId,
+            moduloId: inscripcion.moduloId,
+            estado: 'aprobado',
+            mejorCalificacion: calif,
+            ultimaCalificacion: calif,
+            ultimaActividad: new Date(),
+          })
+          .onConflictDoUpdate({
+            target: [estudiantesModulosProgreso.estudianteId, estudiantesModulosProgreso.moduloId],
+            set: {
+              estado: 'aprobado',
+              mejorCalificacion: sql`GREATEST(EXCLUDED.mejor_calificacion, ${calif})`,
+              ultimaCalificacion: calif,
+              ultimaActividad: new Date(),
+            },
+          });
+      }
+    }
+  });
+}
+
 // ─── POST /admin/calificaciones/batch ────────────────────────────────────
 const batchCalifSchema = z.object({
   calificaciones: z.array(
@@ -2238,75 +2314,7 @@ router.post('/calificaciones/batch', async (req, res) => {
   const { calificaciones: items } = parse.data;
 
   try {
-    await db.transaction(async (tx) => {
-      for (const item of items) {
-        const [inscripcion] = await tx
-          .select()
-          .from(examenesInscripciones)
-          .where(eq(examenesInscripciones.id, item.inscripcionId));
-
-        if (!inscripcion) continue;
-
-        if (item.noPresento) {
-          await tx
-            .update(examenesInscripciones)
-            .set({ estado: 'no_presento' })
-            .where(eq(examenesInscripciones.id, item.inscripcionId));
-          continue;
-        }
-
-        if (item.calificacion === undefined) continue;
-
-        const calif = item.calificacion;
-        const aprobado = calif >= 60;
-        const nuevoEstado = aprobado ? 'aprobado' : 'reprobado';
-
-        await tx
-          .update(examenesInscripciones)
-          .set({ calificacion: calif, estado: nuevoEstado })
-          .where(eq(examenesInscripciones.id, item.inscripcionId));
-
-        const [etapa] = await tx
-          .select({ clave: convocatoriasEtapas.clave, examenSabado: convocatoriasEtapas.examenSabado })
-          .from(convocatoriasEtapas)
-          .where(eq(convocatoriasEtapas.id, inscripcion.etapaId));
-
-        await tx.insert(calificaciones).values({
-          estudianteId: inscripcion.estudianteId,
-          moduloId: inscripcion.moduloId,
-          inscripcionExamenId: item.inscripcionId,
-          etapaClave: etapa?.clave ?? 'DESCONOCIDA',
-          calificacion: calif,
-          aprobado,
-          intento: 1,
-          fechaExamen: etapa?.examenSabado ?? new Date().toISOString().slice(0, 10),
-          sedeId: inscripcion.sedeId,
-          capturadoPorUserId: userId,
-        }).onConflictDoNothing();
-
-        if (aprobado) {
-          await tx
-            .insert(estudiantesModulosProgreso)
-            .values({
-              estudianteId: inscripcion.estudianteId,
-              moduloId: inscripcion.moduloId,
-              estado: 'aprobado',
-              mejorCalificacion: calif,
-              ultimaCalificacion: calif,
-              ultimaActividad: new Date(),
-            })
-            .onConflictDoUpdate({
-              target: [estudiantesModulosProgreso.estudianteId, estudiantesModulosProgreso.moduloId],
-              set: {
-                estado: 'aprobado',
-                mejorCalificacion: sql`GREATEST(EXCLUDED.mejor_calificacion, ${calif})`,
-                ultimaCalificacion: calif,
-                ultimaActividad: new Date(),
-              },
-            });
-        }
-      }
-    });
+    await aplicarCalificacionesLote(items, userId);
 
     await tryAuditLog({
       userId,
@@ -2318,6 +2326,175 @@ router.post('/calificaciones/batch', async (req, res) => {
     });
 
     res.json({ ok: true, procesadas: items.length });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─── GET /admin/calificaciones/tabla ──────────────────────────────────────
+// Todas las calificaciones/exámenes del sistema en forma tabular (el frontend
+// filtra y exporta del lado del cliente).
+router.get('/calificaciones/tabla', async (req, res) => {
+  try {
+    type Row = {
+      inscripcion_id: number; estudiante_id: number; alumno: string | null; curp: string | null;
+      municipio: string | null; etapa_id: number; etapa_clave: string; etapa_anio: number;
+      modulo_numero: number; modulo_nombre: string; folio: string; estado: string;
+      calificacion: number | null; sede: string | null;
+    };
+    const result = await db.execute<Row>(sql`
+      SELECT
+        ei.id AS inscripcion_id, ei.estudiante_id, es.nombre_completo AS alumno, es.curp,
+        mu.nombre AS municipio, ce.id AS etapa_id, ce.clave AS etapa_clave, ce.anio AS etapa_anio,
+        m.numero AS modulo_numero, m.nombre AS modulo_nombre, ei.folio, ei.estado,
+        ei.calificacion, s.nombre AS sede
+      FROM examenes_inscripciones ei
+      JOIN estudiantes es ON es.user_id = ei.estudiante_id
+      LEFT JOIN municipios mu ON mu.id = es.municipio_id
+      JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+      JOIN modulos m ON m.id = ei.modulo_id
+      LEFT JOIN sedes s ON s.id = ei.sede_id
+      ORDER BY es.nombre_completo, m.numero
+    `);
+    res.json({
+      calificaciones: result.rows.map((r) => ({
+        inscripcionId: r.inscripcion_id,
+        estudianteId: r.estudiante_id,
+        alumno: r.alumno,
+        curp: r.curp,
+        municipio: r.municipio,
+        etapaId: r.etapa_id,
+        etapaClave: r.etapa_clave,
+        etapaAnio: r.etapa_anio,
+        moduloNumero: r.modulo_numero,
+        moduloNombre: r.modulo_nombre,
+        folio: r.folio,
+        estadoExamen: r.estado,
+        calificacion: r.calificacion,
+        sede: r.sede,
+      })),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─── GET /admin/calificaciones/plantilla-excel?etapaId= ──────────────────
+// Descarga la plantilla .xlsx con los exámenes pendientes de calificar.
+router.get('/calificaciones/plantilla-excel', async (req, res) => {
+  const etapaId = parseInt(req.query.etapaId as string) || 0;
+  if (!etapaId) { res.status(400).json({ error: 'etapaId requerido' }); return; }
+  try {
+    const [etapa] = await db
+      .select()
+      .from(convocatoriasEtapas)
+      .where(eq(convocatoriasEtapas.id, etapaId));
+    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+
+    type Row = {
+      folio: string; alumno: string; curp: string | null;
+      modulo_numero: number; modulo_nombre: string; sede: string | null;
+    };
+    const result = await db.execute<Row>(sql`
+      SELECT ei.folio, es.nombre_completo AS alumno, es.curp,
+             m.numero AS modulo_numero, m.nombre AS modulo_nombre, s.nombre AS sede
+      FROM examenes_inscripciones ei
+      JOIN estudiantes es ON es.user_id = ei.estudiante_id
+      JOIN modulos m ON m.id = ei.modulo_id
+      LEFT JOIN sedes s ON s.id = ei.sede_id
+      WHERE ei.etapa_id = ${etapaId}
+        AND ei.calificacion IS NULL
+        AND ei.estado NOT IN ('cancelado', 'no_presento')
+      ORDER BY m.numero, es.nombre_completo
+    `);
+
+    const label = `${etapa.clave} · ${etapa.anio}`;
+    const buffer = await generarPlantillaCalificaciones(
+      label,
+      result.rows.map((r) => ({
+        folio: r.folio,
+        alumno: r.alumno,
+        curp: r.curp ?? '',
+        moduloNumero: r.modulo_numero,
+        moduloNombre: r.modulo_nombre,
+        sede: r.sede ?? '',
+      }))
+    );
+
+    const nombre = `Calificaciones_${etapa.clave.replace(/[^A-Za-z0-9]/g, '')}_${etapa.anio}.xlsx`;
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
+    res.send(buffer);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─── POST /admin/calificaciones/subir-excel ───────────────────────────────
+// Sube el .xlsx capturado; cruza por FOLIO y registra las calificaciones con
+// la misma lógica que la captura manual. Solo aplica a exámenes SIN calificación.
+const uploadExcelCalif = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+router.post('/calificaciones/subir-excel', (req, res, next) => {
+  uploadExcelCalif.single('archivo')(req, res, (err: unknown) => {
+    if (err) {
+      const msg = err instanceof Error
+        ? (err.message.includes('File too large') ? 'El archivo supera 5 MB' : err.message)
+        : 'No se pudo subir el archivo';
+      res.status(400).json({ error: msg });
+      return;
+    }
+    next();
+  });
+}, async (req, res) => {
+  const userId = req.user!.userId;
+  if (!req.file) { res.status(400).json({ error: 'Adjunta el archivo .xlsx' }); return; }
+
+  try {
+    const { filas, errores } = await parsearExcelCalificaciones(req.file.buffer);
+    if (filas.length === 0 && errores.length > 0) {
+      res.status(400).json({ error: errores[0].motivo, errores });
+      return;
+    }
+
+    // Cruce por folio → inscripción. Solo exámenes sin calificación previa.
+    const omitidas: { folio: string; motivo: string }[] = [...errores.map((e) => ({ folio: e.folio || `fila ${e.fila}`, motivo: e.motivo }))];
+    const items: { inscripcionId: number; calificacion?: number; noPresento?: boolean }[] = [];
+
+    for (const f of filas) {
+      const [insc] = await db
+        .select({ id: examenesInscripciones.id, calificacion: examenesInscripciones.calificacion, estado: examenesInscripciones.estado })
+        .from(examenesInscripciones)
+        .where(eq(examenesInscripciones.folio, f.folio.toUpperCase().trim()));
+      if (!insc) { omitidas.push({ folio: f.folio, motivo: 'Folio no encontrado' }); continue; }
+      if (insc.calificacion !== null) { omitidas.push({ folio: f.folio, motivo: `Ya tenía calificación (${insc.calificacion})` }); continue; }
+      if (insc.estado === 'cancelado') { omitidas.push({ folio: f.folio, motivo: 'Inscripción cancelada' }); continue; }
+      items.push({ inscripcionId: insc.id, calificacion: f.calificacion, noPresento: f.noPresento });
+    }
+
+    if (items.length > 0) {
+      await aplicarCalificacionesLote(items, userId);
+    }
+
+    const aplicadas = items.filter((i) => i.calificacion !== undefined).length;
+    const noPresento = items.filter((i) => i.noPresento).length;
+
+    await tryAuditLog({
+      userId,
+      accion: 'capturar_calificacion_excel',
+      entidad: 'calificaciones',
+      detalle: `Subió Excel de calificaciones: ${aplicadas} aplicadas, ${noPresento} no presentó, ${omitidas.length} omitidas`,
+      metadata: { archivo: req.file.originalname, aplicadas, noPresento, omitidas: omitidas.length },
+      req,
+    });
+
+    res.json({ ok: true, aplicadas, noPresento, omitidas });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });

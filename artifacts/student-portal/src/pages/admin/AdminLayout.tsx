@@ -4,7 +4,7 @@ import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
-  MessageSquare,
+  MessageSquare, GraduationCap,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
@@ -334,6 +334,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const otrosItems = [
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
+    { href: '/admin/calificaciones', icon: GraduationCap, label: 'Calificaciones' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
     { href: '/admin/chat',          icon: MessageSquare, label: 'Chat en vivo' },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes' },

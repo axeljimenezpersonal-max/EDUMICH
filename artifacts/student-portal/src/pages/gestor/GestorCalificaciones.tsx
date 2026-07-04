@@ -1,9 +1,11 @@
 /**
  * Módulo de Calificaciones del gestor.
  *
- * Muestra TODAS las calificaciones de los alumnos del municipio en una tabla
- * tipo Excel: filtrable (por convocatoria, módulo, estado y búsqueda de alumno),
- * agrupable (por módulo, alumno o convocatoria) y exportable a CSV/Excel.
+ * Dos vistas:
+ *  · Exámenes oficiales — calificaciones de exámenes DGB (examenes_inscripciones),
+ *    filtrables por convocatoria/módulo/estado y exportables a Excel (CSV).
+ *  · Evaluaciones de práctica — quizzes de módulo en la plataforma
+ *    (estudiantes_modulos_progreso): intentos, mejor y última calificación.
  *
  * Ubicación destino: artifacts/student-portal/src/pages/gestor/GestorCalificaciones.tsx
  */
@@ -12,13 +14,16 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   GraduationCap, Download, Search, X, CheckCircle2, XCircle,
   MinusCircle, ArrowUpDown, Layers, BookOpen, User, CalendarDays,
+  ClipboardList, FileCheck2,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api } from '../../lib/api';
 
-// Calificación mínima aprobatoria (misma convención que la vista de convocatorias).
-const APROBATORIA = 70;
+// Calificación mínima aprobatoria de exámenes oficiales (la que aplica la
+// captura del admin: >= 60 aprueba).
+const APROBATORIA = 60;
 
+// ── Tipos ─────────────────────────────────────────────────────────────
 interface CalifRow {
   inscripcionId: number;
   estudianteId: number;
@@ -38,20 +43,38 @@ interface CalifRow {
   calificacion: number | null;
 }
 
-type EstadoCalif = 'aprobado' | 'reprobado' | 'sin_calificar';
+interface EvalRow {
+  estudianteId: number;
+  alumno: string | null;
+  curp: string | null;
+  moduloNumero: number;
+  moduloNombre: string;
+  estado: string;
+  intentos: number;
+  mejorCalificacion: number | null;
+  ultimaCalificacion: number | null;
+  ultimaActividad: string | null;
+}
+
+type EstadoCalif = 'aprobado' | 'reprobado' | 'no_presento' | 'sin_calificar';
 type GroupBy = 'ninguno' | 'modulo' | 'alumno' | 'convocatoria';
 type SortKey = 'alumno' | 'modulo' | 'convocatoria' | 'calificacion';
 type SortDir = 'asc' | 'desc';
+type Vista = 'examenes' | 'evaluaciones';
 
-function estadoDe(cal: number | null): EstadoCalif {
-  if (cal === null || cal === undefined) return 'sin_calificar';
-  return cal >= APROBATORIA ? 'aprobado' : 'reprobado';
+function estadoDe(r: Pick<CalifRow, 'calificacion' | 'estadoExamen'>): EstadoCalif {
+  if (r.estadoExamen === 'no_presento') return 'no_presento';
+  if (r.estadoExamen === 'aprobado') return 'aprobado';
+  if (r.estadoExamen === 'reprobado') return 'reprobado';
+  if (r.calificacion === null || r.calificacion === undefined) return 'sin_calificar';
+  return r.calificacion >= APROBATORIA ? 'aprobado' : 'reprobado';
 }
 
 const ESTADO_META: Record<EstadoCalif, { label: string; bg: string; color: string }> = {
   aprobado:      { label: 'Aprobado',      bg: '#d1fae5', color: '#065f46' },
   reprobado:     { label: 'No aprobado',   bg: '#fee2e2', color: '#991b1b' },
-  sin_calificar: { label: 'Sin calificar', bg: '#f5f5f4', color: '#78716c' },
+  no_presento:   { label: 'No presentó',   bg: '#f5f5f4', color: '#78716c' },
+  sin_calificar: { label: 'Sin calificar', bg: '#fef9c3', color: '#92400e' },
 };
 
 function convLabel(r: Pick<CalifRow, 'etapaClave' | 'etapaAnio'>) {
@@ -66,21 +89,8 @@ function csvCell(v: string | number | null): string {
   const s = v === null || v === undefined ? '' : String(v);
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
-function descargarCSV(rows: CalifRow[], nombre: string) {
-  const headers = ['Alumno', 'CURP', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Estado'];
-  const cuerpo = rows.map((r) =>
-    [
-      r.alumno ?? '',
-      r.curp ?? '',
-      convLabel(r),
-      r.moduloNumero,
-      r.moduloNombre,
-      r.folio,
-      r.calificacion ?? '',
-      ESTADO_META[estadoDe(r.calificacion)].label,
-    ].map(csvCell).join(',')
-  );
-  const csv = '﻿' + [headers.join(','), ...cuerpo].join('\r\n');
+function descargarCSV(headers: string[], cuerpo: (string | number | null)[][], nombre: string) {
+  const csv = '﻿' + [headers.join(','), ...cuerpo.map((r) => r.map(csvCell).join(','))].join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -92,11 +102,62 @@ function descargarCSV(rows: CalifRow[], nombre: string) {
   URL.revokeObjectURL(url);
 }
 
+// ═══════════════════════════════════════════════════════════════════════
 export default function GestorCalificaciones() {
+  const [vista, setVista] = useState<Vista>('examenes');
+
+  return (
+    <GestorLayout>
+      {/* Encabezado */}
+      <div className="mb-5">
+        <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">
+          <GraduationCap size={13} />
+          Resultados de tus alumnos
+        </div>
+        <h1 className="font-serif text-3xl font-bold text-stone-900">Calificaciones</h1>
+        <p className="text-stone-600 mt-1">
+          Consulta, filtra y descarga los resultados de tus alumnos.
+        </p>
+      </div>
+
+      {/* Selector de vista */}
+      <div className="mb-5 flex gap-2">
+        {([
+          ['examenes', 'Exámenes oficiales', FileCheck2, 'Calificaciones de exámenes DGB'],
+          ['evaluaciones', 'Evaluaciones de práctica', ClipboardList, 'Quizzes de módulo en la plataforma'],
+        ] as const).map(([val, label, Icon, desc]) => {
+          const activo = vista === val;
+          return (
+            <button
+              key={val}
+              onClick={() => setVista(val)}
+              className="flex-1 rounded-xl border p-3.5 text-left transition-colors"
+              style={activo
+                ? { borderColor: 'var(--color-guinda-700)', background: '#fff', boxShadow: '0 0 0 1px var(--color-guinda-700)' }
+                : { borderColor: '#e7e2da', background: '#fff' }}
+            >
+              <div className="flex items-center gap-2">
+                <Icon size={16} style={{ color: activo ? 'var(--color-guinda-700)' : '#a89a8e' }} />
+                <span className="text-sm font-bold" style={{ color: activo ? 'var(--color-guinda-800)' : '#57504a' }}>{label}</span>
+              </div>
+              <div className="mt-0.5 pl-6 text-[11px] text-stone-500">{desc}</div>
+            </button>
+          );
+        })}
+      </div>
+
+      {vista === 'examenes' ? <ExamenesView /> : <EvaluacionesView />}
+    </GestorLayout>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Vista 1 · Exámenes oficiales
+// ═══════════════════════════════════════════════════════════════════════
+function ExamenesView() {
   const [rows, setRows] = useState<CalifRow[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros
   const [q, setQ] = useState('');
   const [fEtapa, setFEtapa] = useState<number | 'all'>('all');
   const [fModulo, setFModulo] = useState<number | 'all'>('all');
@@ -112,7 +173,6 @@ export default function GestorCalificaciones() {
       .catch((e) => setError(e instanceof Error ? e.message : 'No se pudieron cargar las calificaciones'));
   }, []);
 
-  // Opciones de filtro derivadas de los datos.
   const etapas = useMemo(() => {
     const m = new Map<number, string>();
     (rows ?? []).forEach((r) => m.set(r.etapaId, convLabel(r)));
@@ -125,22 +185,20 @@ export default function GestorCalificaciones() {
     return Array.from(m.values()).sort((a, b) => a.numero - b.numero);
   }, [rows]);
 
-  // Filtrado
   const filtradas = useMemo(() => {
     const query = q.trim().toLowerCase();
     return (rows ?? []).filter((r) => {
       if (fEtapa !== 'all' && r.etapaId !== fEtapa) return false;
       if (fModulo !== 'all' && r.moduloNumero !== fModulo) return false;
-      if (fEstado !== 'all' && estadoDe(r.calificacion) !== fEstado) return false;
+      if (fEstado !== 'all' && estadoDe(r) !== fEstado) return false;
       if (query) {
-        const hay = `${r.alumno ?? ''} ${r.curp ?? ''}`.toLowerCase();
+        const hay = `${r.alumno ?? ''} ${r.curp ?? ''} ${r.folio}`.toLowerCase();
         if (!hay.includes(query)) return false;
       }
       return true;
     });
   }, [rows, q, fEtapa, fModulo, fEstado]);
 
-  // Orden
   const ordenadas = useMemo(() => {
     const arr = [...filtradas];
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -161,13 +219,12 @@ export default function GestorCalificaciones() {
     return arr;
   }, [filtradas, sortKey, sortDir]);
 
-  // Estadísticas del conjunto filtrado
   const stats = useMemo(() => {
     const total = filtradas.length;
     const calificadas = filtradas.filter((r) => r.calificacion !== null);
-    const aprobados = calificadas.filter((r) => r.calificacion! >= APROBATORIA).length;
-    const reprobados = calificadas.length - aprobados;
-    const sinCalificar = total - calificadas.length;
+    const aprobados = filtradas.filter((r) => estadoDe(r) === 'aprobado').length;
+    const reprobados = filtradas.filter((r) => estadoDe(r) === 'reprobado').length;
+    const sinCalificar = filtradas.filter((r) => estadoDe(r) === 'sin_calificar').length;
     const promedio = calificadas.length
       ? Math.round(calificadas.reduce((s, r) => s + (r.calificacion ?? 0), 0) / calificadas.length)
       : null;
@@ -175,7 +232,6 @@ export default function GestorCalificaciones() {
     return { total, aprobados, reprobados, sinCalificar, promedio, tasa };
   }, [filtradas]);
 
-  // Agrupación
   const grupos = useMemo(() => {
     if (groupBy === 'ninguno') return null;
     const map = new Map<string, { label: string; sub: string; rows: CalifRow[]; orden: number | string }>();
@@ -209,41 +265,20 @@ export default function GestorCalificaciones() {
   const hayFiltros = q !== '' || fEtapa !== 'all' || fModulo !== 'all' || fEstado !== 'all';
 
   function exportar() {
-    const partes = ['calificaciones'];
-    if (fEtapa !== 'all') partes.push(etapas.find((e) => e.id === fEtapa)?.label.replace(/[^\w]/g, '') ?? '');
-    if (fModulo !== 'all') partes.push(`M${fModulo}`);
-    descargarCSV(ordenadas, partes.filter(Boolean).join('_'));
+    descargarCSV(
+      ['Alumno', 'CURP', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Estado'],
+      ordenadas.map((r) => [
+        r.alumno ?? '', r.curp ?? '', convLabel(r), r.moduloNumero, r.moduloNombre,
+        r.folio, r.calificacion ?? '', ESTADO_META[estadoDe(r)].label,
+      ]),
+      'examenes_oficiales'
+    );
   }
 
   return (
-    <GestorLayout>
-      {/* Encabezado */}
-      <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">
-            <GraduationCap size={13} />
-            Resultados de exámenes
-          </div>
-          <h1 className="font-serif text-3xl font-bold text-stone-900">Calificaciones</h1>
-          <p className="text-stone-600 mt-1">
-            Todas las calificaciones de tus alumnos. Filtra, agrupa y descárgalas en Excel.
-          </p>
-        </div>
-        <button
-          onClick={exportar}
-          disabled={ordenadas.length === 0}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
-          style={{ background: 'var(--color-guinda-700)' }}
-        >
-          <Download size={16} />
-          Descargar Excel {ordenadas.length > 0 && `(${ordenadas.length})`}
-        </button>
-      </div>
-
+    <>
       {error && (
-        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
-        </div>
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
       )}
 
       {/* KPIs */}
@@ -251,14 +286,13 @@ export default function GestorCalificaciones() {
         <Kpi label="Exámenes" value={stats.total} />
         <Kpi label="Aprobados" value={stats.aprobados} tone="green" />
         <Kpi label="No aprobados" value={stats.reprobados} tone="red" />
-        <Kpi label="Sin calificar" value={stats.sinCalificar} tone="gray" />
+        <Kpi label="Sin calificar" value={stats.sinCalificar} tone="amber" />
         <Kpi label="Promedio" value={stats.promedio ?? '—'} tone="guinda" />
         <Kpi label="% aprobación" value={stats.tasa === null ? '—' : `${stats.tasa}%`} tone="guinda" />
       </div>
 
-      {/* Barra de herramientas: agrupar + filtros */}
+      {/* Barra de herramientas */}
       <div className="mb-4 rounded-xl border border-stone-200 bg-white p-3">
-        {/* Agrupar por */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">Agrupar por</span>
           {([
@@ -271,9 +305,7 @@ export default function GestorCalificaciones() {
               key={val}
               onClick={() => setGroupBy(val)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                groupBy === val
-                  ? 'border-transparent text-white'
-                  : 'border-stone-200 text-stone-600 hover:bg-stone-50'
+                groupBy === val ? 'border-transparent text-white' : 'border-stone-200 text-stone-600 hover:bg-stone-50'
               }`}
               style={groupBy === val ? { background: 'var(--color-guinda-700)' } : undefined}
             >
@@ -281,42 +313,46 @@ export default function GestorCalificaciones() {
               {label}
             </button>
           ))}
+          <div className="ml-auto">
+            <button
+              onClick={exportar}
+              disabled={ordenadas.length === 0}
+              className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
+              style={{ background: 'var(--color-guinda-700)' }}
+            >
+              <Download size={14} />
+              Descargar Excel {ordenadas.length > 0 && `(${ordenadas.length})`}
+            </button>
+          </div>
         </div>
 
-        {/* Filtros */}
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[200px] flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por nombre o CURP…"
+              placeholder="Buscar por nombre, CURP o folio…"
               className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
             />
           </div>
           <Select value={String(fEtapa)} onChange={(v) => setFEtapa(v === 'all' ? 'all' : Number(v))}>
             <option value="all">Todas las convocatorias</option>
-            {etapas.map((e) => (
-              <option key={e.id} value={e.id}>{e.label}</option>
-            ))}
+            {etapas.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
           </Select>
           <Select value={String(fModulo)} onChange={(v) => setFModulo(v === 'all' ? 'all' : Number(v))}>
             <option value="all">Todos los módulos</option>
-            {modulosOpts.map((m) => (
-              <option key={m.numero} value={m.numero}>Módulo {m.numero} — {m.nombre}</option>
-            ))}
+            {modulosOpts.map((m) => <option key={m.numero} value={m.numero}>Módulo {m.numero} — {m.nombre}</option>)}
           </Select>
           <Select value={fEstado} onChange={(v) => setFEstado(v as EstadoCalif | 'all')}>
             <option value="all">Todos los estados</option>
             <option value="aprobado">Aprobados</option>
             <option value="reprobado">No aprobados</option>
             <option value="sin_calificar">Sin calificar</option>
+            <option value="no_presento">No presentó</option>
           </Select>
           {hayFiltros && (
-            <button
-              onClick={limpiarFiltros}
-              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100"
-            >
+            <button onClick={limpiarFiltros} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100">
               <X size={13} /> Limpiar
             </button>
           )}
@@ -325,16 +361,20 @@ export default function GestorCalificaciones() {
 
       {/* Contenido */}
       {rows === null ? (
-        <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">
-          Cargando calificaciones…
-        </div>
+        <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">Cargando calificaciones…</div>
       ) : ordenadas.length === 0 ? (
-        <EmptyState hayFiltros={hayFiltros} onLimpiar={limpiarFiltros} totalCargadas={(rows ?? []).length} />
+        <EmptyState
+          hayFiltros={hayFiltros}
+          onLimpiar={limpiarFiltros}
+          totalCargadas={(rows ?? []).length}
+          vacioTitulo="Aún no hay calificaciones"
+          vacioTexto="Cuando tus alumnos presenten exámenes y se registren sus calificaciones, aparecerán aquí."
+        />
       ) : grupos ? (
         <div className="space-y-4">
           {grupos.map((g) => {
             const gCal = g.rows.filter((r) => r.calificacion !== null);
-            const gAprob = gCal.filter((r) => r.calificacion! >= APROBATORIA).length;
+            const gAprob = g.rows.filter((r) => estadoDe(r) === 'aprobado').length;
             const gProm = gCal.length ? Math.round(gCal.reduce((s, r) => s + (r.calificacion ?? 0), 0) / gCal.length) : null;
             return (
               <div key={g.label} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
@@ -359,11 +399,206 @@ export default function GestorCalificaciones() {
           <Tabla rows={ordenadas} groupBy={groupBy} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
         </div>
       )}
-    </GestorLayout>
+    </>
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+// Vista 2 · Evaluaciones de práctica
+// ═══════════════════════════════════════════════════════════════════════
+const ESTADO_EVAL: Record<string, { label: string; bg: string; color: string }> = {
+  no_iniciado: { label: 'No iniciado', bg: '#f5f5f4', color: '#78716c' },
+  en_curso:    { label: 'En curso',    bg: '#dbeafe', color: '#1e40af' },
+  aprobado:    { label: 'Aprobado',    bg: '#d1fae5', color: '#065f46' },
+};
+
+function EvaluacionesView() {
+  const [rows, setRows] = useState<EvalRow[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [q, setQ] = useState('');
+  const [fModulo, setFModulo] = useState<number | 'all'>('all');
+  const [fEstado, setFEstado] = useState<string>('all');
+
+  useEffect(() => {
+    api
+      .get<{ evaluaciones: EvalRow[] }>('/gestor/evaluaciones')
+      .then((r) => setRows(r.evaluaciones))
+      .catch((e) => setError(e instanceof Error ? e.message : 'No se pudieron cargar las evaluaciones'));
+  }, []);
+
+  const modulosOpts = useMemo(() => {
+    const m = new Map<number, { numero: number; nombre: string }>();
+    (rows ?? []).forEach((r) => m.set(r.moduloNumero, { numero: r.moduloNumero, nombre: r.moduloNombre }));
+    return Array.from(m.values()).sort((a, b) => a.numero - b.numero);
+  }, [rows]);
+
+  const filtradas = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return (rows ?? []).filter((r) => {
+      if (fModulo !== 'all' && r.moduloNumero !== fModulo) return false;
+      if (fEstado !== 'all' && r.estado !== fEstado) return false;
+      if (query) {
+        const hay = `${r.alumno ?? ''} ${r.curp ?? ''}`.toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
+  }, [rows, q, fModulo, fEstado]);
+
+  const stats = useMemo(() => {
+    const total = filtradas.length;
+    const conIntentos = filtradas.filter((r) => r.intentos > 0);
+    const aprobados = filtradas.filter((r) => r.estado === 'aprobado').length;
+    const promedio = conIntentos.length
+      ? Math.round(conIntentos.reduce((s, r) => s + (r.mejorCalificacion ?? 0), 0) / conIntentos.length)
+      : null;
+    return { total, activos: conIntentos.length, aprobados, promedio };
+  }, [filtradas]);
+
+  const hayFiltros = q !== '' || fModulo !== 'all' || fEstado !== 'all';
+
+  function exportar() {
+    descargarCSV(
+      ['Alumno', 'CURP', 'No. módulo', 'Módulo', 'Estado', 'Intentos', 'Mejor calificación', 'Última calificación', 'Última actividad'],
+      filtradas.map((r) => [
+        r.alumno ?? '', r.curp ?? '', r.moduloNumero, r.moduloNombre,
+        ESTADO_EVAL[r.estado]?.label ?? r.estado, r.intentos,
+        r.mejorCalificacion ?? '', r.ultimaCalificacion ?? '',
+        r.ultimaActividad ? new Date(r.ultimaActividad).toLocaleDateString('es-MX') : '',
+      ]),
+      'evaluaciones_practica'
+    );
+  }
+
+  return (
+    <>
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+      )}
+
+      {/* KPIs */}
+      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Kpi label="Registros" value={stats.total} />
+        <Kpi label="Con actividad" value={stats.activos} tone="guinda" />
+        <Kpi label="Módulos aprobados" value={stats.aprobados} tone="green" />
+        <Kpi label="Promedio (mejor)" value={stats.promedio ?? '—'} tone="guinda" />
+      </div>
+
+      {/* Filtros */}
+      <div className="mb-4 rounded-xl border border-stone-200 bg-white p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Buscar por nombre o CURP…"
+              className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
+            />
+          </div>
+          <Select value={String(fModulo)} onChange={(v) => setFModulo(v === 'all' ? 'all' : Number(v))}>
+            <option value="all">Todos los módulos</option>
+            {modulosOpts.map((m) => <option key={m.numero} value={m.numero}>Módulo {m.numero} — {m.nombre}</option>)}
+          </Select>
+          <Select value={fEstado} onChange={setFEstado}>
+            <option value="all">Todos los estados</option>
+            <option value="aprobado">Aprobado</option>
+            <option value="en_curso">En curso</option>
+            <option value="no_iniciado">No iniciado</option>
+          </Select>
+          {hayFiltros && (
+            <button
+              onClick={() => { setQ(''); setFModulo('all'); setFEstado('all'); }}
+              className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100"
+            >
+              <X size={13} /> Limpiar
+            </button>
+          )}
+          <button
+            onClick={exportar}
+            disabled={filtradas.length === 0}
+            className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
+            style={{ background: 'var(--color-guinda-700)' }}
+          >
+            <Download size={14} />
+            Descargar Excel {filtradas.length > 0 && `(${filtradas.length})`}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabla */}
+      {rows === null ? (
+        <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">Cargando evaluaciones…</div>
+      ) : filtradas.length === 0 ? (
+        <EmptyState
+          hayFiltros={hayFiltros}
+          onLimpiar={() => { setQ(''); setFModulo('all'); setFEstado('all'); }}
+          totalCargadas={(rows ?? []).length}
+          vacioTitulo="Aún no hay evaluaciones"
+          vacioTexto="Cuando tus alumnos practiquen los quizzes de módulo en la plataforma, su avance aparecerá aquí."
+        />
+      ) : (
+        <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-stone-200 bg-white text-[11px] uppercase tracking-wider text-stone-500">
+                  <th className="px-3 py-2.5 text-left font-semibold">Alumno</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">Módulo</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">Estado</th>
+                  <th className="px-3 py-2.5 text-center font-semibold">Intentos</th>
+                  <th className="px-3 py-2.5 text-center font-semibold">Mejor</th>
+                  <th className="px-3 py-2.5 text-center font-semibold">Última</th>
+                  <th className="px-3 py-2.5 text-left font-semibold">Actividad</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtradas.map((r, i) => {
+                  const meta = ESTADO_EVAL[r.estado] ?? ESTADO_EVAL.no_iniciado;
+                  return (
+                    <tr key={`${r.estudianteId}-${r.moduloNumero}`} className={`border-b border-stone-100 last:border-0 ${i % 2 ? 'bg-stone-50/40' : 'bg-white'} hover:bg-[var(--color-crema-50)]`}>
+                      <td className="px-3 py-2">
+                        <div className="font-medium text-stone-900">{r.alumno ?? '—'}</div>
+                        <div className="font-mono text-[10px] text-stone-400">{r.curp ?? ''}</div>
+                      </td>
+                      <td className="px-3 py-2 text-stone-700">
+                        <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)' }}>
+                          {r.moduloNumero}
+                        </span>
+                        <span className="text-stone-600">{r.moduloNombre}</span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ background: meta.bg, color: meta.color }}>
+                          {meta.label}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-center font-mono text-stone-600">{r.intentos}</td>
+                      <td className="px-3 py-2 text-center">
+                        {r.mejorCalificacion === null ? <span className="text-stone-300">—</span> : (
+                          <span className="inline-block min-w-[2.25rem] rounded-md px-2 py-0.5 font-mono text-sm font-bold" style={{ background: r.mejorCalificacion >= 60 ? '#d1fae5' : '#fee2e2', color: r.mejorCalificacion >= 60 ? '#065f46' : '#991b1b' }}>
+                            {r.mejorCalificacion}
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 text-center font-mono text-stone-600">{r.ultimaCalificacion ?? '—'}</td>
+                      <td className="px-3 py-2 text-xs text-stone-500">
+                        {r.ultimaActividad ? new Date(r.ultimaActividad).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// Piezas compartidas
+// ═══════════════════════════════════════════════════════════════════════
 function Tabla({
   rows, groupBy, sortKey, sortDir, onSort,
 }: {
@@ -400,7 +635,7 @@ function Tabla({
         </thead>
         <tbody>
           {rows.map((r, i) => {
-            const est = estadoDe(r.calificacion);
+            const est = estadoDe(r);
             const meta = ESTADO_META[est];
             return (
               <tr key={r.inscripcionId} className={`border-b border-stone-100 last:border-0 ${i % 2 ? 'bg-stone-50/40' : 'bg-white'} hover:bg-[var(--color-crema-50)]`}>
@@ -437,7 +672,7 @@ function Tabla({
                   <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: meta.color }}>
                     {est === 'aprobado' && <CheckCircle2 size={13} />}
                     {est === 'reprobado' && <XCircle size={13} />}
-                    {est === 'sin_calificar' && <MinusCircle size={13} className="text-stone-400" />}
+                    {(est === 'sin_calificar' || est === 'no_presento') && <MinusCircle size={13} className="text-stone-400" />}
                     {meta.label}
                   </span>
                 </td>
@@ -450,12 +685,12 @@ function Tabla({
   );
 }
 
-function Kpi({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'green' | 'red' | 'gray' | 'guinda' }) {
+function Kpi({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'green' | 'red' | 'amber' | 'guinda' }) {
   const color =
     tone === 'green' ? '#059669'
     : tone === 'red' ? '#dc2626'
     : tone === 'guinda' ? 'var(--color-guinda-700)'
-    : tone === 'gray' ? '#78716c'
+    : tone === 'amber' ? '#b45309'
     : '#1c1917';
   return (
     <div className="rounded-xl border border-stone-200 bg-white px-4 py-3">
@@ -477,7 +712,15 @@ function Select({ value, onChange, children }: { value: string; onChange: (v: st
   );
 }
 
-function EmptyState({ hayFiltros, onLimpiar, totalCargadas }: { hayFiltros: boolean; onLimpiar: () => void; totalCargadas: number }) {
+function EmptyState({
+  hayFiltros, onLimpiar, totalCargadas, vacioTitulo, vacioTexto,
+}: {
+  hayFiltros: boolean;
+  onLimpiar: () => void;
+  totalCargadas: number;
+  vacioTitulo: string;
+  vacioTexto: string;
+}) {
   return (
     <div className="rounded-xl border border-stone-200 bg-white p-12 text-center">
       <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
@@ -485,17 +728,13 @@ function EmptyState({ hayFiltros, onLimpiar, totalCargadas }: { hayFiltros: bool
       </div>
       {totalCargadas === 0 ? (
         <>
-          <h3 className="font-serif text-xl font-semibold text-stone-900">Aún no hay calificaciones</h3>
-          <p className="mx-auto mt-1 max-w-md text-sm text-stone-600">
-            Cuando tus alumnos presenten exámenes y se registren sus calificaciones, aparecerán aquí.
-          </p>
+          <h3 className="font-serif text-xl font-semibold text-stone-900">{vacioTitulo}</h3>
+          <p className="mx-auto mt-1 max-w-md text-sm text-stone-600">{vacioTexto}</p>
         </>
       ) : (
         <>
           <h3 className="font-serif text-xl font-semibold text-stone-900">Sin resultados</h3>
-          <p className="mx-auto mt-1 max-w-md text-sm text-stone-600">
-            Ninguna calificación coincide con los filtros actuales.
-          </p>
+          <p className="mx-auto mt-1 max-w-md text-sm text-stone-600">Ningún registro coincide con los filtros actuales.</p>
           {hayFiltros && (
             <button
               onClick={onLimpiar}

@@ -924,6 +924,51 @@ router.get('/calificaciones', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// GET /gestor/evaluaciones
+// Evaluaciones de práctica (quizzes de módulo en la plataforma) de los
+// alumnos del gestor. Complementa /gestor/calificaciones (exámenes oficiales).
+// ─────────────────────────────────────────────────────────────────────────
+router.get('/evaluaciones', async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    type Row = {
+      estudiante_id: number; alumno: string | null; curp: string | null;
+      modulo_numero: number; modulo_nombre: string; estado: string;
+      intentos_quiz: number; mejor_calificacion: number | null;
+      ultima_calificacion: number | null; ultima_actividad: Date | null;
+    };
+    const result = await db.execute<Row>(sql`
+      SELECT emp.estudiante_id, es.nombre_completo AS alumno, es.curp,
+             m.numero AS modulo_numero, m.nombre AS modulo_nombre,
+             emp.estado, emp.intentos_quiz, emp.mejor_calificacion,
+             emp.ultima_calificacion, emp.ultima_actividad
+      FROM estudiantes_modulos_progreso emp
+      JOIN estudiantes es ON es.user_id = emp.estudiante_id
+      JOIN modulos m ON m.id = emp.modulo_id
+      WHERE es.gestor_id = ${userId}
+      ORDER BY es.nombre_completo, m.numero
+    `);
+    res.json({
+      evaluaciones: result.rows.map((r) => ({
+        estudianteId: r.estudiante_id,
+        alumno: r.alumno,
+        curp: r.curp,
+        moduloNumero: r.modulo_numero,
+        moduloNombre: r.modulo_nombre,
+        estado: r.estado,
+        intentos: Number(r.intentos_quiz ?? 0),
+        mejorCalificacion: r.mejor_calificacion,
+        ultimaCalificacion: r.ultima_calificacion,
+        ultimaActividad: r.ultima_actividad,
+      })),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // Expediente del alumno — el gestor sube docs al mismo expedienteDocumentos
 // que usa el alumno, garantizando que ambos vean lo mismo.
 // ─────────────────────────────────────────────────────────────────────────
