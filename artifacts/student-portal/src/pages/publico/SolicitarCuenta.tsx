@@ -10,6 +10,7 @@ import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api } from '../../lib/api';
 import { MUNICIPIOS_POR_ESTADO } from '../../data/municipiosMexico';
+import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 
 interface Municipio {
   id: number;
@@ -176,7 +177,7 @@ export default function SolicitarCuenta() {
       if (!form.apellidoPaterno.trim()) return 'Escribe tu apellido paterno.';
       if (!form.apellidoMaterno.trim()) return 'Escribe tu apellido materno.';
       if (form.curp.length !== 18) return 'La CURP debe tener 18 caracteres.';
-      if (!fechaNacimiento) return 'Selecciona tu fecha de nacimiento.';
+      { const e = validarEdad(fechaNacimiento); if (e) return e; }
       return null;
     }
     if (n === 2) {
@@ -648,7 +649,8 @@ export default function SolicitarCuenta() {
                     id="sc-nacimiento"
                     value={fechaNacimiento}
                     onChange={setFechaNacimiento}
-                    maxDate={new Date()}
+                    minDate={fechaMinNacimiento()}
+                    maxDate={fechaMaxNacimiento()}
                   />
                 </div>
               </div>

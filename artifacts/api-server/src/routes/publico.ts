@@ -35,6 +35,7 @@ import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admi
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 import { validarCurp } from '../utils/curp';
+import { validarEdad } from '../utils/edad';
 import rateLimit from 'express-rate-limit';
 
 const router = Router();
@@ -509,6 +510,9 @@ router.post('/auto-registro', async (req, res) => {
     return;
   }
 
+  const errEdadAR = validarEdad(data.fechaNacimiento);
+  if (errEdadAR) { res.status(400).json({ error: errEdadAR }); return; }
+
   // Verifica que no exista el email
   const [existing] = await db.select().from(users).where(eq(users.email, data.email));
   if (existing) {
@@ -620,6 +624,9 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     res.status(401).json({ error: 'Token de verificación de email inválido o expirado.' });
     return;
   }
+
+  const errEdad = validarEdad(data.fechaNacimiento);
+  if (errEdad) { res.status(400).json({ error: errEdad }); return; }
 
   // Filtro de auditoría de CURP (servidor = autoridad final, aunque el
   // frontend ya haya validado): estructura + dígito verificador + cruce

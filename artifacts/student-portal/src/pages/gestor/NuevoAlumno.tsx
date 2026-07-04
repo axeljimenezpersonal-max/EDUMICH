@@ -17,6 +17,7 @@ import { GestorLayout } from './GestorLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api, type Convocatoria } from '../../lib/api';
+import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -259,12 +260,14 @@ export default function NuevoAlumno() {
   }
 
   // ── Step 1 validation ────────────────────────────────────────────────
+  const edadError = validarEdad(datos.fechaNacimiento);
   const paso1Valid =
     datos.nombres.trim().length > 0 &&
     datos.apellidoPaterno.trim().length > 0 &&
     datos.curp.length === 18 &&
     emailValido(datos.email) &&
     conv !== null &&
+    edadError === null &&
     !fieldErrors.curp &&
     !fieldErrors.email;
 
@@ -607,8 +610,12 @@ export default function NuevoAlumno() {
                 id="fnac"
                 value={datos.fechaNacimiento}
                 onChange={(d) => setDatos((prev) => ({ ...prev, fechaNacimiento: d }))}
-                maxDate={new Date()}
+                minDate={fechaMinNacimiento()}
+                maxDate={fechaMaxNacimiento()}
               />
+              {datos.fechaNacimiento && edadError && (
+                <p className="mt-1 text-[11px] text-red-600">{edadError}</p>
+              )}
             </div>
           </div>
 

@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { api } from '../../lib/api';
+import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 
 interface Municipio {
   id: number;
@@ -64,6 +65,8 @@ export default function AutoRegistroDatos() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!passwordsCoinciden) return;
+    const errEdad = validarEdad(fechaNacimiento);
+    if (errEdad) { setError(errEdad); return; }
     setError(null);
     setLoading(true);
     try {
@@ -147,7 +150,8 @@ export default function AutoRegistroDatos() {
                 id="nacimiento"
                 value={fechaNacimiento}
                 onChange={setFechaNacimiento}
-                maxDate={new Date()}
+                minDate={fechaMinNacimiento()}
+                maxDate={fechaMaxNacimiento()}
               />
             </div>
             <div>

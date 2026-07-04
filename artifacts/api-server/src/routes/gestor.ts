@@ -59,6 +59,7 @@ import {
 import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
+import { validarEdad } from '../utils/edad';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
@@ -291,6 +292,11 @@ router.post('/alumnos', async (req, res) => {
     return;
   }
   const data = parse.data;
+
+  if (data.fechaNacimiento) {
+    const errEdad = validarEdad(data.fechaNacimiento);
+    if (errEdad) { res.status(400).json({ error: errEdad, campo: 'fechaNacimiento' }); return; }
+  }
 
   const [emailExists] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase()));
   if (emailExists) {
