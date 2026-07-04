@@ -3,6 +3,7 @@ import { db } from '../db';
 import { outbox } from '@workspace/db/schema';
 import { cuentaCreadaAlumnoTemplate } from './templates/cuenta-creada-alumno';
 import { cuentaCreadaGestorTemplate } from './templates/cuenta-creada-gestor';
+import { solicitudRechazadaTemplate, type SolicitudRechazadaData } from './templates/solicitud-rechazada';
 import { escapeHtml } from '../utils/escapeHtml';
 
 // ─── Configuración de modo ────────────────────────────────────────────────
@@ -27,7 +28,8 @@ type OutboxEvento =
   | 'notificacion_admin_autoregistro'
   | 'aviso_eliminacion_cuenta'
   | 'recuperar_password'
-  | 'verificacion_email';
+  | 'verificacion_email'
+  | 'solicitud_rechazada';
 
 interface SendEmailOptions {
   to: string;
@@ -178,6 +180,25 @@ export async function sendBienvenidaGestor(
     triggeredBy: opts?.triggeredBy,
     relatedUserId: opts?.relatedUserId,
     metadata: { municipio: data.municipio },
+  });
+}
+
+// ─── Solicitud de cuenta rechazada ───────────────────────────────────────
+
+export async function sendSolicitudRechazada(
+  email: string,
+  data: SolicitudRechazadaData,
+  opts?: { triggeredBy?: number }
+): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
+  const { subject, html, textPlain } = solicitudRechazadaTemplate(data);
+  return sendEmail({
+    to: email,
+    toName: data.nombre,
+    subject,
+    html,
+    textPlain,
+    evento: 'solicitud_rechazada',
+    triggeredBy: opts?.triggeredBy,
   });
 }
 

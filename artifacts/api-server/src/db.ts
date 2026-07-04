@@ -47,6 +47,8 @@ const migrations = [
        || '-' || LPAD(EXTRACT(MONTH FROM COALESCE(preregistro_generado_en, created_at))::text, 2, '0')
        || '-' || EXTRACT(YEAR FROM COALESCE(preregistro_generado_en, created_at))::text
      WHERE folio_preregistro LIKE 'PRE-%MICH-%'`,
+  // Correo de solicitud rechazada (outbox).
+  `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'solicitud_rechazada'`,
   // Chat con la Secretaría: nuevo tipo de notificación + tablas.
   `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'chat_mensaje'`,
   `CREATE TABLE IF NOT EXISTS chat_conversaciones (

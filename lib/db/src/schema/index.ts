@@ -1552,6 +1552,7 @@ export const outboxEventoEnum = pgEnum('outbox_evento', [
   'aviso_eliminacion_cuenta',
   'recuperar_password',
   'verificacion_email',
+  'solicitud_rechazada',
 ]);
 
 export const outboxEstadoEnum = pgEnum('outbox_estado', [

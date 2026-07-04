@@ -283,24 +283,14 @@ function SolicitudDrawer({
         )}
 
         {/* Detalle de solicitud */}
-        <div className="mb-4">
-          <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#6b635e' }}>
-            DETALLE DE SOLICITUD
-          </div>
-          <FieldRow
-            icon={<Target size={13} />}
-            label="Modalidad preferida"
-            value={solicitud.modalidadPreferida === 'auto_gestion'
-              ? 'Auto-gestión (sin gestor asignado)'
-              : solicitud.modalidadPreferida === 'con_gestor'
-                ? 'Con gestor municipal'
-                : '—'
-            }
-          />
-          {solicitud.disponibilidad && (
+        {solicitud.disponibilidad && (
+          <div className="mb-4">
+            <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#6b635e' }}>
+              DETALLE DE SOLICITUD
+            </div>
             <FieldRow icon={<Clock size={13} />} label="Disponibilidad" value={solicitud.disponibilidad} />
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Si aprobada: info de aprobación */}
         {solicitud.estado === 'aprobada' && (
@@ -556,18 +546,29 @@ function AprobarModal({
           {error && <p className="mt-3 text-xs font-medium" style={{ color: '#b91c1c' }}>{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-stone-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50"
-            style={{ background: '#2d7d46' }}
+        <div className="flex items-center justify-between gap-2 px-5 py-4 border-t border-stone-100">
+          <a
+            href={`/api/admin/solicitudes/${solicitud.id}/correo/aprobacion`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
+            style={{ color: 'var(--color-guinda-700)' }}
           >
-            <Check size={14} /> {saving ? 'Creando cuenta...' : 'Aprobar y crear cuenta'}
-          </button>
+            <Mail size={14} /> Ver correo
+          </a>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50"
+              style={{ background: '#2d7d46' }}
+            >
+              <Check size={14} /> {saving ? 'Creando cuenta...' : 'Aprobar y crear cuenta'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -700,18 +701,29 @@ function RechazarModal({
           {error && <p className="text-xs font-medium" style={{ color: '#b91c1c' }}>{error}</p>}
         </div>
 
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-stone-100">
-          <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>
-            Cancelar
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50"
-            style={{ background: '#b91c1c' }}
+        <div className="flex items-center justify-between gap-2 px-5 py-4 border-t border-stone-100">
+          <a
+            href={`/api/admin/solicitudes/${solicitud.id}/correo/rechazo?motivo=${encodeURIComponent(motivo)}&detalle=${encodeURIComponent(detalles)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
+            style={{ color: 'var(--color-guinda-700)' }}
           >
-            <X size={14} /> {saving ? 'Rechazando...' : 'Rechazar solicitud'}
-          </button>
+            <Mail size={14} /> Ver correo
+          </a>
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50" style={{ color: '#443e39' }}>
+              Cancelar
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2 text-sm font-semibold text-white rounded-lg disabled:opacity-50"
+              style={{ background: '#b91c1c' }}
+            >
+              <X size={14} /> {saving ? 'Rechazando...' : 'Rechazar solicitud'}
+            </button>
+          </div>
         </div>
       </div>
     </div>

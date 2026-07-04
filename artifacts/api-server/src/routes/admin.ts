@@ -39,7 +39,9 @@ import {
   pagosGrupalesExamenes,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
-import { sendBienvenidaCredenciales, sendBienvenidaGestor } from '../services/email';
+import { sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
+import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
+import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
 import { generarPasswordTemporal } from '../utils/password';
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
@@ -3260,7 +3262,54 @@ router.post('/solicitudes/:solicitudId/rechazar', async (req, res) => {
     req,
   });
 
-  res.json({ ok: true });
+  // Correo de rechazo (best-effort; en dev solo se registra en consola).
+  let emailEnviado = false;
+  try {
+    const r = await sendSolicitudRechazada(solicitud.email, {
+      nombre: solicitud.nombreCompleto,
+      motivo: motivoRechazo,
+      detalle: detallesRechazo ?? null,
+      portalUrl: (process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login').replace('/login', '/solicitar-cuenta'),
+    }, { triggeredBy: req.user!.userId });
+    emailEnviado = r.enviado;
+  } catch { /* no bloquea el rechazo */ }
+
+  res.json({ ok: true, emailEnviado });
+});
+
+// ─── Vista previa de correos de solicitud (el admin "abre" el correo) ─────
+// Devuelven el HTML del correo tal como se enviaría. Se abren en pestaña nueva
+// (la cookie de sesión de admin viaja porque es mismo origen).
+router.get('/solicitudes/:solicitudId/correo/aprobacion', async (req, res) => {
+  const solicitudId = Number(req.params.solicitudId);
+  const [s] = await db.select().from(solicitudesCuenta).where(eq(solicitudesCuenta.id, solicitudId));
+  if (!s) { res.status(404).send('Solicitud no encontrada'); return; }
+  const { html } = cuentaCreadaAlumnoTemplate({
+    nombreAlumno: s.nombreCompleto,
+    email: s.email,
+    passwordTemporal: '••••••••', // se genera al aprobar
+    portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+  });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
+});
+
+router.get('/solicitudes/:solicitudId/correo/rechazo', async (req, res) => {
+  const solicitudId = Number(req.params.solicitudId);
+  const [s] = await db.select().from(solicitudesCuenta).where(eq(solicitudesCuenta.id, solicitudId));
+  if (!s) { res.status(404).send('Solicitud no encontrada'); return; }
+  const motivo = typeof req.query.motivo === 'string' && req.query.motivo.trim()
+    ? req.query.motivo : 'Aquí aparecerá el motivo que selecciones';
+  const detalle = typeof req.query.detalle === 'string' && req.query.detalle.trim()
+    ? req.query.detalle : undefined;
+  const { html } = solicitudRechazadaTemplate({
+    nombre: s.nombreCompleto,
+    motivo,
+    detalle,
+    portalUrl: (process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login').replace('/login', '/solicitar-cuenta'),
+  });
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(html);
 });
 
 // ─── GET /admin/gestores-disponibles ─────────────────────────────────────

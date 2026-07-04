@@ -70,6 +70,26 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
         <tr><td style="padding:0 32px 28px 32px;" align="center">
           <a href="${data.portalUrl}" style="display:inline-block;background:#7b1e3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">ENTRAR AL PORTAL</a>
         </td></tr>
+        <tr><td style="padding:0 32px 26px 32px;">
+          <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:14px;">Próximos pasos</div>
+          <table width="100%" cellpadding="0" cellspacing="0">
+            ${[
+              ['Inicia sesión', 'Entra al portal con tu correo y la contraseña temporal de arriba.'],
+              ['Crea tu contraseña', 'Al primer ingreso definirás tu contraseña personal.'],
+              ['Completa tu expediente', 'Sube tus documentos (CURP, acta, INE, comprobante, certificado y foto).'],
+              ['Inscríbete a exámenes', 'Elige tus módulos y realiza tu pago para presentar exámenes.'],
+            ].map(([titulo, desc], i) => `
+            <tr>
+              <td width="40" valign="top" style="padding:0 0 14px 0;">
+                <div style="width:28px;height:28px;background:#7b1e3a;border-radius:50%;color:#fff;font-size:13px;font-weight:bold;text-align:center;line-height:28px;">${i + 1}</div>
+              </td>
+              <td valign="top" style="padding:0 0 14px 0;">
+                <div style="font-size:14px;font-weight:bold;color:#1c1917;line-height:1.3;">${titulo}</div>
+                <div style="font-size:13px;color:#57534e;line-height:1.6;">${desc}</div>
+              </td>
+            </tr>`).join('')}
+          </table>
+        </td></tr>
         ${gestorSection}
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
           <p style="color:#78716c;font-size:11px;margin:0;text-align:center;"><strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong></p>
