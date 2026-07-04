@@ -633,7 +633,7 @@ interface EtapaOpt { id: number; clave: string; etapa: string; fase: string; ani
 interface GestorOpt { id: number; nombreCompleto: string; municipioNombre: string | null; centroAsesoria: string | null; claveCentro: string | null; rfcCentro: string | null }
 
 function RelacionExamenesCard() {
-  const GUINDA = '#7a1430';
+  const GUINDA = '#6b1530';
   const [etapas, setEtapas] = useState<EtapaOpt[]>([]);
   const [gestores, setGestores] = useState<GestorOpt[]>([]);
   const [etapaId, setEtapaId] = useState('');
@@ -674,7 +674,7 @@ function RelacionExamenesCard() {
 
   return (
     <div className="rounded-xl border mb-6 overflow-hidden" style={{ borderColor: '#e8c4d4' }}>
-      <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'linear-gradient(135deg,#7a1430,#a01d45)' }}>
+      <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'linear-gradient(135deg,#6b1530,#4a0e20)' }}>
         <FileText size={16} className="text-white" />
         <div className="text-white font-semibold text-sm">Relación de exámenes solicitados</div>
         <span className="ml-auto text-[10px] uppercase tracking-widest text-white/70">Documento oficial IEMSyS</span>

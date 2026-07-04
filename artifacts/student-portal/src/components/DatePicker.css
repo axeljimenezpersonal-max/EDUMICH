@@ -207,8 +207,8 @@
   border-color: var(--color-guinda-700, #6B1530);
 }
 .rdp-selected .rdp-day_button:hover {
-  background: var(--color-guinda-800, #5c1428) !important;
-  border-color: var(--color-guinda-800, #5c1428);
+  background: var(--color-guinda-800, #4a0e20) !important;
+  border-color: var(--color-guinda-800, #4a0e20);
 }
 
 /* Outside month */

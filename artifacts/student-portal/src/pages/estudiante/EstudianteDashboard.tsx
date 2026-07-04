@@ -338,7 +338,7 @@ export default function EstudianteDashboard() {
 
             {/* ── Credencial / credencial digital ── */}
             {data.licenciaDigital && (
-              <div style={{ background: 'linear-gradient(150deg, #7B1F3A 0%, #5C1428 100%)', border: '1px solid #9f2d4a', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ background: 'linear-gradient(150deg, #7B1F3A 0%, #4a0e20 100%)', border: '1px solid #9f2d4a', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '16px 18px 14px', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
                     <div style={{ width: 34, height: 34, borderRadius: 9, background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>

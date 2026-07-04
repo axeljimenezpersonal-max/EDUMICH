@@ -120,7 +120,7 @@ export default function Configuracion() {
           className="bg-white border border-stone-200 rounded-lg overflow-hidden flex-shrink-0 sticky"
           style={{ width: 220, top: 96, alignSelf: 'start' }}
         >
-          <div className="px-4 py-3" style={{ background: GUINDA }}>
+          <div className="px-4 py-3" style={{ background: 'var(--color-guinda-800)' }}>
             <div className="text-[10px] uppercase tracking-widest text-white/70">PANEL</div>
             <div className="text-sm font-bold text-white" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Configuración
@@ -144,9 +144,9 @@ export default function Configuracion() {
                         onClick={() => handleNavClick(id)}
                         className="w-full flex items-center gap-2 px-4 py-2 text-[12px] border-l-[3px] text-left"
                         style={{
-                          borderLeftColor: active ? GUINDA : 'transparent',
-                          background: active ? '#fdf6fa' : 'transparent',
-                          color: active ? GUINDA : '#57504a',
+                          borderLeftColor: active ? 'var(--color-guinda-700)' : 'transparent',
+                          background: active ? 'var(--color-crema-100)' : 'transparent',
+                          color: active ? 'var(--color-guinda-800)' : '#57504a',
                           fontWeight: active ? 600 : 400,
                         }}
                       >

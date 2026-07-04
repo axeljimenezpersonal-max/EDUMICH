@@ -200,7 +200,7 @@ function SolicitudDrawer({
       {/* Header */}
       <div
         className="relative px-5 py-4 flex-shrink-0"
-        style={{ background: 'linear-gradient(135deg, var(--color-guinda-700) 0%, #5C1428 100%)' }}
+        style={{ background: 'linear-gradient(135deg, var(--color-guinda-700) 0%, #4a0e20 100%)' }}
       >
         <div className="absolute inset-0" style={{ background: 'radial-gradient(circle at 90% 20%, rgba(255,255,255,0.18) 0%, transparent 50%)' }} />
         <div className="relative flex items-start justify-between">

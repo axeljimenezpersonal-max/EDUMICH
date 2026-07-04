@@ -331,7 +331,7 @@ function GestorCard({
       <div className="h-14 relative flex-shrink-0" style={{
         background: inactivo
           ? 'linear-gradient(135deg, #6b635e 0%, #443e39 100%)'
-          : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #5C1428 100%)',
+          : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #4a0e20 100%)',
       }}>
         <span
           className="absolute top-2.5 right-3 flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full"

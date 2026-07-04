@@ -22,24 +22,24 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;padding:32px 0;">
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
-        <tr><td style="background:#7b1e3a;padding:24px 32px;">
+        <tr><td style="background:#6b1530;padding:24px 32px;">
           <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
-          <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:10px;">Designación como gestor municipal</div>
+          <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#6b1530;text-transform:uppercase;margin-bottom:10px;">Designación como gestor municipal</div>
           <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Bienvenido(a), ${escapeHtml(data.nombreGestor)}</h1>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Has sido designado(a) como <strong>Gestor Municipal de ${escapeHtml(data.municipio)}</strong> en el Sistema de Preparatoria Abierta del Gobierno de Michoacán.</p>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Como gestor podrás dar de alta aspirantes, subir documentación de expediente y dar seguimiento personalizado a cada alumno de tu municipio.</p>
         </td></tr>
         <tr><td style="padding:0 32px 24px 32px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf8f9;border:2px solid #7b1e3a;border-radius:8px;overflow:hidden;">
-            <tr><td style="background:#7b1e3a;padding:10px 18px;"><span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">Tus credenciales de acceso</span></td></tr>
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf8f9;border:2px solid #6b1530;border-radius:8px;overflow:hidden;">
+            <tr><td style="background:#6b1530;padding:10px 18px;"><span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">Tus credenciales de acceso</span></td></tr>
             <tr><td style="padding:20px 18px;">
               <div style="font-size:11px;color:#78716c;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Correo institucional</div>
               <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:#1c1917;background:#f0e8e8;padding:8px 12px;border-radius:4px;margin-bottom:14px;">${data.email}</div>
               <div style="font-size:11px;color:#78716c;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Contraseña temporal</div>
-              <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:bold;color:#7b1e3a;letter-spacing:6px;background:#fdf2f4;border:1px dashed #c43759;padding:12px 18px;border-radius:4px;">${data.passwordTemporal}</div>
+              <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:bold;color:#6b1530;letter-spacing:6px;background:#fdf2f4;border:1px dashed #c43759;padding:12px 18px;border-radius:4px;">${data.passwordTemporal}</div>
               <div style="font-size:12px;color:#a02440;margin-top:8px;font-style:italic;">Cambia esta contraseña al ingresar por primera vez.</div>
             </td></tr>
           </table>
@@ -58,7 +58,7 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
           </table>
         </td></tr>
         <tr><td style="padding:0 32px 28px 32px;" align="center">
-          <a href="${data.portalUrl}" style="display:inline-block;background:#7b1e3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">ACCEDER AL PANEL</a>
+          <a href="${data.portalUrl}" style="display:inline-block;background:#6b1530;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">ACCEDER AL PANEL</a>
         </td></tr>
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
           <p style="color:#78716c;font-size:11px;margin:0;text-align:center;"><strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong></p>

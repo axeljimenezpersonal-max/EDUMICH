@@ -605,7 +605,7 @@ export default function GestorDetalle() {
             borderRadius: '12px 12px 0 0',
             background: inactivo
               ? 'linear-gradient(135deg, #6b635e 0%, #443e39 100%)'
-              : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #5C1428 100%)',
+              : 'linear-gradient(135deg, var(--color-guinda-700) 0%, #4a0e20 100%)',
             position: 'relative',
           }}
         >

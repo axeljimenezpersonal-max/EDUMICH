@@ -47,7 +47,7 @@ export default function MiPerfil() {
             <div
               className="h-[110px] relative"
               style={{
-                background: 'linear-gradient(135deg, #6B1530 0%, #5C1428 100%)',
+                background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)',
               }}
             >
               <div

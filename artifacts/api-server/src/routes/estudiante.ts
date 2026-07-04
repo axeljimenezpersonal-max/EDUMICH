@@ -1660,7 +1660,7 @@ async function generarPasePDF(data: {
   const boldFont = await pdoc.embedFont(StandardFonts.HelveticaBold);
   const regFont  = await pdoc.embedFont(StandardFonts.Helvetica);
 
-  const GUINDA = rgb(0.484, 0.118, 0.227);
+  const GUINDA = rgb(0.4196, 0.0824, 0.1882); // #6b1530
   const WHITE  = rgb(1, 1, 1);
   const DARK   = rgb(0.08, 0.08, 0.08);
   const MUTED  = rgb(0.52, 0.48, 0.46);
@@ -1689,7 +1689,7 @@ async function generarPasePDF(data: {
   // ── QR Code ──────────────────────────────────────────────────────────────
   const qrBuf = await QRCode.toBuffer(data.qrPayload, {
     width: 180, margin: 1,
-    color: { dark: '#7B1E3A', light: '#FFFFFF' },
+    color: { dark: '#6b1530', light: '#FFFFFF' },
   });
   const qrImg = await pdoc.embedPng(qrBuf);
   const QR = 155;
@@ -2283,8 +2283,8 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   // ── Credencial: 85 mm × 54 mm ≈ 241 × 153 pts ──────────────────────────
   const CARD_W = 241;
   const CARD_H = 153;
-  const GUINDA  = rgb(0.482, 0.118, 0.227);   // #7B1E3A
-  const GUINDA2 = rgb(0.361, 0.078, 0.157);   // #5C1428
+  const GUINDA  = rgb(0.4196, 0.0824, 0.1882); // #6b1530
+  const GUINDA2 = rgb(0.2902, 0.0549, 0.1255); // #4a0e20
   const CREMA   = rgb(0.973, 0.953, 0.925);   // #F8F4EC
   const CREMA2  = rgb(0.937, 0.906, 0.839);   // #EFE7D6
   const BLANCO  = rgb(1, 1, 1);

@@ -23,12 +23,12 @@ export function notifAdminAutoregistroTemplate(data: NotifAdminAutoregistroData)
   <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;padding:32px 0;">
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
-        <tr><td style="background:#7b1e3a;padding:24px 32px;">
+        <tr><td style="background:#6b1530;padding:24px 32px;">
           <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">EDUMICH · Panel de Administración</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Notificación del sistema</div>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
-          <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#7b1e3a;text-transform:uppercase;margin-bottom:10px;">Nueva solicitud de cuenta</div>
+          <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#6b1530;text-transform:uppercase;margin-bottom:10px;">Nueva solicitud de cuenta</div>
           <h1 style="color:#1c1917;font-size:20px;margin:0 0 12px 0;font-family:Georgia,serif;">Aspirante solicita inscripción</h1>
           <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Se recibió una nueva solicitud de registro el <strong>${fecha}</strong>.</p>
         </td></tr>
@@ -52,7 +52,7 @@ export function notifAdminAutoregistroTemplate(data: NotifAdminAutoregistroData)
           </table>
         </td></tr>
         <tr><td style="padding:0 32px 28px 32px;" align="center">
-          <a href="${data.panelUrl}" style="display:inline-block;background:#7b1e3a;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;">Revisar en el panel</a>
+          <a href="${data.panelUrl}" style="display:inline-block;background:#6b1530;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;">Revisar en el panel</a>
         </td></tr>
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
           <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;">EDUMICH · Plataforma Educativa Digital · Gobierno de Michoacán</p>

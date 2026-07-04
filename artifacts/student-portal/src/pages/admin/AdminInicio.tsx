@@ -172,7 +172,7 @@ export default function AdminInicio() {
           ) : (
             <div
               className="rounded-xl text-white px-7 py-5 mb-6 flex items-center gap-4"
-              style={{ background: 'linear-gradient(135deg, #6B1530 0%, #5C1428 100%)' }}
+              style={{ background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)' }}
             >
               <Flag size={24} style={{ opacity: 0.7 }} />
               <p className="text-sm" style={{ opacity: 0.9 }}>No hay convocatoria activa en este momento.</p>
@@ -322,7 +322,7 @@ function ConvocatoriaStrip({ conv }: { conv: NonNullable<DashboardData['convocat
     <div
       className="rounded-xl text-white px-7 py-5 mb-6 relative overflow-hidden"
       style={{
-        background: 'linear-gradient(135deg, #6B1530 0%, #5C1428 100%)',
+        background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)',
         display: 'grid',
         gridTemplateColumns: 'auto 1fr auto auto',
         gap: 24,

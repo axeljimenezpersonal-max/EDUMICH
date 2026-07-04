@@ -765,7 +765,7 @@ router.get('/verificar/:folio', async (req, res) => {
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f4;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
     .card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.08);max-width:520px;width:100%;overflow:hidden}
-    .header{background:linear-gradient(135deg,#7c1d38 0%,#5C1428 100%);padding:28px 32px;color:white;text-align:center}
+    .header{background:linear-gradient(135deg,#6b1530 0%,#4a0e20 100%);padding:28px 32px;color:white;text-align:center}
     .header-logo{font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.8;margin-bottom:8px}
     .header-title{font-size:20px;font-weight:800;letter-spacing:-.01em}
     .header-sub{font-size:12px;opacity:.7;margin-top:4px}
@@ -773,9 +773,9 @@ router.get('/verificar/:folio', async (req, res) => {
     .verified-label{text-align:center;font-size:16px;font-weight:700;color:#166534;margin-bottom:4px}
     .verified-sub{text-align:center;font-size:12px;color:#78716c;margin-bottom:24px}
     .body{padding:0 32px 32px}
-    .folio-box{background:#faf9f8;border:1px solid #e7e5e4;border-left:4px solid #7c1d38;border-radius:8px;padding:14px 18px;margin-bottom:20px}
+    .folio-box{background:#faf9f8;border:1px solid #e7e5e4;border-left:4px solid #6b1530;border-radius:8px;padding:14px 18px;margin-bottom:20px}
     .folio-label{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#78716c;margin-bottom:4px}
-    .folio-value{font-family:monospace;font-size:20px;font-weight:700;color:#7c1d38;letter-spacing:.04em}
+    .folio-value{font-family:monospace;font-size:20px;font-weight:700;color:#6b1530;letter-spacing:.04em}
     .vigencia-pill{display:inline-block;padding:4px 12px;border-radius:99px;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid ${estadoCfg.border};background:${estadoCfg.bg};color:${estadoCfg.color};margin-top:8px}
     .row{display:flex;gap:8px;margin-bottom:12px}
     .field{flex:1}

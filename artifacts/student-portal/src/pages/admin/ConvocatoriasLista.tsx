@@ -138,7 +138,7 @@ export default function ConvocatoriasLista() {
       {etapaActiva && (
         <div
           className="rounded-xl mb-6 px-6 py-4 relative overflow-hidden flex items-center justify-between gap-6"
-          style={{ background: 'linear-gradient(135deg, #6B1530 0%, #5C1428 100%)', color: 'white' }}
+          style={{ background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)', color: 'white' }}
         >
           <div
             className="absolute inset-0 pointer-events-none"
