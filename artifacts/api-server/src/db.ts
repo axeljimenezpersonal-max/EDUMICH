@@ -51,6 +51,8 @@ const migrations = [
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'solicitud_rechazada'`,
   // Solicitud de cuenta: preferencia de gestor.
   `ALTER TABLE solicitudes_cuenta ADD COLUMN IF NOT EXISTS quiere_info_gestores boolean NOT NULL DEFAULT false`,
+  // Admin: perfil confirmado (bloquea nombre/cargo/tel tras la primera vez).
+  `ALTER TABLE administradores ADD COLUMN IF NOT EXISTS perfil_confirmado boolean NOT NULL DEFAULT false`,
   // Chat con la Secretaría: nuevo tipo de notificación + tablas.
   `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'chat_mensaje'`,
   `CREATE TABLE IF NOT EXISTS chat_conversaciones (

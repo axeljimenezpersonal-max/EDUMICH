@@ -306,6 +306,8 @@ export const administradores = pgTable('administradores', {
   puesto: varchar('puesto', { length: 120 }),
   emailPublico: varchar('email_publico', { length: 255 }),
   telefonoPublico: varchar('telefono_publico', { length: 30 }),
+  // Una vez que el admin confirma su perfil (nombre/cargo/tel), queda bloqueado.
+  perfilConfirmado: boolean('perfil_confirmado').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 });
 

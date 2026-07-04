@@ -336,6 +336,7 @@ router.get('/mi-cuenta', async (req, res) => {
     puesto: adminData?.puesto ?? '',
     emailPublico: adminData?.emailPublico ?? '',
     telefonoPublico: adminData?.telefonoPublico ?? '',
+    perfilConfirmado: adminData?.perfilConfirmado ?? false,
     preferencias: prefs ?? {
       notifEmail: true, notifNavegador: false, resumenDiario: true,
       modoOscuro: false, idioma: 'es-MX', zonaHoraria: 'America/Mexico_City',
@@ -347,8 +348,15 @@ router.put('/mi-cuenta', async (req, res) => {
   const u = reqUser(req);
   const { nombreCompleto, puesto, emailPublico, telefonoPublico } = req.body;
 
+  // Bloqueo: si ya está confirmado, no se permiten cambios de nombre/cargo/tel.
+  const [actual] = await db.select().from(administradores).where(eq(administradores.userId, u.id));
+  if (actual?.perfilConfirmado) {
+    res.status(403).json({ error: 'Tu perfil ya está confirmado. Contacta al soporte técnico para cambios.' });
+    return;
+  }
+
   await db.update(administradores)
-    .set({ nombreCompleto, puesto, emailPublico, telefonoPublico })
+    .set({ nombreCompleto, puesto, emailPublico, telefonoPublico, perfilConfirmado: true })
     .where(eq(administradores.userId, u.id));
 
   await log(u.id, u.email, u.rol, 'UPDATE', 'configuracion', `Actualizó su perfil de administrador`);

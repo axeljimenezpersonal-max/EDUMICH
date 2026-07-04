@@ -423,7 +423,6 @@ export default function Seguridad({ onDirty }: { onDirty: (d: boolean) => void }
   return (
     <div>
       <CambiarPassword onDirty={onDirty} />
-      <SesionesActivas />
       <TwoFactorAuth />
     </div>
   );

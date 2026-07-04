@@ -1,49 +1,43 @@
-import { useEffect, useState } from 'react';
-import { User, Save, RefreshCw, Mail, Phone, Briefcase } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { User, Save, RefreshCw, Mail, Phone, Briefcase, Lock } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
 type Cuenta = {
   nombreCompleto: string;
-  cargo: string;
+  cargo: string;      // ↔ backend: puesto
   email: string;
-  telefono: string;
+  telefono: string;   // ↔ backend: telefonoPublico
 };
 
 type Preferencias = {
-  notificacionesCorreo: boolean;
-  notificacionesNavegador: boolean;
-  resumenDiario: boolean;
-  modoOscuro: boolean;
+  notifEmail: boolean;
+  notifNavegador: boolean;
 };
+
+const BASE = '/api/admin/configuracion/mi-cuenta';
 
 // ─── Toggle ───────────────────────────────────────────────────────────────
 
 function Toggle({
-  value,
-  onChange,
-  label,
-  sublabel,
-  disabled,
+  value, onChange, label, sublabel,
 }: {
   value: boolean;
   onChange: (v: boolean) => void;
   label: string;
   sublabel?: string;
-  disabled?: boolean;
 }) {
   return (
-    <div className="flex items-center justify-between py-3 border-b border-stone-100">
-      <div>
+    <div className="flex items-center justify-between py-3 border-b border-stone-100 last:border-b-0">
+      <div className="pr-4">
         <div className="text-sm font-medium text-stone-800">{label}</div>
         {sublabel && <div className="text-xs text-stone-400 mt-0.5">{sublabel}</div>}
       </div>
       <button
         type="button"
-        onClick={() => !disabled && onChange(!value)}
-        disabled={disabled}
+        onClick={() => onChange(!value)}
         className="relative w-11 h-6 rounded-full transition-colors flex-shrink-0"
-        style={{ background: value ? '#6B1530' : '#ddd0c5', opacity: disabled ? 0.5 : 1 }}
+        style={{ background: value ? 'var(--color-guinda-700)' : '#ddd0c5' }}
       >
         <span
           className="absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow transition-transform"
@@ -54,112 +48,160 @@ function Toggle({
   );
 }
 
+// Campo de texto que se bloquea una vez que tiene un valor guardado.
+function CampoBloqueable({
+  icon, label, value, onChange, placeholder, bloqueado, type = 'text',
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  bloqueado: boolean;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label className="text-xs font-semibold text-stone-500 mb-1 flex items-center gap-1">
+        {icon} {label} {bloqueado && <Lock size={10} strokeWidth={2.5} style={{ color: '#a89a8e' }} />}
+      </label>
+      <input
+        type={type}
+        readOnly={bloqueado}
+        className={`w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none ${
+          bloqueado ? 'bg-stone-50 cursor-not-allowed' : 'focus:border-[var(--color-guinda-700)]'
+        }`}
+        style={bloqueado ? { color: '#6b635e' } : undefined}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+      />
+    </div>
+  );
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────
 
-export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void }) {
-  const [cuenta, setCuenta] = useState<Cuenta>({
-    nombreCompleto: '',
-    cargo: '',
-    email: '',
-    telefono: '',
-  });
-  const [prefs, setPrefs] = useState<Preferencias>({
-    notificacionesCorreo: true,
-    notificacionesNavegador: false,
-    resumenDiario: false,
-    modoOscuro: false,
-  });
+interface Props {
+  onDirty: (d: boolean) => void;
+  registerSave?: (fn: () => Promise<void>) => void;
+  registerDiscard?: (fn: () => void) => void;
+}
+
+export default function MiCuenta({ onDirty, registerSave, registerDiscard }: Props) {
+  const [cuenta, setCuenta] = useState<Cuenta>({ nombreCompleto: '', cargo: '', email: '', telefono: '' });
+  const [prefs, setPrefs] = useState<Preferencias>({ notifEmail: true, notifNavegador: false });
+  const [confirmado, setConfirmado] = useState(false);
+  // Valores originales (para saber qué bloquear y para descartar).
+  const original = useRef<{ cuenta: Cuenta; prefs: Preferencias } | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/admin/mi-cuenta', { credentials: 'include' })
-      .then((r) => r.json())
-      .then((data) => {
-        setCuenta({
-          nombreCompleto: data.nombreCompleto ?? '',
-          cargo: data.cargo ?? '',
-          email: data.email ?? '',
-          telefono: data.telefono ?? '',
-        });
-        if (data.preferencias) {
-          setPrefs({
-            notificacionesCorreo: data.preferencias.notificacionesCorreo ?? true,
-            notificacionesNavegador: data.preferencias.notificacionesNavegador ?? false,
-            resumenDiario: data.preferencias.resumenDiario ?? false,
-            modoOscuro: data.preferencias.modoOscuro ?? false,
-          });
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
+  async function cargar() {
+    try {
+      const r = await fetch(BASE, { credentials: 'include' });
+      const data = await r.json();
+      const c: Cuenta = {
+        nombreCompleto: data.nombreCompleto ?? '',
+        cargo: data.puesto ?? '',
+        email: data.email ?? '',
+        telefono: data.telefonoPublico ?? '',
+      };
+      const p: Preferencias = {
+        notifEmail: data.preferencias?.notifEmail ?? true,
+        notifNavegador: data.preferencias?.notifNavegador ?? false,
+      };
+      setCuenta(c);
+      setPrefs(p);
+      setConfirmado(!!data.perfilConfirmado);
+      original.current = { cuenta: c, prefs: p };
+    } catch { /* noop */ }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { cargar(); }, []);
 
   function setCuentaField(k: keyof Cuenta, v: string) {
     setCuenta((prev) => ({ ...prev, [k]: v }));
     onDirty(true);
   }
-
   function setPrefField(k: keyof Preferencias, v: boolean) {
     setPrefs((prev) => ({ ...prev, [k]: v }));
     onDirty(true);
   }
 
-  function showSuccess() {
-    setSuccess(true);
-    setTimeout(() => setSuccess(false), 2500);
-  }
-
   async function handleSave() {
-    if (!cuenta.nombreCompleto.trim()) {
-      setError('El nombre completo es requerido.');
-      return;
-    }
+    if (!confirmado && !cuenta.nombreCompleto.trim()) { setError('El nombre completo es requerido.'); return; }
     setSaving(true);
     setError(null);
     try {
-      await Promise.all([
-        fetch('/api/admin/mi-cuenta', {
+      // El perfil (nombre/cargo/tel) solo se envía si aún no está confirmado.
+      if (!confirmado) {
+        const r1 = await fetch(BASE, {
           method: 'PUT',
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             nombreCompleto: cuenta.nombreCompleto.trim(),
-            cargo: cuenta.cargo.trim() || null,
-            telefono: cuenta.telefono.trim() || null,
+            puesto: cuenta.cargo.trim() || null,
+            telefonoPublico: cuenta.telefono.trim() || null,
           }),
-        }),
-        fetch('/api/admin/mi-cuenta/preferencias', {
-          method: 'PUT',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(prefs),
-        }),
-      ]);
+        });
+        if (!r1.ok) throw new Error('save');
+      }
+      const r2 = await fetch(`${BASE}/preferencias`, {
+        method: 'PUT',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifEmail: prefs.notifEmail, notifNavegador: prefs.notifNavegador }),
+      });
+      if (!r2.ok) throw new Error('save');
       onDirty(false);
-      showSuccess();
+      setSuccess(true);
+      // Si acabamos de confirmar el perfil, recarga para reflejar el saludo y el bloqueo.
+      if (!confirmado) {
+        setTimeout(() => window.location.reload(), 700);
+      } else {
+        setSaving(false);
+        setTimeout(() => setSuccess(false), 2500);
+      }
     } catch {
       setError('Error al guardar. Intenta de nuevo.');
-    } finally {
       setSaving(false);
     }
   }
 
-  const initials = cuenta.nombreCompleto
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((p) => p[0]?.toUpperCase() ?? '')
-    .join('');
+  function handleDiscard() {
+    if (original.current) {
+      setCuenta(original.current.cuenta);
+      setPrefs(original.current.prefs);
+    }
+    onDirty(false);
+    setError(null);
+  }
+
+  // Registra con la barra global (se re-registra cada render → siempre la última versión).
+  useEffect(() => {
+    registerSave?.(handleSave);
+    registerDiscard?.(handleDiscard);
+  });
+
+  // Bloqueo: los 3 campos se bloquean una vez que el perfil fue confirmado
+  // (guardado la primera vez). Antes de eso son editables (para corregir).
+  const bloqNombre = confirmado;
+  const bloqCargo = confirmado;
+  const bloqTel = confirmado;
+
+  const initials = cuenta.nombreCompleto.trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? '').join('');
 
   return (
     <div>
       {/* AVATAR + NOMBRE */}
       <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-        <div className="px-5 py-3" style={{ background: '#6B1530' }}>
+        <div className="px-5 py-3" style={{ background: 'var(--color-guinda-700)' }}>
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <User size={14} strokeWidth={2} /> Mi cuenta
           </h2>
@@ -167,80 +209,76 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
         <div className="p-5">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <RefreshCw size={20} className="animate-spin" style={{ color: '#6B1530' }} />
+              <RefreshCw size={20} className="animate-spin" style={{ color: 'var(--color-guinda-700)' }} />
             </div>
           ) : (
-            <div className="flex items-start gap-5 mb-5">
-              {/* Avatar */}
-              <div
-                className="flex-shrink-0 flex items-center justify-center rounded-full text-white font-bold text-lg"
-                style={{ width: 60, height: 60, background: '#6B1530', fontFamily: "'Poppins', sans-serif" }}
-              >
-                {initials || <User size={24} strokeWidth={2} />}
-              </div>
-              <div className="flex-1">
-                <div className="text-base font-bold" style={{ color: '#1a1a1a', fontFamily: "'Poppins', sans-serif" }}>
-                  {cuenta.nombreCompleto || 'Sin nombre'}
+            <>
+              <div className="flex items-start gap-5 mb-5">
+                <div
+                  className="flex-shrink-0 flex items-center justify-center rounded-full text-white font-bold text-lg"
+                  style={{ width: 60, height: 60, background: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
+                >
+                  {initials || <User size={24} strokeWidth={2} />}
                 </div>
-                <div className="text-sm" style={{ color: '#6b635e' }}>{cuenta.cargo || 'Administrador'}</div>
-                <div className="text-xs mt-0.5" style={{ color: '#a89a8e' }}>{cuenta.email}</div>
+                <div className="flex-1">
+                  <div className="text-base font-bold" style={{ color: '#1a1a1a', fontFamily: "'Poppins', sans-serif" }}>
+                    {cuenta.nombreCompleto || 'Sin nombre'}
+                  </div>
+                  <div className="text-sm" style={{ color: '#6b635e' }}>{cuenta.cargo || 'Administrador'}</div>
+                  <div className="text-xs mt-0.5" style={{ color: '#a89a8e' }}>{cuenta.email}</div>
+                </div>
               </div>
-            </div>
-          )}
 
-          {/* Fields */}
-          {!loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="md:col-span-2">
-                <label className="text-xs font-semibold text-stone-500 block mb-1 flex items-center gap-1">
-                  <User size={11} strokeWidth={2} /> Nombre completo *
-                </label>
-                <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
-                  value={cuenta.nombreCompleto}
-                  onChange={(e) => setCuentaField('nombreCompleto', e.target.value)}
-                  placeholder="Ej. María López Hernández"
-                />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-stone-500 block mb-1 flex items-center gap-1">
-                  <Briefcase size={11} strokeWidth={2} /> Cargo
-                </label>
-                <input
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <CampoBloqueable
+                    icon={<User size={11} strokeWidth={2} />}
+                    label="Nombre completo *"
+                    value={cuenta.nombreCompleto}
+                    onChange={(v) => setCuentaField('nombreCompleto', v)}
+                    placeholder="Ej. María López Hernández"
+                    bloqueado={bloqNombre}
+                  />
+                </div>
+                <CampoBloqueable
+                  icon={<Briefcase size={11} strokeWidth={2} />}
+                  label="Cargo"
                   value={cuenta.cargo}
-                  onChange={(e) => setCuentaField('cargo', e.target.value)}
+                  onChange={(v) => setCuentaField('cargo', v)}
                   placeholder="Ej. Administrador del Sistema"
+                  bloqueado={bloqCargo}
                 />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-stone-500 block mb-1 flex items-center gap-1">
-                  <Phone size={11} strokeWidth={2} /> Teléfono
-                </label>
-                <input
+                <CampoBloqueable
+                  icon={<Phone size={11} strokeWidth={2} />}
+                  label="Teléfono"
                   type="tel"
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none focus:border-[#6B1530]"
                   value={cuenta.telefono}
-                  onChange={(e) => setCuentaField('telefono', e.target.value)}
+                  onChange={(v) => setCuentaField('telefono', v)}
                   placeholder="443-123-4567"
+                  bloqueado={bloqTel}
                 />
+                <div className="md:col-span-2">
+                  <label className="text-xs font-semibold text-stone-500 mb-1 flex items-center gap-1">
+                    <Mail size={11} strokeWidth={2} /> Correo institucional
+                    <Lock size={10} strokeWidth={2.5} style={{ color: '#a89a8e' }} />
+                  </label>
+                  <input
+                    type="email"
+                    readOnly
+                    className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 bg-stone-50 cursor-not-allowed"
+                    style={{ color: '#6b635e' }}
+                    value={cuenta.email}
+                  />
+                </div>
               </div>
-              <div className="md:col-span-2">
-                <label className="text-xs font-semibold text-stone-500 block mb-1 flex items-center gap-1">
-                  <Mail size={11} strokeWidth={2} /> Correo institucional
-                </label>
-                <input
-                  type="email"
-                  readOnly
-                  className="w-full text-sm border border-stone-200 rounded-lg px-3 py-2 bg-stone-50 cursor-not-allowed"
-                  style={{ color: '#6b635e' }}
-                  value={cuenta.email}
-                />
-                <p className="text-[11px] mt-1" style={{ color: '#a89a8e' }}>
-                  El correo institucional no puede modificarse desde aqui. Contacta al soporte tecnico para realizar este cambio.
+
+              {(bloqNombre || bloqCargo || bloqTel) && (
+                <p className="text-[11px] mt-3 flex items-start gap-1.5" style={{ color: '#a89a8e' }}>
+                  <Lock size={11} strokeWidth={2.5} className="mt-0.5 flex-shrink-0" />
+                  Los datos ya registrados quedan bloqueados. Para corregirlos, contacta al soporte técnico.
                 </p>
-              </div>
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -248,34 +286,21 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
       {/* PREFERENCIAS */}
       {!loading && (
         <div className="bg-white rounded-xl border border-stone-200 overflow-hidden mb-5">
-          <div className="px-5 py-3" style={{ background: '#6B1530' }}>
+          <div className="px-5 py-3" style={{ background: 'var(--color-guinda-700)' }}>
             <h2 className="text-sm font-semibold text-white">Preferencias</h2>
           </div>
           <div className="px-5 py-2">
             <Toggle
-              value={prefs.notificacionesCorreo}
-              onChange={(v) => setPrefField('notificacionesCorreo', v)}
+              value={prefs.notifEmail}
+              onChange={(v) => setPrefField('notifEmail', v)}
               label="Notificaciones por correo"
-              sublabel="Recibe alertas de nuevas solicitudes y actividad relevante"
+              sublabel="Solo cuando un gestor registra un nuevo alumno o llega una nueva solicitud"
             />
             <Toggle
-              value={prefs.notificacionesNavegador}
-              onChange={(v) => setPrefField('notificacionesNavegador', v)}
+              value={prefs.notifNavegador}
+              onChange={(v) => setPrefField('notifNavegador', v)}
               label="Notificaciones en navegador"
               sublabel="Notificaciones push mientras usas el sistema"
-            />
-            <Toggle
-              value={prefs.resumenDiario}
-              onChange={(v) => setPrefField('resumenDiario', v)}
-              label="Resumen diario por correo"
-              sublabel="Recibe un resumen cada manana con las tareas pendientes"
-            />
-            <Toggle
-              value={prefs.modoOscuro}
-              onChange={(v) => setPrefField('modoOscuro', v)}
-              label="Modo oscuro"
-              sublabel="Proximamente disponible"
-              disabled
             />
           </div>
         </div>
@@ -288,25 +313,17 @@ export default function MiCuenta({ onDirty }: { onDirty: (d: boolean) => void })
             onClick={handleSave}
             disabled={saving}
             className="flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-60"
-            style={{ background: '#6B1530' }}
+            style={{ background: 'var(--color-guinda-700)' }}
           >
-            {saving
-              ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" />
-              : <Save size={14} strokeWidth={2} />}
+            {saving ? <RefreshCw size={14} strokeWidth={2} className="animate-spin" /> : <Save size={14} strokeWidth={2} />}
             {saving ? 'Guardando...' : 'Guardar cambios'}
           </button>
-
           {success && (
-            <span
-              className="text-sm font-medium px-3 py-1.5 rounded-lg"
-              style={{ background: '#d1fae5', color: '#2d7d46' }}
-            >
-              Cambios guardados correctamente
+            <span className="text-sm font-medium px-3 py-1.5 rounded-lg" style={{ background: '#d1fae5', color: '#2d7d46' }}>
+              Guardado ✓
             </span>
           )}
-          {error && (
-            <span className="text-sm font-medium" style={{ color: '#b91c1c' }}>{error}</span>
-          )}
+          {error && <span className="text-sm font-medium" style={{ color: '#b91c1c' }}>{error}</span>}
         </div>
       )}
     </div>

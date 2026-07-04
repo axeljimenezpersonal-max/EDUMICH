@@ -49,19 +49,14 @@ const NAV_GROUPS: {
   {
     label: 'INSTITUCIÓN',
     items: [
-      { id: 'datos-institucionales', label: 'Datos institucionales', icon: Building },
       { id: 'documentos-requeridos', label: 'Documentos requeridos', icon: FileText },
-      { id: 'pagos', label: 'Pagos y facturación', icon: CreditCard },
       { id: 'etapas-dgb', label: 'Etapas DGB', icon: Calendar },
-      { id: 'municipios', label: 'Municipios', icon: MapPin },
     ],
   },
   {
     label: 'SISTEMA',
     items: [
-      { id: 'plantillas-correo', label: 'Plantillas de correo', icon: Mail },
       { id: 'integraciones', label: 'Integraciones', icon: Share2 },
-      { id: 'bitacora', label: 'Bitácora', icon: ClipboardList },
       { id: 'depuracion', label: 'Depuración de cuentas', icon: Trash2 },
       { id: 'acerca-de', label: 'Acerca de EDUMICH', icon: Info },
     ],

@@ -98,33 +98,6 @@ export default function AcercaDe() {
         ))}
       </div>
 
-      {/* Jerarquía de nombres */}
-      <div style={{ background: 'white', border: '1px solid #eadfd7', borderRadius: 12, padding: '24px 28px', marginBottom: 24 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#a89a8e', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 16 }}>
-          Jerarquía de marca
-        </div>
-        {[
-          { num: '1', nombre: 'EDUMICH', desc: 'La marca tecnológica — el nombre del proyecto/plataforma', color: 'var(--color-guinda-700)' },
-          { num: '2', nombre: 'Preparatoria Abierta', desc: 'El servicio educativo principal que se gestiona', color: '#443e39' },
-          { num: '3', nombre: 'IEMSyS', desc: 'La institución que opera el sistema', color: '#6b635e' },
-          { num: '4', nombre: 'Gobierno de Michoacán', desc: 'El ente gubernamental que respalda todo', color: '#a89a8e' },
-        ].map(({ num, nombre, desc, color }) => (
-          <div key={num} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '10px 0', borderBottom: num !== '4' ? '1px solid #f7f2ed' : 'none' }}>
-            <div style={{
-              width: 24, height: 24, borderRadius: 6, background: '#f7f2ed',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#a89a8e', flexShrink: 0,
-            }}>
-              {num}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color }}>{nombre}</div>
-              <div style={{ fontSize: 11, color: '#a89a8e', marginTop: 1 }}>{desc}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Version info */}
       <div style={{ fontSize: 11, color: '#a89a8e', textAlign: 'center', lineHeight: 1.6 }}>
         EDUMICH v0.1 (demo) · Módulo Preparatoria Abierta · {new Date().getFullYear()}<br />
