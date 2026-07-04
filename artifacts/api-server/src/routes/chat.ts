@@ -24,6 +24,7 @@ import {
   chatConsentimientos,
   estudiantes,
   gestores,
+  municipios,
   users,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
@@ -202,24 +203,40 @@ adminChatRouter.get('/no-leidos', async (_req, res) => {
   res.json({ noLeidos: r?.n ?? 0 });
 });
 
-// Buscar destinatarios (alumnos/gestores) para iniciar una conversación.
+// Listar/buscar destinatarios (alumnos/gestores) para iniciar una conversación.
+// - `q` opcional: sin q lista todos (limitado). Con q filtra por nombre/CURP.
+// - `rol` opcional: 'estudiante' | 'gestor' | 'todos' (default).
 adminChatRouter.get('/destinatarios', async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-  if (q.length < 2) { res.json({ destinatarios: [] }); return; }
-  const patt = `%${q}%`;
-  const als = await db
-    .select({ userId: estudiantes.userId, nombre: estudiantes.nombreCompleto, curp: estudiantes.curp })
-    .from(estudiantes)
-    .where(or(ilike(estudiantes.nombreCompleto, patt), ilike(estudiantes.curp, patt)))
-    .limit(8);
-  const gs = await db
-    .select({ userId: gestores.userId, nombre: gestores.nombreCompleto })
-    .from(gestores)
-    .where(ilike(gestores.nombreCompleto, patt))
-    .limit(8);
+  const rolFiltro = typeof req.query.rol === 'string' ? req.query.rol : 'todos';
+  const patt = q ? `%${q}%` : null;
+  const LIMITE = 40;
+
+  let als: { userId: number; nombre: string | null; curp: string | null; municipio: string | null }[] = [];
+  let gs: { userId: number; nombre: string | null; municipio: string | null }[] = [];
+
+  if (rolFiltro === 'todos' || rolFiltro === 'estudiante') {
+    als = await db
+      .select({ userId: estudiantes.userId, nombre: estudiantes.nombreCompleto, curp: estudiantes.curp, municipio: municipios.nombre })
+      .from(estudiantes)
+      .leftJoin(municipios, eq(estudiantes.municipioId, municipios.id))
+      .where(patt ? or(ilike(estudiantes.nombreCompleto, patt), ilike(estudiantes.curp, patt)) : undefined)
+      .orderBy(asc(estudiantes.nombreCompleto))
+      .limit(LIMITE);
+  }
+  if (rolFiltro === 'todos' || rolFiltro === 'gestor') {
+    gs = await db
+      .select({ userId: gestores.userId, nombre: gestores.nombreCompleto, municipio: municipios.nombre })
+      .from(gestores)
+      .leftJoin(municipios, eq(gestores.municipioId, municipios.id))
+      .where(patt ? ilike(gestores.nombreCompleto, patt) : undefined)
+      .orderBy(asc(gestores.nombreCompleto))
+      .limit(LIMITE);
+  }
+
   const destinatarios = [
-    ...als.map((a) => ({ userId: a.userId, nombre: a.nombre ?? '—', rol: 'estudiante' as const, detalle: a.curp ?? '' })),
-    ...gs.map((g) => ({ userId: g.userId, nombre: g.nombre ?? '—', rol: 'gestor' as const, detalle: 'Gestor' })),
+    ...gs.map((g) => ({ userId: g.userId, nombre: g.nombre ?? '—', rol: 'gestor' as const, detalle: g.municipio ?? 'Gestor municipal' })),
+    ...als.map((a) => ({ userId: a.userId, nombre: a.nombre ?? '—', rol: 'estudiante' as const, detalle: a.municipio ?? (a.curp ?? '') })),
   ];
   res.json({ destinatarios });
 });

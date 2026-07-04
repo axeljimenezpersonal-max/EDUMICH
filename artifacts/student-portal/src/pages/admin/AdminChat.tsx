@@ -9,7 +9,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearch } from 'wouter';
-import { MessageSquare, Send, Search, PenSquare, X, Lock, ChevronLeft, UserRound, GraduationCap } from 'lucide-react';
+import { MessageSquare, Send, Search, PenSquare, X, Lock, ChevronLeft, UserRound, GraduationCap, Users } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 
@@ -288,68 +288,140 @@ export default function AdminChat() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
+type RolFiltro = 'todos' | 'gestor' | 'estudiante';
+
 function NuevoMensajeModal({ onClose, onAbrir }: { onClose: () => void; onAbrir: (convId: number) => void }) {
   const [q, setQ] = useState('');
+  const [rol, setRol] = useState<RolFiltro>('todos');
   const [res, setRes] = useState<Destinatario[]>([]);
-  const [cargando, setCargando] = useState(false);
+  const [cargando, setCargando] = useState(true);
+  const [abriendo, setAbriendo] = useState<number | null>(null);
 
+  // Carga la tabla desde el inicio; refina al escribir o cambiar el filtro.
   useEffect(() => {
-    if (q.trim().length < 2) { setRes([]); return; }
     let vivo = true;
     setCargando(true);
     const t = setTimeout(() => {
-      api.get<{ destinatarios: Destinatario[] }>(`/admin/chat/destinatarios?q=${encodeURIComponent(q.trim())}`)
+      const params = new URLSearchParams();
+      if (q.trim()) params.set('q', q.trim());
+      if (rol !== 'todos') params.set('rol', rol);
+      api.get<{ destinatarios: Destinatario[] }>(`/admin/chat/destinatarios${params.toString() ? `?${params}` : ''}`)
         .then((r) => { if (vivo) setRes(r.destinatarios); })
         .catch(() => {})
         .finally(() => { if (vivo) setCargando(false); });
     }, 250);
     return () => { vivo = false; clearTimeout(t); };
-  }, [q]);
+  }, [q, rol]);
 
   async function abrir(d: Destinatario) {
-    const r = await api.post<{ conversacionId: number }>('/admin/chat/nueva', { participanteUserId: d.userId });
-    onAbrir(r.conversacionId);
+    setAbriendo(d.userId);
+    try {
+      const r = await api.post<{ conversacionId: number }>('/admin/chat/nueva', { participanteUserId: d.userId });
+      onAbrir(r.conversacionId);
+    } finally {
+      setAbriendo(null);
+    }
   }
 
+  const filtros: { val: RolFiltro; label: string; icon: typeof UserRound }[] = [
+    { val: 'todos', label: 'Todos', icon: Users },
+    { val: 'estudiante', label: 'Alumnos', icon: GraduationCap },
+    { val: 'gestor', label: 'Gestores', icon: UserRound },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-24" onClick={onClose}>
-      <div className="w-full max-w-md overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-20" onClick={onClose}>
+      <div className="flex max-h-[80vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-stone-100 px-5 py-3.5">
-          <div className="font-serif text-lg font-bold text-stone-900">Nuevo mensaje</div>
+          <div>
+            <div className="font-serif text-lg font-bold text-stone-900">Nuevo mensaje</div>
+            <div className="text-xs text-stone-500">Elige a quién enviar el mensaje</div>
+          </div>
           <button onClick={onClose} className="text-stone-400 hover:text-stone-700"><X size={18} /></button>
         </div>
-        <div className="p-4">
-          <div className="relative mb-3">
+
+        <div className="border-b border-stone-100 px-4 py-3">
+          {/* Filtro por tipo */}
+          <div className="mb-2.5 flex gap-2">
+            {filtros.map(({ val, label, icon: Icon }) => (
+              <button
+                key={val}
+                onClick={() => setRol(val)}
+                className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  rol === val ? 'border-transparent text-white' : 'border-stone-200 text-stone-600 hover:bg-stone-50'
+                }`}
+                style={rol === val ? { background: 'var(--color-guinda-700)' } : undefined}
+              >
+                <Icon size={13} /> {label}
+              </button>
+            ))}
+          </div>
+          {/* Búsqueda */}
+          <div className="relative">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               autoFocus
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Busca un alumno o gestor…"
+              placeholder="Busca por nombre o CURP…"
               className="w-full rounded-lg border border-stone-200 py-2.5 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
             />
           </div>
-          <div className="max-h-72 overflow-y-auto">
-            {cargando && <div className="py-6 text-center text-xs text-stone-400">Buscando…</div>}
-            {!cargando && q.trim().length >= 2 && res.length === 0 && (
-              <div className="py-6 text-center text-xs text-stone-400">Sin coincidencias.</div>
-            )}
-            {res.map((d) => (
-              <button
-                key={`${d.rol}-${d.userId}`}
-                onClick={() => abrir(d)}
-                className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left hover:bg-[var(--color-crema-50)]"
-              >
-                <div className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-guinda-700)]" style={{ background: 'var(--color-crema-200)' }}>
-                  {d.rol === 'gestor' ? <UserRound size={15} /> : <GraduationCap size={15} />}
-                </div>
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-medium text-stone-900">{d.nombre}</div>
-                  <div className="truncate text-[11px] text-stone-500">{d.rol === 'gestor' ? 'Gestor' : d.detalle}</div>
-                </div>
-              </button>
-            ))}
-          </div>
+        </div>
+
+        {/* Tabla de destinatarios */}
+        <div className="min-h-[240px] flex-1 overflow-y-auto">
+          {cargando ? (
+            <div className="py-10 text-center text-xs text-stone-400">Cargando…</div>
+          ) : res.length === 0 ? (
+            <div className="py-10 text-center text-xs text-stone-400">Sin coincidencias.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="sticky top-0 bg-[var(--color-crema-100)] text-[10px] uppercase tracking-wider text-stone-500">
+                <tr>
+                  <th className="px-4 py-2 text-left font-semibold">Nombre</th>
+                  <th className="px-3 py-2 text-left font-semibold">Tipo</th>
+                  <th className="px-3 py-2 text-left font-semibold">Municipio</th>
+                  <th className="px-3 py-2"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {res.map((d) => (
+                  <tr key={`${d.rol}-${d.userId}`} className="border-b border-stone-50 hover:bg-[var(--color-crema-50)]">
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full text-[var(--color-guinda-700)]" style={{ background: 'var(--color-crema-200)' }}>
+                          {d.rol === 'gestor' ? <UserRound size={14} /> : <GraduationCap size={14} />}
+                        </div>
+                        <span className="font-medium text-stone-900">{d.nombre}</span>
+                      </div>
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <span
+                        className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                        style={d.rol === 'gestor'
+                          ? { background: '#e0e7ff', color: '#3730a3' }
+                          : { background: '#dcfce7', color: '#166534' }}
+                      >
+                        {d.rol === 'gestor' ? 'Gestor' : 'Alumno'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2.5 text-xs text-stone-500">{d.detalle || '—'}</td>
+                    <td className="px-3 py-2.5 text-right">
+                      <button
+                        onClick={() => abrir(d)}
+                        disabled={abriendo === d.userId}
+                        className="inline-flex items-center gap-1 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-50"
+                        style={{ background: 'var(--color-guinda-700)' }}
+                      >
+                        <Send size={12} /> {abriendo === d.userId ? '…' : 'Escribir'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
