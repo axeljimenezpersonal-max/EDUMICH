@@ -15,6 +15,17 @@ interface Municipio {
   nombre: string;
 }
 
+// Entidades federativas (lista canónica, con acentos). Usar dropdown evita
+// valores inconsistentes en la base ("Michoacán" vs "Michoacan").
+const ESTADOS_MX = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche',
+  'Chiapas', 'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima', 'Durango',
+  'Estado de México', 'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco',
+  'Michoacán', 'Morelos', 'Nayarit', 'Nuevo León', 'Oaxaca', 'Puebla',
+  'Querétaro', 'Quintana Roo', 'San Luis Potosí', 'Sinaloa', 'Sonora',
+  'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas',
+] as const;
+
 type Fase = 'formulario' | 'verificando' | 'exito';
 
 // ── Asistente de 3 pasos ──────────────────────────────────────────────────
@@ -162,6 +173,7 @@ export default function SolicitarCuenta() {
     if (n === 1) {
       if (!form.nombres.trim()) return 'Escribe tu nombre.';
       if (!form.apellidoPaterno.trim()) return 'Escribe tu apellido paterno.';
+      if (!form.apellidoMaterno.trim()) return 'Escribe tu apellido materno.';
       if (form.curp.length !== 18) return 'La CURP debe tener 18 caracteres.';
       if (!fechaNacimiento) return 'Selecciona tu fecha de nacimiento.';
       return null;
@@ -584,7 +596,7 @@ export default function SolicitarCuenta() {
                   <input id="sc-apP" type="text" value={form.apellidoPaterno} onChange={setField('apellidoPaterno')} className="gov-input" placeholder="González" />
                 </div>
                 <div>
-                  <label className="gov-label" htmlFor="sc-apM">Apellido materno</label>
+                  <label className="gov-label" htmlFor="sc-apM">Apellido materno *</label>
                   <input id="sc-apM" type="text" value={form.apellidoMaterno} onChange={setField('apellidoMaterno')} className="gov-input" placeholder="Pérez" />
                 </div>
               </div>
@@ -647,12 +659,15 @@ export default function SolicitarCuenta() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="gov-label" htmlFor="sc-lugarNac">Lugar de nacimiento (ciudad)</label>
-                  <input id="sc-lugarNac" type="text" value={form.lugarNacimiento} onChange={setField('lugarNacimiento')} className="gov-input" placeholder="Morelia" />
+                  <label className="gov-label" htmlFor="sc-entNac">Estado de nacimiento</label>
+                  <select id="sc-entNac" value={form.entidadNacimiento} onChange={setField('entidadNacimiento')} className="gov-input">
+                    <option value="">Selecciona…</option>
+                    {ESTADOS_MX.map((e) => <option key={e} value={e}>{e}</option>)}
+                  </select>
                 </div>
                 <div>
-                  <label className="gov-label" htmlFor="sc-entNac">Entidad donde nació</label>
-                  <input id="sc-entNac" type="text" value={form.entidadNacimiento} onChange={setField('entidadNacimiento')} className="gov-input" placeholder="Michoacán" />
+                  <label className="gov-label" htmlFor="sc-lugarNac">Ciudad / municipio de nacimiento</label>
+                  <input id="sc-lugarNac" type="text" value={form.lugarNacimiento} onChange={setField('lugarNacimiento')} className="gov-input" placeholder="Morelia" />
                 </div>
               </div>
 
@@ -663,9 +678,8 @@ export default function SolicitarCuenta() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <input value={form.colonia} onChange={setField('colonia')} className="gov-input" placeholder="Colonia" />
                     <input value={form.cp} onChange={setField('cp')} className="gov-input" placeholder="Código postal" />
-                    <input value={form.ciudad} onChange={setField('ciudad')} className="gov-input" placeholder="Ciudad" />
-                    <input value={form.estadoDomicilio} onChange={setField('estadoDomicilio')} className="gov-input" placeholder="Estado" />
                   </div>
+                  <p className="text-[11px] text-stone-400">La colonia debe corresponder al municipio que selecciones abajo.</p>
                 </div>
               </div>
 
