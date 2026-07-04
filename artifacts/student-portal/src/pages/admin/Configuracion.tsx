@@ -56,8 +56,6 @@ const NAV_GROUPS: {
   {
     label: 'SISTEMA',
     items: [
-      { id: 'integraciones', label: 'Integraciones', icon: Share2 },
-      { id: 'depuracion', label: 'Depuración de cuentas', icon: Trash2 },
       { id: 'acerca-de', label: 'Acerca de EDUMICH', icon: Info },
     ],
   },
