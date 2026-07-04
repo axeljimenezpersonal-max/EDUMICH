@@ -710,6 +710,8 @@ export const solicitudesCuenta = pgTable('solicitudes_cuenta', {
   justificacion: text('justificacion'),
   modalidadPreferida: modalidadPreferidaEnum('modalidad_preferida'),
   disponibilidad: varchar('disponibilidad', { length: 200 }),
+  // El solicitante pidió que le enviemos información de gestores disponibles.
+  quiereInfoGestores: boolean('quiere_info_gestores').notNull().default(false),
   emailVerificado: boolean('email_verificado').notNull().default(false),
   estado: solicitudEstadoEnum('estado').notNull().default('pendiente'),
   procesadaPorUserId: integer('procesada_por_user_id').references(() => users.id),

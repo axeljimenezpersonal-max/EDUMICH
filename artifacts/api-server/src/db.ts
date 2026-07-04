@@ -49,6 +49,8 @@ const migrations = [
      WHERE folio_preregistro LIKE 'PRE-%MICH-%'`,
   // Correo de solicitud rechazada (outbox).
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'solicitud_rechazada'`,
+  // Solicitud de cuenta: preferencia de gestor.
+  `ALTER TABLE solicitudes_cuenta ADD COLUMN IF NOT EXISTS quiere_info_gestores boolean NOT NULL DEFAULT false`,
   // Chat con la Secretaría: nuevo tipo de notificación + tablas.
   `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'chat_mensaje'`,
   `CREATE TABLE IF NOT EXISTS chat_conversaciones (

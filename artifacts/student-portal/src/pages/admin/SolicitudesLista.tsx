@@ -25,6 +25,7 @@ type Solicitud = {
   anioUltimoNivel: number | null;
   justificacion: string | null;
   modalidadPreferida: 'con_gestor' | 'auto_gestion' | null;
+  quiereInfoGestores?: boolean;
   disponibilidad: string | null;
   estado: 'pendiente' | 'aprobada' | 'rechazada';
   procesadaEn: string | null;
@@ -282,13 +283,31 @@ function SolicitudDrawer({
           </div>
         )}
 
-        {/* Detalle de solicitud */}
-        {solicitud.disponibilidad && (
+        {/* Acompañamiento / preferencia de gestor */}
+        {(solicitud.modalidadPreferida || solicitud.quiereInfoGestores || solicitud.disponibilidad) && (
           <div className="mb-4">
             <div className="text-[10px] uppercase tracking-widest font-bold mb-3" style={{ color: '#6b635e' }}>
-              DETALLE DE SOLICITUD
+              ACOMPAÑAMIENTO
             </div>
-            <FieldRow icon={<Clock size={13} />} label="Disponibilidad" value={solicitud.disponibilidad} />
+            {solicitud.modalidadPreferida && (
+              <FieldRow
+                icon={<User size={13} />}
+                label="¿Viene por parte de un gestor?"
+                value={solicitud.modalidadPreferida === 'con_gestor' ? 'Sí, un gestor lo apoya' : 'No, por su cuenta'}
+              />
+            )}
+            {solicitud.quiereInfoGestores && (
+              <div className="flex items-center gap-2 py-1.5">
+                <span className="flex-shrink-0" style={{ color: '#6b635e' }}><Mail size={13} /></span>
+                <span className="text-xs" style={{ color: '#6b635e' }}>Info de gestores</span>
+                <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full" style={{ background: '#dbeafe', color: '#1e40af' }}>
+                  Solicitó que se le envíe
+                </span>
+              </div>
+            )}
+            {solicitud.disponibilidad && (
+              <FieldRow icon={<Clock size={13} />} label="Disponibilidad" value={solicitud.disponibilidad} />
+            )}
           </div>
         )}
 

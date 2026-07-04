@@ -599,6 +599,8 @@ const solicitudSchema = z.object({
   telefono: z.string().min(7).max(30),
   municipioId: z.number().int().positive(),
   mensaje: z.string().optional(),
+  modalidadPreferida: z.enum(['con_gestor', 'auto_gestion']).optional(),
+  quiereInfoGestores: z.boolean().optional(),
   ...camposDesglosados,
 });
 
@@ -663,6 +665,8 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     estadoDomicilio: data.estadoDomicilio,
     municipioId: data.municipioId,
     mensaje: data.mensaje ?? null,
+    modalidadPreferida: data.modalidadPreferida ?? null,
+    quiereInfoGestores: data.quiereInfoGestores ?? false,
     emailVerificado: true,
     estado: 'pendiente',
   });

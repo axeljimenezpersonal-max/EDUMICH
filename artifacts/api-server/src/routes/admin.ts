@@ -2814,7 +2814,7 @@ router.get('/solicitudes', async (req, res) => {
       telefono: string; fecha_nacimiento: string; municipio_id: number; municipio_nombre: string | null;
       ultimo_nivel_cursado: string | null; anio_ultimo_nivel: number | null;
       justificacion: string | null; mensaje: string | null;
-      modalidad_preferida: string | null; disponibilidad: string | null;
+      modalidad_preferida: string | null; disponibilidad: string | null; quiere_info_gestores: boolean | null;
       estado: string; procesada_por_user_id: number | null; procesada_en: Date | null;
       procesada_por_nombre: string | null;
       gestor_asignado_id: number | null; gestor_asignado_nombre: string | null;
@@ -2847,7 +2847,7 @@ router.get('/solicitudes', async (req, res) => {
           sc.fecha_nacimiento::text, sc.municipio_id, m.nombre AS municipio_nombre,
           sc.ultimo_nivel_cursado, sc.anio_ultimo_nivel,
           sc.justificacion, sc.mensaje,
-          sc.modalidad_preferida, sc.disponibilidad,
+          sc.modalidad_preferida, sc.disponibilidad, sc.quiere_info_gestores,
           sc.estado, sc.procesada_por_user_id, sc.procesada_en,
           upro.nombre_completo AS procesada_por_nombre,
           sc.gestor_asignado_id, g.nombre_completo AS gestor_asignado_nombre,
@@ -2914,6 +2914,7 @@ router.get('/solicitudes', async (req, res) => {
         anioUltimoNivel: r.anio_ultimo_nivel,
         justificacion: r.justificacion ?? r.mensaje,
         modalidadPreferida: r.modalidad_preferida,
+        quiereInfoGestores: r.quiere_info_gestores ?? false,
         disponibilidad: r.disponibilidad,
         estado: r.estado,
         procesadaPorUserId: r.procesada_por_user_id,
@@ -2966,7 +2967,7 @@ router.get('/solicitudes/:solicitudId', async (req, res) => {
       telefono: string; fecha_nacimiento: string; municipio_id: number; municipio_nombre: string | null;
       ultimo_nivel_cursado: string | null; anio_ultimo_nivel: number | null;
       justificacion: string | null; mensaje: string | null;
-      modalidad_preferida: string | null; disponibilidad: string | null;
+      modalidad_preferida: string | null; disponibilidad: string | null; quiere_info_gestores: boolean | null;
       estado: string; procesada_por_user_id: number | null; procesada_en: Date | null;
       procesada_por_nombre: string | null;
       gestor_asignado_id: number | null; gestor_asignado_nombre: string | null;

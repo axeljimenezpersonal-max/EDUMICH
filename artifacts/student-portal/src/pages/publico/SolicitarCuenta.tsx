@@ -119,6 +119,8 @@ export default function SolicitarCuenta() {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
   const [aceptaAviso, setAceptaAviso] = useState(false);
+  const [modalidadPreferida, setModalidadPreferida] = useState<'con_gestor' | 'auto_gestion' | ''>('');
+  const [quiereInfoGestores, setQuiereInfoGestores] = useState(false);
 
   // Verificación de código
   const [codigoDev, setCodigoDev] = useState<string | null>(null);
@@ -308,6 +310,8 @@ export default function SolicitarCuenta() {
         estadoDomicilio: form.estadoDomicilio || undefined,
         municipioId: Number(form.municipioId),
         mensaje: form.mensaje || undefined,
+        modalidadPreferida: modalidadPreferida || undefined,
+        quiereInfoGestores,
       });
       setFase('exito');
     } catch (err) {
@@ -712,6 +716,54 @@ export default function SolicitarCuenta() {
                   className="gov-input"
                   placeholder="443 000 0000"
                 />
+              </div>
+
+              {/* Acompañamiento por gestor */}
+              <div className="rounded-lg border border-stone-200 bg-[var(--color-crema-100)] p-4">
+                <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--color-guinda-700)] mb-2">
+                  <User size={12} /> Acompañamiento
+                </div>
+                <label className="gov-label">¿Vienes por parte de un gestor?</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
+                  {([
+                    ['con_gestor', 'Sí, un gestor me apoya', 'Un gestor municipal me está ayudando con el trámite.'],
+                    ['auto_gestion', 'No, vengo por mi cuenta', 'Haré mi proceso de forma independiente.'],
+                  ] as const).map(([val, titulo, desc]) => {
+                    const activo = modalidadPreferida === val;
+                    return (
+                      <button
+                        type="button"
+                        key={val}
+                        onClick={() => setModalidadPreferida(val)}
+                        className="text-left rounded-lg border p-3 transition-colors"
+                        style={activo
+                          ? { borderColor: 'var(--color-guinda-700)', background: '#fff', boxShadow: '0 0 0 1px var(--color-guinda-700)' }
+                          : { borderColor: '#e7e2da', background: '#fff' }}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="flex h-4 w-4 items-center justify-center rounded-full border-2" style={{ borderColor: activo ? 'var(--color-guinda-700)' : '#cbc3b8' }}>
+                            {activo && <span className="h-2 w-2 rounded-full" style={{ background: 'var(--color-guinda-700)' }} />}
+                          </span>
+                          <span className="text-sm font-semibold text-stone-800">{titulo}</span>
+                        </div>
+                        <div className="mt-1 pl-6 text-[11px] text-stone-500">{desc}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <label className="mt-3 flex items-start gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={quiereInfoGestores}
+                    onChange={(e) => setQuiereInfoGestores(e.target.checked)}
+                    className="mt-0.5 shrink-0 accent-[var(--color-guinda-700)]"
+                  />
+                  <span className="text-xs text-stone-700 leading-snug">
+                    Me gustaría que me envíen <strong>información de gestores disponibles</strong> en mi municipio
+                    que pueden apoyarme con mi trámite.
+                  </span>
+                </label>
               </div>
 
               <div>
