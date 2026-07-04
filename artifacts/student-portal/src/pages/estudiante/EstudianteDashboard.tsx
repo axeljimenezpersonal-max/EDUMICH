@@ -23,9 +23,14 @@ import {
   BadgeCheck,
   MapPin,
   CalendarCheck,
+  Sparkles,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { api, type DashboardEstudiante, type Aviso, type ContactosResponse, type ExamenInscritoDashboard } from '../../lib/api';
+import { Tour } from '../../components/tour/Tour';
+import { ESTUDIANTE_TOUR } from '../../components/tour/estudianteTour';
+
+const TOUR_KEY = 'edumich_tour_estudiante_v1';
 
 interface AnuncioItem {
   id: number;
@@ -107,6 +112,7 @@ export default function EstudianteDashboard() {
   const [loading, setLoading] = useState(true);
   const [anuncios, setAnuncios] = useState<AnuncioItem[]>([]);
   const [closedAnuncioIds, setClosedAnuncioIds] = useState<Set<number>>(new Set());
+  const [tourAbierto, setTourAbierto] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -126,6 +132,19 @@ export default function EstudianteDashboard() {
       .then(r => setAnuncios(r.anuncios.filter(a => !a.yaVisto)))
       .catch(console.error);
   }, []);
+
+  // Auto-inicia el tour la primera vez que el alumno llega a su panel.
+  useEffect(() => {
+    // Auto-inicio solo en desktop la primera vez (el tour resalta el menú lateral).
+    if (loading || !data || localStorage.getItem(TOUR_KEY) || window.innerWidth < 768) return;
+    const t = setTimeout(() => setTourAbierto(true), 600);
+    return () => clearTimeout(t);
+  }, [loading, data]);
+
+  function cerrarTour() {
+    setTourAbierto(false);
+    localStorage.setItem(TOUR_KEY, '1');
+  }
 
   function cerrarAnuncio(id: number) {
     setClosedAnuncioIds(prev => new Set(prev).add(id));
@@ -171,6 +190,7 @@ export default function EstudianteDashboard() {
 
   return (
     <EstudianteLayout>
+      {tourAbierto && <Tour steps={ESTUDIANTE_TOUR} onClose={cerrarTour} />}
       <div className="space-y-6">
         {/* Banners de anuncios institucionales */}
         {visibleAnuncios.map(a => {
@@ -494,15 +514,25 @@ export default function EstudianteDashboard() {
         )}
 
         {/* Saludo */}
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">
-            Hola, {primerNombre}
-          </h1>
-          <p className="text-stone-500 text-sm mt-0.5">
-            {data.estudiante.municipio
-              ? `Municipio: ${data.estudiante.municipio}`
-              : data.estudiante.email}
-          </p>
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <h1 className="font-serif text-2xl font-bold text-stone-900">
+              Hola, {primerNombre}
+            </h1>
+            <p className="text-stone-500 text-sm mt-0.5">
+              {data.estudiante.municipio
+                ? `Municipio: ${data.estudiante.municipio}`
+                : data.estudiante.email}
+            </p>
+          </div>
+          <button
+            data-tour="btn-tutorial"
+            onClick={() => setTourAbierto(true)}
+            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
+            style={{ color: 'var(--color-guinda-700)' }}
+          >
+            <Sparkles size={14} /> Ver tutorial
+          </button>
         </div>
 
         {/* Estado de inscripción + siguientes pasos */}

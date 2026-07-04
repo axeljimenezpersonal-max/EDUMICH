@@ -6,13 +6,13 @@ import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
 
 const NAV = [
-  { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
-  { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen },
-  { to: '/estudiante/cedula', label: 'Cédula', icon: ClipboardList },
-  { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar },
-  { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen },
-  { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck },
-  { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare },
+  { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
+  { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen, tour: 'nav-expediente' },
+  { to: '/estudiante/cedula', label: 'Cédula', icon: ClipboardList, tour: 'nav-cedula' },
+  { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
+  { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen, tour: 'nav-modulos' },
+  { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
+  { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
 ];
 
 export function EstudianteLayout({ children }: { children: ReactNode }) {
@@ -69,6 +69,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
                   <li key={item.to}>
                     <Link
                       href={item.to}
+                      data-tour={item.tour}
                       className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
                         active
                           ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
