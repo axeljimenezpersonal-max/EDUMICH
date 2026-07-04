@@ -236,7 +236,7 @@ export default function MiCuenta({ onDirty, registerSave, registerDiscard }: Pro
                     label="Nombre completo *"
                     value={cuenta.nombreCompleto}
                     onChange={(v) => setCuentaField('nombreCompleto', v)}
-                    placeholder="Ej. María López Hernández"
+                    placeholder="Ej. José María Morelos y Pavón"
                     bloqueado={bloqNombre}
                   />
                 </div>
@@ -254,7 +254,7 @@ export default function MiCuenta({ onDirty, registerSave, registerDiscard }: Pro
                   type="tel"
                   value={cuenta.telefono}
                   onChange={(v) => setCuentaField('telefono', v)}
-                  placeholder="443-123-4567"
+                  placeholder="+52 443 123 4567"
                   bloqueado={bloqTel}
                 />
                 <div className="md:col-span-2">

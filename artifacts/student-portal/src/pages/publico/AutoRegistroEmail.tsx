@@ -58,7 +58,7 @@ export default function AutoRegistroEmail() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="ejemplo@correo.com"
+              placeholder="jose.morelos@ejemplo.com"
               className="gov-input"
             />
           </div>

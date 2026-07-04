@@ -534,7 +534,7 @@ export default function NuevoAlumno() {
                 value={datos.nombres}
                 onChange={(e) => setDatos((d) => ({ ...d, nombres: e.target.value }))}
                 className="gov-input"
-                placeholder="Ej. Axel Eduardo"
+                placeholder="Ej. José María"
               />
             </div>
             <div>
@@ -546,7 +546,7 @@ export default function NuevoAlumno() {
                 value={datos.apellidoPaterno}
                 onChange={(e) => setDatos((d) => ({ ...d, apellidoPaterno: e.target.value }))}
                 className="gov-input"
-                placeholder="Ej. González"
+                placeholder="Ej. Morelos"
               />
             </div>
             <div>
@@ -558,7 +558,7 @@ export default function NuevoAlumno() {
                 value={datos.apellidoMaterno}
                 onChange={(e) => setDatos((d) => ({ ...d, apellidoMaterno: e.target.value }))}
                 className="gov-input"
-                placeholder="Ej. Pérez"
+                placeholder="Ej. Pavón"
               />
             </div>
           </div>
@@ -626,7 +626,7 @@ export default function NuevoAlumno() {
                   if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
                 }}
                 className={`gov-input ${fieldErrors.email ? 'border-red-500 focus:ring-red-400' : ''}`}
-                placeholder="alumno@correo.com"
+                placeholder="jose.morelos@ejemplo.com"
               />
               {fieldErrors.email && (
                 <div className="flex items-center gap-1.5 text-xs text-red-700 mt-1">
@@ -644,7 +644,7 @@ export default function NuevoAlumno() {
                 value={datos.telefono}
                 onChange={(e) => setDatos((d) => ({ ...d, telefono: e.target.value }))}
                 className="gov-input"
-                placeholder="434-123-4567"
+                placeholder="+52 443 123 4567"
               />
             </div>
           </div>

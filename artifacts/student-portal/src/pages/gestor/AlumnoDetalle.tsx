@@ -1585,7 +1585,7 @@ function EditarAlumnoModal({
               value={curp}
               onChange={(e) => { setCurp(e.target.value.toUpperCase()); clearError('curp'); }}
               maxLength={18}
-              placeholder="18 caracteres"
+              placeholder="Ej. MOPJ650930HMNRVS09"
               className={`${inputCls('curp')} font-mono`}
             />
             {errors.curp && (

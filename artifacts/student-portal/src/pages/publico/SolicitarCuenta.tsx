@@ -590,15 +590,15 @@ export default function SolicitarCuenta() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="gov-label" htmlFor="sc-nombres">Nombre(s) *</label>
-                  <input id="sc-nombres" type="text" value={form.nombres} onChange={setField('nombres')} className="gov-input" placeholder="Axel Eduardo" />
+                  <input id="sc-nombres" type="text" value={form.nombres} onChange={setField('nombres')} className="gov-input" placeholder="José María" />
                 </div>
                 <div>
                   <label className="gov-label" htmlFor="sc-apP">Apellido paterno *</label>
-                  <input id="sc-apP" type="text" value={form.apellidoPaterno} onChange={setField('apellidoPaterno')} className="gov-input" placeholder="González" />
+                  <input id="sc-apP" type="text" value={form.apellidoPaterno} onChange={setField('apellidoPaterno')} className="gov-input" placeholder="Morelos" />
                 </div>
                 <div>
                   <label className="gov-label" htmlFor="sc-apM">Apellido materno *</label>
-                  <input id="sc-apM" type="text" value={form.apellidoMaterno} onChange={setField('apellidoMaterno')} className="gov-input" placeholder="Pérez" />
+                  <input id="sc-apM" type="text" value={form.apellidoMaterno} onChange={setField('apellidoMaterno')} className="gov-input" placeholder="Pavón" />
                 </div>
               </div>
 
@@ -637,7 +637,7 @@ export default function SolicitarCuenta() {
                       setForm((p) => ({ ...p, curp: e.target.value.toUpperCase() }))
                     }
                     className="gov-input font-mono text-sm"
-                    placeholder="18 caracteres"
+                    placeholder="Ej. MOPJ650930HMNRVS09"
                   />
                   <div className="text-[10px] text-stone-400 mt-0.5">{form.curp.length}/18</div>
                   <CurpHelpLink />
@@ -732,7 +732,7 @@ export default function SolicitarCuenta() {
                   value={form.email}
                   onChange={setField('email')}
                   className="gov-input"
-                  placeholder="tucorreo@ejemplo.com"
+                  placeholder="jose.morelos@ejemplo.com"
                 />
                 <div className="text-[11px] text-stone-400 mt-1">
                   Te enviaremos un código para verificar que es tuyo.
@@ -747,7 +747,7 @@ export default function SolicitarCuenta() {
                   value={form.telefono}
                   onChange={setField('telefono')}
                   className="gov-input"
-                  placeholder="443 000 0000"
+                  placeholder="+52 443 123 4567"
                 />
               </div>
 

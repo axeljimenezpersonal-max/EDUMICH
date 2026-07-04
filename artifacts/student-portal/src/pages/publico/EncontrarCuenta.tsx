@@ -169,7 +169,7 @@ export default function EncontrarCuenta() {
                 value={curp}
                 onChange={(e) => setCurp(e.target.value.toUpperCase())}
                 className="gov-input font-mono text-sm"
-                placeholder="18 caracteres"
+                placeholder="Ej. MOPJ650930HMNRVS09"
               />
               <div className="text-[10px] text-stone-400 mt-0.5">{curp.length}/18</div>
               <CurpHelpLink />
@@ -178,16 +178,16 @@ export default function EncontrarCuenta() {
             <>
               <div>
                 <label className="gov-label" htmlFor="ec-nombres">Nombre(s)</label>
-                <input id="ec-nombres" type="text" value={nombres} onChange={(e) => setNombres(e.target.value)} className="gov-input" placeholder="Axel Eduardo" />
+                <input id="ec-nombres" type="text" value={nombres} onChange={(e) => setNombres(e.target.value)} className="gov-input" placeholder="José María" />
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="gov-label" htmlFor="ec-apP">Apellido paterno</label>
-                  <input id="ec-apP" type="text" value={apellidoPaterno} onChange={(e) => setApellidoPaterno(e.target.value)} className="gov-input" placeholder="González" />
+                  <input id="ec-apP" type="text" value={apellidoPaterno} onChange={(e) => setApellidoPaterno(e.target.value)} className="gov-input" placeholder="Morelos" />
                 </div>
                 <div>
                   <label className="gov-label" htmlFor="ec-apM">Apellido materno (opcional)</label>
-                  <input id="ec-apM" type="text" value={apellidoMaterno} onChange={(e) => setApellidoMaterno(e.target.value)} className="gov-input" placeholder="Pérez" />
+                  <input id="ec-apM" type="text" value={apellidoMaterno} onChange={(e) => setApellidoMaterno(e.target.value)} className="gov-input" placeholder="Pavón" />
                 </div>
               </div>
             </>
@@ -326,7 +326,7 @@ export default function EncontrarCuenta() {
             >
               <Phone size={13} style={{ color: 'var(--color-guinda-700)', flexShrink: 0 }} />
               <span className="text-[12.5px] font-medium text-stone-800">
-                {contacto?.telefono ?? '443-322-9250'}
+                {contacto?.telefono ?? '+52 443 322 9250'}
               </span>
             </div>
           </div>

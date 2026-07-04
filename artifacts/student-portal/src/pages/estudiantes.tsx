@@ -153,7 +153,7 @@ export default function Estudiantes() {
                   <FormField control={form.control} name="lastName" render={({ field }) => (
                     <FormItem>
                       <FormLabel>Apellidos</FormLabel>
-                      <FormControl><Input placeholder="González López" {...field} data-testid="input-last-name" /></FormControl>
+                      <FormControl><Input placeholder="Morelos Pavón" {...field} data-testid="input-last-name" /></FormControl>
                       <FormMessage />
                     </FormItem>
                   )} />

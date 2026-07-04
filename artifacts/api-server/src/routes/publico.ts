@@ -70,10 +70,9 @@ async function curpOcupada(curp: string): Promise<string | null> {
 }
 
 // ─── Buscar cuenta ("no recuerdo si tengo cuenta") ────────────────────────
-// Política híbrida de privacidad:
-//  · Búsqueda por CURP (exacta, 18 chars — difícil de adivinar) → correo completo.
-//  · Búsqueda por nombre → correo ENMASCARADO + token firmado para disparar
-//    la recuperación sin revelar el correo (evita cosechar emails por nombre).
+// Privacidad: el correo SIEMPRE se devuelve enmascarado (por CURP o por nombre).
+// La recuperación se dispara con un token firmado, sin revelar el correo completo
+// (evita cosechar emails aunque alguien tenga la CURP o el nombre).
 const buscarCuentaLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -274,13 +273,13 @@ router.get('/contacto', async (_req, res) => {
     res.json({
       nombre: datos?.nombre || datos?.nombreOficial || 'Coordinación de Preparatoria Abierta Michoacán',
       correo: datos?.correo || 'contacto@michoacan.gob.mx',
-      telefono: datos?.telefono || '443-322-9250',
+      telefono: datos?.telefono || '+52 443 322 9250',
     });
   } catch {
     res.json({
       nombre: 'Coordinación de Preparatoria Abierta Michoacán',
       correo: 'contacto@michoacan.gob.mx',
-      telefono: '443-322-9250',
+      telefono: '+52 443 322 9250',
     });
   }
 });

@@ -126,15 +126,15 @@ export default function AutoRegistroDatos() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="gov-label" htmlFor="nombres">Nombre(s)</label>
-              <input id="nombres" type="text" required value={form.nombres} onChange={set('nombres')} className="gov-input" autoComplete="given-name" placeholder="Axel Eduardo" />
+              <input id="nombres" type="text" required value={form.nombres} onChange={set('nombres')} className="gov-input" autoComplete="given-name" placeholder="José María" />
             </div>
             <div>
               <label className="gov-label" htmlFor="apP">Apellido paterno</label>
-              <input id="apP" type="text" required value={form.apellidoPaterno} onChange={set('apellidoPaterno')} className="gov-input" placeholder="González" />
+              <input id="apP" type="text" required value={form.apellidoPaterno} onChange={set('apellidoPaterno')} className="gov-input" placeholder="Morelos" />
             </div>
             <div>
               <label className="gov-label" htmlFor="apM">Apellido materno</label>
-              <input id="apM" type="text" value={form.apellidoMaterno} onChange={set('apellidoMaterno')} className="gov-input" placeholder="Pérez" />
+              <input id="apM" type="text" value={form.apellidoMaterno} onChange={set('apellidoMaterno')} className="gov-input" placeholder="Pavón" />
             </div>
           </div>
 
@@ -161,7 +161,7 @@ export default function AutoRegistroDatos() {
                 value={form.telefono}
                 onChange={set('telefono')}
                 className="gov-input"
-                placeholder="442-100-0000"
+                placeholder="+52 443 123 4567"
               />
             </div>
           </div>
