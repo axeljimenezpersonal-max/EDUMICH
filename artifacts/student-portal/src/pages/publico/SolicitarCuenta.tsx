@@ -9,6 +9,7 @@ import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api } from '../../lib/api';
+import { MUNICIPIOS_POR_ESTADO } from '../../data/municipiosMexico';
 
 interface Municipio {
   id: number;
@@ -660,14 +661,32 @@ export default function SolicitarCuenta() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="gov-label" htmlFor="sc-entNac">Estado de nacimiento</label>
-                  <select id="sc-entNac" value={form.entidadNacimiento} onChange={setField('entidadNacimiento')} className="gov-input">
+                  <select
+                    id="sc-entNac"
+                    value={form.entidadNacimiento}
+                    onChange={(e) => setForm((p) => ({ ...p, entidadNacimiento: e.target.value, lugarNacimiento: '' }))}
+                    className="gov-input"
+                  >
                     <option value="">Selecciona…</option>
                     {ESTADOS_MX.map((e) => <option key={e} value={e}>{e}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="gov-label" htmlFor="sc-lugarNac">Ciudad / municipio de nacimiento</label>
-                  <input id="sc-lugarNac" type="text" value={form.lugarNacimiento} onChange={setField('lugarNacimiento')} className="gov-input" placeholder="Morelia" />
+                  <label className="gov-label" htmlFor="sc-lugarNac">Municipio de nacimiento</label>
+                  <select
+                    id="sc-lugarNac"
+                    value={form.lugarNacimiento}
+                    onChange={setField('lugarNacimiento')}
+                    className="gov-input disabled:opacity-60"
+                    disabled={!form.entidadNacimiento}
+                  >
+                    <option value="">
+                      {form.entidadNacimiento ? 'Selecciona…' : 'Elige primero el estado'}
+                    </option>
+                    {(MUNICIPIOS_POR_ESTADO[form.entidadNacimiento] ?? []).map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
