@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react';
 import { LogOut, User, Bell, ChevronRight, X, Check } from 'lucide-react';
 import { api } from '../lib/api';
 import { safeUrl } from '../lib/safeUrl';
+import { BrandLogo } from './BrandLogo';
 
 interface Props {
   userName?: string;
@@ -257,8 +258,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
         <div className="flex items-center gap-5">
           {/* Logo izquierdo: escudo Gobierno de Michoacán */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <img
-              src="/logo-see-michoacan-256.png"
+            <BrandLogo
               alt="Secretaría de Educación de Michoacán"
               className="brand-logo-img flex-shrink-0 w-8 h-8 sm:w-14 sm:h-14"
             />
