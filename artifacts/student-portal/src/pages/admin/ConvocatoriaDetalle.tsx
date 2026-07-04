@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useRoute } from 'wouter';
+import { useRoute, Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 import {
@@ -275,38 +275,18 @@ export default function ConvocatoriaDetalle() {
             />
           </div>
 
-          {/* Tabs */}
-          <div className="flex gap-0 border-b border-stone-200 mb-5">
-            {(['inscritos', 'resultados'] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className="px-5 py-2.5 text-sm font-semibold border-b-2 transition-colors capitalize"
-                style={{
-                  borderBottomColor: tab === t ? 'var(--color-guinda-700)' : 'transparent',
-                  color: tab === t ? 'var(--color-guinda-700)' : '#6b635e',
-                  background: 'none',
-                  cursor: 'pointer',
-                }}
-              >
-                {t === 'inscritos' ? 'Lista de inscritos' : 'Resultados por módulo'}
-                {t === 'inscritos' && data.stats.totalInscritos > 0 && (
-                  <span
-                    className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                    style={{
-                      background: tab === 'inscritos' ? 'var(--color-guinda-700)' : '#eadfd7',
-                      color: tab === 'inscritos' ? 'white' : '#443e39',
-                    }}
-                  >
-                    {data.stats.totalInscritos}
-                  </span>
-                )}
-              </button>
-            ))}
+          {/* Encabezado de la lista */}
+          <div className="flex items-center gap-2 border-b border-stone-200 mb-5 pb-2.5">
+            <h2 className="text-sm font-bold" style={{ color: 'var(--color-guinda-700)' }}>Lista de inscritos</h2>
+            {data.stats.totalInscritos > 0 && (
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: 'var(--color-guinda-700)' }}>
+                {data.stats.totalInscritos}
+              </span>
+            )}
           </div>
 
-          {/* ── Tab: Inscritos ── */}
-          {tab === 'inscritos' && (
+          {/* ── Lista de inscritos ── */}
+          {(
             <>
               {/* Search */}
               <div className="relative mb-4" style={{ maxWidth: 360 }}>
@@ -475,6 +455,15 @@ export default function ConvocatoriaDetalle() {
                                 );
                               })}
                             </div>
+                            <div className="mt-2.5">
+                              <Link
+                                href={`/admin/alumnos/${insc.estudianteId}`}
+                                className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-200 bg-white hover:bg-stone-50"
+                                style={{ color: 'var(--color-guinda-700)' }}
+                              >
+                                Ver expediente del alumno <ChevronRight size={12} />
+                              </Link>
+                            </div>
                           </div>
                         )}
                       </div>
@@ -485,115 +474,6 @@ export default function ConvocatoriaDetalle() {
             </>
           )}
 
-          {/* ── Tab: Resultados ── */}
-          {tab === 'resultados' && (
-            <>
-              {resultadosPorModulo.length === 0 ? (
-                <div
-                  className="bg-white border border-stone-200 rounded-xl flex items-center justify-center py-16 text-sm"
-                  style={{ color: '#6b635e' }}
-                >
-                  Sin datos de resultados para esta etapa
-                </div>
-              ) : (
-                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-                  {/* Header */}
-                  <div
-                    className="grid text-[11px] font-semibold uppercase tracking-wide px-5 py-2.5 border-b border-stone-100"
-                    style={{
-                      gridTemplateColumns: '40px 1fr 80px 90px 90px 90px 120px',
-                      gap: 12,
-                      background: '#fafaf9',
-                      color: '#6b635e',
-                    }}
-                  >
-                    <span>Mód.</span>
-                    <span>Nombre</span>
-                    <span>Total</span>
-                    <span>Aprobados</span>
-                    <span>Reprobados</span>
-                    <span>Pendientes</span>
-                    <span>Promedio</span>
-                  </div>
-
-                  {resultadosPorModulo.map((r) => {
-                    const aprobadoPct = r.total > 0 ? Math.round((r.aprobados / r.total) * 100) : 0;
-                    return (
-                      <div
-                        key={r.numero}
-                        className="grid items-center px-5 py-3 border-b border-stone-50 last:border-b-0 hover:bg-stone-50 transition-colors"
-                        style={{ gridTemplateColumns: '40px 1fr 80px 90px 90px 90px 120px', gap: 12 }}
-                      >
-                        <span
-                          className="w-7 h-7 rounded-lg flex items-center justify-center text-[11px] font-bold"
-                          style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
-                        >
-                          {r.numero}
-                        </span>
-                        <span className="text-[13px] font-medium" style={{ color: '#2a2a2a' }}>
-                          {r.nombre}
-                        </span>
-                        <span className="text-sm font-bold" style={{ color: '#443e39', fontFamily: "'Poppins', sans-serif" }}>
-                          {r.total}
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className="text-[11px] font-bold px-2 py-0.5 rounded-full"
-                            style={{ background: '#d1fae5', color: '#065f46' }}
-                          >
-                            {r.aprobados}
-                          </span>
-                          {r.aprobados > 0 && (
-                            <span className="text-[10px]" style={{ color: '#6b635e' }}>{aprobadoPct}%</span>
-                          )}
-                        </div>
-                        <span
-                          className="text-[11px] font-bold px-2 py-0.5 rounded-full w-fit"
-                          style={{ background: r.reprobados > 0 ? '#fee2e2' : '#f7f2ed', color: r.reprobados > 0 ? '#991b1b' : '#6b635e' }}
-                        >
-                          {r.reprobados}
-                        </span>
-                        <span
-                          className="text-[11px] font-bold px-2 py-0.5 rounded-full w-fit"
-                          style={{ background: r.pendientes > 0 ? '#fef9c3' : '#f7f2ed', color: r.pendientes > 0 ? '#92400e' : '#6b635e' }}
-                        >
-                          {r.pendientes}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          {r.promedio !== null ? (
-                            <>
-                              <span
-                                className="text-sm font-bold"
-                                style={{
-                                  fontFamily: "'Poppins', sans-serif",
-                                  color: r.promedio >= 70 ? '#059669' : '#dc2626',
-                                }}
-                              >
-                                {r.promedio}
-                              </span>
-                              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: '#f7f2ed', maxWidth: 48 }}>
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{
-                                    width: `${Math.min(100, r.promedio)}%`,
-                                    background: r.promedio >= 70
-                                      ? 'linear-gradient(to right, #059669, #34d399)'
-                                      : 'linear-gradient(to right, #dc2626, #f87171)',
-                                  }}
-                                />
-                              </div>
-                            </>
-                          ) : (
-                            <span className="text-xs" style={{ color: '#ddd0c5' }}>—</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
         </>
       )}
     </AdminLayout>
