@@ -141,6 +141,8 @@ export interface AlumnoListItem {
   obligTotal: number;
   opcionalesFaltantes: number;
   estadoProceso: 'documento_rechazado' | 'faltan_documentos' | 'listo_inscribir' | 'pago_pendiente' | 'al_corriente';
+  modulosPorPagar: number;
+  modulosInscritos: number;
 }
 
 export interface DocumentoItem {

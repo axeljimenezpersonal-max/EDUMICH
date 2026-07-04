@@ -33,6 +33,7 @@ import {
   modulos,
   inscripcionModulos,
   examenesInscripciones,
+  pagosExamen,
   pagosExamenInscripciones,
   convocatoriasEtapas,
   convocatoriasModulosHorarios,
@@ -222,12 +223,14 @@ router.get('/alumnos', async (req, res) => {
       const examInscritos = Number((examRes.rows[0] as { inscritos?: number } | undefined)?.inscritos ?? 0);
       const examPagados = Number((examRes.rows[0] as { pagados?: number } | undefined)?.pagados ?? 0);
 
-      // Pipeline del alumno (por prioridad):
+      // Pipeline del alumno (por prioridad). "Al corriente" solo si TODOS los
+      // módulos inscritos están pagados.
+      const modulosPorPagar = Math.max(examInscritos - examPagados, 0);
       let estadoProceso: string;
       if (obligRechazados > 0) estadoProceso = 'documento_rechazado';
       else if (obligAprobados < OBLIG_LISTA.length) estadoProceso = 'faltan_documentos';
       else if (examInscritos === 0) estadoProceso = 'listo_inscribir';
-      else if (examPagados === 0) estadoProceso = 'pago_pendiente';
+      else if (modulosPorPagar > 0) estadoProceso = 'pago_pendiente';
       else estadoProceso = 'al_corriente';
 
       return {
@@ -238,6 +241,8 @@ router.get('/alumnos', async (req, res) => {
         obligTotal: OBLIG_LISTA.length,
         opcionalesFaltantes: OPCIONALES_LISTA.length - opcSubidos,
         estadoProceso,
+        modulosPorPagar,
+        modulosInscritos: examInscritos,
       };
     })
   );
@@ -1236,28 +1241,15 @@ router.delete('/alumnos/:id/examenes/:inscId', async (req, res) => {
     SELECT pe.id, pe.estado FROM pagos_examen pe
     JOIN pagos_examen_inscripciones pei ON pei.pago_examen_id = pe.id
     WHERE pei.examen_inscripcion_id = ${inscId}`);
-  if (linked.rows.some((o) => o.estado === 'pagado' || o.estado === 'en_revision')) {
-    res.status(409).json({ error: 'No se puede quitar: la orden ya está pagada o en revisión. Cancélala primero.' });
+  // Una vez que el módulo tiene una orden de pago (en cualquier estado activo),
+  // ya no se puede quitar desde aquí: primero hay que cancelar la orden.
+  if (linked.rows.length > 0) {
+    res.status(409).json({ error: 'No se puede quitar: el módulo ya tiene una orden de pago. Cancela la orden primero.' });
     return;
   }
-  const ordenIds = linked.rows.map((o) => o.id);
 
   try {
-    await db.transaction(async (tx) => {
-      if (ordenIds.length) {
-        // Recalcular cada orden afectada (baja una inscripción): monto proporcional; si queda en 0, se cancela.
-        await tx.execute(sql`
-          UPDATE pagos_examen SET
-            cantidad_examenes = GREATEST(cantidad_examenes - 1, 0),
-            monto_total   = ROUND(monto_total   * (GREATEST(cantidad_examenes - 1, 0))::numeric / NULLIF(cantidad_examenes,0), 2),
-            monto_iemsys  = ROUND(monto_iemsys  * (GREATEST(cantidad_examenes - 1, 0))::numeric / NULLIF(cantidad_examenes,0), 2),
-            monto_synapsis= ROUND(monto_synapsis* (GREATEST(cantidad_examenes - 1, 0))::numeric / NULLIF(cantidad_examenes,0), 2),
-            estado = CASE WHEN cantidad_examenes - 1 <= 0 THEN 'cancelado' ELSE estado END
-          WHERE id = ANY(${sql`ARRAY[${sql.join(ordenIds.map((i) => sql`${i}`), sql`, `)}]`})`);
-      }
-      await tx.delete(pagosExamenInscripciones).where(eq(pagosExamenInscripciones.examenInscripcionId, inscId));
-      await tx.delete(examenesInscripciones).where(eq(examenesInscripciones.id, inscId));
-    });
+    await db.delete(examenesInscripciones).where(eq(examenesInscripciones.id, inscId));
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo quitar el módulo' });
@@ -1684,18 +1676,18 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     : [];
   const horariosEnriquecidosById = new Map(horariosEnriquecidos.map((h) => [h.id, h]));
 
-  // Estado de pago por examen (vía pago grupal): pagado / en_pago / sin_pagar
+  // Estado de pago por examen (vía orden de pago Tesorería): pagado / en_pago / sin_pagar
   const examIds = inscripcionesActivas.map((i) => i.id);
   const pagoInfoRows = examIds.length > 0
     ? await db
         .select({
-          examenId: pagosGrupalesExamenes.examenInscripcionId,
-          folio: pagosGrupales.folio,
-          estado: pagosGrupales.estado,
+          examenId: pagosExamenInscripciones.examenInscripcionId,
+          folio: pagosExamen.folio,
+          estado: pagosExamen.estado,
         })
-        .from(pagosGrupalesExamenes)
-        .innerJoin(pagosGrupales, eq(pagosGrupales.id, pagosGrupalesExamenes.pagoGrupalId))
-        .where(and(inArray(pagosGrupalesExamenes.examenInscripcionId, examIds), ne(pagosGrupales.estado, 'rechazado')))
+        .from(pagosExamenInscripciones)
+        .innerJoin(pagosExamen, eq(pagosExamen.id, pagosExamenInscripciones.pagoExamenId))
+        .where(and(inArray(pagosExamenInscripciones.examenInscripcionId, examIds), ne(pagosExamen.estado, 'cancelado')))
     : [];
   const pagoByExamen = new Map(pagoInfoRows.map((p) => [p.examenId, p]));
 
@@ -1706,7 +1698,7 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
     const fechaExamen = hor?.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
     const pg = pagoByExamen.get(i.id);
     const pagoEstado: 'pagado' | 'en_pago' | 'sin_pagar' = pg
-      ? pg.estado === 'verificado' ? 'pagado' : 'en_pago'
+      ? pg.estado === 'pagado' ? 'pagado' : 'en_pago'
       : 'sin_pagar';
     return {
       id: i.id,

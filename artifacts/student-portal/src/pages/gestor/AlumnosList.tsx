@@ -141,10 +141,17 @@ export default function AlumnosList() {
                     {(() => {
                       const cfg = ESTADO_PROCESO[a.estadoProceso] ?? ESTADO_PROCESO.faltan_documentos;
                       return (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
-                          {cfg.label}
-                        </span>
+                        <div>
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
+                            <span className="w-1.5 h-1.5 rounded-full" style={{ background: cfg.dot }} />
+                            {cfg.label}
+                          </span>
+                          {a.estadoProceso === 'pago_pendiente' && a.modulosPorPagar > 0 && (
+                            <div className="text-[10px] text-stone-500 mt-1 ml-0.5">
+                              Faltan {a.modulosPorPagar} de {a.modulosInscritos} módulo{a.modulosInscritos === 1 ? '' : 's'} por pagar
+                            </div>
+                          )}
+                        </div>
                       );
                     })()}
                   </td>

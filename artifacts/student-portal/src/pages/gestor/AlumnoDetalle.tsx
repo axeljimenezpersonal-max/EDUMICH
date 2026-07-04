@@ -1092,18 +1092,24 @@ function PlanDeEstudiosTab({
   // Inscritos y disponibles se muestran juntos en cada celda día×hora.
   function ModuloInscrito({ m }: { m: ModDisp }) {
     const ins = inscPorModulo.get(m.id);
-    const puedeQuitar = ins && (ins.pagoEstado === 'sin_pagar' || !ins.pagoEstado);
+    const estado = ins?.pagoEstado ?? 'sin_pagar';
+    const puedeQuitar = estado === 'sin_pagar';
+    const cfg = estado === 'pagado'
+      ? { card: 'border-emerald-200 bg-emerald-50/70', icon: 'text-emerald-600', label: 'text-emerald-700', text: '✓ Inscrito · Pagado' }
+      : estado === 'en_pago'
+        ? { card: 'border-blue-200 bg-blue-50/60', icon: 'text-blue-600', label: 'text-blue-700', text: 'En orden de pago' }
+        : { card: 'border-stone-200 bg-stone-50/70', icon: 'text-stone-500', label: 'text-stone-600', text: '✓ Ya inscrito' };
     return (
-      <div className="flex items-start gap-2.5 p-2.5 rounded-lg border border-blue-200 bg-blue-50/60 select-none">
-        <CheckCircle2 size={16} className="shrink-0 mt-0.5 text-blue-600" />
+      <div className={`flex items-start gap-2.5 p-2.5 rounded-lg border select-none ${cfg.card}`}>
+        <CheckCircle2 size={16} className={`shrink-0 mt-0.5 ${cfg.icon}`} />
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-bold text-blue-700">Módulo {m.numero}</span>
-            {m.nivel && <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-blue-100 text-blue-600">Nivel {m.nivel}</span>}
+            <span className={`text-[11px] font-bold ${cfg.label}`}>Módulo {m.numero}</span>
+            {m.nivel && <span className="text-[9px] font-semibold px-1.5 py-px rounded-full bg-stone-100 text-stone-500">Nivel {m.nivel}</span>}
           </div>
           <div className="text-xs text-stone-600 leading-snug">{m.nombre}</div>
           <div className="flex items-center justify-between gap-2 mt-0.5">
-            <span className="text-[10px] text-blue-600 font-bold">✓ Ya inscrito</span>
+            <span className={`text-[10px] font-bold ${cfg.label}`}>{cfg.text}</span>
             {puedeQuitar ? (
               <button
                 onClick={() => quitarModulo(ins!.inscId)}
@@ -1112,9 +1118,9 @@ function PlanDeEstudiosTab({
               >
                 {quitando === ins!.inscId ? <Loader2 size={10} className="animate-spin" /> : <X size={11} />} Quitar
               </button>
-            ) : ins?.pagoEstado && ins.pagoEstado !== 'sin_pagar' ? (
-              <span className="text-[9px] text-stone-400">Pagado — no editable</span>
-            ) : null}
+            ) : (
+              <span className="text-[9px] text-stone-400">Con orden — no editable</span>
+            )}
           </div>
         </div>
       </div>
