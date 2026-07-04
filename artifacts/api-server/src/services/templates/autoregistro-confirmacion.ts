@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../utils/escapeHtml';
+import { emailLayout, EMAIL_COLORS } from './_shell';
 
 export interface AutoregistroConfirmacionData {
   nombreCompleto: string;
@@ -11,56 +12,55 @@ export function autoregistroConfirmacionTemplate(data: AutoregistroConfirmacionD
   html: string;
   textPlain: string;
 } {
-  const subject = 'Recibimos tu solicitud — Preparatoria Abierta Michoacán';
+  const subject = '¡Recibimos tu solicitud! · Preparatoria Abierta Michoacán';
+  const { guinda, dorado, texto, borde } = EMAIL_COLORS;
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f8f4ec;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;padding:32px 0;">
-    <tr><td align="center">
-      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
-        <tr><td style="background:#7b1e3a;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
-          <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
+  const pasos: string[] = [
+    'Revisamos tu solicitud en los próximos días hábiles.',
+    `Un gestor municipal de <strong>${escapeHtml(data.municipio)}</strong> puede contactarte para orientarte.`,
+    'Cuando se apruebe, recibirás un correo con tus datos de acceso.',
+    'Mientras tanto, ve reuniendo tu CURP, acta de nacimiento, INE y comprobante de domicilio.',
+  ];
+
+  const contenido = `
+    <tr><td style="padding:30px 32px 6px 32px;" align="center">
+      <div style="width:64px;height:64px;border-radius:50%;background:#e7f6ee;text-align:center;line-height:64px;margin:0 auto 6px;">
+        <span style="color:#0f9d58;font-size:32px;font-weight:bold;">✓</span>
+      </div>
+    </td></tr>
+    <tr><td style="padding:6px 32px 8px 32px;" align="center">
+      <div style="font-size:11px;font-weight:bold;letter-spacing:1.8px;color:${dorado};text-transform:uppercase;margin-bottom:6px;">Solicitud recibida</div>
+      <h1 style="color:#1c1917;font-size:24px;margin:0 0 10px 0;font-family:Georgia,serif;">¡Gracias, ${escapeHtml(data.nombreCompleto)}!</h1>
+      <p style="color:${texto};font-size:14.5px;line-height:1.75;margin:0;max-width:400px;">Recibimos tu solicitud para <strong>Preparatoria Abierta Michoacán</strong>. Nos da mucho gusto que quieras continuar tu formación.</p>
+    </td></tr>
+
+    <tr><td style="padding:22px 32px 8px 32px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border:1px solid ${borde};border-radius:14px;">
+        <tr><td style="padding:18px 20px 6px 20px;">
+          <div style="font-size:11px;font-weight:bold;letter-spacing:1.6px;color:${guinda};text-transform:uppercase;margin-bottom:12px;">¿Qué sigue?</div>
         </td></tr>
-        <tr><td style="padding:32px 32px 20px 32px;">
-          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Hola, ${escapeHtml(data.nombreCompleto)}</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Recibimos tu solicitud de inscripción al programa <strong>Preparatoria Abierta Michoacán</strong>. Nos da mucho gusto que quieras continuar tu formación académica.</p>
-        </td></tr>
-        <tr><td style="padding:0 32px 24px 32px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:20px;">
-            <tr><td>
-              <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#1d4ed8;text-transform:uppercase;margin-bottom:12px;">¿Qué sigue?</div>
-              ${[
-                'Nuestro equipo revisará tu solicitud en los próximos días hábiles.',
-                `Un gestor municipal de <strong>${escapeHtml(data.municipio)}</strong> te contactará para orientarte.`,
-                'Cuando aprueben tu solicitud, recibirás un correo con tus datos de acceso.',
-                'Mientras tanto, puedes ir reuniendo tu CURP, acta de nacimiento, INE y comprobante de domicilio.',
-              ].map((paso, i) => `
-              <table cellpadding="0" cellspacing="0" style="margin-bottom:10px;width:100%;"><tr>
-                <td style="vertical-align:top;padding-right:12px;width:28px;">
-                  <div style="background:#1d4ed8;color:#fff;border-radius:50%;width:22px;height:22px;text-align:center;line-height:22px;font-size:11px;font-weight:bold;">${i + 1}</div>
-                </td>
-                <td style="font-size:13px;color:#1e3a5f;line-height:1.6;">${paso}</td>
-              </tr></table>`).join('')}
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:0 32px 28px 32px;">
-          <p style="color:#78716c;font-size:13px;line-height:1.6;margin:0;font-style:italic;">"Terminar el bachillerato es posible sin importar tu edad o situación. El primer paso ya lo diste."</p>
-        </td></tr>
-        <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-          <p style="color:#78716c;font-size:11px;margin:0;text-align:center;"><strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong></p>
-          <p style="color:#a8a29e;font-size:10px;margin:6px 0 0 0;text-align:center;">Este correo fue enviado desde EDUMICH · Mensaje automático, no respondas.</p>
-        </td></tr>
+        ${pasos.map((paso, i) => `
+        <tr><td style="padding:0 20px ${i < pasos.length - 1 ? '14px' : '18px'} 20px;">
+          <table cellpadding="0" cellspacing="0" role="presentation" width="100%"><tr>
+            <td width="36" valign="top">
+              <div style="width:26px;height:26px;background:#f6ede0;border:1px solid ${dorado};border-radius:50%;color:${guinda};font-size:12px;font-weight:bold;text-align:center;line-height:26px;">${i + 1}</div>
+            </td>
+            <td valign="top" style="font-size:13.5px;color:#5f574f;line-height:1.6;padding-top:3px;">${paso}</td>
+          </tr></table>
+        </td></tr>`).join('')}
       </table>
     </td></tr>
-  </table>
-</body>
-</html>`;
 
-  const textPlain = `Hola ${data.nombreCompleto},\n\nRecibimos tu solicitud de inscripción a Preparatoria Abierta Michoacán.\n\nUn gestor de ${data.municipio} te contactará pronto.\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+    <tr><td style="padding:16px 32px 30px 32px;">
+      <div style="background:#fdf8f9;border-left:3px solid ${dorado};border-radius:0 8px 8px 0;padding:14px 18px;">
+        <p style="color:#6b635b;font-size:13.5px;line-height:1.65;margin:0;font-style:italic;">"Terminar el bachillerato es posible sin importar tu edad o tu situación. El primer paso ya lo diste."</p>
+      </div>
+    </td></tr>
+  `;
+
+  const html = emailLayout({ preheader: 'Recibimos tu solicitud de cuenta. Esto es lo que sigue.', contenido });
+
+  const textPlain = `Hola ${data.nombreCompleto},\n\n¡Recibimos tu solicitud para Preparatoria Abierta Michoacán!\n\n¿Qué sigue?\n1. Revisamos tu solicitud en los próximos días hábiles.\n2. Un gestor de ${data.municipio} puede contactarte.\n3. Al aprobarse, recibirás un correo con tus datos de acceso.\n4. Ve reuniendo tu CURP, acta, INE y comprobante de domicilio.\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }
