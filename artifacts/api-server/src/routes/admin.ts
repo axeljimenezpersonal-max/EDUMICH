@@ -2139,8 +2139,9 @@ router.get('/calificaciones/etapas-pendientes', async (req, res) => {
         count(ei.id)::text AS pendientes
       FROM convocatorias_etapas ce
       JOIN examenes_inscripciones ei ON ei.etapa_id = ce.id
-        AND ei.estado = 'presentado'
+        AND ei.estado IN ('inscrito', 'presentado')
         AND ei.calificacion IS NULL
+        AND ${EXAMEN_PAGADO_SQL}
       GROUP BY ce.id
       ORDER BY ce.examen_sabado DESC
     `);
@@ -2194,8 +2195,9 @@ router.get('/calificaciones/batch-list', async (req, res) => {
       JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
       JOIN sedes s ON s.id = ei.sede_id
       WHERE ei.etapa_id = ${etapaId}
-        AND ei.estado = 'presentado'
+        AND ei.estado IN ('inscrito', 'presentado')
         AND ei.calificacion IS NULL
+        AND ${EXAMEN_PAGADO_SQL}
       ${modFilter}
       ${sedeFilter}
       ORDER BY m.numero ASC, es.nombre_completo ASC
@@ -2221,6 +2223,25 @@ router.get('/calificaciones/batch-list', async (req, res) => {
 });
 
 // ─── Guardado de calificaciones (compartido: captura manual y Excel) ─────
+// REGLA DE ORO: solo se califican exámenes con pago verificado en Tesorería
+// (pagos_examen.estado = 'pagado'). Nada sin pagar entra al flujo de captura.
+const EXAMEN_PAGADO_SQL = sql`EXISTS (
+  SELECT 1 FROM pagos_examen_inscripciones pei
+  JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+  WHERE pei.examen_inscripcion_id = ei.id AND pe.estado = 'pagado'
+)`;
+
+async function examenEstaPagado(inscripcionId: number): Promise<boolean> {
+  const r = await db.execute<{ pagado: boolean }>(sql`
+    SELECT EXISTS (
+      SELECT 1 FROM pagos_examen_inscripciones pei
+      JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+      WHERE pei.examen_inscripcion_id = ${inscripcionId} AND pe.estado = 'pagado'
+    ) AS pagado
+  `);
+  return Boolean(r.rows[0]?.pagado);
+}
+
 type ItemCalif = { inscripcionId: number; calificacion?: number; noPresento?: boolean };
 
 async function aplicarCalificacionesLote(items: ItemCalif[], userId: number): Promise<void> {
@@ -2232,6 +2253,16 @@ async function aplicarCalificacionesLote(items: ItemCalif[], userId: number): Pr
         .where(eq(examenesInscripciones.id, item.inscripcionId));
 
       if (!inscripcion) continue;
+
+      // Candado: sin pago verificado no se captura nada.
+      const pagadoRes = await tx.execute<{ pagado: boolean }>(sql`
+        SELECT EXISTS (
+          SELECT 1 FROM pagos_examen_inscripciones pei
+          JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+          WHERE pei.examen_inscripcion_id = ${item.inscripcionId} AND pe.estado = 'pagado'
+        ) AS pagado
+      `);
+      if (!pagadoRes.rows[0]?.pagado) continue;
 
       if (item.noPresento) {
         await tx
@@ -2355,6 +2386,9 @@ router.get('/calificaciones/tabla', async (req, res) => {
       JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
       JOIN modulos m ON m.id = ei.modulo_id
       LEFT JOIN sedes s ON s.id = ei.sede_id
+      WHERE (${EXAMEN_PAGADO_SQL}
+        OR ei.calificacion IS NOT NULL
+        OR ei.estado IN ('aprobado', 'reprobado', 'no_presento'))
       ORDER BY es.nombre_completo, m.numero
     `);
     res.json({
@@ -2407,6 +2441,7 @@ router.get('/calificaciones/plantilla-excel', async (req, res) => {
       WHERE ei.etapa_id = ${etapaId}
         AND ei.calificacion IS NULL
         AND ei.estado NOT IN ('cancelado', 'no_presento')
+        AND ${EXAMEN_PAGADO_SQL}
       ORDER BY m.numero, es.nombre_completo
     `);
 
@@ -2475,6 +2510,7 @@ router.post('/calificaciones/subir-excel', (req, res, next) => {
       if (!insc) { omitidas.push({ folio: f.folio, motivo: 'Folio no encontrado' }); continue; }
       if (insc.calificacion !== null) { omitidas.push({ folio: f.folio, motivo: `Ya tenía calificación (${insc.calificacion})` }); continue; }
       if (insc.estado === 'cancelado') { omitidas.push({ folio: f.folio, motivo: 'Inscripción cancelada' }); continue; }
+      if (!(await examenEstaPagado(insc.id))) { omitidas.push({ folio: f.folio, motivo: 'Sin pago verificado — no se puede calificar' }); continue; }
       items.push({ inscripcionId: insc.id, calificacion: f.calificacion, noPresento: f.noPresento });
     }
 

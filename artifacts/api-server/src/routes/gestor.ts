@@ -913,7 +913,17 @@ router.get('/calificaciones', async (req, res) => {
       .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
       .innerJoin(convocatoriasEtapas, eq(examenesInscripciones.etapaId, convocatoriasEtapas.id))
       .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
-      .where(eq(estudiantes.gestorId, userId))
+      .where(and(
+        eq(estudiantes.gestorId, userId),
+        // Solo exámenes con pago verificado (o ya resueltos): lo no pagado
+        // no entra al flujo de calificación.
+        sql`(EXISTS (
+          SELECT 1 FROM pagos_examen_inscripciones pei
+          JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+          WHERE pei.examen_inscripcion_id = ${examenesInscripciones.id} AND pe.estado = 'pagado'
+        ) OR ${examenesInscripciones.calificacion} IS NOT NULL
+          OR ${examenesInscripciones.estado} IN ('aprobado', 'reprobado', 'no_presento'))`
+      ))
       .orderBy(estudiantes.nombreCompleto, modulos.numero);
 
     res.json({ calificaciones: rows });

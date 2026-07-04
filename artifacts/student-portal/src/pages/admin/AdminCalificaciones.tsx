@@ -107,7 +107,7 @@ export default function AdminCalificaciones() {
       )}
 
       <SubidaExcel rows={rows} onAplicado={cargar} />
-      <TablaGeneral rows={rows} />
+      <TablaGeneral rows={rows} onReload={cargar} />
     </AdminLayout>
   );
 }
@@ -182,7 +182,7 @@ function SubidaExcel({ rows, onAplicado }: { rows: Row[] | null; onAplicado: () 
             <span className="text-sm font-bold text-stone-900">Descarga la plantilla</span>
           </div>
           <p className="mb-3 text-xs leading-relaxed text-stone-500">
-            Elige la convocatoria; la plantilla trae los folios pendientes de calificar.
+            Elige la convocatoria; la plantilla trae los folios <strong>con pago verificado</strong> pendientes de calificar.
           </p>
           <select
             value={etapaId}
@@ -288,11 +288,44 @@ function SubidaExcel({ rows, onAplicado }: { rows: Row[] | null; onAplicado: () 
 // ═══════════════════════════════════════════════════════════════════════
 // Tabla general
 // ═══════════════════════════════════════════════════════════════════════
-function TablaGeneral({ rows }: { rows: Row[] | null }) {
+function TablaGeneral({ rows, onReload }: { rows: Row[] | null; onReload: () => void }) {
   const [q, setQ] = useState('');
   const [fEtapa, setFEtapa] = useState<number | 'all'>('all');
   const [fModulo, setFModulo] = useState<number | 'all'>('all');
   const [fEstado, setFEstado] = useState<EstadoCalif | 'all'>('all');
+
+  // Calificación en línea (los exámenes listados ya tienen pago verificado).
+  const [editando, setEditando] = useState<number | null>(null);
+  const [valor, setValor] = useState('');
+  const [guardando, setGuardando] = useState(false);
+  const [errorInline, setErrorInline] = useState<string | null>(null);
+
+  async function guardarInline(inscripcionId: number, opts: { calificacion?: number; noPresento?: boolean }) {
+    if (guardando) return;
+    setGuardando(true);
+    setErrorInline(null);
+    try {
+      await api.post('/admin/calificaciones/batch', {
+        calificaciones: [{ inscripcionId, ...opts }],
+      });
+      setEditando(null);
+      setValor('');
+      onReload();
+    } catch (e) {
+      setErrorInline(e instanceof Error ? e.message : 'No se pudo guardar');
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  function confirmarValor(inscripcionId: number) {
+    const n = Number(valor);
+    if (!Number.isFinite(n) || n < 0 || n > 100) {
+      setErrorInline('Debe ser un número de 0 a 100');
+      return;
+    }
+    guardarInline(inscripcionId, { calificacion: Math.round(n) });
+  }
 
   const etapas = useMemo(() => {
     const m = new Map<number, string>();
@@ -470,12 +503,67 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
                       </td>
                       <td className="px-3 py-2 font-mono text-[11px] text-stone-500">{r.folio}</td>
                       <td className="px-3 py-2 text-center">
-                        {r.calificacion === null ? (
-                          <span className="font-mono text-stone-300">—</span>
-                        ) : (
+                        {r.calificacion !== null ? (
                           <span className="inline-block min-w-[2.25rem] rounded-md px-2 py-0.5 font-mono text-sm font-bold" style={{ background: meta.bg, color: meta.color }}>
                             {r.calificacion}
                           </span>
+                        ) : est !== 'sin_calificar' ? (
+                          <span className="font-mono text-stone-300">—</span>
+                        ) : editando === r.inscripcionId ? (
+                          <div className="inline-flex flex-col items-center gap-1">
+                            <div className="inline-flex items-center gap-1">
+                              <input
+                                autoFocus
+                                type="number"
+                                min={0}
+                                max={100}
+                                value={valor}
+                                onChange={(e) => { setValor(e.target.value); setErrorInline(null); }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') confirmarValor(r.inscripcionId);
+                                  if (e.key === 'Escape') { setEditando(null); setValor(''); setErrorInline(null); }
+                                }}
+                                placeholder="0-100"
+                                className="w-16 rounded-md border border-stone-300 px-2 py-1 text-center font-mono text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
+                              />
+                              <button
+                                onClick={() => confirmarValor(r.inscripcionId)}
+                                disabled={guardando || valor === ''}
+                                title="Guardar calificación"
+                                className="rounded-md px-2 py-1 text-xs font-bold text-white disabled:opacity-40"
+                                style={{ background: '#2d7d46' }}
+                              >
+                                ✓
+                              </button>
+                              <button
+                                onClick={() => guardarInline(r.inscripcionId, { noPresento: true })}
+                                disabled={guardando}
+                                title="Marcar como no presentó"
+                                className="rounded-md border border-stone-200 bg-white px-2 py-1 text-[10px] font-bold text-stone-500 hover:bg-stone-50 disabled:opacity-40"
+                              >
+                                NP
+                              </button>
+                              <button
+                                onClick={() => { setEditando(null); setValor(''); setErrorInline(null); }}
+                                disabled={guardando}
+                                title="Cancelar"
+                                className="rounded-md px-1.5 py-1 text-xs text-stone-400 hover:text-stone-700"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            {errorInline && editando === r.inscripcionId && (
+                              <span className="text-[10px] font-medium text-red-600">{errorInline}</span>
+                            )}
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => { setEditando(r.inscripcionId); setValor(''); setErrorInline(null); }}
+                            className="inline-flex items-center gap-1 rounded-md border border-dashed px-2.5 py-1 text-[11px] font-semibold transition-colors"
+                            style={{ borderColor: 'var(--color-guinda-300, #dc93a8)', color: 'var(--color-guinda-700)' }}
+                          >
+                            <PencilLine size={11} /> Calificar
+                          </button>
                         )}
                       </td>
                       <td className="px-3 py-2">
