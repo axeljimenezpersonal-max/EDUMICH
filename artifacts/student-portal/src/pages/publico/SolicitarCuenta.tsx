@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
+  FileSearch, UserCheck, MailCheck, Clock, Phone, Home,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
@@ -338,32 +339,109 @@ export default function SolicitarCuenta() {
 
   // ── Pantalla de éxito ─────────────────────────────────────────────────
   if (fase === 'exito') {
+    // TODO: reemplazar por el correo oficial de atención cuando esté habilitado.
+    const CONTACTO_EMAIL = 'atencion.edumich@michoacan.gob.mx';
+    const pasos = [
+      { icon: FileSearch, titulo: 'Revisión de tu solicitud', desc: 'La administración valida tus datos y documentos.', estado: 'ahora' as const },
+      { icon: UserCheck, titulo: 'Aprobación y creación de cuenta', desc: 'Se genera tu cuenta en la plataforma.', estado: 'pendiente' as const },
+      { icon: MailCheck, titulo: 'Recibes tus credenciales', desc: 'Te llega un correo con tu acceso para iniciar sesión.', estado: 'pendiente' as const },
+    ];
+
     return (
       <AutoRegistroLayout>
-        <div className="text-center">
-          <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-              <CheckCircle2 size={44} className="text-green-600" />
+        <div className="mx-auto max-w-lg">
+          {/* Encabezado */}
+          <div className="text-center">
+            <div className="relative mx-auto mb-5 flex h-20 w-20 items-center justify-center">
+              <span className="absolute inset-0 animate-ping rounded-full bg-green-200 opacity-60" style={{ animationDuration: '2.4s' }} />
+              <span className="relative flex h-20 w-20 items-center justify-center rounded-full" style={{ background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)' }}>
+                <CheckCircle2 size={42} className="text-white" strokeWidth={2.4} />
+              </span>
+            </div>
+            <div className="mb-1 flex items-center justify-center gap-2 text-xs font-semibold uppercase tracking-widest text-green-700">
+              <Check size={13} /> Solicitud recibida
+            </div>
+            <h1 className="font-serif text-3xl font-bold text-stone-900">¡Solicitud enviada!</h1>
+            <p className="mx-auto mt-2 max-w-sm text-stone-600">
+              Recibimos tu solicitud de cuenta. La administración de <strong className="text-stone-800">Preparatoria Abierta Michoacán</strong> la revisará y te contactará en los próximos días hábiles.
+            </p>
+          </div>
+
+          {/* Timeline de pasos */}
+          <div className="mt-7 overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+            <div className="flex items-center gap-2 border-b border-stone-100 px-5 py-3">
+              <Clock size={15} className="text-[var(--color-guinda-700)]" />
+              <span className="text-sm font-bold text-stone-900">¿Qué sigue?</span>
+            </div>
+            <div className="px-5 py-4">
+              {pasos.map((p, i) => {
+                const activo = p.estado === 'ahora';
+                const ultimo = i === pasos.length - 1;
+                return (
+                  <div key={i} className="flex gap-3.5">
+                    {/* Columna de icono + línea */}
+                    <div className="flex flex-col items-center">
+                      <div
+                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full"
+                        style={activo
+                          ? { background: 'var(--color-guinda-700)', color: '#fff' }
+                          : { background: 'var(--color-crema-200)', color: 'var(--color-guinda-700)' }}
+                      >
+                        <p.icon size={17} />
+                      </div>
+                      {!ultimo && <div className="my-1 w-0.5 flex-1" style={{ background: '#eaddd0', minHeight: 22 }} />}
+                    </div>
+                    {/* Texto */}
+                    <div className={`min-w-0 ${ultimo ? 'pb-0' : 'pb-4'}`}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-stone-400">PASO {i + 1}</span>
+                        {activo && (
+                          <span className="rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white" style={{ background: 'var(--color-guinda-700)' }}>
+                            En curso
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm font-semibold text-stone-900">{p.titulo}</div>
+                      <div className="text-xs text-stone-500">{p.desc}</div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <h1 className="font-serif text-3xl font-bold text-stone-900 mb-2">
-            ¡Solicitud enviada!
-          </h1>
-          <p className="text-stone-600 mb-6 max-w-sm mx-auto">
-            Recibimos tu solicitud de cuenta. La administración de Preparatoria Abierta Michoacán
-            la revisará y se pondrá en contacto contigo en los próximos días hábiles.
-          </p>
-          <div className="bg-[var(--color-crema-100)] border border-stone-200 rounded-md p-4 text-left mb-6 text-sm text-stone-700">
-            <div className="font-medium mb-1">¿Qué sigue?</div>
-            <ul className="space-y-1 text-stone-600">
-              <li>• El administrador revisará tus datos y documentos.</li>
-              <li>• Recibirás un correo con tus credenciales de acceso.</li>
-              <li>• Si hay algún problema, te contactarán al número que proporcionaste.</li>
-            </ul>
+
+          {/* Ficha de contacto */}
+          <div className="mt-4 rounded-2xl border border-stone-200 bg-[var(--color-crema-100)] p-4">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[var(--color-guinda-700)] shadow-sm">
+                <Mail size={18} />
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-stone-900">¿Dudas sobre tu solicitud?</div>
+                <p className="text-xs text-stone-500">Escríbenos con tu nombre completo y CURP y te ayudamos.</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 font-mono text-xs text-stone-700">
+                    <Mail size={12} className="text-[var(--color-guinda-700)]" />
+                    {CONTACTO_EMAIL}
+                  </span>
+                  <span className="text-[10px] font-medium text-amber-700">· en proceso de habilitarse</span>
+                </div>
+              </div>
+            </div>
           </div>
-          <a href="/login" className="gov-btn-primary inline-block">
-            Volver al inicio
-          </a>
+
+          {/* Nota + CTA */}
+          <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-stone-400">
+            <Phone size={12} /> Si hay algún problema, te contactarán al teléfono que registraste.
+          </p>
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <a href="/login" className="gov-btn-primary inline-flex w-full max-w-xs items-center justify-center gap-2">
+              <ArrowRight size={16} /> Ir a iniciar sesión
+            </a>
+            <a href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-stone-500 hover:text-[var(--color-guinda-700)]">
+              <Home size={13} /> Volver al inicio
+            </a>
+          </div>
         </div>
       </AutoRegistroLayout>
     );
