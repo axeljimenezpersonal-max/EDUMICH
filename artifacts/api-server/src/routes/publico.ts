@@ -392,6 +392,27 @@ router.post('/email/verificar-codigo', async (req, res) => {
   }
   const { email, codigo, tipo } = parse.data;
 
+  // ⚠️ TODO(TEMPORAL — QUITAR): bypass de código para PRUEBAS mientras el envío
+  // de correo (resend) no funciona. Acepta "111111" para cualquier correo/tipo.
+  // BUSCAR "BYPASS_CODIGO_PRUEBAS" para eliminar esto antes de producción real.
+  if (codigo === '111111') {
+    // BYPASS_CODIGO_PRUEBAS
+    await db
+      .update(emailVerifications)
+      .set({ verificado: true })
+      .where(
+        and(
+          eq(emailVerifications.email, email),
+          eq(emailVerifications.tipo, tipo),
+          eq(emailVerifications.verificado, false)
+        )
+      )
+      .catch(() => {});
+    const token = signEmailToken(email, tipo);
+    res.json({ ok: true, token });
+    return;
+  }
+
   // Busca el registro más reciente no verificado
   const rows = await db
     .select()
