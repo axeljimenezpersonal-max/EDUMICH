@@ -129,38 +129,74 @@ export default function GestorDashboard() {
         </div>
       )}
 
-      {/* Convocatoria activa */}
+      {/* Convocatoria activa — banner destacado */}
       {conv && (
-        <div className="mb-6 bg-white border border-stone-200 rounded-md p-4 flex items-start gap-3">
-          <div className="w-10 h-10 rounded-md bg-[var(--color-crema-200)] flex items-center justify-center text-[var(--color-guinda-700)] flex-shrink-0">
-            <Calendar size={18} />
-          </div>
-          <div className="flex-1">
-            <div className="text-xs uppercase tracking-widest text-stone-500 font-semibold">
-              Convocatoria activa
-            </div>
-            <div className="font-serif text-lg font-semibold text-stone-900">{conv.nombre}</div>
-            <div className="text-sm text-stone-600 mt-0.5">
-              Cierra el{' '}
-              <strong className="text-stone-800">
-                {new Date(conv.fechaCierre).toLocaleDateString('es-MX', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </strong>
-              {conv.fechaExamen && (
-                <>
-                  {' · '}Examen el{' '}
-                  <strong className="text-stone-800">
-                    {new Date(conv.fechaExamen).toLocaleDateString('es-MX', {
+        <div
+          className="relative mb-6 overflow-hidden rounded-2xl text-white shadow-lg"
+          style={{
+            background:
+              'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-700) 55%, var(--color-guinda-600) 100%)',
+          }}
+        >
+          {/* Ornamentos sutiles */}
+          <div
+            className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.06)' }}
+          />
+          <div
+            className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full"
+            style={{ background: 'rgba(255,255,255,0.04)' }}
+          />
+          <div
+            className="pointer-events-none absolute inset-y-0 left-0 w-1.5"
+            style={{ background: 'var(--color-dorado)' }}
+          />
+
+          <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-white/60" />
+                  <span className="inline-flex h-2 w-2 rounded-full bg-white" />
+                </span>
+                Convocatoria activa
+              </div>
+              <div className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl">
+                {conv.nombre}
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2.5">
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
+                  <Calendar size={15} className="opacity-80" />
+                  Cierra el{' '}
+                  <strong className="font-semibold">
+                    {new Date(conv.fechaCierre).toLocaleDateString('es-MX', {
                       day: 'numeric',
                       month: 'long',
                       year: 'numeric',
                     })}
                   </strong>
-                </>
-              )}
+                </span>
+                {conv.fechaExamen && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
+                    <FileCheck2 size={15} className="opacity-80" />
+                    Examen el{' '}
+                    <strong className="font-semibold">
+                      {new Date(conv.fechaExamen).toLocaleDateString('es-MX', {
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      })}
+                    </strong>
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="hidden shrink-0 sm:block">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
+                <Calendar size={30} className="text-white" />
+              </div>
             </div>
           </div>
         </div>
