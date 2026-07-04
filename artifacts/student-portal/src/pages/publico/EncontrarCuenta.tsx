@@ -1,16 +1,15 @@
 /**
  * "No recuerdo si tengo cuenta" — búsqueda pública de cuenta.
  *
- * Política híbrida de privacidad (LGPDPPSO):
- *  · Por CURP (exacta) → correo completo, copiable.
- *  · Por nombre → correo enmascarado; la recuperación se dispara con un
- *    token firmado sin revelar el correo.
+ * Privacidad (LGPDPPSO): el correo SIEMPRE se muestra enmascarado (por CURP o
+ * por nombre). La recuperación se dispara con un token firmado sin revelar el
+ * correo completo.
  */
 
 import { useEffect, useState } from 'react';
 import {
   Search, User, CreditCard, Copy, Check, LogIn, MailQuestion,
-  Loader2, LifeBuoy, CheckCircle2, HelpCircle, Mail, Phone,
+  Loader2, LifeBuoy, CheckCircle2, HelpCircle, Mail, Phone, ShieldCheck,
 } from 'lucide-react';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
@@ -224,38 +223,19 @@ export default function EncontrarCuenta() {
                 </div>
                 <div className="text-[12px] text-stone-500 mb-1">Tu correo de acceso:</div>
 
-                {resultado.via === 'curp' && resultado.email ? (
-                  <div className="flex items-center gap-2 mb-4">
-                    <code
-                      className="flex-1 text-[14px] font-semibold px-3 py-2 rounded-md border bg-white"
-                      style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-800)', overflowWrap: 'anywhere' }}
-                    >
-                      {resultado.email}
-                    </code>
-                    <button
-                      type="button"
-                      onClick={copiarEmail}
-                      className="flex items-center gap-1.5 px-3 py-2 rounded-md border text-[12px] font-semibold bg-white hover:bg-stone-50"
-                      style={{ borderColor: '#eadfd7', color: copiado ? '#166534' : '#443e39', flexShrink: 0 }}
-                    >
-                      {copiado ? <Check size={13} /> : <Copy size={13} />}
-                      {copiado ? 'Copiado' : 'Copiar'}
-                    </button>
+                <div className="mb-4">
+                  <code
+                    className="inline-block text-[14px] font-semibold px-3 py-2 rounded-md border bg-white"
+                    style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-800)' }}
+                  >
+                    {resultado.emailEnmascarado}
+                  </code>
+                  <div className="text-[11px] text-stone-500 mt-1.5 flex items-start gap-1.5">
+                    <ShieldCheck size={13} className="mt-px flex-shrink-0" style={{ color: 'var(--color-guinda-700)' }} />
+                    Por tu privacidad no podemos mostrar el correo completo. Si esta cuenta es tuya,
+                    usa <strong>«¿Olvidaste tu contraseña?»</strong> y el enlace llegará a tu correo registrado.
                   </div>
-                ) : (
-                  <div className="mb-4">
-                    <code
-                      className="inline-block text-[14px] font-semibold px-3 py-2 rounded-md border bg-white"
-                      style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-800)' }}
-                    >
-                      {resultado.emailEnmascarado}
-                    </code>
-                    <div className="text-[11px] text-stone-500 mt-1.5">
-                      Por tu seguridad mostramos el correo parcialmente. Si es tuyo, usa el botón
-                      de recuperación (llega al correo completo) o búscate por CURP para verlo entero.
-                    </div>
-                  </div>
-                )}
+                </div>
 
                 {recuperacionEnviada ? (
                   <div className="text-[13px] font-medium px-3 py-2.5 rounded-md" style={{ background: '#eef4ee', color: '#166534' }}>

@@ -133,7 +133,8 @@ router.post('/buscar-cuenta', buscarCuentaLimiter, async (req, res) => {
         encontrada: true,
         via: 'curp',
         nombre: fila.nombreCompleto,
-        email: fila.email,
+        // Privacidad: nunca revelamos el correo completo (aunque tengan la CURP).
+        emailEnmascarado: enmascararEmail(fila.email),
         recuperacionToken: signEmailToken(fila.email, 'recuperar_busqueda'),
       });
       return;
