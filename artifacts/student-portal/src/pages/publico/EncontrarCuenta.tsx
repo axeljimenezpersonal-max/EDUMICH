@@ -225,15 +225,17 @@ export default function EncontrarCuenta() {
 
                 <div className="mb-4">
                   <code
-                    className="inline-block text-[14px] font-semibold px-3 py-2 rounded-md border bg-white"
+                    className="inline-block whitespace-nowrap text-[14px] font-semibold px-3 py-2 rounded-md border bg-white"
                     style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-800)' }}
                   >
                     {resultado.emailEnmascarado}
                   </code>
                   <div className="text-[11px] text-stone-500 mt-1.5 flex items-start gap-1.5">
                     <ShieldCheck size={13} className="mt-px flex-shrink-0" style={{ color: 'var(--color-guinda-700)' }} />
-                    Por tu privacidad no podemos mostrar el correo completo. Si esta cuenta es tuya,
-                    usa <strong>«¿Olvidaste tu contraseña?»</strong> y el enlace llegará a tu correo registrado.
+                    <span className="leading-relaxed">
+                      Por tu privacidad no podemos mostrar el correo completo. Si esta cuenta es tuya,
+                      usa <strong>«¿Olvidaste tu contraseña?»</strong> y el enlace llegará a tu correo registrado.
+                    </span>
                   </div>
                 </div>
 
@@ -307,7 +309,7 @@ export default function EncontrarCuenta() {
               style={{ borderColor: '#eadfd7' }}
             >
               <Mail size={13} style={{ color: 'var(--color-guinda-700)', flexShrink: 0 }} />
-              <span className="text-[12.5px] font-medium text-stone-800" style={{ overflowWrap: 'anywhere' }}>
+              <span className="whitespace-nowrap text-[12.5px] font-medium text-stone-800">
                 {contacto?.correo ?? 'contacto@michoacan.gob.mx'}
               </span>
               <button

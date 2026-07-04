@@ -438,7 +438,7 @@ export default function SolicitarCuenta() {
                 <div className="text-sm font-semibold text-stone-900">¿Dudas sobre tu solicitud?</div>
                 <p className="text-xs text-stone-500">Escríbenos con tu nombre completo y CURP y te ayudamos.</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 font-mono text-xs text-stone-700">
+                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 font-mono text-xs text-stone-700">
                     <Mail size={12} className="text-[var(--color-guinda-700)]" />
                     {CONTACTO_EMAIL}
                   </span>

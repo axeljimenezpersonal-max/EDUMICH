@@ -39,7 +39,7 @@ export default function AutoRegistroExito() {
           <dl className="space-y-2 text-sm">
             <div className="flex justify-between gap-4">
               <dt className="text-stone-500">Correo</dt>
-              <dd className="font-medium text-stone-900 text-right break-all">{email}</dd>
+              <dd className="whitespace-nowrap font-medium text-stone-900 text-right">{email}</dd>
             </div>
             <div className="flex justify-between gap-4">
               <dt className="text-stone-500">Contraseña</dt>
