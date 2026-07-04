@@ -774,7 +774,7 @@ export default function SolicitarCuenta() {
 
           {/* ── Navegación entre pasos ── */}
           <div className="flex gap-3">
-            {paso > 1 && (
+            {paso > 1 ? (
               <button
                 type="button"
                 onClick={regresar}
@@ -783,6 +783,14 @@ export default function SolicitarCuenta() {
               >
                 <ArrowLeft size={15} /> Regresar
               </button>
+            ) : (
+              <a
+                href="/login"
+                className="gov-btn-secondary flex items-center justify-center gap-2"
+                style={{ flex: '0 0 auto' }}
+              >
+                <ArrowLeft size={15} /> Regresar
+              </a>
             )}
             {paso < 3 ? (
               <button
