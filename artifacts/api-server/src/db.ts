@@ -71,10 +71,6 @@ const migrations = [
      created_at timestamp NOT NULL DEFAULT now()
    )`,
   `CREATE INDEX IF NOT EXISTS chat_mensajes_conv_idx ON chat_mensajes(conversacion_id, created_at)`,
-  `ALTER TABLE chat_mensajes ALTER COLUMN cuerpo SET DEFAULT ''`,
-  `ALTER TABLE chat_mensajes ADD COLUMN IF NOT EXISTS adjunto_ruta varchar(500)`,
-  `ALTER TABLE chat_mensajes ADD COLUMN IF NOT EXISTS adjunto_nombre varchar(255)`,
-  `ALTER TABLE chat_mensajes ADD COLUMN IF NOT EXISTS adjunto_mime varchar(100)`,
   `CREATE TABLE IF NOT EXISTS chat_consentimientos (
      id serial PRIMARY KEY,
      user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,

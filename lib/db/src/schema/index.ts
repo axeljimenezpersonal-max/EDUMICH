@@ -1248,10 +1248,7 @@ export const chatMensajes = pgTable(
       .references(() => users.id),
     remitenteRol: varchar('remitente_rol', { length: 20 }).notNull(), // 'estudiante' | 'gestor' | 'administrador'
     esSecretaria: boolean('es_secretaria').notNull().default(false),
-    cuerpo: text('cuerpo').notNull().default(''),
-    adjuntoRuta: varchar('adjunto_ruta', { length: 500 }),
-    adjuntoNombre: varchar('adjunto_nombre', { length: 255 }),
-    adjuntoMime: varchar('adjunto_mime', { length: 100 }),
+    cuerpo: text('cuerpo').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (t) => ({
