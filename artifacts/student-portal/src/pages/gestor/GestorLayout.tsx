@@ -6,7 +6,7 @@
 
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, Users, FilePlus2, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
@@ -16,6 +16,7 @@ const NAV = [
   { to: '/gestor/alumnos', icon: Users, label: 'Mis alumnos' },
   { to: '/gestor/alumnos/nuevo', icon: FilePlus2, label: 'Nuevo alumno' },
   { to: '/gestor/pagos', icon: CreditCard, label: 'Pagos' },
+  { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones' },
 ];
 
 export function GestorLayout({ children }: { children: ReactNode }) {

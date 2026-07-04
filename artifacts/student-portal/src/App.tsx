@@ -12,6 +12,7 @@ import AlumnosList from './pages/gestor/AlumnosList';
 import NuevoAlumno from './pages/gestor/NuevoAlumno';
 import AlumnoDetalle from './pages/gestor/AlumnoDetalle';
 import GestorPagos from './pages/gestor/GestorPagos';
+import GestorCalificaciones from './pages/gestor/GestorCalificaciones';
 import EstudianteDashboard from './pages/estudiante/EstudianteDashboard';
 import CambiarPasswordPrimerLogin from './pages/estudiante/CambiarPasswordPrimerLogin';
 import Avisos from './pages/estudiante/Avisos';
@@ -76,6 +77,7 @@ export default function App() {
       <Route path="/gestor/alumnos" component={AlumnosList} />
       <Route path="/gestor/alumnos/nuevo" component={NuevoAlumno} />
       <Route path="/gestor/pagos" component={GestorPagos} />
+      <Route path="/gestor/calificaciones" component={GestorCalificaciones} />
       <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
 
       {/* Rutas del estudiante */}

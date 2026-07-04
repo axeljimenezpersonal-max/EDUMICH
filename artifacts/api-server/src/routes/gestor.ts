@@ -874,6 +874,50 @@ router.get('/convocatoria-activa', async (_req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// GET /gestor/calificaciones
+// Todas las calificaciones (exámenes) de los alumnos del gestor, en forma
+// tabular. El frontend filtra / agrupa / exporta a Excel del lado del cliente
+// (el volumen por municipio es pequeño), lo que da filtrado instantáneo.
+// ─────────────────────────────────────────────────────────────────────────
+router.get('/calificaciones', async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+
+    const rows = await db
+      .select({
+        inscripcionId: examenesInscripciones.id,
+        estudianteId: examenesInscripciones.estudianteId,
+        alumno: estudiantes.nombreCompleto,
+        curp: estudiantes.curp,
+        etapaId: examenesInscripciones.etapaId,
+        etapaClave: convocatoriasEtapas.clave,
+        etapaEtapa: convocatoriasEtapas.etapa,
+        etapaFase: convocatoriasEtapas.fase,
+        etapaAnio: convocatoriasEtapas.anio,
+        etapaExamenSabado: convocatoriasEtapas.examenSabado,
+        moduloId: examenesInscripciones.moduloId,
+        moduloNumero: modulos.numero,
+        moduloNombre: modulos.nombre,
+        folio: examenesInscripciones.folio,
+        estadoExamen: examenesInscripciones.estado,
+        calificacion: examenesInscripciones.calificacion,
+        paseValidadoEn: examenesInscripciones.paseValidadoEn,
+      })
+      .from(examenesInscripciones)
+      .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
+      .innerJoin(convocatoriasEtapas, eq(examenesInscripciones.etapaId, convocatoriasEtapas.id))
+      .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
+      .where(eq(estudiantes.gestorId, userId))
+      .orderBy(estudiantes.nombreCompleto, modulos.numero);
+
+    res.json({ calificaciones: rows });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // Expediente del alumno — el gestor sube docs al mismo expedienteDocumentos
 // que usa el alumno, garantizando que ambos vean lo mismo.
 // ─────────────────────────────────────────────────────────────────────────
