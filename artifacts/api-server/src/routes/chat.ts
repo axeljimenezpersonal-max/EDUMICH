@@ -15,6 +15,10 @@
  */
 
 import { Router } from 'express';
+import path from 'node:path';
+import fs from 'node:fs/promises';
+import { createReadStream, existsSync } from 'node:fs';
+import multer from 'multer';
 import { and, asc, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
@@ -31,6 +35,51 @@ import { authRequired, requireRol } from '../middleware/auth';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 
 const cuerpoSchema = z.object({ cuerpo: z.string().trim().min(1, 'Escribe un mensaje').max(4000) });
+
+// ── Adjuntos ──────────────────────────────────────────────────────────
+const CHAT_DIR = process.env.STORAGE_DIR ? path.join(process.env.STORAGE_DIR, 'chat') : '/tmp/prepa-storage/chat';
+const CHAT_MIMES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+
+const uploadChat = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      await fs.mkdir(CHAT_DIR, { recursive: true });
+      cb(null, CHAT_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      cb(null, `${Date.now()}_${Math.round(Math.random() * 1e6)}_${safe}`);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (!CHAT_MIMES.includes(file.mimetype)) { cb(new Error('Formato no aceptado. Usa PDF, JPG, PNG o WEBP.')); return; }
+    cb(null, true);
+  },
+});
+
+// Envuelve multer para devolver un error legible en vez de tirar la conexión.
+function subirAdjuntoMw(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) {
+  uploadChat.single('archivo')(req, res, (err: unknown) => {
+    if (err) {
+      const msg = err instanceof Error
+        ? (err.message.includes('File too large') ? 'El archivo supera 10 MB' : err.message)
+        : 'No se pudo subir el archivo';
+      res.status(400).json({ error: msg });
+      return;
+    }
+    next();
+  });
+}
+
+// Sirve un adjunto inline (preview) validando que exista.
+function servirAdjunto(rutaArchivo: string | null, mime: string | null, nombre: string | null, res: import('express').Response) {
+  if (!rutaArchivo || !existsSync(rutaArchivo)) { res.status(404).json({ error: 'Archivo no disponible' }); return; }
+  const safe = (nombre ?? 'documento').replace(/[^a-zA-Z0-9_\-.]/g, '_');
+  res.setHeader('Content-Type', mime ?? 'application/octet-stream');
+  res.setHeader('Content-Disposition', `inline; filename="${safe}"`);
+  createReadStream(rutaArchivo).pipe(res);
+}
 
 function rolParticipante(rol: string): 'estudiante' | 'gestor' | null {
   if (rol === 'estudiante') return 'estudiante';
@@ -99,26 +148,31 @@ router.get('/mi-conversacion', async (req, res) => {
   res.json({ conversacion: { ...conv, noLeidosParticipante: 0 }, mensajes });
 });
 
-// Enviar un mensaje a la Secretaría.
-router.post('/mensajes', async (req, res) => {
+// Enviar un mensaje a la Secretaría (texto y/o adjunto).
+router.post('/mensajes', subirAdjuntoMw, async (req, res) => {
   const { userId, rol } = req.user!;
   const pr = rolParticipante(rol);
-  if (!pr) { res.status(403).json({ error: 'Este chat es para alumnos y gestores.' }); return; }
+  const file = req.file;
+  const limpiarArchivo = () => { if (file) fs.unlink(file.path).catch(() => {}); };
+  if (!pr) { limpiarArchivo(); res.status(403).json({ error: 'Este chat es para alumnos y gestores.' }); return; }
 
-  const parse = cuerpoSchema.safeParse(req.body);
-  if (!parse.success) { res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Mensaje inválido' }); return; }
-  const cuerpo = parse.data.cuerpo;
+  const cuerpo = typeof req.body?.cuerpo === 'string' ? req.body.cuerpo.trim().slice(0, 4000) : '';
+  if (!cuerpo && !file) { res.status(400).json({ error: 'Escribe un mensaje o adjunta un documento' }); return; }
 
   const conv = await obtenerOCrearConversacion(userId, pr);
   const [msg] = await db
     .insert(chatMensajes)
-    .values({ conversacionId: conv.id, remitenteUserId: userId, remitenteRol: pr, esSecretaria: false, cuerpo })
+    .values({
+      conversacionId: conv.id, remitenteUserId: userId, remitenteRol: pr, esSecretaria: false, cuerpo,
+      adjuntoRuta: file?.path, adjuntoNombre: file?.originalname, adjuntoMime: file?.mimetype,
+    })
     .returning();
+  const resumen = cuerpo || (file ? `📎 ${file.originalname}` : '');
   await db
     .update(chatConversaciones)
     .set({
       ultimoMensajeEn: sql`now()`,
-      ultimoMensajeTexto: cuerpo.slice(0, 300),
+      ultimoMensajeTexto: resumen.slice(0, 300),
       noLeidosAdmin: sql`${chatConversaciones.noLeidosAdmin} + 1`,
     })
     .where(eq(chatConversaciones.id, conv.id));
@@ -128,11 +182,26 @@ router.post('/mensajes', async (req, res) => {
     tipo: 'chat_mensaje',
     prioridad: 'normal',
     titulo: 'Nuevo mensaje en el chat',
-    cuerpo: `${nombre} (${pr === 'gestor' ? 'gestor' : 'alumno'}) escribió: "${cuerpo.slice(0, 80)}"`,
+    cuerpo: `${nombre} (${pr === 'gestor' ? 'gestor' : 'alumno'}): "${resumen.slice(0, 80)}"`,
     enlace: `/admin/chat?c=${conv.id}`,
   }).catch(() => {});
 
   res.json({ mensaje: msg });
+});
+
+// Preview de un adjunto (solo de la conversación del propio participante).
+router.get('/mensajes/:id/preview', async (req, res) => {
+  const { userId, rol } = req.user!;
+  if (!rolParticipante(rol)) { res.status(403).json({ error: 'No autorizado' }); return; }
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'id inválido' }); return; }
+  const [row] = await db
+    .select({ ruta: chatMensajes.adjuntoRuta, mime: chatMensajes.adjuntoMime, nombre: chatMensajes.adjuntoNombre, participante: chatConversaciones.participanteUserId })
+    .from(chatMensajes)
+    .innerJoin(chatConversaciones, eq(chatMensajes.conversacionId, chatConversaciones.id))
+    .where(eq(chatMensajes.id, id));
+  if (!row || row.participante !== userId) { res.status(404).json({ error: 'No encontrado' }); return; }
+  servirAdjunto(row.ruta, row.mime, row.nombre, res);
 });
 
 // Contador de no leídos para el badge del participante.
@@ -272,27 +341,33 @@ adminChatRouter.get('/conversaciones/:id', async (req, res) => {
   res.json({ conversacion: { ...conv, noLeidosAdmin: 0, nombre }, mensajes });
 });
 
-// Responder como Secretaría.
-adminChatRouter.post('/conversaciones/:id/mensajes', async (req, res) => {
-  const id = parseInt(req.params.id, 10);
-  if (isNaN(id)) { res.status(400).json({ error: 'id inválido' }); return; }
-  const parse = cuerpoSchema.safeParse(req.body);
-  if (!parse.success) { res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Mensaje inválido' }); return; }
-  const cuerpo = parse.data.cuerpo;
+// Responder como Secretaría (texto y/o adjunto).
+adminChatRouter.post('/conversaciones/:id/mensajes', subirAdjuntoMw, async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  const file = req.file;
+  const limpiarArchivo = () => { if (file) fs.unlink(file.path).catch(() => {}); };
+  if (isNaN(id)) { limpiarArchivo(); res.status(400).json({ error: 'id inválido' }); return; }
+
+  const cuerpo = typeof req.body?.cuerpo === 'string' ? req.body.cuerpo.trim().slice(0, 4000) : '';
+  if (!cuerpo && !file) { res.status(400).json({ error: 'Escribe un mensaje o adjunta un documento' }); return; }
 
   const [conv] = await db.select().from(chatConversaciones).where(eq(chatConversaciones.id, id));
-  if (!conv) { res.status(404).json({ error: 'Conversación no encontrada' }); return; }
+  if (!conv) { limpiarArchivo(); res.status(404).json({ error: 'Conversación no encontrada' }); return; }
 
   const adminUserId = req.user!.userId;
   const [msg] = await db
     .insert(chatMensajes)
-    .values({ conversacionId: id, remitenteUserId: adminUserId, remitenteRol: 'administrador', esSecretaria: true, cuerpo })
+    .values({
+      conversacionId: id, remitenteUserId: adminUserId, remitenteRol: 'administrador', esSecretaria: true, cuerpo,
+      adjuntoRuta: file?.path, adjuntoNombre: file?.originalname, adjuntoMime: file?.mimetype,
+    })
     .returning();
+  const resumen = cuerpo || (file ? `📎 ${file.originalname}` : '');
   await db
     .update(chatConversaciones)
     .set({
       ultimoMensajeEn: sql`now()`,
-      ultimoMensajeTexto: cuerpo.slice(0, 300),
+      ultimoMensajeTexto: resumen.slice(0, 300),
       noLeidosParticipante: sql`${chatConversaciones.noLeidosParticipante} + 1`,
     })
     .where(eq(chatConversaciones.id, id));
@@ -302,11 +377,23 @@ adminChatRouter.post('/conversaciones/:id/mensajes', async (req, res) => {
     tipo: 'mensaje_admin',
     prioridad: 'normal',
     titulo: 'Mensaje de la Secretaría',
-    cuerpo: cuerpo.slice(0, 120),
+    cuerpo: resumen.slice(0, 120),
     enlace: conv.participanteRol === 'gestor' ? '/gestor/mensajes' : '/estudiante/mensajes',
   }).catch(() => {});
 
   res.json({ mensaje: msg });
+});
+
+// Preview de un adjunto (cualquier conversación; solo admin).
+adminChatRouter.get('/mensajes/:id/preview', async (req, res) => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: 'id inválido' }); return; }
+  const [row] = await db
+    .select({ ruta: chatMensajes.adjuntoRuta, mime: chatMensajes.adjuntoMime, nombre: chatMensajes.adjuntoNombre })
+    .from(chatMensajes)
+    .where(eq(chatMensajes.id, id));
+  if (!row) { res.status(404).json({ error: 'No encontrado' }); return; }
+  servirAdjunto(row.ruta, row.mime, row.nombre, res);
 });
 
 export default router;

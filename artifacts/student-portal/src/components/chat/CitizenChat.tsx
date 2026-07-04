@@ -10,8 +10,9 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, Send, Lock, Info } from 'lucide-react';
+import { ShieldCheck, Send, Lock, Info, Paperclip, X, FileText } from 'lucide-react';
 import { api } from '../../lib/api';
+import { ChatAdjunto } from './ChatAdjunto';
 
 interface Mensaje {
   id: number;
@@ -19,6 +20,8 @@ interface Mensaje {
   remitenteRol: string;
   esSecretaria: boolean;
   cuerpo: string;
+  adjuntoNombre?: string | null;
+  adjuntoMime?: string | null;
   createdAt: string;
 }
 
@@ -33,10 +36,12 @@ export function CitizenChat() {
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [cargando, setCargando] = useState(false);
   const [texto, setTexto] = useState('');
+  const [archivo, setArchivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const finRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   function scrollAlFinal(suave = true) {
     finRef.current?.scrollIntoView({ behavior: suave ? 'smooth' : 'auto' });
@@ -49,8 +54,9 @@ export function CitizenChat() {
         if (prev.length !== r.mensajes.length && scroll) setTimeout(() => scrollAlFinal(), 60);
         return r.mensajes;
       });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'No se pudo cargar el chat');
+    } catch {
+      // Silencioso: el sondeo puede fallar transitoriamente (p. ej. durante un
+      // redeploy). No mostramos error para no alarmar; el envío sí lo reporta.
     }
   }
 
@@ -73,15 +79,27 @@ export function CitizenChat() {
     return () => clearInterval(t);
   }, [aceptado]);
 
+  function elegirArchivo(f: File | null) {
+    if (!f) { setArchivo(null); return; }
+    if (f.size > 10 * 1024 * 1024) { setError('El archivo supera 10 MB'); return; }
+    setError(null);
+    setArchivo(f);
+  }
+
   async function enviar() {
     const cuerpo = texto.trim();
-    if (!cuerpo || enviando) return;
+    if ((!cuerpo && !archivo) || enviando) return;
     setEnviando(true);
     setError(null);
     try {
-      const r = await api.post<{ mensaje: Mensaje }>('/chat/mensajes', { cuerpo });
+      const fd = new FormData();
+      if (cuerpo) fd.append('cuerpo', cuerpo);
+      if (archivo) fd.append('archivo', archivo);
+      const r = await api.post<{ mensaje: Mensaje }>('/chat/mensajes', fd);
       setMensajes((prev) => [...prev, r.mensaje]);
       setTexto('');
+      setArchivo(null);
+      if (fileRef.current) fileRef.current.value = '';
       setTimeout(() => scrollAlFinal(), 40);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo enviar el mensaje');
@@ -209,7 +227,15 @@ export function CitizenChat() {
                           : { background: '#fff', color: '#292524', border: '1px solid #eaddd0', borderBottomLeftRadius: 4 }
                       }
                     >
-                      <div className="whitespace-pre-wrap break-words">{m.cuerpo}</div>
+                      {m.cuerpo && <div className="whitespace-pre-wrap break-words">{m.cuerpo}</div>}
+                      {m.adjuntoNombre && (
+                        <ChatAdjunto
+                          previewUrl={`/api/chat/mensajes/${m.id}/preview`}
+                          mime={m.adjuntoMime}
+                          nombre={m.adjuntoNombre}
+                          mio={mio}
+                        />
+                      )}
                     </div>
                     <div className={`mt-0.5 text-[10px] text-stone-400 ${mio ? 'text-right' : 'ml-1'}`}>
                       {horaCorta(m.createdAt)}
@@ -225,8 +251,34 @@ export function CitizenChat() {
 
       {error && <div className="mt-2 text-xs text-red-600">{error}</div>}
 
+      {/* Archivo adjunto pendiente */}
+      {archivo && (
+        <div className="mt-2 flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700">
+          <FileText size={14} className="flex-shrink-0 text-[var(--color-guinda-700)]" />
+          <span className="min-w-0 flex-1 truncate">{archivo.name}</span>
+          <span className="flex-shrink-0 text-stone-400">{(archivo.size / 1024 / 1024).toFixed(1)} MB</span>
+          <button onClick={() => elegirArchivo(null)} className="flex-shrink-0 text-stone-400 hover:text-stone-700"><X size={14} /></button>
+        </div>
+      )}
+
       {/* Barra de envío */}
       <div className="mt-3 flex items-end gap-2">
+        <input
+          ref={fileRef}
+          type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={(e) => elegirArchivo(e.target.files?.[0] ?? null)}
+        />
+        <button
+          onClick={() => fileRef.current?.click()}
+          disabled={enviando}
+          className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-stone-200 text-stone-500 transition-colors hover:bg-stone-50 hover:text-[var(--color-guinda-700)] disabled:opacity-40"
+          aria-label="Adjuntar documento"
+          title="Adjuntar documento (PDF o imagen)"
+        >
+          <Paperclip size={18} />
+        </button>
         <textarea
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
@@ -239,7 +291,7 @@ export function CitizenChat() {
         />
         <button
           onClick={enviar}
-          disabled={!texto.trim() || enviando}
+          disabled={(!texto.trim() && !archivo) || enviando}
           className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-opacity disabled:opacity-40"
           style={{ background: 'var(--color-guinda-700)' }}
           aria-label="Enviar"

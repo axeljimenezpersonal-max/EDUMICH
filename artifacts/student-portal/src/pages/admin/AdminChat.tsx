@@ -9,9 +9,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSearch } from 'wouter';
-import { MessageSquare, Send, Search, PenSquare, X, Lock, ChevronLeft, UserRound, GraduationCap, Users } from 'lucide-react';
+import { MessageSquare, Send, Search, PenSquare, X, Lock, ChevronLeft, UserRound, GraduationCap, Users, Paperclip, FileText } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
+import { ChatAdjunto } from '../../components/chat/ChatAdjunto';
 
 interface Conv {
   id: number;
@@ -29,6 +30,8 @@ interface Mensaje {
   esSecretaria: boolean;
   remitenteRol: string;
   cuerpo: string;
+  adjuntoNombre?: string | null;
+  adjuntoMime?: string | null;
   createdAt: string;
 }
 interface Destinatario {
@@ -50,9 +53,11 @@ export default function AdminChat() {
   const [sel, setSel] = useState<{ nombre: string; rol: string } | null>(null);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
   const [texto, setTexto] = useState('');
+  const [archivo, setArchivo] = useState<File | null>(null);
   const [enviando, setEnviando] = useState(false);
   const [nuevoOpen, setNuevoOpen] = useState(false);
   const finRef = useRef<HTMLDivElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Carga inicial: si viene ?c=ID lo abre.
   useEffect(() => {
@@ -98,14 +103,24 @@ export default function AdminChat() {
     // eslint-disable-next-line
   }, [selId, q]);
 
+  function elegirArchivo(f: File | null) {
+    if (f && f.size > 10 * 1024 * 1024) return;
+    setArchivo(f);
+  }
+
   async function responder() {
     const cuerpo = texto.trim();
-    if (!cuerpo || selId == null || enviando) return;
+    if ((!cuerpo && !archivo) || selId == null || enviando) return;
     setEnviando(true);
     try {
-      const r = await api.post<{ mensaje: Mensaje }>(`/admin/chat/conversaciones/${selId}/mensajes`, { cuerpo });
+      const fd = new FormData();
+      if (cuerpo) fd.append('cuerpo', cuerpo);
+      if (archivo) fd.append('archivo', archivo);
+      const r = await api.post<{ mensaje: Mensaje }>(`/admin/chat/conversaciones/${selId}/mensajes`, fd);
       setMensajes((prev) => [...prev, r.mensaje]);
       setTexto('');
+      setArchivo(null);
+      if (fileRef.current) fileRef.current.value = '';
       setTimeout(() => finRef.current?.scrollIntoView({ behavior: 'smooth' }), 40);
       cargarConvs();
     } finally {
@@ -241,7 +256,15 @@ export default function AdminChat() {
                                   : { background: '#fff', color: '#292524', border: '1px solid #eaddd0', borderBottomLeftRadius: 4 }
                               }
                             >
-                              <div className="whitespace-pre-wrap break-words">{m.cuerpo}</div>
+                              {m.cuerpo && <div className="whitespace-pre-wrap break-words">{m.cuerpo}</div>}
+                              {m.adjuntoNombre && (
+                                <ChatAdjunto
+                                  previewUrl={`/api/admin/chat/mensajes/${m.id}/preview`}
+                                  mime={m.adjuntoMime}
+                                  nombre={m.adjuntoNombre}
+                                  mio={mio}
+                                />
+                              )}
                             </div>
                             <div className={`mt-0.5 text-[10px] text-stone-400 ${mio ? 'text-right' : 'ml-1'}`}>{horaCorta(m.createdAt)}</div>
                           </div>
@@ -253,24 +276,50 @@ export default function AdminChat() {
                 )}
               </div>
 
-              <div className="flex items-end gap-2 border-t border-stone-100 p-3">
-                <textarea
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); responder(); } }}
-                  rows={1}
-                  placeholder="Escribe una respuesta…"
-                  className="max-h-32 flex-1 resize-none rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
-                />
-                <button
-                  onClick={responder}
-                  disabled={!texto.trim() || enviando}
-                  className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-opacity disabled:opacity-40"
-                  style={{ background: 'var(--color-guinda-700)' }}
-                  aria-label="Enviar"
-                >
-                  <Send size={17} />
-                </button>
+              <div className="border-t border-stone-100 p-3">
+                {archivo && (
+                  <div className="mb-2 flex items-center gap-2 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs text-stone-700">
+                    <FileText size={14} className="flex-shrink-0 text-[var(--color-guinda-700)]" />
+                    <span className="min-w-0 flex-1 truncate">{archivo.name}</span>
+                    <span className="flex-shrink-0 text-stone-400">{(archivo.size / 1024 / 1024).toFixed(1)} MB</span>
+                    <button onClick={() => elegirArchivo(null)} className="flex-shrink-0 text-stone-400 hover:text-stone-700"><X size={14} /></button>
+                  </div>
+                )}
+                <div className="flex items-end gap-2">
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={(e) => elegirArchivo(e.target.files?.[0] ?? null)}
+                  />
+                  <button
+                    onClick={() => fileRef.current?.click()}
+                    disabled={enviando}
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-stone-200 text-stone-500 transition-colors hover:bg-stone-50 hover:text-[var(--color-guinda-700)] disabled:opacity-40"
+                    aria-label="Adjuntar documento"
+                    title="Adjuntar documento (PDF o imagen)"
+                  >
+                    <Paperclip size={18} />
+                  </button>
+                  <textarea
+                    value={texto}
+                    onChange={(e) => setTexto(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); responder(); } }}
+                    rows={1}
+                    placeholder="Escribe una respuesta…"
+                    className="max-h-32 flex-1 resize-none rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
+                  />
+                  <button
+                    onClick={responder}
+                    disabled={(!texto.trim() && !archivo) || enviando}
+                    className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-opacity disabled:opacity-40"
+                    style={{ background: 'var(--color-guinda-700)' }}
+                    aria-label="Enviar"
+                  >
+                    <Send size={17} />
+                  </button>
+                </div>
               </div>
             </>
           )}
