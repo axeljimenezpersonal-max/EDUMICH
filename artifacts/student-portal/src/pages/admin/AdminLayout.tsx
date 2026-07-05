@@ -263,7 +263,7 @@ function SidebarBadge({ count }: { count: number; muted?: boolean }) {
   return (
     <span
       className="ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-      style={{ background: 'var(--color-guinda-800)', color: 'white' }}
+      style={{ background: 'var(--color-guinda-700)', color: 'white' }}
     >
       {count}
     </span>
@@ -428,7 +428,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           style={{ top: 96 }}
         >
           {/* Header */}
-          <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
+          <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
             <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
             <div className="text-[15px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
               Administración

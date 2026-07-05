@@ -55,7 +55,7 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         {/* Sidebar */}
         <nav className="md:sticky md:top-[114px] self-start">
           <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
-            <div className="px-4 py-3 bg-[var(--color-guinda-800)] text-white">
+            <div className="px-4 py-3 bg-[var(--color-guinda-700)] text-white">
               <div className="text-[10px] tracking-widest opacity-80">PANEL</div>
               <div className="font-serif text-sm">Gestor Municipal</div>
             </div>

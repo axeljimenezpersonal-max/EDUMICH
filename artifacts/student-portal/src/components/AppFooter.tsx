@@ -6,7 +6,7 @@ export function AppFooter() {
   return (
     <footer
       className="text-white text-[11px]"
-      style={{ background: 'var(--color-guinda-800)' }}
+      style={{ background: 'var(--color-guinda-700)' }}
     >
       <div className="max-w-[1400px] mx-auto px-6 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
         <span className="font-medium">© {new Date().getFullYear()} Gobierno del Estado de Michoacán</span>

@@ -55,7 +55,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         {/* Sidebar — solo visible en md+ */}
         <nav className="hidden md:block md:sticky md:top-[114px] self-start">
           <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
-            <div className="px-4 py-3 bg-[var(--color-guinda-800)] text-white">
+            <div className="px-4 py-3 bg-[var(--color-guinda-700)] text-white">
               <div className="text-[10px] tracking-widest opacity-80">PORTAL</div>
               <div className="font-serif text-sm">Estudiante</div>
             </div>
