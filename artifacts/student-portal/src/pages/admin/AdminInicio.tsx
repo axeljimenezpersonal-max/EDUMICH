@@ -290,7 +290,7 @@ export default function AdminInicio() {
                 num={data?.tareasPendientes.calificacionesPorCapturar ?? 0}
                 label="Calificaciones por capturar"
                 cta="Capturar ahora"
-                onClick={() => setLocation('/admin/alumnos?filtro=calif_pendientes')}
+                onClick={() => setLocation('/admin/calificaciones')}
               />
             </div>
           </div>

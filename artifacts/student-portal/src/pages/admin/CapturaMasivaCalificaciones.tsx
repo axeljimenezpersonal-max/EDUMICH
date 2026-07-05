@@ -179,11 +179,11 @@ export default function CapturaMasivaCalificaciones() {
       {/* Header */}
       <div className="mb-6">
         <button
-          onClick={() => setLocation('/admin/alumnos?filtro=calif_pendientes')}
+          onClick={() => setLocation('/admin/calificaciones')}
           className="flex items-center gap-1.5 text-xs mb-3 hover:opacity-70 transition-opacity"
           style={{ color: 'var(--color-guinda-700)', background: 'none', border: 'none', cursor: 'pointer' }}
         >
-          <ChevronLeft size={14} /> Volver a alumnos
+          <ChevronLeft size={14} /> Volver a Calificaciones
         </button>
         <div
           className="flex items-center gap-1.5 text-[11px] font-semibold uppercase mb-1.5"

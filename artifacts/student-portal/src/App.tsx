@@ -134,7 +134,6 @@ export default function App() {
       {/* Redirects: old routes → new filtered views */}
       <Route path="/admin/documentos"><Redirect to="/admin/alumnos?filtro=docs_en_revision" /></Route>
       <Route path="/admin/pagos"><Redirect to="/admin/alumnos?filtro=pagos_pendientes" /></Route>
-      <Route path="/admin/calificaciones"><Redirect to="/admin/alumnos?filtro=calif_pendientes" /></Route>
       <Route path="/admin" component={AdminInicio} />
 
       {/* Dirección de programa — indicadores agregados, solo lectura */}
