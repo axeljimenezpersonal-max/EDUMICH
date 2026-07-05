@@ -329,12 +329,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin/gestores',   icon: UserCheck, label: 'Gestores',  badge: sidebar.totalGestores,   muted: true },
     { href: '/admin/solicitudes', icon: Inbox,   label: 'Solicitudes', badge: sidebar.solicitudesPendientes, muted: false },
     { href: '/admin/ordenes-pago', icon: CreditCard, label: 'Pagos', muted: false },
+    { href: '/admin/calificaciones', icon: GraduationCap, label: 'Calificaciones', muted: false },
   ];
 
   const otrosItems = [
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
-    { href: '/admin/calificaciones', icon: GraduationCap, label: 'Calificaciones' },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
     { href: '/admin/chat',          icon: MessageSquare, label: 'Chat en vivo' },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes' },
