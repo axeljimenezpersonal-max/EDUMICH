@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'wouter';
-import { GraduationCap, ChevronLeft, Save, AlertCircle } from 'lucide-react';
+import { GraduationCap, ChevronLeft, Save, AlertCircle, Search, X, Filter } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 
@@ -36,6 +36,12 @@ export default function CapturaMasivaCalificaciones() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Filtros (cliente) para acotar cuando hay muchos alumnos.
+  const [q, setQ] = useState('');
+  const [fModulo, setFModulo] = useState<number | 'all'>('all');
+  const [fFecha, setFFecha] = useState<string>('all');
+  const [fSede, setFSede] = useState<string>('all');
+
   useEffect(() => {
     api.get<{ etapas: EtapaPendiente[] }>('/admin/calificaciones/etapas-pendientes')
       .then((r) => {
@@ -47,6 +53,7 @@ export default function CapturaMasivaCalificaciones() {
   }, []);
 
   useEffect(() => {
+    setQ(''); setFModulo('all'); setFFecha('all'); setFSede('all');
     if (!etapaId) { setInscripciones([]); setEntradas({}); return; }
     setLoadingInsc(true);
     api.get<{ inscripciones: Inscripcion[] }>(`/admin/calificaciones/batch-list?etapaId=${etapaId}`)
@@ -124,6 +131,35 @@ export default function CapturaMasivaCalificaciones() {
     (e) => e.noPresento || (e.calificacion.trim() !== '' && !isNaN(parseInt(e.calificacion)))
   ).length;
 
+  // Opciones de filtro derivadas de las inscripciones cargadas.
+  const modulosOpts = useMemo(() => {
+    const m = new Map<number, string>();
+    inscripciones.forEach((i) => m.set(i.moduloNumero, i.moduloNombre));
+    return Array.from(m, ([numero, nombre]) => ({ numero, nombre })).sort((a, b) => a.numero - b.numero);
+  }, [inscripciones]);
+  const fechasOpts = useMemo(
+    () => Array.from(new Set(inscripciones.map((i) => i.fechaExamen))).sort(),
+    [inscripciones]
+  );
+  const sedesOpts = useMemo(
+    () => Array.from(new Set(inscripciones.map((i) => i.sedeNombre))).sort((a, b) => a.localeCompare(b)),
+    [inscripciones]
+  );
+
+  const inscripcionesFiltradas = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return inscripciones.filter((i) => {
+      if (fModulo !== 'all' && i.moduloNumero !== fModulo) return false;
+      if (fFecha !== 'all' && i.fechaExamen !== fFecha) return false;
+      if (fSede !== 'all' && i.sedeNombre !== fSede) return false;
+      if (query && !`${i.alumnoNombre} ${i.folio}`.toLowerCase().includes(query)) return false;
+      return true;
+    });
+  }, [inscripciones, q, fModulo, fFecha, fSede]);
+
+  const hayFiltros = q !== '' || fModulo !== 'all' || fFecha !== 'all' || fSede !== 'all';
+  function limpiarFiltros() { setQ(''); setFModulo('all'); setFFecha('all'); setFSede('all'); }
+
   return (
     <AdminLayout>
       {/* Toast */}
@@ -200,9 +236,58 @@ export default function CapturaMasivaCalificaciones() {
             </div>
           ) : (
             <>
+              {/* Barra de filtros */}
+              <div className="bg-white border border-stone-200 rounded-xl p-3 mb-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider" style={{ color: '#a89a8e' }}>
+                    <Filter size={12} /> Filtrar
+                  </span>
+                  <div className="relative min-w-[200px] flex-1">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                    <input
+                      value={q}
+                      onChange={(e) => setQ(e.target.value)}
+                      placeholder="Buscar por alumno o folio…"
+                      className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
+                    />
+                  </div>
+                  <select
+                    value={String(fModulo)}
+                    onChange={(e) => setFModulo(e.target.value === 'all' ? 'all' : Number(e.target.value))}
+                    className="rounded-lg border border-stone-200 bg-white py-2 pl-3 pr-8 text-sm text-stone-700 focus:outline-none"
+                  >
+                    <option value="all">Todos los módulos</option>
+                    {modulosOpts.map((m) => <option key={m.numero} value={m.numero}>Mód. {m.numero} — {m.nombre}</option>)}
+                  </select>
+                  <select
+                    value={fFecha}
+                    onChange={(e) => setFFecha(e.target.value)}
+                    className="rounded-lg border border-stone-200 bg-white py-2 pl-3 pr-8 text-sm text-stone-700 focus:outline-none"
+                  >
+                    <option value="all">Toda fecha de examen</option>
+                    {fechasOpts.map((f) => <option key={f} value={f}>{f}</option>)}
+                  </select>
+                  <select
+                    value={fSede}
+                    onChange={(e) => setFSede(e.target.value)}
+                    className="rounded-lg border border-stone-200 bg-white py-2 pl-3 pr-8 text-sm text-stone-700 focus:outline-none max-w-[200px]"
+                  >
+                    <option value="all">Todas las sedes</option>
+                    {sedesOpts.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  {hayFiltros && (
+                    <button onClick={limpiarFiltros} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100">
+                      <X size={13} /> Limpiar
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between mb-3">
                 <p className="text-sm" style={{ color: '#6b635e' }}>
-                  {inscripciones.length} alumnos · {totalCapturadas} calificaciones ingresadas
+                  {hayFiltros
+                    ? `${inscripcionesFiltradas.length} de ${inscripciones.length} alumnos`
+                    : `${inscripciones.length} alumnos`}{' '}· {totalCapturadas} calificaciones ingresadas
                 </p>
                 {error && (
                   <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: '#b91c1c' }}>
@@ -238,7 +323,11 @@ export default function CapturaMasivaCalificaciones() {
                   <div>Calificación (0–100)</div>
                 </div>
 
-                {inscripciones.map((ins) => {
+                {inscripcionesFiltradas.length === 0 ? (
+                  <div className="px-5 py-10 text-center text-sm" style={{ color: '#6b635e' }}>
+                    Ningún alumno coincide con los filtros.
+                  </div>
+                ) : inscripcionesFiltradas.map((ins) => {
                   const entrada = entradas[ins.id] ?? { calificacion: '', noPresento: false };
                   const califNum = parseInt(entrada.calificacion);
                   const esValida = !isNaN(califNum) && califNum >= 0 && califNum <= 100;
