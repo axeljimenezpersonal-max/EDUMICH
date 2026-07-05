@@ -336,72 +336,76 @@ export default function ConvocatoriaDetalle() {
 
                     return (
                       <div key={insc.estudianteId} className="border-b border-stone-50 last:border-b-0">
-                        {/* Row */}
-                        <button
+                        {/* Row — clic en la fila expande módulos; clic en el nombre va al perfil */}
+                        <div
+                          role="button"
+                          tabIndex={0}
                           onClick={() => toggleExpand(insc.estudianteId)}
-                          className="w-full text-left"
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(insc.estudianteId); } }}
+                          className="grid items-center px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer"
+                          style={{
+                            gridTemplateColumns: '28px 1fr 140px 90px 80px 32px',
+                            gap: 12,
+                          }}
                         >
-                          <div
-                            className="grid items-center px-4 py-3 hover:bg-stone-50 transition-colors"
-                            style={{
-                              gridTemplateColumns: '28px 1fr 140px 90px 80px 32px',
-                              gap: 12,
-                            }}
-                          >
-                            <span className="text-sm font-semibold" style={{ color: '#ddd0c5', fontFamily: "'Poppins', sans-serif" }}>
-                              {idx + 1}
-                            </span>
-                            <div>
-                              <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}>
-                                {insc.nombreCompleto}
+                          <span className="text-sm font-semibold" style={{ color: '#ddd0c5', fontFamily: "'Poppins', sans-serif" }}>
+                            {idx + 1}
+                          </span>
+                          <div className="min-w-0">
+                            <Link
+                              href={`/admin/alumnos/${insc.estudianteId}`}
+                              onClick={(e) => e.stopPropagation()}
+                              className="text-[13px] font-semibold hover:underline"
+                              style={{ color: 'var(--color-guinda-700)', fontFamily: "'Poppins', sans-serif" }}
+                              title="Ver expediente del alumno"
+                            >
+                              {insc.nombreCompleto}
+                            </Link>
+                            {insc.curp && (
+                              <div className="text-[10px] mt-0.5 font-mono" style={{ color: '#6b635e' }}>
+                                {insc.curp}
                               </div>
-                              {insc.curp && (
-                                <div className="text-[10px] mt-0.5 font-mono" style={{ color: '#6b635e' }}>
-                                  {insc.curp}
-                                </div>
-                              )}
-                            </div>
-                            <span className="text-xs" style={{ color: '#6b635e' }}>
-                              {insc.municipio ?? '—'}
-                            </span>
-                            <span className="text-sm font-semibold" style={{ color: '#443e39' }}>
-                              {insc.totalModulos}
-                            </span>
-                            <div className="flex gap-1">
-                              {aprobados > 0 && (
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                  style={{ background: '#d1fae5', color: '#065f46' }}
-                                >
-                                  {aprobados}✓
-                                </span>
-                              )}
-                              {reprobados > 0 && (
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                  style={{ background: '#fee2e2', color: '#991b1b' }}
-                                >
-                                  {reprobados}✗
-                                </span>
-                              )}
-                              {aprobados === 0 && reprobados === 0 && (
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                                  style={{ background: '#fef9c3', color: '#92400e' }}
-                                >
-                                  Pendiente
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center justify-center">
-                              {isExpanded
-                                ? <ChevronDown size={14} style={{ color: '#6b635e' }} />
-                                : <ChevronRight size={14} style={{ color: '#ddd0c5' }} />
-                              }
-                            </div>
+                            )}
                           </div>
-                        </button>
+                          <span className="text-xs" style={{ color: '#6b635e' }}>
+                            {insc.municipio ?? '—'}
+                          </span>
+                          <span className="text-sm font-semibold" style={{ color: '#443e39' }}>
+                            {insc.totalModulos}
+                          </span>
+                          <div className="flex gap-1">
+                            {aprobados > 0 && (
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                style={{ background: '#d1fae5', color: '#065f46' }}
+                              >
+                                {aprobados}✓
+                              </span>
+                            )}
+                            {reprobados > 0 && (
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                style={{ background: '#fee2e2', color: '#991b1b' }}
+                              >
+                                {reprobados}✗
+                              </span>
+                            )}
+                            {aprobados === 0 && reprobados === 0 && (
+                              <span
+                                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                                style={{ background: '#fef9c3', color: '#92400e' }}
+                              >
+                                Pendiente
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-center">
+                            {isExpanded
+                              ? <ChevronDown size={14} style={{ color: '#6b635e' }} />
+                              : <ChevronRight size={14} style={{ color: '#ddd0c5' }} />
+                            }
+                          </div>
+                        </div>
 
                         {/* Expanded: modules */}
                         {isExpanded && (
