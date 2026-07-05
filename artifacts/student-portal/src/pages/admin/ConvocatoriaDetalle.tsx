@@ -89,6 +89,7 @@ export default function ConvocatoriaDetalle() {
   const [tab, setTab] = useState<'inscritos' | 'resultados'>('inscritos');
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
+  const [filtroEstado, setFiltroEstado] = useState<'todos' | 'aprobados' | 'reprobados' | 'pendientes'>('todos');
 
   useEffect(() => {
     if (!etapaId) return;
@@ -118,11 +119,19 @@ export default function ConvocatoriaDetalle() {
 
   const inscritosFiltrados = (data?.inscritos ?? []).filter((i) => {
     const q = search.toLowerCase();
-    return (
+    const coincideBusqueda =
       i.nombreCompleto.toLowerCase().includes(q) ||
       (i.curp ?? '').toLowerCase().includes(q) ||
-      (i.municipio ?? '').toLowerCase().includes(q)
-    );
+      (i.municipio ?? '').toLowerCase().includes(q);
+    if (!coincideBusqueda) return false;
+
+    if (filtroEstado === 'todos') return true;
+    const tieneAprobado = i.modulos.some((m) => m.calificacion !== null && m.calificacion >= 70);
+    const tieneReprobado = i.modulos.some((m) => m.calificacion !== null && m.calificacion < 70);
+    const tienePendiente = i.modulos.some((m) => m.calificacion === null);
+    if (filtroEstado === 'aprobados') return tieneAprobado;
+    if (filtroEstado === 'reprobados') return tieneReprobado;
+    return tienePendiente; // pendientes
   });
 
   // Resultados: aggregate by módulo
@@ -240,12 +249,14 @@ export default function ConvocatoriaDetalle() {
             />
           </div>
 
-          {/* Stats row */}
+          {/* Stats row — las 3 de resultado filtran la lista al hacer clic */}
           <div className="grid grid-cols-5 gap-3 mb-6">
             <MiniStat
               num={data.stats.totalInscritos}
-              label="Estudiantes"
+              label={filtroEstado === 'todos' ? 'Estudiantes' : 'Ver todos'}
               icon={<Users size={14} />}
+              onClick={filtroEstado !== 'todos' ? () => setFiltroEstado('todos') : undefined}
+              active={filtroEstado === 'todos'}
             />
             <MiniStat
               num={data.stats.examenesTotal}
@@ -258,6 +269,9 @@ export default function ConvocatoriaDetalle() {
               icon={<CheckCircle size={14} />}
               color="#059669"
               bg="#d1fae5"
+              onClick={() => setFiltroEstado((f) => (f === 'aprobados' ? 'todos' : 'aprobados'))}
+              active={filtroEstado === 'aprobados'}
+              dimmed={filtroEstado !== 'todos' && filtroEstado !== 'aprobados'}
             />
             <MiniStat
               num={data.stats.reprobados}
@@ -265,6 +279,9 @@ export default function ConvocatoriaDetalle() {
               icon={<XCircle size={14} />}
               color="#dc2626"
               bg="#fee2e2"
+              onClick={() => setFiltroEstado((f) => (f === 'reprobados' ? 'todos' : 'reprobados'))}
+              active={filtroEstado === 'reprobados'}
+              dimmed={filtroEstado !== 'todos' && filtroEstado !== 'reprobados'}
             />
             <MiniStat
               num={data.stats.pendientes}
@@ -272,6 +289,9 @@ export default function ConvocatoriaDetalle() {
               icon={<Clock size={14} />}
               color="#c77700"
               bg="#fef9c3"
+              onClick={() => setFiltroEstado((f) => (f === 'pendientes' ? 'todos' : 'pendientes'))}
+              active={filtroEstado === 'pendientes'}
+              dimmed={filtroEstado !== 'todos' && filtroEstado !== 'pendientes'}
             />
           </div>
 
@@ -280,8 +300,17 @@ export default function ConvocatoriaDetalle() {
             <h2 className="text-sm font-bold" style={{ color: 'var(--color-guinda-700)' }}>Lista de inscritos</h2>
             {data.stats.totalInscritos > 0 && (
               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: 'var(--color-guinda-700)' }}>
-                {data.stats.totalInscritos}
+                {filtroEstado === 'todos' ? data.stats.totalInscritos : `${inscritosFiltrados.length} de ${data.stats.totalInscritos}`}
               </span>
+            )}
+            {filtroEstado !== 'todos' && (
+              <button
+                onClick={() => setFiltroEstado('todos')}
+                className="ml-auto text-[11px] font-semibold hover:underline"
+                style={{ color: '#6b635e' }}
+              >
+                Filtrando por <strong style={{ color: 'var(--color-guinda-700)' }}>{filtroEstado}</strong> · quitar filtro
+              </button>
             )}
           </div>
 
@@ -508,16 +537,30 @@ function DateCard({ label, value, icon }: { label: string; value: string; icon: 
 }
 
 function MiniStat({
-  num, label, icon, color, bg,
+  num, label, icon, color, bg, onClick, active, dimmed,
 }: {
   num: number;
   label: string;
   icon: React.ReactNode;
   color?: string;
   bg?: string;
+  onClick?: () => void;
+  active?: boolean;
+  dimmed?: boolean;
 }) {
+  const clickable = !!onClick;
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-4 py-3.5">
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={!clickable}
+      className={`text-left bg-white border rounded-xl px-4 py-3.5 transition-all ${clickable ? 'cursor-pointer hover:shadow-sm' : 'cursor-default'}`}
+      style={{
+        borderColor: active ? (color ?? 'var(--color-guinda-700)') : '#e7e5e4',
+        boxShadow: active ? `0 0 0 1px ${color ?? 'var(--color-guinda-700)'}` : undefined,
+        opacity: dimmed ? 0.55 : 1,
+      }}
+    >
       <div
         className="w-7 h-7 rounded-md flex items-center justify-center mb-2"
         style={{ background: bg ?? '#f8f4ec', color: color ?? 'var(--color-guinda-700)' }}
@@ -530,10 +573,11 @@ function MiniStat({
       >
         {num}
       </div>
-      <div className="text-[10px] mt-1" style={{ color: '#6b635e' }}>
+      <div className="text-[10px] mt-1 flex items-center gap-1" style={{ color: '#6b635e' }}>
         {label}
+        {active && <span style={{ color: color ?? 'var(--color-guinda-700)' }}>· filtrando</span>}
       </div>
-    </div>
+    </button>
   );
 }
 
