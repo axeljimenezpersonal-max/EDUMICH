@@ -5,6 +5,8 @@ import {
   Store, Download, Clock, Calendar, MapPin, ClipboardList, Landmark, Check, ExternalLink,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { PageTour } from '../../components/tour/PageTour';
+import { TOUR_EXPEDIENTE } from '../../components/tour/estudianteToursPagina';
 import {
   api,
   type ExpedienteResponse,
@@ -116,7 +118,7 @@ function DatosPersonalesSection({
   return (
     <div className="bg-white border border-stone-200 rounded-lg p-5 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="font-serif text-base font-bold text-stone-900">Datos personales</h2>
+        <h2 data-tour="exp-datos" className="font-serif text-base font-bold text-stone-900">Datos personales</h2>
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
@@ -331,7 +333,7 @@ export default function MiExpediente() {
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
           MI EXPEDIENTE
         </div>
-        <h1 className="font-serif text-2xl font-bold text-stone-900">Expediente documental</h1>
+        <h1 data-tour="exp-titulo" className="font-serif text-2xl font-bold text-stone-900">Expediente documental</h1>
         <p className="text-stone-500 text-sm mt-1">
           Sube los documentos requeridos para completar tu expediente académico.
         </p>
@@ -423,7 +425,7 @@ export default function MiExpediente() {
               </a>
 
               <section className="mb-6">
-                <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Documentos obligatorios</h2>
+                <h2 data-tour="exp-obligatorios" className="font-serif text-base font-bold text-stone-900 mb-3">Documentos obligatorios</h2>
                 <div className="space-y-3">
                   {obligatorios.map((def) => (
                     <DocumentoUploader
@@ -477,7 +479,7 @@ export default function MiExpediente() {
               </section>
 
               <section className="mb-6">
-                <h2 className="font-serif text-base font-bold text-stone-900 mb-1">Documentos para la credencial</h2>
+                <h2 data-tour="exp-credencial" className="font-serif text-base font-bold text-stone-900 mb-1">Documentos para la credencial</h2>
                 <p className="text-xs text-stone-500 mb-3">
                   No son obligatorios para inscribirte, pero tu fotografía se usa para emitir tu credencial (credencial digital).
                 </p>
@@ -530,6 +532,7 @@ export default function MiExpediente() {
       {activeTab === 'calificaciones' && meId !== null && (
         <CalificacionesTabContent estudianteId={meId} readOnly={true} />
       )}
+          <PageTour storageKey="edumich_tour_expediente_v1" steps={TOUR_EXPEDIENTE} />
     </EstudianteLayout>
   );
 }

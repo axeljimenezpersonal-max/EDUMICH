@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { ChevronRight, Lock, BookOpen, CreditCard, CheckCircle2, CalendarCheck } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { PageTour } from '../../components/tour/PageTour';
+import { TOUR_MODULOS } from '../../components/tour/estudianteToursPagina';
 import { api, type MisModulosResponse, type ModuloListItem, type ProgresoEstado } from '../../lib/api';
 
 const NIVEL_LABELS: Record<number, string> = {
@@ -142,7 +144,7 @@ export default function MisModulos() {
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
           MIS MÓDULOS
         </div>
-        <h1 className="font-serif text-2xl font-bold text-stone-900">Plan Modular</h1>
+        <h1 data-tour="mod-titulo" className="font-serif text-2xl font-bold text-stone-900">Plan Modular</h1>
         {data && (
           <p className="text-stone-500 text-sm mt-1">
             {data.resumen.totalModulos} módulos · 4 niveles de avance
@@ -255,7 +257,7 @@ export default function MisModulos() {
 
           {sinNivel.length > 0 && (
             <section className="mb-8">
-              <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
+              <h2 data-tour="mod-lista" className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sinNivel.map((m) =>
                   (desbloqueado && m.inscritoExamen)
@@ -277,6 +279,7 @@ export default function MisModulos() {
           )}
         </>
       )}
+          <PageTour storageKey="edumich_tour_modulos_v1" steps={TOUR_MODULOS} />
     </EstudianteLayout>
   );
 }

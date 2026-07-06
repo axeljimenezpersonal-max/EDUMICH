@@ -20,6 +20,8 @@ import {
   X,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { PageTour } from '../../components/tour/PageTour';
+import { TOUR_INSCRIPCION } from '../../components/tour/estudianteToursPagina';
 import { api } from '../../lib/api';
 import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria } from '../../lib/api';
 
@@ -463,7 +465,7 @@ export default function MiConvocatoria() {
 
         {/* Header */}
         <div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">Mi Inscripción</h1>
+          <h1 data-tour="insc-titulo" className="font-serif text-2xl font-bold text-stone-900">Mi Inscripción</h1>
           <p className="text-stone-500 text-sm mt-1">
             Consulta tu estado de inscripción, módulos disponibles y sede asignada.
           </p>
@@ -600,6 +602,7 @@ export default function MiConvocatoria() {
         <ProximasEtapasSection etapas={proximasEtapas} />
 
       </div>
+          <PageTour storageKey="edumich_tour_inscripcion_v1" steps={TOUR_INSCRIPCION} />
     </EstudianteLayout>
   );
 }

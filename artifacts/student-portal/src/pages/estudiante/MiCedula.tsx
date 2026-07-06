@@ -4,6 +4,8 @@ import {
   Pencil, Lock, Copy,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { PageTour } from '../../components/tour/PageTour';
+import { TOUR_CEDULA } from '../../components/tour/estudianteToursPagina';
 import { api, type CedulaDatos, type CedulaDatosEditable } from '../../lib/api';
 import FirmaPad from '../../components/FirmaPad';
 import { CampoCopiable } from '../../components/CampoCopiable';
@@ -105,7 +107,7 @@ export default function MiCedula() {
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
           MI CÉDULA
         </div>
-        <h1 className="font-serif text-2xl font-bold text-stone-900 flex items-center gap-2">
+        <h1 data-tour="ced-titulo" className="font-serif text-2xl font-bold text-stone-900 flex items-center gap-2">
           <ClipboardList size={22} /> Cédula de inscripción
         </h1>
         <p className="text-stone-500 text-sm mt-1">
@@ -163,7 +165,7 @@ export default function MiCedula() {
               /* ── Modo edición ── */
               <div className="bg-white border border-stone-200 rounded-xl p-5">
                 <div className="flex items-center justify-between mb-3">
-                  <h2 className="font-serif text-base font-bold text-stone-900">Editar cédula</h2>
+                  <h2 data-tour="ced-editar" className="font-serif text-base font-bold text-stone-900">Editar cédula</h2>
                   <button
                     onClick={() => { setEditing(false); setError(null); cargar(); }}
                     className="text-xs text-stone-500 hover:text-stone-700 font-semibold"
@@ -247,7 +249,7 @@ export default function MiCedula() {
           {/* ── Columna derecha: vista previa ── */}
           <div className="lg:sticky lg:top-[114px] self-start space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="font-serif text-base font-bold text-stone-900">Vista previa</h2>
+              <h2 data-tour="ced-preview" className="font-serif text-base font-bold text-stone-900">Vista previa</h2>
               <div className="flex gap-2">
                 <button
                   onClick={() => setPreviewKey((k) => k + 1)}
@@ -274,6 +276,7 @@ export default function MiCedula() {
           </div>
         </div>
       )}
+          <PageTour storageKey="edumich_tour_cedula_v1" steps={TOUR_CEDULA} />
     </EstudianteLayout>
   );
 }

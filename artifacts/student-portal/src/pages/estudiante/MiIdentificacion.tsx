@@ -3,6 +3,8 @@ import { Link } from 'wouter';
 import { BadgeCheck, Download, Loader2, Lock, RotateCcw, Shield, RefreshCw } from 'lucide-react';
 import { QRCodeSVG as QRCodeReact } from 'qrcode.react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { PageTour } from '../../components/tour/PageTour';
+import { TOUR_IDENTIFICACION } from '../../components/tour/estudianteToursPagina';
 import { api } from '../../lib/api';
 
 // ── Paleta institucional (espejo del template) ──────────────────────────
@@ -425,7 +427,7 @@ export default function MiIdentificacion() {
       <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1 flex items-center gap-1.5">
         <BadgeCheck size={12} /> Mi identificación
       </div>
-      <h1 className="font-serif text-3xl font-bold text-stone-900 mb-1">
+      <h1 data-tour="id-titulo" className="font-serif text-3xl font-bold text-stone-900 mb-1">
         Credencial digital
       </h1>
       <p className="text-stone-500 text-sm mb-6">
@@ -561,6 +563,7 @@ export default function MiIdentificacion() {
           </span>
         </div>
       </div>
+          <PageTour storageKey="edumich_tour_identificacion_v1" steps={TOUR_IDENTIFICACION} />
     </EstudianteLayout>
   );
 }
