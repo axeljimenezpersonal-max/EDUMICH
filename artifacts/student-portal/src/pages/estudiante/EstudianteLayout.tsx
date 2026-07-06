@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList, MessageSquare, CreditCard, GraduationCap } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
@@ -10,6 +10,8 @@ const NAV = [
   { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen, tour: 'nav-expediente' },
   { to: '/estudiante/cedula', label: 'Cédula', icon: ClipboardList, tour: 'nav-cedula' },
   { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
+  { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
+  { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
   { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen, tour: 'nav-modulos' },
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
   { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
@@ -99,14 +101,15 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-200"
         style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
       >
-        <div className="flex items-stretch">
+        {/* 9 secciones: en móvil la barra se desliza horizontalmente */}
+        <div className="flex items-stretch overflow-x-auto scrollbar-none">
           {NAV.map((item) => {
             const active =
               item.to === '/estudiante'
                 ? location === '/estudiante'
                 : location.startsWith(item.to);
             return (
-              <Link key={item.to} href={item.to} className="flex-1">
+              <Link key={item.to} href={item.to} className="flex-1 min-w-[68px]">
                 <div
                   className={`flex flex-col items-center justify-center py-2 gap-0.5 transition-colors ${
                     active
@@ -115,7 +118,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
                   }`}
                 >
                   <item.icon size={20} />
-                  <span className="text-[9px] font-semibold tracking-wide leading-none">
+                  <span className="text-[9px] font-semibold tracking-wide leading-none whitespace-nowrap">
                     {item.label}
                   </span>
                   {active && (

@@ -10,6 +10,12 @@ export const TOUR_EXPEDIENTE: TourStep[] = [
     body: 'Aquí reúnes todo lo que necesitas para inscribirte. Arriba verás tu progreso: cuántos documentos llevas aprobados.',
   },
   {
+    target: "[data-tour='exp-matricula']",
+    placement: 'bottom',
+    title: 'Tu matrícula oficial',
+    body: 'Cuando la SEP-DGB valida tu registro, aquí aparece tu matrícula oficial y puedes descargar tu ficha de registro. Mientras tanto verás tu folio de pre-registro.',
+  },
+  {
     target: "[data-tour='exp-datos']",
     placement: 'bottom',
     title: 'Tus datos personales',
@@ -79,6 +85,40 @@ export const TOUR_MODULOS: TourStep[] = [
     placement: 'top',
     title: 'Estudia y practica',
     body: 'Entra a cada módulo para ver el material de estudio y resolver las evaluaciones de práctica antes de tu examen oficial.',
+  },
+];
+
+export const TOUR_PAGOS: TourStep[] = [
+  {
+    target: "[data-tour='pagos-titulo']",
+    placement: 'bottom',
+    title: 'Tus pagos de examen',
+    body: 'Aquí ves de un vistazo qué exámenes ya están pagados, cuáles van en proceso y cuáles faltan por cubrir.',
+  },
+  {
+    target: "[data-tour='pagos-inscripciones']",
+    placement: 'top',
+    title: 'Estado por examen',
+    body: 'Cada módulo inscrito muestra su etiqueta: Pagado, En proceso o Sin pagar. Si tienes exámenes sin pagar, solicita tu orden de pago con un clic.',
+  },
+  {
+    title: 'Cómo se paga',
+    body: 'El pago es ante la Tesorería del Estado: descargas tu orden con línea de captura, pagas en banco / tienda / en línea, y subes tu comprobante aquí. La coordinación lo confirma y quedas listo para tu examen.',
+  },
+];
+
+export const TOUR_CALIFICACIONES: TourStep[] = [
+  {
+    target: "[data-tour='calif-titulo']",
+    placement: 'bottom',
+    title: 'Tu historial académico',
+    body: 'Consulta tus módulos aprobados por nivel, tu avance hacia los 21 y tu promedio.',
+  },
+  {
+    target: "[data-tour='calif-contenido']",
+    placement: 'top',
+    title: 'Oficiales y de práctica',
+    body: 'Verás tus resultados de exámenes oficiales y también tus evaluaciones de práctica. Puedes descargar tu historial académico en PDF cuando lo necesites.',
   },
 ];
 

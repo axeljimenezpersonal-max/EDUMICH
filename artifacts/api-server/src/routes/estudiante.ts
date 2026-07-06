@@ -762,6 +762,9 @@ router.get('/expediente', async (req, res) => {
       telefono: estudiantes.telefono,
       direccion: estudiantes.direccion,
       municipioId: estudiantes.municipioId,
+      matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      matriculaCapturadaEn: estudiantes.matriculaCapturadaEn,
+      folioPreregistro: estudiantes.folioPreregistro,
     })
     .from(estudiantes)
     .where(eq(estudiantes.userId, userId));
@@ -811,6 +814,9 @@ router.get('/expediente', async (req, res) => {
       municipio: municipio?.nombre ?? '',
     },
     documentos: docsPorTipo,
+    matriculaOficialDGB: est.matriculaOficialDGB ?? null,
+    matriculaCapturadaEn: est.matriculaCapturadaEn?.toISOString() ?? null,
+    folioPreregistro: est.folioPreregistro ?? null,
   });
 });
 

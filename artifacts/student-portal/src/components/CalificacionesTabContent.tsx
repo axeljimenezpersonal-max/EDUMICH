@@ -94,8 +94,8 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
         <div className="flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 mb-4 text-xs text-blue-900">
           <Lock size={14} className="text-blue-500 shrink-0" />
           <div>
-            <strong>Vista de solo lectura.</strong> Las calificaciones las captura la administración.
-            Puedes consultarlas e informárselas a tu alumno.
+            <strong>Vista de solo lectura.</strong> Las calificaciones oficiales las captura la
+            administración; aquí puedes consultarlas y descargar el historial en PDF.
           </div>
         </div>
       )}

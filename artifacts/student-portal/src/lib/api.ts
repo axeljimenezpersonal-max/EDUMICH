@@ -484,6 +484,9 @@ export interface ExpedienteResponse {
     municipio: string;
   };
   documentos: Partial<Record<TipoDocumento, DocExpediente>>;
+  matriculaOficialDGB: string | null;
+  matriculaCapturadaEn: string | null;
+  folioPreregistro: string | null;
 }
 
 // ── Cédula de inscripción ───────────────────────────────────────────────────

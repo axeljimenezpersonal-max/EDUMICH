@@ -22,6 +22,8 @@ import ModuloDetalle from './pages/estudiante/ModuloDetalle';
 import EvaluacionPage from './pages/estudiante/EvaluacionPage';
 import { EstudianteLayout } from './pages/estudiante/EstudianteLayout';
 import MiExpediente from './pages/estudiante/MiExpediente';
+import MisPagos from './pages/estudiante/MisPagos';
+import MisCalificaciones from './pages/estudiante/MisCalificaciones';
 import MiConvocatoria from './pages/estudiante/MiConvocatoria';
 import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import PaseExamen from './pages/estudiante/PaseExamen';
@@ -93,6 +95,8 @@ export default function App() {
       <Route path="/estudiante/modulos/:id" component={ModuloDetalle} />
       <Route path="/estudiante/modulos" component={MisModulos} />
       <Route path="/estudiante/expediente" component={MiExpediente} />
+      <Route path="/estudiante/pagos" component={MisPagos} />
+      <Route path="/estudiante/calificaciones" component={MisCalificaciones} />
       <Route path="/estudiante/cedula" component={MiCedula} />
       <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
       <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
