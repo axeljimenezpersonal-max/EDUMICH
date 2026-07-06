@@ -23,7 +23,17 @@ import { EstudianteLayout } from './EstudianteLayout';
 import { PageTour } from '../../components/tour/PageTour';
 import { TOUR_INSCRIPCION } from '../../components/tour/estudianteToursPagina';
 import { api } from '../../lib/api';
-import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria } from '../../lib/api';
+import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria, ExpedienteResponse } from '../../lib/api';
+
+// Nombres institucionales de los documentos del expediente (las claves
+// internas — curp, acta_nacimiento… — nunca se muestran al alumno).
+const DOCS_EXPEDIENTE: { tipo: string; label: string }[] = [
+  { tipo: 'curp', label: 'CURP' },
+  { tipo: 'acta_nacimiento', label: 'Acta de nacimiento' },
+  { tipo: 'ine', label: 'Identificación oficial (INE)' },
+  { tipo: 'comprobante_domicilio', label: 'Comprobante de domicilio' },
+  { tipo: 'certificado_secundaria', label: 'Certificado de secundaria' },
+];
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -258,7 +268,7 @@ function ModulosInscripcion({
         {exito && (
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-sm text-emerald-800">
             <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-            ¡Inscripción completada! Ve a <strong>Mis pagos</strong> en el expediente para pagar tus derechos.
+            ¡Inscripción completada! Ve a la sección <strong>Pagos</strong> del menú para cubrir tus derechos de examen.
             <button onClick={() => setExito(false)} className="ml-auto text-emerald-400 hover:text-emerald-600">
               <X size={14} />
             </button>
@@ -397,6 +407,12 @@ export default function MiConvocatoria() {
   const [calendarioData, setCalendarioData] = useState<CalendarioMes | null>(null);
   const [calendarioLoading, setCalendarioLoading] = useState(false);
 
+  // Expediente: estatus por documento para el checklist de requisitos
+  const [expediente, setExpediente] = useState<ExpedienteResponse | null>(null);
+  useEffect(() => {
+    api.get<ExpedienteResponse>('/estudiante/expediente').then(setExpediente).catch(() => {});
+  }, []);
+
   async function cargarConvocatoria() {
     try {
       const d = await api.get<ConvocatoriaResponse>('/estudiante/convocatoria');
@@ -471,33 +487,83 @@ export default function MiConvocatoria() {
           </p>
         </div>
 
-        {/* Expediente incompleto */}
-        {!requisitos.expedienteCompleto && (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-semibold text-amber-800 text-sm">Expediente incompleto</p>
-                <p className="text-amber-700 text-sm mt-1">
-                  Para inscribirte a un examen necesitas tener los siguientes documentos aprobados:
-                </p>
-                <ul className="mt-2 space-y-1">
-                  {requisitos.documentosFaltantes.map((doc) => (
-                    <li key={doc} className="flex items-center gap-2 text-sm text-amber-700">
-                      <XCircle className="w-3.5 h-3.5" />
-                      {doc.replace(/_/g, ' ')}
-                    </li>
-                  ))}
-                </ul>
+        {/* Expediente incompleto — checklist de requisitos con estatus real */}
+        {!requisitos.expedienteCompleto && (() => {
+          const estadoDoc = (tipo: string): 'aprobado' | 'en_revision' | 'rechazado' | 'falta' => {
+            const doc = expediente?.documentos?.[tipo as keyof typeof expediente.documentos];
+            if (!doc) return 'falta';
+            if (doc.estado === 'aprobado') return 'aprobado';
+            if (doc.estado === 'rechazado') return 'rechazado';
+            return 'en_revision';
+          };
+          const ESTADO_CFG = {
+            aprobado:    { label: 'Aprobado',       icon: <CheckCircle2 size={14} className="text-emerald-600" />, chip: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+            en_revision: { label: 'En revisión',    icon: <Clock size={14} className="text-amber-600" />,          chip: 'bg-amber-50 text-amber-700 border-amber-200' },
+            rechazado:   { label: 'Rechazado',      icon: <XCircle size={14} className="text-red-600" />,          chip: 'bg-red-50 text-red-700 border-red-200' },
+            falta:       { label: 'Falta subir',    icon: <AlertTriangle size={14} className="text-stone-400" />,  chip: 'bg-stone-50 text-stone-500 border-stone-200' },
+          } as const;
+          const aprobadosCount = DOCS_EXPEDIENTE.filter((d) => estadoDoc(d.tipo) === 'aprobado').length;
+
+          return (
+            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+              {/* Encabezado con progreso */}
+              <div className="px-5 py-4 border-b border-stone-100 bg-amber-50/60">
+                <div className="flex items-center justify-between gap-3 mb-2.5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                      <FileCheck size={17} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-stone-900 text-sm">Completa tu expediente para inscribirte</p>
+                      <p className="text-xs text-stone-500">Necesitas los 5 documentos aprobados por la administración.</p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-xl font-bold font-serif text-stone-900">{aprobadosCount}</span>
+                    <span className="text-sm text-stone-400">/{DOCS_EXPEDIENTE.length}</span>
+                    <div className="text-[10px] text-stone-400 uppercase tracking-wide">aprobados</div>
+                  </div>
+                </div>
+                <div className="h-1.5 bg-white rounded-full overflow-hidden border border-amber-100">
+                  <div
+                    className="h-full rounded-full bg-[var(--color-guinda-700)] transition-all"
+                    style={{ width: `${(aprobadosCount / DOCS_EXPEDIENTE.length) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Checklist de documentos */}
+              <div className="divide-y divide-stone-100">
+                {DOCS_EXPEDIENTE.map(({ tipo, label }) => {
+                  const estado = estadoDoc(tipo);
+                  const cfg = ESTADO_CFG[estado];
+                  return (
+                    <div key={tipo} className="px-5 py-3 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {cfg.icon}
+                        <span className={`text-sm ${estado === 'aprobado' ? 'text-stone-400 line-through' : 'text-stone-800 font-medium'}`}>
+                          {label}
+                        </span>
+                      </div>
+                      <span className={`shrink-0 text-[11px] font-semibold px-2 py-0.5 rounded-full border ${cfg.chip}`}>
+                        {cfg.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* CTA */}
+              <div className="px-5 py-4 bg-stone-50 border-t border-stone-100">
                 <Link href="/estudiante/expediente">
-                  <button className="mt-3 text-sm font-medium text-amber-800 underline hover:no-underline">
-                    Ir a Mi Expediente
+                  <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors">
+                    Completar mi expediente <ChevronRight size={15} />
                   </button>
                 </Link>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Expediente aprobado pero sin matrícula oficial */}
         {requisitos.expedienteCompleto && !requisitos.tieneMatricula && (
@@ -593,7 +659,7 @@ export default function MiConvocatoria() {
           <ol className="text-sm text-stone-600 space-y-1 list-decimal list-inside">
             <li>Asegúrate de tener tu expediente completo y aprobado.</li>
             <li>Durante el período de solicitud, selecciona los módulos de arriba e inscríbete.</li>
-            <li>Paga tus derechos de examen desde <strong>Mi expediente → Mis pagos</strong>.</li>
+            <li>Paga tus derechos de examen desde la sección <strong>Pagos</strong> del menú.</li>
             <li>Descarga tu pase de examen y preséntate en la sede el día indicado.</li>
           </ol>
         </div>
