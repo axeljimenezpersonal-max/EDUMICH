@@ -17,7 +17,7 @@ import path from 'path';
 import { z } from 'zod';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
-import { estudiantes, users, gestores, firmasUsuario, expedienteDocumentos } from '@workspace/db/schema';
+import { estudiantes, users, gestores, firmasUsuario, expedienteDocumentos, municipios } from '@workspace/db/schema';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 
@@ -111,6 +111,13 @@ async function reunirDatos(estudianteId: number): Promise<{
 
   const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, estudianteId));
 
+  // Municipio de residencia → sirve como Ciudad cuando no se capturó por separado.
+  let municipioNombre = '';
+  if (est.municipioId) {
+    const [m] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId));
+    municipioNombre = m?.nombre ?? '';
+  }
+
   const firmaActiva = (row: { imagenDataUrl: string | null; imagenDataUrl2: string | null; activa: number } | undefined) =>
     row ? (row.activa === 2 ? row.imagenDataUrl2 : row.imagenDataUrl) ?? null : null;
 
@@ -146,8 +153,10 @@ async function reunirDatos(estudianteId: number): Promise<{
     calleNumero: est.calleNumero || (est.direccion ?? ''),
     colonia: est.colonia ?? '',
     cp: est.cp ?? '',
-    ciudad: est.ciudad ?? '',
-    estado: est.estadoDomicilio ?? '',
+    // Si no se capturó ciudad/estado por separado, se derivan del municipio de
+    // residencia (ciudad) y del estado de la plataforma (Michoacán).
+    ciudad: est.ciudad || municipioNombre,
+    estado: est.estadoDomicilio || (est.municipioId ? 'Michoacán' : ''),
     telefono: est.telefono ?? '',
     correo: userRow?.email ?? '',
     ultimoEstudio: est.ultimoEstudio || 'Secundaria',
