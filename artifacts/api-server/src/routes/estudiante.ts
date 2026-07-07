@@ -1555,19 +1555,55 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
   const inscripcionesResult: Array<{ id: number; folio: string; moduloNombre: string; fecha: string; hora: string }> = [];
 
   for (const { moduloId, horario, moduloNombre } of horariosPorModulo) {
-    const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
-    const [nueva] = await db.insert(examenesInscripciones).values({
-      estudianteId: userId,
-      etapaId,
-      moduloId,
-      horarioId: horario.id,
-      sedeId,
-      folio,
-      estado: 'inscrito',
-    }).returning({ id: examenesInscripciones.id });
+    // Si ya existe una inscripción CANCELADA para este (estudiante, etapa, módulo)
+    // se revive: el índice único (est, etapa, módulo) impide insertar otra fila,
+    // así que al modificar una pre-inscripción reusamos la fila previa.
+    const [previa] = await db
+      .select({ id: examenesInscripciones.id, folio: examenesInscripciones.folio })
+      .from(examenesInscripciones)
+      .where(
+        and(
+          eq(examenesInscripciones.estudianteId, userId),
+          eq(examenesInscripciones.etapaId, etapaId),
+          eq(examenesInscripciones.moduloId, moduloId)
+        )
+      );
+
+    let inscId: number;
+    let folio: string;
+    if (previa) {
+      folio = previa.folio;
+      await db
+        .update(examenesInscripciones)
+        .set({
+          horarioId: horario.id,
+          sedeId,
+          estado: 'inscrito',
+          paseValidadoEn: null,
+          paseValidadoPorUserId: null,
+          calificacion: null,
+        })
+        .where(eq(examenesInscripciones.id, previa.id));
+      inscId = previa.id;
+    } else {
+      folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
+      const [nueva] = await db
+        .insert(examenesInscripciones)
+        .values({
+          estudianteId: userId,
+          etapaId,
+          moduloId,
+          horarioId: horario.id,
+          sedeId,
+          folio,
+          estado: 'inscrito',
+        })
+        .returning({ id: examenesInscripciones.id });
+      inscId = nueva.id;
+    }
 
     const fechaExamen = horario.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
-    inscripcionesResult.push({ id: nueva.id, folio, moduloNombre, fecha: fechaExamen ?? '', hora: horario.hora });
+    inscripcionesResult.push({ id: inscId, folio, moduloNombre, fecha: fechaExamen ?? '', hora: horario.hora });
   }
 
   await tryAuditLog({
