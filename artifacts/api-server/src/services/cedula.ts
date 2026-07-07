@@ -354,7 +354,12 @@ export async function generarCedulaPdf(
       const esJpg = bytes[0] === 0xff && bytes[1] === 0xd8;
       if (esPng || esJpg) {
         const img = esPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        const boxW = 72, boxH = 84, boxX = 450, boxY = 496;
+        // Recuadro "FOTOGRAFÍA" real de la plantilla (medido sobre el PDF).
+        const boxW = 110, boxH = 84, boxX = 447, boxY = 491;
+        // La plantilla trae impreso el texto "FOTOGRAFÍA": lo tapamos con un
+        // fondo blanco (dentro del marco) para que no se asome tras la foto.
+        page.drawRectangle({ x: boxX + 2, y: boxY + 2, width: boxW - 4, height: boxH - 4, color: rgb(1, 1, 1) });
+        // Foto con aspect-fit, centrada dentro del recuadro.
         const escala = Math.min(boxW / img.width, boxH / img.height);
         const w = img.width * escala, h = img.height * escala;
         page.drawImage(img, { x: boxX + (boxW - w) / 2, y: boxY + (boxH - h) / 2, width: w, height: h });
@@ -364,22 +369,25 @@ export async function generarCedulaPdf(
     }
   }
 
-  // ── Firmas (se dibujan sobre la línea de firma) ──
-  const dibujarFirma = async (dataUrl: string | null, x: number, y: number) => {
+  // ── Firmas: centradas sobre su línea, tamaño uniforme, siempre derechas ──
+  const dibujarFirma = async (dataUrl: string | null, centerX: number, y: number) => {
     if (!dataUrl) return;
     const parsed = dataUrlABytes(dataUrl);
     if (!parsed) return;
     try {
       const img = parsed.esPng ? await doc.embedPng(parsed.bytes) : await doc.embedJpg(parsed.bytes);
-      const maxW = 150, maxH = 40;
+      const maxW = 150, maxH = 42;
       const escala = Math.min(maxW / img.width, maxH / img.height);
-      page.drawImage(img, { x, y, width: img.width * escala, height: img.height * escala });
+      const w = img.width * escala, h = img.height * escala;
+      // centerX = centro de la línea de firma; x se calcula para centrar.
+      page.drawImage(img, { x: centerX - w / 2, y, width: w, height: h });
     } catch {
       /* firma ilegible: se omite */
     }
   };
-  await dibujarFirma(firmaAlumno, 60, 118);
-  await dibujarFirma(firmaResponsable, 362, 118);
+  // Centros de las líneas "Nombre y firma": estudiante (x≈150) y responsable (x≈452).
+  await dibujarFirma(firmaAlumno, 150, 120);
+  await dibujarFirma(firmaResponsable, 452, 120);
 
   // ── Observaciones (opcional) ──
   // La plantilla no tiene campo AcroForm para observaciones, así que se dibuja.

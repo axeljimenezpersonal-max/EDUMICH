@@ -1887,7 +1887,7 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
           <p className="text-xs text-stone-500 mb-3">
             Fírmala una vez; se reutilizará como firma del responsable en las cédulas de tus alumnos.
           </p>
-          <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
+          <FirmaPad unaSola onChange={() => setPreviewKey((k) => k + 1)} />
         </div>
 
         {!datos.tieneFoto && (

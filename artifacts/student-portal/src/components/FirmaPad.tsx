@@ -3,12 +3,17 @@ import { Pen, Eraser, Check, Trash2, Loader2, RotateCcw, CheckCircle2 } from 'lu
 import { api, type FirmaResponse } from '../lib/api';
 
 /**
- * Firmas reutilizables estilo Apple: hasta 2 espacios guardados. El usuario
- * dibuja una vez, se guarda, y luego solo elige con un clic cuál usar. Cada
- * espacio se puede volver a firmar o quitar. La firma "en uso" (activa) es la
- * que se estampa en la cédula.
+ * Firma reutilizable estilo Apple. El usuario dibuja una vez y se guarda para
+ * estamparse en la cédula. Con `unaSola` se usa un único espacio (la firma
+ * oficial del responsable); sin él, permite 2 espacios y elegir cuál usar.
  */
-export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean) => void }) {
+export default function FirmaPad({
+  onChange,
+  unaSola = false,
+}: {
+  onChange?: (tieneFirma: boolean) => void;
+  unaSola?: boolean;
+}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const dibujando = useRef(false);
   const huboTrazo = useRef(false);
@@ -97,6 +102,10 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
     try {
       const dataUrl = canvasRef.current!.toDataURL('image/png');
       await api.put(`/firma/${drawingSlot}`, { imagenDataUrl: dataUrl });
+      // En modo "una sola firma" el espacio 1 siempre es el activo.
+      if (unaSola && drawingSlot === 1 && activa !== 1) {
+        await api.patch('/firma/activa', { activa: 1 }).catch(() => {});
+      }
       await cargar();
       setDrawingSlot(null);
     } catch (e) {
@@ -180,17 +189,20 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
     );
   }
 
-  // ── Vista de los 2 espacios ──
-  const slots: { n: 1 | 2; img: string | null }[] = [
-    { n: 1, img: firma1 },
-    { n: 2, img: firma2 },
-  ];
+  // ── Vista de los espacios (uno o dos según `unaSola`) ──
+  const slots: { n: 1 | 2; img: string | null }[] = unaSola
+    ? [{ n: 1, img: firma1 }]
+    : [
+        { n: 1, img: firma1 },
+        { n: 2, img: firma2 },
+      ];
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className={`grid gap-3 ${unaSola ? 'grid-cols-1 max-w-sm' : 'grid-cols-1 sm:grid-cols-2'}`}>
         {slots.map(({ n, img }) => {
-          const enUso = activa === n && img !== null;
+          // En modo una sola firma, la firma guardada siempre está "en uso".
+          const enUso = unaSola ? img !== null : activa === n && img !== null;
           return (
             <div
               key={n}
@@ -231,10 +243,11 @@ export default function FirmaPad({ onChange }: { onChange?: (tieneFirma: boolean
                     <img src={img} alt={`Firma ${n}`} className="max-h-16 object-contain" />
                   </div>
 
-                  {/* Estado principal: EN USO grande, o botón para usarla */}
+                  {/* Estado principal: EN USO grande, o botón para usarla.
+                      En modo una sola firma no hay que elegir: siempre está en uso. */}
                   {enUso ? (
                     <div className="mt-2 mx-3 mb-3 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[var(--color-guinda-700)] text-white font-bold text-sm">
-                      <CheckCircle2 size={16} /> EN USO
+                      <CheckCircle2 size={16} /> {unaSola ? 'Firma guardada' : 'EN USO'}
                     </div>
                   ) : (
                     <button

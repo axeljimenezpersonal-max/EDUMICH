@@ -201,7 +201,7 @@ export function CedulaEditor({
               Tu firma se guarda una sola vez y se estampa como responsable en las cédulas de los
               alumnos sin gestor. Elige cuál usar; puedes volver a firmarla cuando quieras.
             </p>
-            <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
+            <FirmaPad unaSola onChange={() => setPreviewKey((k) => k + 1)} />
           </div>
         )}
 
