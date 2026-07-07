@@ -28,7 +28,6 @@ import MiConvocatoria from './pages/estudiante/MiConvocatoria';
 import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import PaseExamen from './pages/estudiante/PaseExamen';
 import MiIdentificacion from './pages/estudiante/MiIdentificacion';
-import MiCedula from './pages/estudiante/MiCedula';
 import EstudianteMensajes from './pages/estudiante/Mensajes';
 import GestorMensajes from './pages/gestor/GestorMensajes';
 import AutoRegistroEmail from './pages/publico/AutoRegistroEmail';
@@ -97,7 +96,8 @@ export default function App() {
       <Route path="/estudiante/expediente" component={MiExpediente} />
       <Route path="/estudiante/pagos" component={MisPagos} />
       <Route path="/estudiante/calificaciones" component={MisCalificaciones} />
-      <Route path="/estudiante/cedula" component={MiCedula} />
+      {/* La cédula ya no se edita por el alumno: vive como consulta en el expediente */}
+      <Route path="/estudiante/cedula"><Redirect to="/estudiante/expediente" /></Route>
       <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
       <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
       <Route path="/estudiante/convocatoria" component={MiConvocatoria} />

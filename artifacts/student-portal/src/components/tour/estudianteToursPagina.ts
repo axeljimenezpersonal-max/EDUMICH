@@ -39,26 +39,8 @@ export const TOUR_EXPEDIENTE: TourStep[] = [
   },
 ];
 
-export const TOUR_CEDULA: TourStep[] = [
-  {
-    target: "[data-tour='ced-titulo']",
-    placement: 'bottom',
-    title: 'Tu cédula de inscripción',
-    body: 'Es tu documento oficial de inscripción. Se llena solo con tus datos y tu foto aprobada del expediente.',
-  },
-  {
-    target: "[data-tour='ced-editar']",
-    placement: 'auto',
-    title: 'Completa y firma',
-    body: 'Revisa que todo esté correcto, ajusta lo que falte y firma con tu dedo o mouse. Tu firma se guarda para reutilizarla.',
-  },
-  {
-    target: "[data-tour='ced-preview']",
-    placement: 'left',
-    title: 'Vista previa y descarga',
-    body: 'Aquí ves cómo queda tu cédula en PDF. Cuando esté lista, la descargas o imprimes.',
-  },
-];
+// (El tour de la cédula editable se retiró: la cédula ahora solo la edita la
+// administración y el alumno la consulta desde su expediente.)
 
 export const TOUR_INSCRIPCION: TourStep[] = [
   {

@@ -1294,19 +1294,10 @@ router.get('/alumnos/:id/cedula', async (req, res) => {
   res.json(await obtenerDatosCedula(alumnoId));
 });
 
-// PATCH /gestor/alumnos/:id/cedula — el gestor también puede completar datos
-router.patch('/alumnos/:id/cedula', async (req, res) => {
-  const alumnoId = Number(req.params.id as string);
-  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
-  const alumno = await verificarAlumnoDelGestor(req.user!.userId, alumnoId);
-  if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
-  const parse = cedulaDatosSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
-    return;
-  }
-  await guardarDatosCedula(alumnoId, parse.data);
-  res.json({ ok: true });
+// PATCH /gestor/alumnos/:id/cedula — RETIRADO: la cédula solo la edita la
+// administración (decisión 2026-07-05). El gestor la consulta y descarga.
+router.patch('/alumnos/:id/cedula', (_req, res) => {
+  res.status(403).json({ error: 'La cédula la elabora la administración. Puedes consultarla y descargarla.' });
 });
 
 // GET /gestor/alumnos/:id/cedula/pdf — cédula rellenada (incluye firma del gestor responsable)

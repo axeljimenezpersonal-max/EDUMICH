@@ -353,33 +353,33 @@ export default function MiExpediente() {
               ))}
             </div>
 
-            {/* Botón grande: armar la cédula de inscripción (parte del flujo) */}
-            <a
-              href="/estudiante/cedula"
-              className="mt-4 flex items-center gap-4 rounded-xl p-5 text-white transition-transform hover:scale-[1.01] shadow-sm"
-              style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}
-            >
-              <div className="w-12 h-12 rounded-xl bg-white/15 flex items-center justify-center shrink-0">
-                <ClipboardList size={24} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-base font-bold">Armar cédula de inscripción</div>
-                <div className="text-xs opacity-80 mt-0.5">
-                  Llena tus datos, firma y descarga tu cédula oficial.
+            {/* Cédula de inscripción — solo consulta y descarga (la elabora la administración) */}
+            <div className="mt-4 bg-white border border-stone-200 rounded-xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+                    <ClipboardList size={18} />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-stone-900">Cédula de inscripción</div>
+                    <div className="text-xs text-stone-500">
+                      La elabora y actualiza la administración con tus datos; aquí puedes consultarla y descargarla.
+                    </div>
+                  </div>
                 </div>
+                <a
+                  href="/api/estudiante/cedula/pdf"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0 inline-flex items-center gap-1.5 bg-[var(--color-guinda-700)] text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors no-underline"
+                >
+                  <Download size={14} /> Descargar PDF
+                </a>
               </div>
-              <span className="shrink-0 inline-flex items-center gap-1.5 bg-white text-[var(--color-guinda-700)] font-bold text-sm px-4 py-2 rounded-lg">
-                Armar →
-              </span>
-            </a>
-
-            {/* Vista previa de la cédula */}
-            <div className="mt-3">
-              <div className="text-xs font-semibold text-stone-500 mb-1.5">Vista previa de tu cédula</div>
               <iframe
                 title="Vista previa de la cédula"
                 src="/api/estudiante/cedula/pdf#toolbar=0&view=FitH"
-                className="w-full border border-stone-200 rounded-xl bg-stone-100"
+                className="w-full bg-stone-100"
                 style={{ height: 360 }}
               />
             </div>

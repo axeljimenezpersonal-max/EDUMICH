@@ -1017,15 +1017,10 @@ router.get('/cedula', async (req, res) => {
   }
 });
 
-// PATCH /estudiante/cedula — guardar los campos editables
-router.patch('/cedula', async (req, res) => {
-  const parse = cedulaDatosSchema.safeParse(req.body);
-  if (!parse.success) {
-    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
-    return;
-  }
-  await guardarDatosCedula(req.user!.userId, parse.data);
-  res.json({ ok: true });
+// PATCH /estudiante/cedula — RETIRADO: la cédula solo la edita la
+// administración (decisión 2026-07-05). El alumno la consulta y descarga.
+router.patch('/cedula', (_req, res) => {
+  res.status(403).json({ error: 'La cédula la elabora la administración. Puedes consultarla y descargarla desde tu expediente.' });
 });
 
 // GET /estudiante/cedula/pdf — cédula rellenada y aplanada

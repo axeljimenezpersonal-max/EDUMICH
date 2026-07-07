@@ -1788,12 +1788,10 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
               <h3 className="font-serif text-base font-bold text-stone-900 flex items-center gap-2">
                 <Lock size={15} className="text-stone-400" /> Datos de la cédula
               </h3>
-              <button
-                onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
-              >
-                <Pencil size={13} /> Editar cédula
-              </button>
+              {/* La cédula solo la edita la administración (decisión 2026-07-05) */}
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-stone-100 text-stone-500 border border-stone-200">
+                Solo lectura · la edita la administración
+              </span>
             </div>
             <p className="text-xs text-stone-400 mb-2">Toca <Copy size={11} className="inline -mt-0.5" /> para copiar un dato.</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6">

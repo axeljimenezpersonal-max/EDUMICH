@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, ClipboardList, MessageSquare, CreditCard, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard, GraduationCap } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
@@ -8,7 +8,6 @@ import { AppFooter } from '../../components/AppFooter';
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
   { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen, tour: 'nav-expediente' },
-  { to: '/estudiante/cedula', label: 'Cédula', icon: ClipboardList, tour: 'nav-cedula' },
   { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
   { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
   { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
