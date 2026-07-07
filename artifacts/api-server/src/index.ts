@@ -5,6 +5,9 @@
  * (reemplaza el index.ts existente del template TEC)
  */
 
+// DEBE ir antes de cualquier import de rutas: fija STORAGE_DIR desde el volumen
+// persistente de Railway antes de que los módulos de rutas lean esa variable.
+import './bootstrap-storage';
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
