@@ -378,6 +378,7 @@ export interface ExamenInscrito {
   id: number;
   folio: string;
   estado: string;
+  pagado: boolean;
   calificacion: number | null;
   paseValidadoEn: string | null;
   etapa: { clave: string; examenSabado: string; examenDomingo: string };

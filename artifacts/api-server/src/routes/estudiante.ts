@@ -1152,10 +1152,24 @@ router.get('/convocatoria', async (req, res) => {
     )
     .orderBy(desc(examenesInscripciones.createdAt));
 
+  // Qué exámenes tienen pago verificado (para distinguir pre-inscrito de inscrito).
+  const pagadosSet = new Set<number>();
+  if (misExamenesRaw.length > 0) {
+    const pagRes = await db.execute<{ id: number }>(sql`
+      SELECT DISTINCT pei.examen_inscripcion_id AS id
+      FROM pagos_examen_inscripciones pei
+      JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+      WHERE pe.estado = 'pagado'
+        AND pei.examen_inscripcion_id IN (${sql.join(misExamenesRaw.map((r) => sql`${r.id}`), sql`, `)})
+    `);
+    for (const row of pagRes.rows as { id: number }[]) pagadosSet.add(Number(row.id));
+  }
+
   const misExamenes = misExamenesRaw.map((r) => ({
     id: r.id,
     folio: r.folio,
     estado: r.estado,
+    pagado: pagadosSet.has(r.id),
     calificacion: r.calificacion,
     paseValidadoEn: r.paseValidadoEn,
     etapa: {

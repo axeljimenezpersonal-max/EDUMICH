@@ -75,7 +75,11 @@ function estadoBadge(estado: string): { label: string; cls: string } {
 // ── ExamenCard ────────────────────────────────────────────────────────────
 
 function ExamenCard({ examen }: { examen: ExamenInscrito }) {
-  const badge = estadoBadge(examen.estado);
+  // Sin pago verificado el examen es un PRE-REGISTRO: no se muestra "Inscrito"
+  // ni estados de pase (esos dependen de un pago confirmado).
+  const badge = examen.pagado
+    ? estadoBadge(examen.estado)
+    : { label: 'Pre-inscrito · falta pago', cls: 'bg-amber-100 text-amber-800 border border-amber-300' };
   const diasRestantes = diasHasta(examen.fechaExamen);
   const showCountdown = diasRestantes <= 30 && diasRestantes > 0;
 
