@@ -198,10 +198,10 @@ export function CedulaEditor({
               <h3 className="font-serif text-sm font-bold text-stone-900">Firma del responsable de la inscripción</h3>
             </div>
             <p className="text-xs text-stone-500 mb-3">
-              Tu firma se guarda una sola vez y se estampa como responsable en las cédulas de los
-              alumnos sin gestor. Elige cuál usar; puedes volver a firmarla cuando quieras.
+              Guarda hasta dos firmas y elige cuál se estampa como responsable en las cédulas de los
+              alumnos sin gestor. Puedes volver a firmar o cambiar la firma en uso cuando quieras.
             </p>
-            <FirmaPad unaSola onChange={() => setPreviewKey((k) => k + 1)} />
+            <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
           </div>
         )}
 

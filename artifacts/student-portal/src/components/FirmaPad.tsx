@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pen, Eraser, Check, Trash2, Loader2, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Pen, Eraser, Check, Trash2, Loader2, RotateCcw, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api, type FirmaResponse } from '../lib/api';
 
 /**
@@ -22,6 +22,7 @@ export default function FirmaPad({
   const [firma2, setFirma2] = useState<string | null>(null);
   const [activa, setActiva] = useState<number>(1);
   const [drawingSlot, setDrawingSlot] = useState<1 | 2 | null>(null);
+  const [confirmarBorrar, setConfirmarBorrar] = useState<1 | 2 | null>(null);
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -134,6 +135,7 @@ export default function FirmaPad({
     try {
       await api.delete(`/firma/${slot}`);
       await cargar();
+      setConfirmarBorrar(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'No se pudo quitar la firma');
     } finally {
@@ -225,9 +227,9 @@ export default function FirmaPad({
                       <RotateCcw size={13} />
                     </button>
                     <button
-                      onClick={() => quitar(n)}
+                      onClick={() => setConfirmarBorrar(n)}
                       disabled={guardando}
-                      title="Quitar firma"
+                      title="Borrar firma"
                       className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
                     >
                       <Trash2 size={13} />
@@ -273,6 +275,44 @@ export default function FirmaPad({
         })}
       </div>
       {error && <div className="text-xs text-red-600 mt-2">{error}</div>}
+
+      {/* Popup: confirmar borrado permanente de una firma */}
+      {confirmarBorrar !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          onClick={() => !guardando && setConfirmarBorrar(null)}
+        >
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="p-5">
+              <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-3">
+                <AlertTriangle size={20} className="text-red-600" />
+              </div>
+              <h3 className="text-base font-bold text-stone-900">¿Borrar la Firma {confirmarBorrar}?</h3>
+              <p className="text-sm text-stone-500 mt-1 leading-relaxed">
+                Esta firma se eliminará <strong>para siempre</strong> y no se podrá recuperar. Si está en
+                uso, deberás elegir o dibujar otra para que se estampe en las cédulas.
+              </p>
+            </div>
+            <div className="flex gap-2 px-5 pb-5">
+              <button
+                onClick={() => setConfirmarBorrar(null)}
+                disabled={guardando}
+                className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-700 text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-50"
+              >
+                No, conservar
+              </button>
+              <button
+                onClick={() => quitar(confirmarBorrar)}
+                disabled={guardando}
+                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {guardando ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                Sí, borrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -365,8 +365,11 @@ export async function generarCedulaPdf(
       const esJpg = bytes[0] === 0xff && bytes[1] === 0xd8;
       if (esPng || esJpg) {
         const img = esPng ? await doc.embedPng(bytes) : await doc.embedJpg(bytes);
-        // Recuadro "FOTOGRAFÍA" real de la plantilla (medido sobre el PDF).
-        const boxW = 110, boxH = 84, boxX = 447, boxY = 491;
+        // Recuadro "FOTOGRAFÍA" real de la plantilla, medido pixel a pixel sobre
+        // el borde impreso (página 612×792). Antes la caja era más ancha y su
+        // centro caía a la derecha del recuadro; con estas medidas la foto queda
+        // centrada dentro del recuadro real (centro X ≈ 486).
+        const boxW = 72, boxH = 81, boxX = 450, boxY = 493;
         // La plantilla trae impreso el texto "FOTOGRAFÍA": lo tapamos con un
         // fondo blanco (dentro del marco) para que no se asome tras la foto.
         page.drawRectangle({ x: boxX + 2, y: boxY + 2, width: boxW - 4, height: boxH - 4, color: rgb(1, 1, 1) });

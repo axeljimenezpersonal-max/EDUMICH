@@ -1883,9 +1883,9 @@ function CedulaGestorTab({ alumnoId }: { alumnoId: number }) {
             <FileSignature size={16} /> Tu firma (responsable de la inscripción)
           </h3>
           <p className="text-xs text-stone-500 mb-3">
-            Fírmala una vez; se reutilizará como firma del responsable en las cédulas de tus alumnos.
+            Guarda hasta dos firmas y elige cuál se reutiliza como firma del responsable en las cédulas de tus alumnos.
           </p>
-          <FirmaPad unaSola onChange={() => setPreviewKey((k) => k + 1)} />
+          <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
         </div>
 
         {!datos.tieneFoto && (
