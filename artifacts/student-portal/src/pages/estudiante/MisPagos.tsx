@@ -367,10 +367,91 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                 );
               })()}
 
-              {(o.estado === 'emitida' || o.estado === 'en_revision' || o.estado === 'vencido') && (
+              {/* ── ORDEN EMITIDA: dos pasos claros de qué hacer ── */}
+              {o.estado === 'emitida' && (
+                <div className="rounded-xl border-2 border-[#e8c4d4] overflow-hidden">
+                  <div className="px-4 py-2.5 bg-[var(--color-guinda-50,#faf0f3)] border-b border-[#e8c4d4] flex items-center gap-2">
+                    <CheckCircle2 size={15} className="text-[var(--color-guinda-700)] shrink-0" />
+                    <span className="text-sm font-bold text-[var(--color-guinda-800)]">¡Ya puedes pagar! Solo faltan 2 pasos</span>
+                  </div>
+
+                  <div className="p-4 space-y-4">
+                    {/* PASO 1 — descargar y pagar */}
+                    <div className="flex gap-3">
+                      <span className="w-7 h-7 rounded-full bg-[var(--color-guinda-700)] text-white text-sm font-bold flex items-center justify-center shrink-0">1</span>
+                      <div className="flex-1 min-w-0 space-y-2.5">
+                        <div>
+                          <div className="text-sm font-bold text-stone-900">Descarga tu orden y págala</div>
+                          <div className="text-xs text-stone-500">Págala ante la Tesorería: banco, tienda de conveniencia o en línea.</div>
+                        </div>
+                        {o.tieneOrden ? (
+                          <a href={`/api/pagos-examen/${o.id}/orden`} target="_blank" rel="noreferrer"
+                            className="flex items-center gap-3 rounded-xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] px-4 py-3 hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors">
+                            <FileText size={22} className="text-[var(--color-guinda-700)] shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-bold text-[var(--color-guinda-800)]">Ver / descargar orden de pago (PDF)</div>
+                              <div className="text-[11px] text-stone-500">Documento oficial de la plataforma del Estado</div>
+                            </div>
+                            <Download size={18} className="text-[var(--color-guinda-700)] shrink-0" />
+                          </a>
+                        ) : (
+                          <div className="text-xs text-stone-500 bg-white border border-stone-200 rounded-lg p-2.5">La coordinación aún no adjuntó el PDF; usa la línea de captura o el link de pago.</div>
+                        )}
+                        {o.lineaCaptura && (
+                          <div>
+                            <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
+                            <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-2">
+                              <code className="flex-1 text-sm font-mono text-stone-800 break-all">{o.lineaCaptura}</code>
+                              <button onClick={() => { navigator.clipboard.writeText(o.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0" title="Copiar">
+                                {copiado ? <Check size={15} /> : <Copy size={15} />}
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        {o.linkPago && (
+                          <a href={o.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50">
+                            <ExternalLink size={15} /> Pagar en línea
+                          </a>
+                        )}
+                        {o.fechaVencimiento && (
+                          <div className="text-xs text-stone-500">Vence el <strong className="text-stone-700">{fmtFecha(o.fechaVencimiento)}</strong>.</div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="border-t border-[#e8c4d4]/70" />
+
+                    {/* PASO 2 — subir comprobante */}
+                    <div className="flex gap-3">
+                      <span className="w-7 h-7 rounded-full bg-[var(--color-guinda-700)] text-white text-sm font-bold flex items-center justify-center shrink-0">2</span>
+                      <div className="flex-1 min-w-0 space-y-2.5">
+                        <div>
+                          <div className="text-sm font-bold text-stone-900">Ya pagaste: sube tu comprobante</div>
+                          <div className="text-xs text-stone-500">Elige cómo pagaste y adjunta el comprobante para que la coordinación lo valide.</div>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {METODOS_PAGO.map((m) => (
+                            <button key={m.value} onClick={() => setMetodoPorId((s) => ({ ...s, [o.id]: m.value }))}
+                              className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodoPorId[o.id] === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>
+                              <div className="text-xs font-bold text-stone-800">{m.label}</div>
+                            </button>
+                          ))}
+                        </div>
+                        <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 transition-colors ${!metodoPorId[o.id] ? 'opacity-50 cursor-not-allowed border-stone-200' : subiendo === o.id ? 'opacity-60 border-stone-300' : 'border-stone-300 hover:border-[var(--color-guinda-700)] cursor-pointer'}`}>
+                          {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
+                          <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : !metodoPorId[o.id] ? 'Primero elige el método de pago' : 'Seleccionar comprobante (PDF o imagen)'}</span>
+                          <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id || !metodoPorId[o.id]} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* En revisión o vencida: solo consulta de la orden (sin pasos de acción) */}
+              {(o.estado === 'en_revision' || o.estado === 'vencido') && (
                 <div className="rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-3">
-                  <div className="text-[11px] text-stone-500">La coordinación emitió tu orden de pago. Descárgala y paga ante la Tesorería.</div>
-                  {o.tieneOrden ? (
+                  {o.tieneOrden && (
                     <a href={`/api/pagos-examen/${o.id}/orden`} target="_blank" rel="noreferrer"
                       className="flex items-center gap-3 rounded-xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] px-4 py-3 hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors">
                       <FileText size={22} className="text-[var(--color-guinda-700)] shrink-0" />
@@ -380,52 +461,23 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                       </div>
                       <Download size={18} className="text-[var(--color-guinda-700)] shrink-0" />
                     </a>
-                  ) : (
-                    <div className="text-xs text-stone-500 bg-white border border-stone-200 rounded-lg p-2.5">La coordinación aún no adjuntó el PDF; usa la línea de captura o el link de pago.</div>
                   )}
                   {o.lineaCaptura && (
                     <div>
                       <div className="text-[11px] font-semibold text-stone-500 uppercase tracking-wide mb-1">Línea de captura</div>
                       <div className="flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-2">
                         <code className="flex-1 text-sm font-mono text-stone-800 break-all">{o.lineaCaptura}</code>
-                        <button onClick={() => { navigator.clipboard.writeText(o.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0">
+                        <button onClick={() => { navigator.clipboard.writeText(o.lineaCaptura!); setCopiado(true); setTimeout(() => setCopiado(false), 1500); }} className="text-stone-400 hover:text-[var(--color-guinda-700)] shrink-0" title="Copiar">
                           {copiado ? <Check size={15} /> : <Copy size={15} />}
                         </button>
                       </div>
                     </div>
-                  )}
-                  {o.linkPago && (
-                    <a href={o.linkPago} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-white">
-                      <ExternalLink size={15} /> Pagar en línea
-                    </a>
-                  )}
-                  {o.fechaVencimiento && (
-                    <div className="text-xs text-stone-500">Vence el <strong className="text-stone-700">{fmtFecha(o.fechaVencimiento)}</strong>. Paga en banco, tienda de conveniencia o en línea.</div>
                   )}
                   {o.estado === 'vencido' && (
                     <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2.5 flex gap-2">
                       <AlertCircle size={14} className="shrink-0 mt-0.5" /> Esta orden venció. Solicita a tu gestor o a la coordinación una nueva orden de pago.
                     </div>
                   )}
-                </div>
-              )}
-
-              {o.estado === 'emitida' && (
-                <div className="space-y-2.5">
-                  <div className="text-xs font-semibold text-stone-600">¿Ya pagaste? Indica cómo y sube tu comprobante</div>
-                  <div className="grid grid-cols-3 gap-2">
-                    {METODOS_PAGO.map((m) => (
-                      <button key={m.value} onClick={() => setMetodoPorId((s) => ({ ...s, [o.id]: m.value }))}
-                        className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodoPorId[o.id] === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>
-                        <div className="text-xs font-bold text-stone-800">{m.label}</div>
-                      </button>
-                    ))}
-                  </div>
-                  <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 transition-colors ${!metodoPorId[o.id] ? 'opacity-50 cursor-not-allowed border-stone-200' : subiendo === o.id ? 'opacity-60 border-stone-300' : 'border-stone-300 hover:border-stone-400 cursor-pointer'}`}>
-                    {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
-                    <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : !metodoPorId[o.id] ? 'Primero elige el método de pago' : 'Seleccionar comprobante (PDF o imagen)'}</span>
-                    <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id || !metodoPorId[o.id]} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
-                  </label>
                 </div>
               )}
 
