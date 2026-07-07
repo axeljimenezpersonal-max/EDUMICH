@@ -464,17 +464,31 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5">
-              <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-3">
-                <AlertTriangle size={20} className="text-red-600" />
+              <div className="w-11 h-11 rounded-full bg-amber-100 flex items-center justify-center mb-3">
+                <AlertTriangle size={20} className="text-amber-600" />
               </div>
               <h3 className="text-base font-bold text-stone-900">
-                {confirmacion.tipo === 'cancelar' ? 'Cancelar orden de pago' : `Quitar el Módulo ${confirmacion.modulo}`}
+                {confirmacion.tipo === 'cancelar' ? '¿Cancelar tu ficha de pago?' : `¿Quitar el Módulo ${confirmacion.modulo}?`}
               </h3>
               <p className="text-sm text-stone-500 mt-1 leading-relaxed">
                 {confirmacion.tipo === 'cancelar'
-                  ? 'Se cancelará esta orden de pago. Podrás solicitarla de nuevo cuando quieras.'
-                  : 'Se quitará este módulo de tu orden de pago. Podrás volver a agregarlo solicitando la orden de nuevo.'}
+                  ? 'Ya solicitaste esta ficha de pago a la Tesorería. Si la cancelas tendrás que empezar de nuevo:'
+                  : `Se quitará el Módulo ${confirmacion.modulo} de esta ficha. Ten en cuenta que:`}
               </p>
+              <ul className="mt-3 space-y-1.5 text-[13px] text-stone-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                {confirmacion.tipo === 'cancelar' ? (
+                  <>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Se cancelará la ficha de pago actual.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Tu pre-inscripción se conserva, pero <strong>no podrás pagar</strong> hasta solicitar una ficha nueva.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Deberás repetir el proceso con <strong>“Solicitar orden de pago”</strong>.</li>
+                  </>
+                ) : (
+                  <>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> El módulo se quitará de esta ficha de pago.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Para volver a incluirlo tendrás que <strong>solicitar una ficha nueva</strong> con ese módulo.</li>
+                  </>
+                )}
+              </ul>
             </div>
             <div className="flex gap-2 px-5 pb-5">
               <button

@@ -367,11 +367,18 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
                       </Link>
                     )}
                   </div>
-                  <div className="mt-2 space-y-1">
+                  <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {grupo.examenes.map((e) => (
-                      <div key={e.inscripcionId} className="flex items-center justify-between text-[12px]">
-                        <span className="text-stone-600">Módulo {e.moduloNumero} — {e.moduloNombre}</span>
-                        <span className="font-mono text-[10px] text-stone-400">{e.folio}</span>
+                      <div key={e.inscripcionId} className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50/70 pl-1.5 pr-2.5 py-1.5">
+                        <span className="w-7 h-7 rounded-md bg-[var(--color-guinda-700)] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                          {e.moduloNumero}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[12px] font-medium text-stone-700 leading-tight truncate" title={e.moduloNombre}>
+                            {e.moduloNombre}
+                          </div>
+                          <div className="font-mono text-[9px] text-stone-400 leading-tight">Folio {e.folio}</div>
+                        </div>
                       </div>
                     ))}
                   </div>
