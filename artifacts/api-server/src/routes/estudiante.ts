@@ -1552,11 +1552,11 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
   }
 
   // Insert inscriptions
-  const inscripcionesResult: Array<{ folio: string; moduloNombre: string; fecha: string; hora: string }> = [];
+  const inscripcionesResult: Array<{ id: number; folio: string; moduloNombre: string; fecha: string; hora: string }> = [];
 
   for (const { moduloId, horario, moduloNombre } of horariosPorModulo) {
     const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
-    await db.insert(examenesInscripciones).values({
+    const [nueva] = await db.insert(examenesInscripciones).values({
       estudianteId: userId,
       etapaId,
       moduloId,
@@ -1564,10 +1564,10 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
       sedeId,
       folio,
       estado: 'inscrito',
-    });
+    }).returning({ id: examenesInscripciones.id });
 
     const fechaExamen = horario.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
-    inscripcionesResult.push({ folio, moduloNombre, fecha: fechaExamen ?? '', hora: horario.hora });
+    inscripcionesResult.push({ id: nueva.id, folio, moduloNombre, fecha: fechaExamen ?? '', hora: horario.hora });
   }
 
   await tryAuditLog({

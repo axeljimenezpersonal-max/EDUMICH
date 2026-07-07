@@ -18,6 +18,7 @@ import {
   XCircle,
   Loader2,
   X,
+  Pencil,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { PageTour } from '../../components/tour/PageTour';
@@ -233,10 +234,21 @@ function ModulosInscripcion({
     setInscribiendo(true);
     setError(null);
     try {
-      await api.post('/estudiante/convocatoria/inscribirme', {
-        etapaId: etapa.id,
-        modulosIds: Array.from(seleccion),
-      });
+      // 1) Pre-inscribir los módulos seleccionados
+      const resp = await api.post<{ ok: boolean; inscripciones: { id: number }[] }>(
+        '/estudiante/convocatoria/inscribirme',
+        { etapaId: etapa.id, modulosIds: Array.from(seleccion) },
+      );
+      // 2) Solicitar la ficha de pago para esas mismas inscripciones (mismo paso).
+      const ids = (resp?.inscripciones ?? []).map((i) => i.id).filter(Boolean);
+      if (ids.length > 0) {
+        try {
+          await api.post('/pagos-examen/solicitar', { examenInscripcionIds: ids });
+        } catch {
+          // Si la emisión de la ficha falla, la pre-inscripción ya quedó;
+          // el alumno podrá solicitar la ficha desde la sección Pagos.
+        }
+      }
       setExito(true);
       setSeleccion(new Set());
       onSuccess();
@@ -323,10 +335,10 @@ function ModulosInscripcion({
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2.5 text-sm text-amber-900">
             <Clock size={16} className="shrink-0 text-amber-600 mt-0.5" />
             <div>
-              <div className="font-bold">¡Quedaste pre-inscrito! Ahora falta tu pago.</div>
+              <div className="font-bold">¡Quedaste pre-inscrito y generamos tu ficha de pago!</div>
               <div className="text-xs text-amber-800 mt-0.5 leading-relaxed">
-                Registramos tu solicitud de inscripción. Para confirmar tu lugar, ve a la sección{' '}
-                <strong>Pagos</strong> y cubre tus derechos de examen. Solo lo pagado se puede presentar.
+                Registramos tu pre-inscripción y emitimos tu <strong>ficha de pago</strong>. Para confirmar tu
+                lugar, ve a la sección <strong>Pagos</strong> y cúbrela. Solo lo pagado se puede presentar.
               </div>
             </div>
             <button onClick={() => setExito(false)} className="ml-auto text-amber-400 hover:text-amber-600 shrink-0">
@@ -421,7 +433,7 @@ function ModulosInscripcion({
                 className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
               >
                 {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <FileCheck size={14} />}
-                {inscribiendo ? 'Solicitando…' : 'Solicitar inscripción'}
+                {inscribiendo ? 'Solicitando…' : 'Pre-inscribir y solicitar ficha de pago'}
               </button>
             </div>
           </>
@@ -478,6 +490,11 @@ export default function MiConvocatoria() {
   // Calendario para la etapa activa (módulos disponibles)
   const [calendarioData, setCalendarioData] = useState<CalendarioMes | null>(null);
   const [calendarioLoading, setCalendarioLoading] = useState(false);
+
+  // Editar pre-inscripción: confirmación + estado de la operación
+  const [confirmEditar, setConfirmEditar] = useState(false);
+  const [editando, setEditando] = useState(false);
+  const [errorEditar, setErrorEditar] = useState<string | null>(null);
 
   // Expediente: estatus por documento para el checklist de requisitos
   const [expediente, setExpediente] = useState<ExpedienteResponse | null>(null);
@@ -549,6 +566,29 @@ export default function MiConvocatoria() {
         .filter((e) => e.etapa.clave === etapaActiva.clave)
         .map((e) => e.modulo.id)
     : [];
+
+  // Pre-inscripciones aún sin pago de la etapa activa (editables)
+  const preinscritosNoPagados = etapaActiva
+    ? misExamenes.filter((e) => e.etapa.clave === etapaActiva.clave && !e.pagado)
+    : [];
+
+  // Cancela todas las pre-inscripciones sin pago para que el alumno vuelva a
+  // elegir módulos (esto elimina también su ficha de pago actual en el backend).
+  async function handleEditarPreinscripcion() {
+    setEditando(true);
+    setErrorEditar(null);
+    try {
+      for (const e of preinscritosNoPagados) {
+        await api.post(`/estudiante/convocatoria/inscripcion/${e.id}/cancelar`);
+      }
+      setConfirmEditar(false);
+      await cargarConvocatoria();
+    } catch (err) {
+      setErrorEditar(err instanceof Error ? err.message : 'No se pudo editar la pre-inscripción');
+    } finally {
+      setEditando(false);
+    }
+  }
 
   // Etapa del calendario que corresponde a la activa
   const calendarioEtapaActiva = etapaActiva && calendarioData
@@ -699,10 +739,21 @@ export default function MiConvocatoria() {
         {/* Mis exámenes inscritos */}
         {tieneExamenes && (
           <div>
-            <h2 className="font-semibold text-stone-800 mb-3 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[var(--color-guinda-700)]" />
-              Mis exámenes inscritos
-            </h2>
+            <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
+              <h2 className="font-semibold text-stone-800 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-[var(--color-guinda-700)]" />
+                Mis exámenes inscritos
+              </h2>
+              {preinscritosNoPagados.length > 0 && (
+                <button
+                  onClick={() => { setErrorEditar(null); setConfirmEditar(true); }}
+                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-50 hover:text-[var(--color-guinda-700)] hover:border-[var(--color-guinda-700)] transition-colors"
+                >
+                  <Pencil size={13} />
+                  Editar pre-inscripción
+                </button>
+              )}
+            </div>
             <div className="space-y-3">
               {misExamenes.map((examen) => (
                 <ExamenCard key={examen.id} examen={examen} />
@@ -749,6 +800,52 @@ export default function MiConvocatoria() {
         <ProximasEtapasSection etapas={proximasEtapas} />
 
       </div>
+
+      {/* Popup: confirmar edición de pre-inscripción */}
+      {confirmEditar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="font-bold text-stone-900">¿Seguro que quieres editar tu pre-inscripción?</h3>
+                <p className="text-sm text-stone-600 mt-1 leading-relaxed">
+                  Se eliminará la pre-inscripción actual y deberás solicitar otra{' '}
+                  <strong>ficha de pago</strong> al volver a elegir tus módulos.
+                </p>
+              </div>
+            </div>
+
+            {errorEditar && (
+              <div className="mt-3 bg-red-50 border border-red-200 rounded-lg p-2.5 flex items-start gap-2 text-xs text-red-700">
+                <XCircle size={14} className="shrink-0 mt-0.5" />
+                {errorEditar}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-2 mt-5">
+              <button
+                onClick={() => setConfirmEditar(false)}
+                disabled={editando}
+                className="px-4 py-2 text-sm font-semibold text-stone-600 rounded-lg hover:bg-stone-100 disabled:opacity-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEditarPreinscripcion}
+                disabled={editando}
+                className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+              >
+                {editando ? <Loader2 size={14} className="animate-spin" /> : <Pencil size={14} />}
+                {editando ? 'Eliminando…' : 'Sí, editar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
           <PageTour storageKey="edumich_tour_inscripcion_v1" steps={TOUR_INSCRIPCION} />
     </EstudianteLayout>
   );
