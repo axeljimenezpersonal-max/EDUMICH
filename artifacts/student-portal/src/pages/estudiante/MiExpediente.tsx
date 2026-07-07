@@ -193,22 +193,20 @@ function MatriculaCard({ data }: { data: ExpedienteResponse }) {
         </div>
 
         <div className="mt-3 flex flex-col sm:flex-row gap-2">
-          <a
-            href="/api/estudiante/ficha-registro"
-            target="_blank"
-            rel="noreferrer"
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white no-underline transition-colors"
+          <button
+            onClick={() => document.getElementById('cedula-inscripcion')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors"
             style={{ background: '#15803d' }}
           >
-            <Download size={14} /> Ficha de registro PDF
-          </a>
+            <ClipboardList size={14} /> Ver cédula de inscripción
+          </button>
           <a
             href="/api/estudiante/ficha-preregistro"
             target="_blank"
             rel="noreferrer"
             className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-stone-300 bg-white text-stone-700 hover:bg-stone-50 no-underline transition-colors"
           >
-            <FileText size={14} /> Ficha de pre-registro
+            <FileText size={14} /> Ficha de Pre-registro
           </a>
         </div>
       </div>
@@ -354,7 +352,7 @@ export default function MiExpediente() {
             </div>
 
             {/* Cédula de inscripción — solo consulta y descarga (la elabora la administración) */}
-            <div className="mt-4 bg-white border border-stone-200 rounded-xl overflow-hidden">
+            <div id="cedula-inscripcion" className="mt-4 bg-white border border-stone-200 rounded-xl overflow-hidden scroll-mt-24">
               <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">

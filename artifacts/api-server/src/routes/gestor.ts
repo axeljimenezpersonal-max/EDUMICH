@@ -1505,7 +1505,8 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="ficha-preregistro-${safeFolio}.pdf"`);
+  // `inline`: se abre en el navegador para verla (y descargarla desde ahí).
+  res.setHeader('Content-Disposition', `inline; filename="Ficha-de-Pre-registro-${safeFolio}.pdf"`);
   res.send(pdf);
 });
 

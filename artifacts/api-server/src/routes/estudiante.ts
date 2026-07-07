@@ -2009,7 +2009,9 @@ router.get('/ficha-preregistro', async (req, res) => {
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="ficha-preregistro-${safeFolio}.pdf"`);
+  // `inline`: se abre en el navegador para verla (y desde ahí se puede descargar),
+  // en vez de forzar la descarga directa.
+  res.setHeader('Content-Disposition', `inline; filename="Ficha-de-Pre-registro-${safeFolio}.pdf"`);
   res.send(pdf);
 });
 

@@ -617,21 +617,19 @@ export default function AlumnoDetalle() {
                 </div>
               </div>
               <div className="flex gap-2 flex-wrap">
-                <a
-                  href={`/api/gestor/alumnos/${id}/ficha-registro`}
-                  target="_blank"
-                  rel="noopener"
+                <button
+                  onClick={() => setActiveTab('cedula')}
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-xs font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
                 >
-                  <Download size={12} /> Ficha de registro PDF
-                </a>
+                  <ClipboardList size={12} /> Ver cédula de inscripción
+                </button>
                 <a
                   href={`/api/gestor/alumnos/${id}/ficha-preregistro`}
                   target="_blank"
                   rel="noopener"
                   className="inline-flex items-center gap-1.5 px-3 py-1.5 border border-stone-200 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50 transition-colors"
                 >
-                  <FileText size={12} /> Ficha de pre-registro
+                  <FileText size={12} /> Ficha de Pre-registro
                 </a>
               </div>
             </div>
