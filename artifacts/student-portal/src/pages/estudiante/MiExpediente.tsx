@@ -31,7 +31,7 @@ const DOCUMENTOS: DocDef[] = [
   { tipo: 'ine', label: 'Identificación oficial', descripcion: 'INE / IFE vigente por ambos lados', obligatorio: true },
   { tipo: 'comprobante_domicilio', label: 'Comprobante de domicilio', descripcion: 'No mayor a 3 meses de antigüedad', obligatorio: true },
   { tipo: 'certificado_secundaria', label: 'Certificado de secundaria', descripcion: 'Certificado o constancia de secundaria (PDF, ambos lados)', obligatorio: true },
-  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco. Se usa para tu credencial digital.', obligatorio: false, acceptImages: true },
+  { tipo: 'foto', label: 'Fotografía', descripcion: 'Se usa para tu credencial digital y tu cédula. Cumple los requisitos de aquí abajo.', obligatorio: false, acceptImages: true },
 ];
 
 // ─── Formulario de datos personales ──────────────────────────────────────

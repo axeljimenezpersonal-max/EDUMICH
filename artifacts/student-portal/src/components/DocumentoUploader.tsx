@@ -13,6 +13,9 @@ import {
   FileText,
   AlertCircle,
   X,
+  Camera,
+  User,
+  Check,
 } from 'lucide-react';
 import type { TipoDocumento, DocExpediente } from '../lib/api';
 
@@ -53,7 +56,51 @@ function EstadoPill({ estado }: { estado: DocExpediente['estado'] }) {
   );
 }
 
+/** Requisitos visuales de la fotografía — se muestran para el documento `foto`. */
+function RequisitosFoto() {
+  const items = [
+    'Fondo blanco liso',
+    'Tamaño infantil — 2.5 × 3 cm',
+    'De frente, rostro descubierto',
+    'Reciente y a color',
+    'Nítida, sin filtros ni sombras',
+    'Formato JPG o PNG',
+  ];
+  return (
+    <div className="mt-3 rounded-lg border border-[var(--color-crema-200)] bg-[var(--color-crema-50)] p-3">
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <Camera size={13} className="text-[var(--color-guinda-700)]" />
+        <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-guinda-700)]">
+          Requisitos de la fotografía
+        </span>
+      </div>
+      <div className="flex gap-4">
+        {/* Maqueta visual del tamaño infantil */}
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <div
+            className="rounded-md bg-white border-2 border-stone-300 flex items-center justify-center shadow-sm"
+            style={{ width: 52, height: 62 }}
+          >
+            <User size={28} className="text-stone-300" strokeWidth={1.5} />
+          </div>
+          <span className="text-[10px] font-bold text-stone-500 tracking-wide">2.5 × 3 cm</span>
+        </div>
+        {/* Checklist de requisitos */}
+        <ul className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 self-center">
+          {items.map((r) => (
+            <li key={r} className="flex items-center gap-1.5 text-[12px] text-stone-700">
+              <Check size={13} className="text-green-600 shrink-0" strokeWidth={2.5} />
+              {r}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 export default function DocumentoUploader({
+  tipo,
   label,
   descripcion,
   isRequired,
@@ -199,6 +246,9 @@ export default function DocumentoUploader({
             )}
           </div>
         </div>
+
+        {/* Requisitos visuales — solo para la fotografía */}
+        {tipo === 'foto' && <RequisitosFoto />}
 
         <input
           ref={inputRef}
