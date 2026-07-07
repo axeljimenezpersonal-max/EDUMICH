@@ -170,8 +170,9 @@ export default function MisModulos() {
                 </p>
                 <p className="text-amber-700 text-xs leading-relaxed">
                   Para acceder a tus módulos de estudio necesitas tener un{' '}
-                  <strong>pago verificado</strong> por tu gestor. Una vez verificado,
-                  los 21 módulos se desbloquearán automáticamente.
+                  <strong>pago verificado</strong> de tus derechos de examen. Puedes
+                  pagarlo tú desde la sección <strong>Pagos</strong> o hacerlo a través de
+                  tu gestor; una vez verificado, los 21 módulos se desbloquearán automáticamente.
                 </p>
               </div>
             </div>
