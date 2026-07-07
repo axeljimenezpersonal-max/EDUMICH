@@ -4,7 +4,7 @@
  * exámenes inscritos y sede asignada.
  */
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import {
   Calendar,
@@ -157,11 +157,13 @@ function ModulosInscripcion({
   etapa,
   calendarioEtapa,
   misExamenesIds,
+  costoExamen,
   onSuccess,
 }: {
   etapa: EtapaConvocatoria;
   calendarioEtapa: CalendarioMes['etapas'][0] | null;
   misExamenesIds: number[];  // ids de modulos ya inscritos
+  costoExamen: number;
   onSuccess: () => void;
 }) {
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
@@ -241,15 +243,63 @@ function ModulosInscripcion({
     }
   }
 
-  const sections = [
-    { title: 'Sábado 09:00', dia: 'sabado' as const, hora: '09:00' as const, fecha: etapa.examenSabado },
-    { title: 'Sábado 11:00', dia: 'sabado' as const, hora: '11:00' as const, fecha: etapa.examenSabado },
-    { title: 'Domingo 09:00', dia: 'domingo' as const, hora: '09:00' as const, fecha: etapa.examenDomingo },
-    { title: 'Domingo 11:00', dia: 'domingo' as const, hora: '11:00' as const, fecha: etapa.examenDomingo },
-  ];
-
-  const todosLosModulos: ModItem[] = sections.flatMap(({ dia, hora }) => h[dia][hora] as ModItem[]);
+  // Estructura día×hora (tabla, como en la vista del gestor).
+  const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
+  const fechaDeDia = (d: 'sabado' | 'domingo') => (d === 'sabado' ? etapa.examenSabado : etapa.examenDomingo);
+  const horasRows = ['09:00', '11:00'] as const;
+  const diasCols = (['sabado', 'domingo'] as const).filter((d) =>
+    horasRows.some((hh) => (h[d][hh] as ModItem[]).length > 0)
+  );
+  const todosLosModulos: ModItem[] = diasCols.flatMap((d) => horasRows.flatMap((hh) => h[d][hh] as ModItem[]));
   const hayDisponibles = todosLosModulos.some((m) => !misExamenesIds.includes(m.id));
+
+  // Tarjeta de un módulo dentro de una celda día×hora.
+  function ModuloCard({ m }: { m: ModItem }) {
+    const isAlreadyIn = misExamenesIds.includes(m.id);
+    const isSelected = seleccion.has(m.id);
+    const disabled = !isAlreadyIn && isDisabled(m.id);
+
+    if (isAlreadyIn) {
+      return (
+        <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-200 bg-amber-50/70 select-none">
+          <Clock size={15} className="shrink-0 mt-0.5 text-amber-600" />
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] font-bold text-amber-700">Módulo {m.numero}</div>
+            <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
+            <div className="text-[10px] font-bold text-amber-700 mt-0.5">Pre-inscrito · falta pago</div>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <label
+        className={`flex items-start gap-2 p-2.5 rounded-lg border transition-all duration-200 select-none ${
+          disabled
+            ? 'border-stone-200 bg-stone-50 opacity-55 cursor-not-allowed'
+            : isSelected
+              ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] cursor-pointer ring-1 ring-[var(--color-guinda-700)]'
+              : 'border-stone-200 bg-white hover:bg-stone-50 cursor-pointer'
+        }`}
+      >
+        <input
+          type="checkbox"
+          checked={isSelected}
+          disabled={disabled}
+          onChange={() => !disabled && toggle(m.id)}
+          className="w-4 h-4 shrink-0 mt-0.5 accent-[var(--color-guinda-700)]"
+        />
+        <div className="min-w-0 flex-1">
+          <div className={`text-[11px] font-bold ${isSelected ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>
+            Módulo {m.numero}
+          </div>
+          <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
+          {disabled && (
+            <div className="text-[10px] text-stone-400 mt-1">Ya elegiste otro módulo en este día y hora</div>
+          )}
+        </div>
+      </label>
+    );
+  }
 
   return (
     <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
@@ -266,10 +316,16 @@ function ModulosInscripcion({
       <div className="p-5 space-y-4">
 
         {exito && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3 flex items-center gap-2 text-sm text-emerald-800">
-            <CheckCircle2 size={16} className="shrink-0 text-emerald-600" />
-            ¡Inscripción completada! Ve a la sección <strong>Pagos</strong> del menú para cubrir tus derechos de examen.
-            <button onClick={() => setExito(false)} className="ml-auto text-emerald-400 hover:text-emerald-600">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 flex items-start gap-2.5 text-sm text-amber-900">
+            <Clock size={16} className="shrink-0 text-amber-600 mt-0.5" />
+            <div>
+              <div className="font-bold">¡Quedaste pre-inscrito! Ahora falta tu pago.</div>
+              <div className="text-xs text-amber-800 mt-0.5 leading-relaxed">
+                Registramos tu solicitud de inscripción. Para confirmar tu lugar, ve a la sección{' '}
+                <strong>Pagos</strong> y cubre tus derechos de examen. Solo lo pagado se puede presentar.
+              </div>
+            </div>
+            <button onClick={() => setExito(false)} className="ml-auto text-amber-400 hover:text-amber-600 shrink-0">
               <X size={14} />
             </button>
           </div>
@@ -282,77 +338,89 @@ function ModulosInscripcion({
           </div>
         )}
 
-        {!hayDisponibles && (
+        {!hayDisponibles ? (
           <div className="text-center py-6 text-stone-400 text-sm">
-            Ya estás inscrito en todos los módulos disponibles para esta etapa.
+            Ya estás pre-inscrito en todos los módulos disponibles para esta etapa.
           </div>
-        )}
+        ) : (
+          <>
+            <div className="flex items-baseline justify-between flex-wrap gap-1">
+              <h4 className="text-xs font-bold uppercase tracking-widest text-stone-500">
+                Horario de exámenes · elige por día y hora
+              </h4>
+              <span className="text-[11px] text-stone-400">
+                Los módulos en un mismo bloque comparten día y hora — solo puedes inscribir uno.
+              </span>
+            </div>
 
-        {sections.map(({ title, dia, hora, fecha }) => {
-          const lista = h[dia][hora] as ModItem[];
-          if (lista.length === 0) return null;
-          return (
-            <div key={title}>
-              <p className="text-xs font-bold text-stone-500 uppercase tracking-wide mb-2 flex items-center gap-1.5">
-                <Clock size={12} /> {title}
-                <span className="font-normal text-stone-400 ml-1">— {formatFechaLarga(fecha)}</span>
-              </p>
-              <div className="space-y-1.5">
-                {lista.map((m) => {
-                  const isAlreadyIn = misExamenesIds.includes(m.id);
-                  const isSelected = seleccion.has(m.id);
-                  const disabled = !isAlreadyIn && isDisabled(m.id);
-
-                  return (
-                    <label
-                      key={m.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors select-none ${
-                        isAlreadyIn
-                          ? 'bg-emerald-50 border border-emerald-200'
-                          : isSelected
-                            ? 'bg-[var(--color-guinda-50,#faf0f3)] border border-[var(--color-guinda-700)]'
-                            : disabled
-                              ? 'bg-stone-50 border border-stone-100 opacity-40 cursor-not-allowed'
-                              : 'bg-stone-50 border border-stone-100 hover:border-stone-300 hover:bg-white'
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={isAlreadyIn || isSelected}
-                        disabled={isAlreadyIn || disabled}
-                        onChange={() => toggle(m.id)}
-                        className="w-4 h-4 accent-[var(--color-guinda-700)] shrink-0"
-                      />
-                      <span className="flex-1 min-w-0 text-sm text-stone-800">
-                        <span className={`font-bold mr-1 ${isAlreadyIn ? 'text-emerald-700' : 'text-[var(--color-guinda-700)]'}`}>
-                          M{m.numero}
-                        </span>
-                        {m.nombre}
-                      </span>
-                      {isAlreadyIn && <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />}
-                    </label>
-                  );
-                })}
+            {/* Tabla día×hora */}
+            <div className="overflow-x-auto -mx-1 px-1 pb-1">
+              <div
+                className="grid gap-2 min-w-[520px]"
+                style={{ gridTemplateColumns: `52px repeat(${diasCols.length}, minmax(0,1fr))` }}
+              >
+                {/* Encabezado: días */}
+                <div />
+                {diasCols.map((d) => (
+                  <div key={`h-${d}`} className="text-center pb-1.5 border-b-2" style={{ borderColor: '#e8c4d4' }}>
+                    <div className="text-xs font-bold uppercase tracking-wide text-[var(--color-guinda-700)]">
+                      {DIA_LABEL[d] ?? d}
+                    </div>
+                    <div className="text-[10px] font-medium text-stone-400 mt-0.5">{formatFechaCorta(fechaDeDia(d))}</div>
+                  </div>
+                ))}
+                {/* Filas: una por hora */}
+                {horasRows.map((hh) => (
+                  <Fragment key={`row-${hh}`}>
+                    <div className="flex items-center justify-end pr-1.5 text-[11px] font-bold text-stone-500">
+                      <Clock size={11} className="mr-1 text-stone-400 shrink-0" />{hh}
+                    </div>
+                    {diasCols.map((d) => {
+                      const slotMods = h[d][hh] as ModItem[];
+                      const selectables = slotMods.filter((m) => !misExamenesIds.includes(m.id));
+                      return (
+                        <div key={`c-${d}-${hh}`} className="rounded-xl border border-stone-100 bg-stone-50/40 p-1.5 space-y-1.5">
+                          {slotMods.length === 0 ? (
+                            <div className="flex items-center justify-center text-[11px] text-stone-300 py-4">—</div>
+                          ) : (
+                            <>
+                              {slotMods.map((m) => <ModuloCard key={m.id} m={m} />)}
+                              {selectables.length > 1 && (
+                                <div className="text-center text-[9px] text-stone-400 font-semibold uppercase tracking-wide">
+                                  Empalmados · elige uno
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </Fragment>
+                ))}
               </div>
             </div>
-          );
-        })}
 
-        {hayDisponibles && (
-          <div className="flex items-center justify-between pt-4 border-t border-stone-200">
-            <div className="text-sm text-stone-500">
-              <span className="font-bold text-stone-900">{seleccion.size}</span>{' '}
-              módulo{seleccion.size !== 1 ? 's' : ''} seleccionado{seleccion.size !== 1 ? 's' : ''}
+            {/* Footer: conteo + total + solicitar */}
+            <div className="flex items-center justify-between pt-4 border-t border-stone-200 flex-wrap gap-3">
+              <div className="text-sm text-stone-500">
+                <span className="font-bold text-stone-900">{seleccion.size}</span>{' '}
+                módulo{seleccion.size !== 1 ? 's' : ''} seleccionado{seleccion.size !== 1 ? 's' : ''}
+                {seleccion.size > 0 && (
+                  <span className="ml-2 text-stone-400 text-xs">
+                    — ${(seleccion.size * costoExamen).toLocaleString('es-MX')} MXN por pagar
+                  </span>
+                )}
+              </div>
+              <button
+                onClick={handleInscribir}
+                disabled={seleccion.size === 0 || inscribiendo}
+                className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+              >
+                {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <FileCheck size={14} />}
+                {inscribiendo ? 'Solicitando…' : 'Solicitar inscripción'}
+              </button>
             </div>
-            <button
-              onClick={handleInscribir}
-              disabled={seleccion.size === 0 || inscribiendo}
-              className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-            >
-              {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <BookOpen size={14} />}
-              {inscribiendo ? 'Inscribiendo…' : 'Inscribirme'}
-            </button>
-          </div>
+          </>
         )}
 
       </div>
@@ -411,6 +479,14 @@ export default function MiConvocatoria() {
   const [expediente, setExpediente] = useState<ExpedienteResponse | null>(null);
   useEffect(() => {
     api.get<ExpedienteResponse>('/estudiante/expediente').then(setExpediente).catch(() => {});
+  }, []);
+
+  // Costo por examen (para el total al solicitar la inscripción)
+  const [costoExamen, setCostoExamen] = useState(145);
+  useEffect(() => {
+    api.get<{ costoExamen: number }>('/estudiante/config-pago')
+      .then((r) => { if (r?.costoExamen) setCostoExamen(r.costoExamen); })
+      .catch(() => {});
   }, []);
 
   async function cargarConvocatoria() {
@@ -611,6 +687,7 @@ export default function MiConvocatoria() {
             etapa={etapaActiva}
             calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}
             misExamenesIds={misModulosInscritos}
+            costoExamen={costoExamen}
             onSuccess={() => cargarConvocatoria()}
           />
         )}

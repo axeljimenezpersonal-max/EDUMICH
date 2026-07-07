@@ -10,6 +10,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import {
   AlertCircle, Calendar, Check, CheckCircle2, Clock, Copy, CreditCard,
   Download, ExternalLink, FileText, Landmark, Loader2, MapPin, UploadCloud,
+  X, AlertTriangle,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { PageTour } from '../../components/tour/PageTour';
@@ -271,6 +272,13 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
   const [subiendo, setSubiendo] = useState<number | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [metodoPorId, setMetodoPorId] = useState<Record<number, MetodoPago>>({});
+  // Confirmación en popup (en vez del confirm() nativo del navegador).
+  const [confirmacion, setConfirmacion] = useState<
+    | { tipo: 'quitar'; ordenId: number; inscId: number; modulo: number }
+    | { tipo: 'cancelar'; ordenId: number }
+    | null
+  >(null);
+  const [ejecutando, setEjecutando] = useState(false);
 
   async function subirComprobante(id: number, file: File) {
     const metodo = metodoPorId[id];
@@ -285,14 +293,18 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
     } catch { /* noop */ } finally { setSubiendo(null); }
   }
 
-  async function cancelarOrden(id: number) {
-    if (!confirm('¿Cancelar esta orden de pago? Podrás solicitarla de nuevo después.')) return;
-    try { await api.post(`/pagos-examen/${id}/cancelar-mia`, {}); await onReload(); } catch { /* noop */ }
-  }
-
-  async function quitarExamen(id: number, inscripcionId: number) {
-    if (!confirm('¿Quitar este módulo de la orden?')) return;
-    try { await api.post(`/pagos-examen/${id}/quitar-examen`, { examenInscripcionId: inscripcionId }); await onReload(); } catch { /* noop */ }
+  async function ejecutarConfirmacion() {
+    if (!confirmacion) return;
+    setEjecutando(true);
+    try {
+      if (confirmacion.tipo === 'cancelar') {
+        await api.post(`/pagos-examen/${confirmacion.ordenId}/cancelar-mia`, {});
+      } else {
+        await api.post(`/pagos-examen/${confirmacion.ordenId}/quitar-examen`, { examenInscripcionId: confirmacion.inscId });
+      }
+      await onReload();
+      setConfirmacion(null);
+    } catch { /* noop */ } finally { setEjecutando(false); }
   }
 
   const fmtMoney = (n: number) => `$${n.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`;
@@ -333,7 +345,7 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                       <span key={e.inscripcionId} className="text-[11px] bg-stone-100 text-stone-600 rounded-full pl-2 pr-1 py-0.5 inline-flex items-center gap-1">
                         Módulo {e.moduloNumero}
                         {editable && o.examenes.length > 1 && (
-                          <button onClick={() => quitarExamen(o.id, e.inscripcionId)} title="Quitar módulo" className="text-stone-400 hover:text-red-600 text-[13px] leading-none">
+                          <button onClick={() => setConfirmacion({ tipo: 'quitar', ordenId: o.id, inscId: e.inscripcionId, modulo: e.moduloNumero })} title="Quitar módulo" className="text-stone-400 hover:text-red-600 text-[13px] leading-none">
                             ×
                           </button>
                         )}
@@ -428,7 +440,7 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
 
               {(o.estado === 'pendiente_emision' || o.estado === 'emitida') && (
                 <div className="pt-1 flex items-center justify-between gap-2">
-                  <button onClick={() => cancelarOrden(o.id)} className="text-xs font-semibold text-red-600 hover:underline">
+                  <button onClick={() => setConfirmacion({ tipo: 'cancelar', ordenId: o.id })} className="text-xs font-semibold text-red-600 hover:underline">
                     Cancelar orden
                   </button>
                   {o.estado === 'emitida' && (
@@ -440,6 +452,50 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
           </div>
         );
       })}
+
+      {/* Popup de confirmación (reemplaza el confirm() del navegador) */}
+      {confirmacion && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
+          onClick={() => !ejecutando && setConfirmacion(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-5">
+              <div className="w-11 h-11 rounded-full bg-red-50 flex items-center justify-center mb-3">
+                <AlertTriangle size={20} className="text-red-600" />
+              </div>
+              <h3 className="text-base font-bold text-stone-900">
+                {confirmacion.tipo === 'cancelar' ? 'Cancelar orden de pago' : `Quitar el Módulo ${confirmacion.modulo}`}
+              </h3>
+              <p className="text-sm text-stone-500 mt-1 leading-relaxed">
+                {confirmacion.tipo === 'cancelar'
+                  ? 'Se cancelará esta orden de pago. Podrás solicitarla de nuevo cuando quieras.'
+                  : 'Se quitará este módulo de tu orden de pago. Podrás volver a agregarlo solicitando la orden de nuevo.'}
+              </p>
+            </div>
+            <div className="flex gap-2 px-5 pb-5">
+              <button
+                onClick={() => setConfirmacion(null)}
+                disabled={ejecutando}
+                className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-700 text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-50"
+              >
+                No, conservar
+              </button>
+              <button
+                onClick={ejecutarConfirmacion}
+                disabled={ejecutando}
+                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {ejecutando ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                {confirmacion.tipo === 'cancelar' ? 'Sí, cancelar' : 'Sí, quitar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
