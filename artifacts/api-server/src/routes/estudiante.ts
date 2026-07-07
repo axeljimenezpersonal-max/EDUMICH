@@ -88,14 +88,35 @@ const uploadExpediente = multer({
     },
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') {
-      cb(new Error('Solo se aceptan archivos PDF'));
+  fileFilter: (req, file, cb) => {
+    // La fotografía acepta imágenes; el resto de documentos, solo PDF.
+    const tipo = (req.params as { tipo?: string }).tipo;
+    const permitidos =
+      tipo === 'foto' ? ['application/pdf', 'image/jpeg', 'image/png'] : ['application/pdf'];
+    if (!permitidos.includes(file.mimetype)) {
+      cb(new Error(tipo === 'foto' ? 'La foto debe ser JPG, PNG o PDF' : 'Solo se aceptan archivos PDF'));
       return;
     }
     cb(null, true);
   },
 });
+
+// Envuelve multer para que un archivo inválido/pesado devuelva un 400 con
+// mensaje claro, en vez del 500 genérico "Error interno del servidor".
+function subirArchivoExpediente(
+  req: import('express').Request,
+  res: import('express').Response,
+  next: import('express').NextFunction
+) {
+  uploadExpediente.single('archivo')(req, res, (err: unknown) => {
+    if (err) {
+      const msg = err instanceof Error ? err.message : 'Archivo inválido';
+      res.status(400).json({ error: msg });
+      return;
+    }
+    next();
+  });
+}
 
 // ── Utilidad: PDF stub sin dependencias externas ──────────────────────────
 function generarPdfStub(titulo: string): Buffer {
@@ -905,7 +926,7 @@ router.patch('/datos-personales', async (req, res) => {
 // ─── POST /estudiante/expediente/documento/:tipo ──────────────────────────
 router.post(
   '/expediente/documento/:tipo',
-  uploadExpediente.single('archivo'),
+  subirArchivoExpediente,
   async (req, res) => {
     const userId = req.user!.userId;
     const tipo = req.params.tipo as string;
@@ -989,8 +1010,14 @@ async function servirDocExpediente(
     return;
   }
 
+  // El Content-Type depende del archivo real: la foto puede ser imagen.
+  const mime = doc.rutaArchivo.match(/\.(jpe?g)$/i)
+    ? 'image/jpeg'
+    : doc.rutaArchivo.match(/\.png$/i)
+    ? 'image/png'
+    : 'application/pdf';
   const safe = doc.nombreOriginal.replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'documento';
-  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
   createReadStream(doc.rutaArchivo).pipe(res);
 }
