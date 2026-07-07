@@ -1628,6 +1628,16 @@ router.get('/convocatoria/pase/:inscripcionId', async (req, res) => {
 
   const fechaExamen = row.dia === 'sabado' ? row.etapaExamenSabado : row.etapaExamenDomingo;
 
+  // Candado: el pase SOLO existe si el examen tiene el pago verificado.
+  const pagoRes = await db.execute<{ pagado: boolean }>(sql`
+    SELECT EXISTS (
+      SELECT 1 FROM pagos_examen_inscripciones pei
+      JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+      WHERE pei.examen_inscripcion_id = ${inscripcionId} AND pe.estado = 'pagado'
+    ) AS pagado
+  `);
+  const pagado = Boolean((pagoRes.rows[0] as { pagado?: boolean } | undefined)?.pagado);
+
   const qrData = {
     folio: row.folio,
     estudianteId: userId,
@@ -1640,6 +1650,7 @@ router.get('/convocatoria/pase/:inscripcionId', async (req, res) => {
   res.json({
     folio: row.folio,
     estado: row.estado,
+    pagado,
     paseValidadoEn: row.paseValidadoEn,
     calificacion: row.calificacion,
     etapa: {
@@ -1662,7 +1673,8 @@ router.get('/convocatoria/pase/:inscripcionId', async (req, res) => {
       latitud: row.sedeLatitud ? parseFloat(row.sedeLatitud) : null,
       longitud: row.sedeLongitud ? parseFloat(row.sedeLongitud) : null,
     },
-    qrPayload: firmarQrPayload(qrData),
+    // Sin pago verificado no se entrega el QR (el pase aún no es válido).
+    qrPayload: pagado ? firmarQrPayload(qrData) : null,
   });
 });
 
@@ -1837,6 +1849,19 @@ router.get('/convocatoria/pase/:inscripcionId/pdf', async (req, res) => {
 
   if (row.estudianteId !== userId) {
     res.status(403).json({ error: 'No autorizado' });
+    return;
+  }
+
+  // Candado: sin pago verificado no se genera el pase (aún no es válido).
+  const pagoRes = await db.execute<{ pagado: boolean }>(sql`
+    SELECT EXISTS (
+      SELECT 1 FROM pagos_examen_inscripciones pei
+      JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+      WHERE pei.examen_inscripcion_id = ${inscripcionId} AND pe.estado = 'pagado'
+    ) AS pagado
+  `);
+  if (!Boolean((pagoRes.rows[0] as { pagado?: boolean } | undefined)?.pagado)) {
+    res.status(403).json({ error: 'Tu pase estará disponible cuando se verifique el pago de este examen.' });
     return;
   }
 

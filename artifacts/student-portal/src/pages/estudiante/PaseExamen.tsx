@@ -119,6 +119,40 @@ export default function PaseExamen() {
     );
   }
 
+  // Candado: sin pago verificado el pase aún no existe.
+  if (!pase.pagado) {
+    return (
+      <EstudianteLayout>
+        <div className="max-w-lg mx-auto px-4 py-6 space-y-5">
+          <a
+            href="/estudiante/convocatoria"
+            className="inline-flex items-center gap-1.5 text-sm text-[var(--color-guinda-700)] hover:underline"
+          >
+            <ArrowLeft className="w-4 h-4" /> Mis exámenes
+          </a>
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 text-center">
+            <div className="w-14 h-14 rounded-full bg-amber-50 flex items-center justify-center mx-auto mb-3">
+              <Clock className="w-7 h-7 text-amber-600" />
+            </div>
+            <h1 className="font-serif text-xl font-bold text-stone-900">Tu pase aún no está disponible</h1>
+            <p className="text-sm text-stone-600 mt-2 leading-relaxed">
+              Estás <strong>pre-inscrito</strong> en{' '}
+              <strong>M{pase.modulo.numero} — {pase.modulo.nombre}</strong>, pero tu pase de examen
+              se genera <strong>cuando se verifique el pago</strong> de tus derechos de examen.
+              Solo lo pagado se puede presentar.
+            </p>
+            <a
+              href="/estudiante/pagos"
+              className="mt-5 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-[var(--color-guinda-700)] text-white text-sm font-semibold hover:bg-[var(--color-guinda-800)] no-underline transition-colors"
+            >
+              Ir a Pagos
+            </a>
+          </div>
+        </div>
+      </EstudianteLayout>
+    );
+  }
+
   const badge = estadoBadge(pase.estado);
 
   const mapsUrl =

@@ -431,6 +431,7 @@ export interface CalendarioMes {
 export interface PaseExamenData {
   folio: string;
   estado: string;
+  pagado: boolean;
   paseValidadoEn: string | null;
   calificacion: number | null;
   etapa: { clave: string; examenSabado: string; examenDomingo: string };
