@@ -1214,15 +1214,12 @@ router.get('/convocatoria', async (req, res) => {
   }
 
   // Próximas etapas (next 3)
+  // "Próximas etapas" = solo las programadas (futuras). La etapa activa
+  // (inscripcion_abierta) NO va aquí: ya se muestra arriba como activa.
   const proximasEtapas = await db
     .select()
     .from(convocatoriasEtapas)
-    .where(
-      or(
-        eq(convocatoriasEtapas.estado, 'programada'),
-        eq(convocatoriasEtapas.estado, 'inscripcion_abierta')
-      )
-    )
+    .where(eq(convocatoriasEtapas.estado, 'programada'))
     .orderBy(convocatoriasEtapas.examenSabado)
     .limit(3);
 
@@ -1246,6 +1243,8 @@ router.get('/convocatoria', async (req, res) => {
           solicitudFin: etapaActiva.solicitudFin,
           examenSabado: etapaActiva.examenSabado,
           examenDomingo: etapaActiva.examenDomingo,
+          // Sin este campo el frontend no muestra el grid de módulos.
+          estado: etapaActiva.estado,
         }
       : null,
     misExamenes,
