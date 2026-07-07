@@ -1085,8 +1085,15 @@ router.post(
       return;
     }
 
-    // Solo foto acepta imágenes; el resto solo PDF
-    if (tipo !== 'foto' && req.file.mimetype !== 'application/pdf') {
+    // La foto debe ser IMAGEN (JPG/PNG) para poder incrustarla en la cédula y
+    // la credencial; nunca PDF (evita documentos escaneados). El resto, solo PDF.
+    if (tipo === 'foto') {
+      if (!['image/jpeg', 'image/png'].includes(req.file.mimetype)) {
+        await fs.unlink(req.file.path).catch(() => {});
+        res.status(400).json({ error: 'La foto debe ser una imagen JPG o PNG (no PDF)' });
+        return;
+      }
+    } else if (req.file.mimetype !== 'application/pdf') {
       await fs.unlink(req.file.path).catch(() => {});
       res.status(400).json({ error: 'Solo se aceptan archivos PDF para este documento' });
       return;

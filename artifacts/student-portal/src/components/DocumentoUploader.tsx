@@ -59,31 +59,35 @@ function EstadoPill({ estado }: { estado: DocExpediente['estado'] }) {
 /** Requisitos visuales de la fotografía — se muestran para el documento `foto`. */
 function RequisitosFoto() {
   const items = [
-    'Fondo blanco liso',
-    'Tamaño infantil — 2.5 × 3 cm',
-    'De frente, rostro descubierto',
+    'Rostro de frente y centrado',
+    'Fondo claro y liso',
+    'Buena luz, sin sombras',
     'Reciente y a color',
-    'Nítida, sin filtros ni sombras',
+    'Sin gorra, lentes oscuros ni filtros',
     'Formato JPG o PNG',
   ];
   return (
     <div className="mt-3 rounded-lg border border-[var(--color-crema-200)] bg-[var(--color-crema-50)] p-3">
-      <div className="flex items-center gap-1.5 mb-2.5">
+      <div className="flex items-center gap-1.5 mb-1">
         <Camera size={13} className="text-[var(--color-guinda-700)]" />
         <span className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-guinda-700)]">
           Requisitos de la fotografía
         </span>
       </div>
+      <p className="text-[11px] text-stone-500 leading-snug mb-2.5">
+        Una foto normal tuya —tipo selfie o tomada por alguien—. No importa el tamaño:
+        la ajustamos automáticamente. Sube una imagen, <strong>no un documento escaneado</strong>.
+      </p>
       <div className="flex gap-4">
-        {/* Maqueta visual del tamaño infantil */}
+        {/* Ícono de foto tipo selfie (sin medidas: cualquier tamaño sirve) */}
         <div className="shrink-0 flex flex-col items-center gap-1.5">
           <div
-            className="rounded-md bg-white border-2 border-stone-300 flex items-center justify-center shadow-sm"
-            style={{ width: 52, height: 62 }}
+            className="rounded-full bg-white border-2 border-stone-300 flex items-center justify-center shadow-sm"
+            style={{ width: 56, height: 56 }}
           >
-            <User size={28} className="text-stone-300" strokeWidth={1.5} />
+            <User size={30} className="text-stone-300" strokeWidth={1.5} />
           </div>
-          <span className="text-[10px] font-bold text-stone-500 tracking-wide">2.5 × 3 cm</span>
+          <span className="text-[10px] font-bold text-stone-500 tracking-wide">Tipo selfie</span>
         </div>
         {/* Checklist de requisitos */}
         <ul className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-1.5 self-center">
@@ -114,9 +118,14 @@ export default function DocumentoUploader({
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
 
-  const acceptAttr = acceptImages
-    ? 'application/pdf,image/jpeg,image/png'
-    : 'application/pdf';
+  // La foto es solo imagen (JPG/PNG) — nunca PDF, para incrustarla en la cédula
+  // y la credencial y evitar documentos escaneados.
+  const acceptAttr =
+    tipo === 'foto'
+      ? 'image/jpeg,image/png'
+      : acceptImages
+        ? 'application/pdf,image/jpeg,image/png'
+        : 'application/pdf';
 
   async function handleFile(file: File) {
     setUploading(true);
@@ -241,7 +250,7 @@ export default function DocumentoUploader({
                 }`}
               >
                 <Upload size={12} />
-                {uploading ? 'Subiendo…' : doc ? 'Reemplazar' : acceptImages ? 'Subir archivo' : 'Subir PDF'}
+                {uploading ? 'Subiendo…' : doc ? 'Reemplazar' : tipo === 'foto' ? 'Subir foto' : acceptImages ? 'Subir archivo' : 'Subir PDF'}
               </button>
             )}
           </div>

@@ -150,7 +150,7 @@ const DOCS_REQUERIDOS: { tipo: string; label: string; descripcion: string }[] = 
 // Documentos opcionales que igual se muestran y se verifican.
 // REGLA: la fotografía se usa para la credencial digital del alumno.
 const DOCS_OPCIONALES: { tipo: string; label: string; descripcion: string; nota?: string }[] = [
-  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tamaño infantil, fondo blanco (JPG, PNG o PDF)', nota: 'Se usa para la credencial digital del alumno.' },
+  { tipo: 'foto', label: 'Fotografía', descripcion: 'Foto tipo selfie/normal, rostro de frente y fondo claro (JPG o PNG)', nota: 'Se usa para la credencial digital y la cédula. Se ajusta automáticamente a cualquier tamaño.' },
 ];
 
 const DOC_ESTADO_CFG: Record<string, { label: string; icon: typeof CheckCircle; color: string; bg: string }> = {
@@ -267,6 +267,16 @@ function DocRow({
               <ThumbsDown size={11} /> Rechazar
             </button>
           </>
+        )}
+        {doc.estado === 'aprobado' && (
+          <button
+            onClick={() => onRechazar(doc)}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold border rounded-lg transition-colors"
+            style={{ color: '#b91c1c', border: '1px solid #fca5a5', background: 'white' }}
+            title="Revertir aprobación y rechazar"
+          >
+            <ThumbsDown size={11} /> Rechazar
+          </button>
         )}
       </div>
     </div>

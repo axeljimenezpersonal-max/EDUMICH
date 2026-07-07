@@ -89,12 +89,14 @@ const uploadExpediente = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
-    // La fotografía acepta imágenes; el resto de documentos, solo PDF.
+    // La fotografía debe ser una IMAGEN (para poder incrustarla en la cédula y
+    // la credencial). No se acepta PDF: evita que suban documentos escaneados.
+    // El resto de documentos, solo PDF.
     const tipo = (req.params as { tipo?: string }).tipo;
     const permitidos =
-      tipo === 'foto' ? ['application/pdf', 'image/jpeg', 'image/png'] : ['application/pdf'];
+      tipo === 'foto' ? ['image/jpeg', 'image/png'] : ['application/pdf'];
     if (!permitidos.includes(file.mimetype)) {
-      cb(new Error(tipo === 'foto' ? 'La foto debe ser JPG, PNG o PDF' : 'Solo se aceptan archivos PDF'));
+      cb(new Error(tipo === 'foto' ? 'La foto debe ser una imagen JPG o PNG (no PDF)' : 'Solo se aceptan archivos PDF'));
       return;
     }
     cb(null, true);

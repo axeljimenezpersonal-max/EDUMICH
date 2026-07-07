@@ -3822,7 +3822,14 @@ router.patch('/expediente-documentos/:id/rechazar', async (req, res) => {
 
   const [doc] = await db.select().from(expedienteDocumentos).where(eq(expedienteDocumentos.id, docId));
   if (!doc) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
-  if (doc.estado !== 'pendiente_revision') { res.status(400).json({ error: 'El documento no está pendiente de revisión' }); return; }
+  // Se puede rechazar un documento pendiente o incluso uno YA APROBADO: la
+  // administración puede darse cuenta después (p. ej. la foto no se ve bien en
+  // la cédula) y necesitar revertir la aprobación para pedir uno nuevo.
+  if (!['pendiente_revision', 'aprobado'].includes(doc.estado)) {
+    res.status(400).json({ error: 'Este documento no se puede rechazar en su estado actual' });
+    return;
+  }
+  const eraAprobado = doc.estado === 'aprobado';
 
   const [updated] = await db
     .update(expedienteDocumentos)
@@ -3844,8 +3851,10 @@ router.patch('/expediente-documentos/:id/rechazar', async (req, res) => {
     userId: doc.estudianteId,
     tipo: 'documento_rechazado',
     prioridad: 'alta',
-    titulo: 'Documento rechazado — acción requerida',
-    cuerpo: `Tu documento "${doc.tipo}" fue rechazado. Motivo: ${parse.data.motivoRechazo}`,
+    titulo: eraAprobado ? 'Documento revertido — acción requerida' : 'Documento rechazado — acción requerida',
+    cuerpo: eraAprobado
+      ? `Tu documento "${doc.tipo}", que estaba aprobado, fue revisado de nuevo y ahora requiere corrección. Motivo: ${parse.data.motivoRechazo}. Vuelve a subirlo.`
+      : `Tu documento "${doc.tipo}" fue rechazado. Motivo: ${parse.data.motivoRechazo}`,
     enlace: '/estudiante/expediente',
   });
 
