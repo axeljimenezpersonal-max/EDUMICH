@@ -1121,7 +1121,7 @@ export default function AdminAlumnoDetalle() {
             <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
           )}
           {activeTab === 'cedula' && (
-            <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} />
+            <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} mostrarFirmaResponsable />
           )}
           {activeTab === 'modulos' && (
             <ModulosInscritos examenes={examenes} />

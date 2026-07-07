@@ -1,14 +1,16 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Lock, Pencil, Copy, AlertCircle, CheckCircle2, Loader2, Download, RefreshCw } from 'lucide-react';
+import { Lock, Pencil, Copy, AlertCircle, CheckCircle2, Loader2, Download, RefreshCw, PenLine } from 'lucide-react';
 import { api, type CedulaDatos, type CedulaDatosEditable } from '../lib/api';
 import { CampoCopiable } from './CampoCopiable';
+import FirmaPad from './FirmaPad';
 
 /**
  * Editor de cédula reutilizable (lectura por defecto + edición + preview +
  * descarga). Se parametriza con `basePath` (ej. "/admin/alumnos/123" o
  * "/gestor/alumnos/123"): pega a `${basePath}/cedula` y descarga
- * `/api${basePath}/cedula/pdf`. `firmaSlot` permite inyectar el pad de firma
- * cuando aplica (gestor responsable); en admin se omite.
+ * `/api${basePath}/cedula/pdf`. `firmaSlot` permite inyectar contenido extra;
+ * `mostrarFirmaResponsable` muestra el pad de firma del responsable (admin) que
+ * se estampa en la cédula del alumno.
  */
 const EDITABLES: (keyof CedulaDatosEditable)[] = [
   'apellidoPaterno', 'apellidoMaterno', 'nombres', 'sexo', 'estadoCivil',
@@ -24,7 +26,15 @@ const LABELS: Record<keyof CedulaDatosEditable, string> = {
   observaciones: 'Observaciones',
 };
 
-export function CedulaEditor({ basePath, firmaSlot }: { basePath: string; firmaSlot?: ReactNode }) {
+export function CedulaEditor({
+  basePath,
+  firmaSlot,
+  mostrarFirmaResponsable,
+}: {
+  basePath: string;
+  firmaSlot?: ReactNode;
+  mostrarFirmaResponsable?: boolean;
+}) {
   const [datos, setDatos] = useState<CedulaDatos | null>(null);
   const [form, setForm] = useState<CedulaDatosEditable | null>(null);
   const [loading, setLoading] = useState(true);
@@ -180,6 +190,20 @@ export function CedulaEditor({ basePath, firmaSlot }: { basePath: string; firmaS
         )}
 
         {firmaSlot}
+
+        {mostrarFirmaResponsable && (
+          <div className="border border-stone-200 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <PenLine size={15} className="text-[var(--color-guinda-700)]" />
+              <h3 className="font-serif text-sm font-bold text-stone-900">Firma del responsable de la inscripción</h3>
+            </div>
+            <p className="text-xs text-stone-500 mb-3">
+              Tu firma se guarda una sola vez y se estampa como responsable en las cédulas de los
+              alumnos sin gestor. Elige cuál usar; puedes volver a firmarla cuando quieras.
+            </p>
+            <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
+          </div>
+        )}
 
         {!datos.tieneFoto && (
           <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">

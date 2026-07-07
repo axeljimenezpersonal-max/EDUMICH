@@ -4127,7 +4127,7 @@ router.get('/alumnos/:id/cedula', async (req, res) => {
   const alumnoId = Number(req.params.id);
   if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
   if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
-  res.json(await obtenerDatosCedula(alumnoId));
+  res.json(await obtenerDatosCedula(alumnoId, req.user!.userId));
 });
 
 // PATCH /admin/alumnos/:id/cedula — el admin arma/edita la cédula
@@ -4147,7 +4147,7 @@ router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
   if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
   if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
   try {
-    const { pdf, nombreArchivo } = await generarCedulaPdf(alumnoId);
+    const { pdf, nombreArchivo } = await generarCedulaPdf(alumnoId, req.user!.userId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', dispositionCedula(nombreArchivo));
     res.send(Buffer.from(pdf));

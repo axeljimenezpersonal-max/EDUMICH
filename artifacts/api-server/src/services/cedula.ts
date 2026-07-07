@@ -15,9 +15,9 @@ import { winAnsiSafe } from '../utils/pdfText';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { and, eq } from 'drizzle-orm';
+import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db';
-import { estudiantes, users, gestores, firmasUsuario, expedienteDocumentos, municipios } from '@workspace/db/schema';
+import { estudiantes, users, gestores, administradores, firmasUsuario, expedienteDocumentos, municipios } from '@workspace/db/schema';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 
@@ -100,7 +100,52 @@ export interface CedulaDatosResueltos {
   tieneFirmaResponsable: boolean;
 }
 
-async function reunirDatos(estudianteId: number): Promise<{
+/** Devuelve la firma "en uso" (la del slot activo) de una fila de firmas_usuario. */
+function firmaActiva(
+  row: { imagenDataUrl: string | null; imagenDataUrl2: string | null; activa: number } | undefined
+): string | null {
+  return row ? (row.activa === 2 ? row.imagenDataUrl2 : row.imagenDataUrl) ?? null : null;
+}
+
+/**
+ * Resuelve el "Responsable de la inscripción" cuando el alumno NO tiene gestor:
+ * es el administrador. Preferimos el admin que genera la cédula (responsableUserId);
+ * si no viene o no tiene firma, tomamos el admin con firma más reciente para que la
+ * cédula salga igual sin importar quién la descargue (el propio alumno, por ejemplo).
+ */
+async function resolverAdminResponsable(
+  responsableUserId?: number
+): Promise<{ nombre: string; firma: string | null }> {
+  // 1) El admin que la procesa, si nos lo pasaron y es admin.
+  if (responsableUserId) {
+    const [a] = await db
+      .select({ nombre: administradores.nombreCompleto })
+      .from(administradores)
+      .where(eq(administradores.userId, responsableUserId));
+    if (a) {
+      const [f] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, responsableUserId));
+      return { nombre: a.nombre, firma: firmaActiva(f) };
+    }
+  }
+  // 2) Fallback: el admin con firma guardada más reciente.
+  const [row] = await db
+    .select({
+      nombre: administradores.nombreCompleto,
+      imagenDataUrl: firmasUsuario.imagenDataUrl,
+      imagenDataUrl2: firmasUsuario.imagenDataUrl2,
+      activa: firmasUsuario.activa,
+    })
+    .from(administradores)
+    .innerJoin(firmasUsuario, eq(firmasUsuario.userId, administradores.userId))
+    .orderBy(desc(firmasUsuario.updatedAt))
+    .limit(1);
+  if (row) return { nombre: row.nombre, firma: firmaActiva(row) };
+  // 3) Ningún admin con firma: al menos el nombre del primer admin (línea en blanco).
+  const [a0] = await db.select({ nombre: administradores.nombreCompleto }).from(administradores).limit(1);
+  return { nombre: a0?.nombre ?? '', firma: null };
+}
+
+async function reunirDatos(estudianteId: number, responsableUserId?: number): Promise<{
   datos: CedulaDatosResueltos;
   fotoPath: string | null;
   firmaAlumno: string | null;
@@ -118,10 +163,8 @@ async function reunirDatos(estudianteId: number): Promise<{
     municipioNombre = m?.nombre ?? '';
   }
 
-  const firmaActiva = (row: { imagenDataUrl: string | null; imagenDataUrl2: string | null; activa: number } | undefined) =>
-    row ? (row.activa === 2 ? row.imagenDataUrl2 : row.imagenDataUrl) ?? null : null;
-
-  // Gestor responsable
+  // Responsable de la inscripción: el gestor si el alumno tiene uno asignado;
+  // si no (alumnos auto-registrados), el administrador que procesa la cédula.
   let responsableNombre = '';
   let firmaResponsable: string | null = null;
   if (est.gestorId) {
@@ -129,6 +172,10 @@ async function reunirDatos(estudianteId: number): Promise<{
     responsableNombre = g?.nombre ?? '';
     const [fr] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, est.gestorId));
     firmaResponsable = firmaActiva(fr);
+  } else {
+    const admin = await resolverAdminResponsable(responsableUserId);
+    responsableNombre = admin.nombre;
+    firmaResponsable = admin.firma;
   }
 
   // Firma del alumno (la activa)
@@ -171,8 +218,8 @@ async function reunirDatos(estudianteId: number): Promise<{
 }
 
 /** Devuelve los datos consolidados (para la vista previa web). */
-export async function obtenerDatosCedula(estudianteId: number): Promise<CedulaDatosResueltos> {
-  return (await reunirDatos(estudianteId)).datos;
+export async function obtenerDatosCedula(estudianteId: number, responsableUserId?: number): Promise<CedulaDatosResueltos> {
+  return (await reunirDatos(estudianteId, responsableUserId)).datos;
 }
 
 // ── Guardar/completar los datos de la cédula = actualizar los datos del alumno ─
@@ -258,9 +305,10 @@ export function dispositionCedula(nombreArchivo: string): string {
 
 /** Genera el PDF de la cédula rellenado y aplanado. Devuelve bytes + nombre de archivo. */
 export async function generarCedulaPdf(
-  estudianteId: number
+  estudianteId: number,
+  responsableUserId?: number
 ): Promise<{ pdf: Uint8Array; nombreArchivo: string }> {
-  const { datos, fotoPath, firmaAlumno, firmaResponsable } = await reunirDatos(estudianteId);
+  const { datos, fotoPath, firmaAlumno, firmaResponsable } = await reunirDatos(estudianteId, responsableUserId);
 
   const doc = await PDFDocument.load(readFileSync(resolverPlantilla()), { ignoreEncryption: true });
   const form = doc.getForm();
