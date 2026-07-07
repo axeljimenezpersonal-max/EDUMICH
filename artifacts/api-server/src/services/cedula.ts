@@ -10,7 +10,7 @@
  * "Completar la cédula" = completar los datos del alumno.
  */
 
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, TextAlignment } from 'pdf-lib';
 import { winAnsiSafe } from '../utils/pdfText';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
@@ -322,6 +322,17 @@ export async function generarCedulaPdf(
     }
   };
 
+  // Nombres bajo la línea de firma: centrados sobre la línea.
+  const setCentrado = (campo: string, valor: string) => {
+    try {
+      const f = form.getTextField(campo);
+      f.setText(valor ?? '');
+      f.setAlignment(TextAlignment.Center);
+    } catch {
+      /* campo ausente: se ignora */
+    }
+  };
+
   set('Matrícula', datos.matricula);
   set('Fecha', fmtFechaCorta(new Date()));
   set('Apellido P', datos.apellidoPaterno);
@@ -341,8 +352,8 @@ export async function generarCedulaPdf(
   set('Estado', datos.estado);
   set('Correo electrónico', datos.correo);
   set('Ultimo estudio realizado', datos.ultimoEstudio);
-  set('Nombre completo y firma estudiante', datos.nombreCompleto);
-  set('Nombre y firma del responsable de la inscripción', datos.responsableNombre);
+  setCentrado('Nombre completo y firma estudiante', datos.nombreCompleto);
+  setCentrado('Nombre y firma del responsable de la inscripción', datos.responsableNombre);
 
   // ── Fotografía (recuadro rotulado "FOTOGRAFÍA", lado derecho) ──
   // Se ajusta SIEMPRE al recuadro con aspect-fit y se centra, sin importar el
