@@ -340,13 +340,25 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
               {o.examenes.length > 0 && (() => {
                 const editable = o.estado === 'pendiente_emision' || o.estado === 'emitida';
                 return (
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-2">
                     {o.examenes.map((e) => (
-                      <span key={e.inscripcionId} className="text-[11px] bg-stone-100 text-stone-600 rounded-full pl-2 pr-1 py-0.5 inline-flex items-center gap-1">
-                        Módulo {e.moduloNumero}
+                      <span
+                        key={e.inscripcionId}
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#e8c4d4] bg-[var(--color-guinda-50,#faf0f3)] pl-1.5 pr-2 py-1.5"
+                      >
+                        <span className="w-6 h-6 rounded-lg bg-[var(--color-guinda-700)] text-white text-[11px] font-bold flex items-center justify-center shrink-0">
+                          {e.moduloNumero}
+                        </span>
+                        <span className="text-xs font-semibold text-[var(--color-guinda-800)] max-w-[160px] truncate" title={`Módulo ${e.moduloNumero} — ${e.moduloNombre}`}>
+                          {e.moduloNombre}
+                        </span>
                         {editable && o.examenes.length > 1 && (
-                          <button onClick={() => setConfirmacion({ tipo: 'quitar', ordenId: o.id, inscId: e.inscripcionId, modulo: e.moduloNumero })} title="Quitar módulo" className="text-stone-400 hover:text-red-600 text-[13px] leading-none">
-                            ×
+                          <button
+                            onClick={() => setConfirmacion({ tipo: 'quitar', ordenId: o.id, inscId: e.inscripcionId, modulo: e.moduloNumero })}
+                            title="Quitar módulo"
+                            className="ml-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-700)] hover:text-white transition-colors shrink-0"
+                          >
+                            <X size={12} strokeWidth={2.5} />
                           </button>
                         )}
                       </span>
@@ -478,14 +490,14 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
               <ul className="mt-3 space-y-1.5 text-[13px] text-stone-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
                 {confirmacion.tipo === 'cancelar' ? (
                   <>
-                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Se cancelará la ficha de pago actual.</li>
-                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Tu pre-inscripción se conserva, pero <strong>no podrás pagar</strong> hasta solicitar una ficha nueva.</li>
-                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Deberás repetir el proceso con <strong>“Solicitar orden de pago”</strong>.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Se cancelará la ficha de pago actual.</span></li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Tu pre-inscripción se conserva, pero <strong>no podrás pagar</strong> hasta solicitar una ficha nueva.</span></li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Deberás repetir el proceso con <strong>“Solicitar orden de pago”</strong>.</span></li>
                   </>
                 ) : (
                   <>
-                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> El módulo se quitará de esta ficha de pago.</li>
-                    <li className="flex gap-2"><span className="text-amber-500 font-bold">•</span> Para volver a incluirlo tendrás que <strong>solicitar una ficha nueva</strong> con ese módulo.</li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>El módulo se quitará de esta ficha de pago.</span></li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Para volver a incluirlo tendrás que <strong>solicitar una ficha nueva</strong> con ese módulo.</span></li>
                   </>
                 )}
               </ul>
