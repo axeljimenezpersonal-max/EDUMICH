@@ -76,51 +76,57 @@ function estadoBadge(estado: string): { label: string; cls: string } {
 // ── ExamenCard ────────────────────────────────────────────────────────────
 
 function ExamenCard({ examen }: { examen: ExamenInscrito }) {
-  // Sin pago verificado el examen es un PRE-REGISTRO: no se muestra "Inscrito"
-  // ni estados de pase (esos dependen de un pago confirmado).
+  // Sin pago verificado el examen es un PRE-REGISTRO: se confirma sólo cuando
+  // el pago queda validado. El pase depende de ese pago, así que no se ofrece
+  // mientras esté pendiente.
   const badge = examen.pagado
-    ? estadoBadge(examen.estado)
+    ? { label: 'Inscripción confirmada', cls: 'bg-emerald-100 text-emerald-800 border border-emerald-300' }
     : { label: 'Pre-inscrito · falta pago', cls: 'bg-amber-100 text-amber-800 border border-amber-300' };
   const diasRestantes = diasHasta(examen.fechaExamen);
   const showCountdown = diasRestantes <= 30 && diasRestantes > 0;
+  const fecha = parseFecha(examen.fechaExamen);
 
   return (
-    <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-start gap-4 shadow-sm hover:shadow-md transition-shadow">
-      <div className="bg-[var(--color-guinda-700)] text-white rounded-lg px-3 py-2 text-center min-w-[52px] flex-shrink-0">
-        <div className="text-xl font-bold leading-none">{parseFecha(examen.fechaExamen).getUTCDate()}</div>
-        <div className="text-xs uppercase tracking-wide mt-0.5">
-          {parseFecha(examen.fechaExamen).toLocaleDateString('es-MX', { month: 'short', timeZone: 'UTC' })}
+    <div className="bg-white border border-stone-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow flex items-center gap-4">
+      {/* Fecha + hora del examen (el foco de la tarjeta) */}
+      <div className="bg-[var(--color-guinda-700)] text-white rounded-lg px-3 py-2 text-center min-w-[64px] flex-shrink-0">
+        <div className="text-2xl font-bold leading-none">{fecha.getUTCDate()}</div>
+        <div className="text-[10px] uppercase tracking-wide mt-0.5">
+          {fecha.toLocaleDateString('es-MX', { month: 'short', timeZone: 'UTC' })}
+        </div>
+        <div className="mt-1 pt-1 border-t border-white/25 text-xs font-semibold flex items-center justify-center gap-1">
+          <Clock className="w-3 h-3" /> {examen.hora}
         </div>
       </div>
+
+      {/* Módulo + detalles */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2 flex-wrap">
-          <div>
-            <p className="font-semibold text-stone-900 text-sm">
-              Módulo {examen.modulo.numero} — {examen.modulo.nombre}
-            </p>
-            <p className="text-xs text-stone-500 mt-0.5">
-              Etapa {examen.etapa.clave} · {examen.dia === 'sabado' ? 'Sábado' : 'Domingo'} · {examen.hora} hrs
-            </p>
-            <p className="text-xs text-stone-500 flex items-center gap-1 mt-1">
-              <MapPin className="w-3 h-3" />
-              {examen.sede.nombre}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.cls}`}>{badge.label}</span>
-            {showCountdown && (
-              <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full">
-                {diasRestantes} días
-              </span>
-            )}
-          </div>
-        </div>
+        <p className="font-semibold text-stone-900 text-sm leading-snug">
+          Módulo {examen.modulo.numero} — {examen.modulo.nombre}
+        </p>
+        <p className="text-xs text-stone-500 mt-1">
+          Etapa {examen.etapa.clave} · {examen.dia === 'sabado' ? 'Sábado' : 'Domingo'} {formatFechaCorta(examen.fechaExamen)}
+        </p>
+        <p className="text-xs text-stone-500 flex items-center gap-1 mt-0.5">
+          <MapPin className="w-3 h-3 shrink-0" />
+          {examen.sede.nombre}
+        </p>
       </div>
-      <Link href={`/estudiante/convocatoria/pase/${examen.id}`}>
-        <button className="text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)] flex-shrink-0 p-1" title="Ver pase">
-          <ChevronRight className="w-5 h-5" />
-        </button>
-      </Link>
+
+      {/* Estado + acceso al pase (sólo si ya está pagado) */}
+      <div className="flex flex-col items-end gap-1.5 shrink-0 text-right">
+        <span className={`text-[11px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${badge.cls}`}>
+          {badge.label}
+        </span>
+        {showCountdown && <span className="text-[11px] text-stone-400">Faltan {diasRestantes} días</span>}
+        {examen.pagado && (
+          <Link href={`/estudiante/convocatoria/pase/${examen.id}`}>
+            <button className="text-xs font-semibold text-[var(--color-guinda-700)] hover:underline flex items-center gap-0.5">
+              Ver pase <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
@@ -163,12 +169,16 @@ function ModulosInscripcion({
   calendarioEtapa,
   misExamenesIds,
   costoExamen,
+  hayPreinscripcion,
+  onEditarPreinscripcion,
   onSuccess,
 }: {
   etapa: EtapaConvocatoria;
   calendarioEtapa: CalendarioMes['etapas'][0] | null;
   misExamenesIds: number[];  // ids de modulos ya inscritos
   costoExamen: number;
+  hayPreinscripcion: boolean;
+  onEditarPreinscripcion: () => void;
   onSuccess: () => void;
 }) {
   const [seleccion, setSeleccion] = useState<Set<number>>(new Set());
@@ -319,14 +329,25 @@ function ModulosInscripcion({
 
   return (
     <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
+      <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <BookOpen size={15} className="text-[var(--color-guinda-700)]" />
           <h3 className="text-sm font-bold text-stone-900">Módulos disponibles para inscribir</h3>
         </div>
-        <span className="text-xs text-stone-500">
-          Solicitud cierra {formatFechaCorta(etapa.solicitudFin)}
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-stone-500">
+            Solicitud cierra {formatFechaCorta(etapa.solicitudFin)}
+          </span>
+          {hayPreinscripcion && (
+            <button
+              onClick={onEditarPreinscripcion}
+              className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-50 hover:text-[var(--color-guinda-700)] hover:border-[var(--color-guinda-700)] transition-colors"
+            >
+              <Pencil size={13} />
+              Modificar
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="p-5 space-y-4">
@@ -732,6 +753,8 @@ export default function MiConvocatoria() {
             calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}
             misExamenesIds={misModulosInscritos}
             costoExamen={costoExamen}
+            hayPreinscripcion={preinscritosNoPagados.length > 0}
+            onEditarPreinscripcion={() => { setErrorEditar(null); setConfirmEditar(true); }}
             onSuccess={() => cargarConvocatoria()}
           />
         )}
@@ -739,21 +762,10 @@ export default function MiConvocatoria() {
         {/* Mis exámenes inscritos */}
         {tieneExamenes && (
           <div>
-            <div className="flex items-center justify-between gap-2 flex-wrap mb-3">
-              <h2 className="font-semibold text-stone-800 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-[var(--color-guinda-700)]" />
-                Mis exámenes inscritos
-              </h2>
-              {preinscritosNoPagados.length > 0 && (
-                <button
-                  onClick={() => { setErrorEditar(null); setConfirmEditar(true); }}
-                  className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-50 hover:text-[var(--color-guinda-700)] hover:border-[var(--color-guinda-700)] transition-colors"
-                >
-                  <Pencil size={13} />
-                  Editar pre-inscripción
-                </button>
-              )}
-            </div>
+            <h2 className="font-semibold text-stone-800 flex items-center gap-2 mb-3">
+              <CheckCircle2 className="w-4 h-4 text-[var(--color-guinda-700)]" />
+              Mis exámenes inscritos
+            </h2>
             <div className="space-y-3">
               {misExamenes.map((examen) => (
                 <ExamenCard key={examen.id} examen={examen} />
@@ -782,18 +794,42 @@ export default function MiConvocatoria() {
           </div>
         )}
 
-        {/* Cómo funciona */}
-        <div className="bg-[var(--color-crema-100)] border border-[var(--color-crema-200)] rounded-xl p-4">
-          <div className="flex items-center gap-2 mb-2">
-            <Clock className="w-4 h-4 text-[var(--color-guinda-700)]" />
-            <p className="font-medium text-stone-800 text-sm">Cómo funciona</p>
+        {/* ¿Cómo termino mi inscripción? */}
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div className="px-5 py-4 border-b border-stone-100 bg-[var(--color-crema-100)] flex items-center gap-2">
+            <FileCheck className="w-4 h-4 text-[var(--color-guinda-700)]" />
+            <p className="font-bold text-stone-900 text-sm">¿Cómo termino mi inscripción?</p>
           </div>
-          <ol className="text-sm text-stone-600 space-y-1 list-decimal list-inside">
-            <li>Asegúrate de tener tu expediente completo y aprobado.</li>
-            <li>Durante el período de solicitud, selecciona los módulos de arriba e inscríbete.</li>
-            <li>Paga tus derechos de examen desde la sección <strong>Pagos</strong> del menú.</li>
-            <li>Descarga tu pase de examen y preséntate en la sede el día indicado.</li>
-          </ol>
+          <div className="p-5">
+            <p className="text-sm text-stone-600 leading-relaxed mb-4">
+              Al pre-inscribirte generamos tu <strong>ficha de pago</strong>. Tu lugar queda{' '}
+              <strong>confirmado</strong> únicamente cuando el pago se valida — hasta entonces apareces
+              como <em>pre-inscrito</em>.
+            </p>
+            <ol className="space-y-3">
+              {[
+                { n: 1, t: 'Descarga tu ficha de pago', d: 'En la sección Pagos está tu ficha con la línea de captura y el monto.' },
+                { n: 2, t: 'Realiza el pago', d: 'Cúbrela en el banco o en línea antes de la fecha límite de la etapa.' },
+                { n: 3, t: 'Espera la confirmación', d: 'Cuando el pago se valida, tu inscripción pasa a “confirmada”.' },
+                { n: 4, t: 'Descarga tu pase', d: 'Ya confirmada, descarga tu pase y preséntate en la sede el día del examen.' },
+              ].map((s) => (
+                <li key={s.n} className="flex gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center shrink-0">
+                    {s.n}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-stone-800">{s.t}</p>
+                    <p className="text-xs text-stone-500 leading-snug">{s.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <Link href="/estudiante/pagos">
+              <button className="mt-5 w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors">
+                Ir a Pagos <ChevronRight size={15} />
+              </button>
+            </Link>
+          </div>
         </div>
 
         {/* Próximas etapas */}
@@ -810,7 +846,7 @@ export default function MiConvocatoria() {
                 <AlertTriangle size={18} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-stone-900">¿Seguro que quieres editar tu pre-inscripción?</h3>
+                <h3 className="font-bold text-stone-900">¿Seguro que quieres modificar tu pre-inscripción?</h3>
                 <p className="text-sm text-stone-600 mt-1 leading-relaxed">
                   Se eliminará la pre-inscripción actual y deberás solicitar otra{' '}
                   <strong>ficha de pago</strong> al volver a elegir tus módulos.
@@ -839,7 +875,7 @@ export default function MiConvocatoria() {
                 className="flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
               >
                 {editando ? <Loader2 size={14} className="animate-spin" /> : <Pencil size={14} />}
-                {editando ? 'Eliminando…' : 'Sí, editar'}
+                {editando ? 'Eliminando…' : 'Sí, modificar'}
               </button>
             </div>
           </div>

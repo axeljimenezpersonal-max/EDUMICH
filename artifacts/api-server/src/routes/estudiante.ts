@@ -1941,8 +1941,12 @@ router.post('/convocatoria/inscripcion/:id/cancelar', async (req, res) => {
     res.status(403).json({ error: 'No autorizado' });
     return;
   }
-  if (insc.estado !== 'inscrito') {
-    res.status(400).json({ error: 'Solo se puede cancelar una inscripción en estado "inscrito"' });
+  // Se puede cancelar mientras el examen no se haya presentado ni calificado.
+  // El bloqueo real es el pago (más abajo): si ya se pagó o está en revisión,
+  // no se cancela sin intervención de la coordinación.
+  const cancelables = ['inscrito', 'pase_descargado', 'pase_validado'];
+  if (!cancelables.includes(insc.estado)) {
+    res.status(400).json({ error: 'Esta inscripción ya no se puede cancelar' });
     return;
   }
   const solicitudFinDate = insc.solicitudFin ? new Date(insc.solicitudFin) : null;
