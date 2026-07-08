@@ -11,6 +11,7 @@ import {
   Pencil, AlertCircle, Award, Calendar, ClipboardList, Download, FileText, Lock,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_EXPEDIENTE, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api, type ExpedienteResponse, type TipoDocumento } from '../../lib/api';
@@ -408,6 +409,11 @@ export default function MiExpediente() {
               ))}
             </div>
           </section>
+
+          {/* Ayuda: dudas con el expediente → Mensajes */}
+          <div className="mt-6">
+            <AyudaMensajes contexto="tu expediente o tus documentos" />
+          </div>
         </>
       )}
 

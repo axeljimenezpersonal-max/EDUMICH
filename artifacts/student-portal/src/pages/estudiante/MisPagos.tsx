@@ -13,6 +13,7 @@ import {
   X, AlertTriangle, Eye, RefreshCw,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_PAGOS, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import PagoCard from '../../components/PagoCard';
@@ -250,6 +251,9 @@ export default function MisPagos() {
               </div>
             </div>
           )}
+
+          {/* Ayuda: dudas con el pago → Mensajes */}
+          <AyudaMensajes contexto="tu pago" />
         </div>
       )}
 

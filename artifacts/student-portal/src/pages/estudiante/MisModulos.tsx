@@ -152,6 +152,20 @@ export default function MisModulos() {
         )}
       </div>
 
+      {/* ── ¿Qué son los módulos? (explicación) ── */}
+      <div className="mb-6 bg-[var(--color-crema-100)] border border-[var(--color-crema-200)] rounded-xl p-4 flex gap-3">
+        <div className="w-9 h-9 rounded-lg bg-white/70 flex items-center justify-center shrink-0">
+          <BookOpen size={18} className="text-[var(--color-guinda-700)]" />
+        </div>
+        <div className="text-sm text-stone-600 leading-relaxed">
+          <span className="font-bold text-stone-800">¿Qué son los módulos?</span> Son{' '}
+          <strong>prácticas tipo mini-examen</strong> que la Secretaría prepara con base en los
+          exámenes reales de cada módulo, para que llegues preparado a tu examen oficial. Aquí
+          ejercitas los temas y mides tu avance. <strong>No sustituyen el examen oficial</strong>: cada
+          examen real es distinto — esto es para practicar.
+        </div>
+      </div>
+
       {loading && (
         <div className="text-center text-stone-400 py-16 text-sm">Cargando módulos...</div>
       )}

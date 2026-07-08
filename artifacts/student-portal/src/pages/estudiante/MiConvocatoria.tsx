@@ -21,6 +21,7 @@ import {
   Pencil,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_INSCRIPCION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
@@ -849,6 +850,9 @@ export default function MiConvocatoria() {
 
         {/* Próximas etapas */}
         <ProximasEtapasSection etapas={proximasEtapas} />
+
+        {/* Ayuda: dudas con la inscripción → Mensajes */}
+        <AyudaMensajes contexto="tu inscripción" />
 
       </div>
 
