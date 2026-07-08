@@ -24,6 +24,7 @@ import {
   MapPin,
   CalendarCheck,
   Sparkles,
+  FileCheck,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -270,8 +271,40 @@ export default function EstudianteDashboard() {
         {(data.folioPreregistro || data.matriculaOficialDGB || data.licenciaDigital) && (
           <div data-tour="dash-ficha" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
-            {/* ── Ficha de pre-registro ── */}
-            {data.folioPreregistro && (
+            {/* ── Cédula de inscripción (ya inscrito) o Ficha de pre-registro ── */}
+            {/* Una vez inscrito (con matrícula), la ficha de pre-registro ya no
+                aporta: se muestra la cédula de inscripción, que sí es el
+                documento oficial del alumno. */}
+            {data.matriculaOficialDGB ? (
+              <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ padding: '16px 18px 14px', flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
+                    <div style={{ width: 34, height: 34, borderRadius: 9, background: '#f3dbe4', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <FileCheck size={16} style={{ color: 'var(--color-guinda-700)' }} />
+                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#6b635e', lineHeight: 1.3 }}>
+                      Cédula de<br />inscripción
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--color-guinda-800)' }}>
+                    Documento oficial
+                  </div>
+                  <div style={{ fontSize: 11, marginTop: 5, color: '#6b635e', lineHeight: 1.4 }}>
+                    Tu cédula de inscripción a Preparatoria Abierta.
+                  </div>
+                </div>
+                <div style={{ borderTop: '1px solid #f7f2ed', padding: '10px 18px' }}>
+                  <a
+                    href="/api/estudiante/cedula/pdf"
+                    target="_blank"
+                    rel="noopener"
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '7px 0', background: 'var(--color-guinda-700)', color: 'white', borderRadius: 8, fontSize: 12, fontWeight: 600, textDecoration: 'none' }}
+                  >
+                    <Download size={13} /> Descargar PDF
+                  </a>
+                </div>
+              </div>
+            ) : data.folioPreregistro ? (
               <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ padding: '16px 18px 14px', flex: 1 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 12 }}>
@@ -304,7 +337,7 @@ export default function EstudianteDashboard() {
                   </a>
                 </div>
               </div>
-            )}
+            ) : null}
 
             {/* ── Matrícula ── */}
             {data.matriculaOficialDGB && (
