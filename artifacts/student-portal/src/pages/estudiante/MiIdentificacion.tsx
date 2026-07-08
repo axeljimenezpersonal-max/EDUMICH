@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { BadgeCheck, Download, Loader2, Lock, RotateCcw, Shield, RefreshCw } from 'lucide-react';
 import { QRCodeSVG as QRCodeReact } from 'qrcode.react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { CredencialPreview } from '../../components/CredencialPreview';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_IDENTIFICACION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
@@ -463,42 +464,12 @@ export default function MiIdentificacion() {
         </div>
       ) : null}
 
-      <div style={{ maxWidth: 340 }}>
-        {/* ── Tarjeta con flip ────────────────────────────────────── */}
-        <div
-          style={{ perspective: '1400px', cursor: 'pointer', height: 468 }}
-          onClick={() => setFlipped((f) => !f)}
-          title={flipped ? 'Clic para ver frente' : 'Clic para ver reverso / QR'}
-        >
-          <div
-            style={{
-              position: 'relative',
-              transformStyle: 'preserve-3d',
-              transition: 'transform 0.65s cubic-bezier(.4,0,.2,1)',
-              transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              height: '100%',
-            }}
-          >
-            {/* Cara delantera */}
-            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden' }}>
-              <CredFront id={id} tieneFoto={data?.tieneFoto ?? false} onFlip={() => setFlipped((f) => !f)} />
-            </div>
-            {/* Cara trasera */}
-            <div
-              style={{
-                position: 'absolute',
-                inset: 0,
-                backfaceVisibility: 'hidden',
-                transform: 'rotateY(180deg)',
-              }}
-            >
-              <CredBack id={id} />
-            </div>
-          </div>
-        </div>
+      <div style={{ maxWidth: 400 }}>
+        {/* ── Credencial rectangular volteable (misma que ve la administración) ── */}
+        <CredencialPreview basePath="/estudiante" flippable />
 
         {/* ── Acciones ────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 mt-5 flex-wrap">
+        <div className="flex items-center gap-3 mt-5 flex-wrap justify-center">
           <button
             onClick={handleDescargar}
             disabled={descargando}
@@ -511,14 +482,6 @@ export default function MiIdentificacion() {
               <Download size={15} />
             )}
             {descargando ? 'Generando PDF…' : 'Descargar PDF'}
-          </button>
-
-          <button
-            onClick={() => setFlipped((f) => !f)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border border-stone-200 text-stone-700 hover:bg-stone-50 transition-colors"
-          >
-            <RotateCcw size={15} />
-            {flipped ? 'Ver frente' : 'Ver reverso / QR'}
           </button>
 
           <button

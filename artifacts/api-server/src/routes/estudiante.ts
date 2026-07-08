@@ -54,7 +54,7 @@ import QRCode from 'qrcode';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
-import { generarCredencialPdf } from '../services/credencialPdf';
+import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import {
   obtenerDatosCedula,
@@ -2318,6 +2318,15 @@ router.get('/mi-identificacion', async (req, res) => {
       verifyUrl,
     },
   });
+});
+
+// ─── GET /estudiante/credencial — datos de la credencial (misma forma que admin) ──
+// Para renderizar la MISMA tarjeta (CredencialPreview) que ve la administración.
+router.get('/credencial', async (req, res) => {
+  const userId = req.user!.userId;
+  const data = await obtenerDatosCredencial(userId);
+  if (!data) { res.json({ emitida: false }); return; }
+  res.json({ emitida: true, ...data, fotoUrl: data.tieneFoto ? '/api/estudiante/mi-foto' : null });
 });
 
 // ─── GET /estudiante/credencial/pdf — carnet de la credencial digital ────────
