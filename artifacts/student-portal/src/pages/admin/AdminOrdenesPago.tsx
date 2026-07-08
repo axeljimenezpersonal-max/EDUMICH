@@ -501,8 +501,8 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               </div>
               <p className="text-[11px] text-stone-500 -mt-1">El gestor/alumno subió su comprobante. Revísalo: al validarlo, la orden se marca pagada automáticamente.</p>
               {p.tieneComprobante && (
-                <a href={`/api/pagos-examen/${id}/comprobante`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-sm font-semibold px-3 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 w-full justify-center">
-                  <Download size={15} /> Ver comprobante
+                <a href={`/api/pagos-examen/${id}/comprobante`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide px-4 py-3 rounded-lg border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors w-full justify-center shadow-sm">
+                  <Download size={17} /> Ver comprobante
                 </a>
               )}
             </div>
