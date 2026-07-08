@@ -423,7 +423,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
                 </div>
                 <div className="flex flex-col gap-2">
                   {p.tieneOrden && (
-                    <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="w-full inline-flex items-center justify-center gap-2 py-2 rounded-lg border border-stone-300 text-stone-700 text-xs font-semibold hover:bg-stone-50">
+                    <a href={`/api/pagos-examen/${id}/orden`} target="_blank" rel="noreferrer" className="w-full inline-flex items-center justify-center gap-2 py-2.5 rounded-lg bg-[var(--color-guinda-700)] text-white text-xs font-bold hover:bg-[var(--color-guinda-800)] transition-colors shadow-sm">
                       <Download size={14} /> Ver orden (PDF)
                     </a>
                   )}
@@ -435,7 +435,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
                   {p.estado === 'emitida' && (
                     <button
                       onClick={() => setModal('editar')}
-                      className="w-full inline-flex items-center justify-center gap-2 py-2 border border-stone-300 text-stone-600 text-xs font-semibold rounded-lg hover:bg-stone-50">
+                      className="w-full inline-flex items-center justify-center gap-2 py-2.5 border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] text-xs font-bold rounded-lg hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors">
                       <Pencil size={13} /> Editar orden (requiere confirmación)
                     </button>
                   )}
