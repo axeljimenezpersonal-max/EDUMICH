@@ -6,11 +6,11 @@
  * descargar, línea de captura, subir comprobante) e historial de comprobantes.
  */
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AlertCircle, Calendar, Check, CheckCircle2, Clock, Copy, CreditCard,
   Download, ExternalLink, FileText, Landmark, Loader2, MapPin, UploadCloud,
-  X, AlertTriangle,
+  X, AlertTriangle, Eye, RefreshCw,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { PageTour } from '../../components/tour/PageTour';
@@ -276,9 +276,12 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
   const [confirmacion, setConfirmacion] = useState<
     | { tipo: 'quitar'; ordenId: number; inscId: number; modulo: number }
     | { tipo: 'cancelar'; ordenId: number }
+    | { tipo: 'reemplazar'; ordenId: number }
     | null
   >(null);
   const [ejecutando, setEjecutando] = useState(false);
+  // Input oculto para reemplazar el comprobante en revisión.
+  const reuploadRef = useRef<HTMLInputElement>(null);
 
   async function subirComprobante(id: number, file: File) {
     const metodo = metodoPorId[id];
@@ -293,13 +296,27 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
     } catch { /* noop */ } finally { setSubiendo(null); }
   }
 
+  // Reemplaza el comprobante ya subido (estado en revisión). Conserva el método
+  // de pago previo si existe; el backend mantiene el anterior si no se envía.
+  async function reemplazarComprobante(id: number, file: File) {
+    setSubiendo(id);
+    try {
+      const orden = (ordenes ?? []).find((o) => o.id === id);
+      const fd = new FormData();
+      fd.append('comprobante', file);
+      if (orden?.metodoPago) fd.append('metodoPago', orden.metodoPago);
+      await api.post(`/pagos-examen/${id}/comprobante`, fd);
+      await onReload();
+    } catch { /* noop */ } finally { setSubiendo(null); setConfirmacion(null); }
+  }
+
   async function ejecutarConfirmacion() {
     if (!confirmacion) return;
     setEjecutando(true);
     try {
       if (confirmacion.tipo === 'cancelar') {
         await api.post(`/pagos-examen/${confirmacion.ordenId}/cancelar-mia`, {});
-      } else {
+      } else if (confirmacion.tipo === 'quitar') {
         await api.post(`/pagos-examen/${confirmacion.ordenId}/quitar-examen`, { examenInscripcionId: confirmacion.inscId });
       }
       await onReload();
@@ -482,8 +499,33 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
               )}
 
               {o.estado === 'en_revision' && (
-                <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2.5 flex gap-2">
-                  <Clock size={14} className="shrink-0 mt-0.5" /> Tu comprobante está en revisión. Te avisaremos cuando se confirme el pago.
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-3 space-y-2.5">
+                  <div className="text-xs text-amber-800 flex gap-2">
+                    <Clock size={14} className="shrink-0 mt-0.5" /> Tu comprobante está en revisión. Te avisaremos cuando se confirme el pago.
+                  </div>
+                  {o.tieneComprobante && (
+                    <div className="flex flex-wrap gap-2">
+                      <a
+                        href={`/api/pagos-examen/${o.id}/comprobante`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 bg-white hover:bg-stone-50 transition-colors"
+                      >
+                        <Eye size={13} /> Ver mi comprobante
+                      </a>
+                      <button
+                        onClick={() => setConfirmacion({ tipo: 'reemplazar', ordenId: o.id })}
+                        disabled={subiendo === o.id}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors disabled:opacity-50"
+                      >
+                        {subiendo === o.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                        {subiendo === o.id ? 'Reemplazando…' : 'Editar comprobante'}
+                      </button>
+                    </div>
+                  )}
+                  <p className="text-[11px] text-amber-700/90">
+                    ¿Subiste el archivo equivocado? Puedes reemplazarlo mientras la coordinación no lo haya validado.
+                  </p>
                 </div>
               )}
               {o.motivoRechazo && o.estado === 'emitida' && (
@@ -528,16 +570,22 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5">
-              <div className="w-11 h-11 rounded-full bg-amber-100 flex items-center justify-center mb-3">
-                <AlertTriangle size={20} className="text-amber-600" />
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center mb-3 ${confirmacion.tipo === 'reemplazar' ? 'bg-[var(--color-guinda-50,#faf0f3)]' : 'bg-amber-100'}`}>
+                {confirmacion.tipo === 'reemplazar'
+                  ? <RefreshCw size={20} className="text-[var(--color-guinda-700)]" />
+                  : <AlertTriangle size={20} className="text-amber-600" />}
               </div>
               <h3 className="text-base font-bold text-stone-900">
-                {confirmacion.tipo === 'cancelar' ? '¿Cancelar tu ficha de pago?' : `¿Quitar el Módulo ${confirmacion.modulo}?`}
+                {confirmacion.tipo === 'cancelar' ? '¿Cancelar tu ficha de pago?'
+                  : confirmacion.tipo === 'quitar' ? `¿Quitar el Módulo ${confirmacion.modulo}?`
+                  : '¿Reemplazar tu comprobante?'}
               </h3>
               <p className="text-sm text-stone-500 mt-1 leading-relaxed">
                 {confirmacion.tipo === 'cancelar'
                   ? 'Ya solicitaste esta ficha de pago a la Tesorería. Si la cancelas tendrás que empezar de nuevo:'
-                  : `Se quitará el Módulo ${confirmacion.modulo} de esta ficha. Ten en cuenta que:`}
+                  : confirmacion.tipo === 'quitar'
+                    ? `Se quitará el Módulo ${confirmacion.modulo} de esta ficha. Ten en cuenta que:`
+                    : 'Elegirás un archivo nuevo que sustituirá el comprobante que subiste:'}
               </p>
               <ul className="mt-3 space-y-1.5 text-[13px] text-stone-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
                 {confirmacion.tipo === 'cancelar' ? (
@@ -546,10 +594,15 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                     <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Tu pre-inscripción se conserva, pero <strong>no podrás pagar</strong> hasta solicitar una ficha nueva.</span></li>
                     <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Deberás repetir el proceso con <strong>“Solicitar orden de pago”</strong>.</span></li>
                   </>
-                ) : (
+                ) : confirmacion.tipo === 'quitar' ? (
                   <>
                     <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>El módulo se quitará de esta ficha de pago.</span></li>
                     <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Para volver a incluirlo tendrás que <strong>solicitar una ficha nueva</strong> con ese módulo.</span></li>
+                  </>
+                ) : (
+                  <>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>El comprobante actual se <strong>sustituirá</strong> por el nuevo.</span></li>
+                    <li className="flex gap-2"><span className="text-amber-500 font-bold shrink-0">•</span><span>Tu pago seguirá <strong>en revisión</strong> con el archivo nuevo.</span></li>
                   </>
                 )}
               </ul>
@@ -557,23 +610,48 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
             <div className="flex gap-2 px-5 pb-5">
               <button
                 onClick={() => setConfirmacion(null)}
-                disabled={ejecutando}
+                disabled={ejecutando || subiendo !== null}
                 className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-700 text-sm font-semibold hover:bg-stone-50 transition-colors disabled:opacity-50"
               >
                 No, conservar
               </button>
-              <button
-                onClick={ejecutarConfirmacion}
-                disabled={ejecutando}
-                className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                {ejecutando ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
-                {confirmacion.tipo === 'cancelar' ? 'Sí, cancelar' : 'Sí, quitar'}
-              </button>
+              {confirmacion.tipo === 'reemplazar' ? (
+                <button
+                  onClick={() => reuploadRef.current?.click()}
+                  disabled={subiendo !== null}
+                  className="flex-1 py-2.5 rounded-lg bg-[var(--color-guinda-700)] text-white text-sm font-semibold hover:bg-[var(--color-guinda-800)] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {subiendo !== null ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
+                  Sí, elegir archivo
+                </button>
+              ) : (
+                <button
+                  onClick={ejecutarConfirmacion}
+                  disabled={ejecutando}
+                  className="flex-1 py-2.5 rounded-lg bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {ejecutando ? <Loader2 size={14} className="animate-spin" /> : <X size={14} />}
+                  {confirmacion.tipo === 'cancelar' ? 'Sí, cancelar' : 'Sí, quitar'}
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
+
+      {/* Input oculto para reemplazar el comprobante en revisión */}
+      <input
+        ref={reuploadRef}
+        type="file"
+        accept="application/pdf,image/*"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          const id = confirmacion?.tipo === 'reemplazar' ? confirmacion.ordenId : null;
+          if (f && id != null) reemplazarComprobante(id, f);
+          e.currentTarget.value = '';
+        }}
+      />
     </div>
   );
 }

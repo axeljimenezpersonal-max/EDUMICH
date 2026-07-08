@@ -27,7 +27,9 @@ export type PagoExamenEstado =
 const TRANSICIONES: Record<PagoExamenEstado, PagoExamenEstado[]> = {
   pendiente_emision: ['emitida', 'cancelado'],
   emitida: ['en_revision', 'pagado', 'vencido', 'cancelado'],
-  en_revision: ['pagado', 'emitida', 'vencido', 'cancelado'],
+  // 'en_revision' → 'en_revision': el alumno/gestor puede REEMPLAZAR su
+  // comprobante mientras sigue en revisión (subió uno equivocado).
+  en_revision: ['en_revision', 'pagado', 'emitida', 'vencido', 'cancelado'],
   pagado: [], // estado terminal
   vencido: ['emitida', 'cancelado'], // el Estado puede reemitir
   cancelado: [], // estado terminal
