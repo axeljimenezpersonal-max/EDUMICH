@@ -232,6 +232,9 @@ export default function ModuloDetalle() {
       .then(([d, c]) => {
         setData(d);
         setContactos(c);
+        // Si aún no hay temario cargado pero sí hay preguntas, abrir directo en
+        // Quizzes para que el contenido (práctica) sea visible de inmediato.
+        if (d.unidades.length === 0 && d.modulo.totalPreguntas) setTab('quizzes');
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -370,8 +373,19 @@ export default function ModuloDetalle() {
                 <div className="bg-white border border-stone-200 rounded-lg p-8 text-center">
                   <BookOpen size={28} className="mx-auto mb-3 text-stone-300" />
                   <p className="text-stone-500 text-sm">
-                    El temario de este módulo estará disponible próximamente.
+                    El temario de este módulo aún no está cargado.
+                    {modulo.totalPreguntas
+                      ? ' Mientras tanto, ya puedes practicar en la pestaña Quizzes.'
+                      : ' Estará disponible próximamente.'}
                   </p>
+                  {modulo.totalPreguntas ? (
+                    <button
+                      onClick={() => setTab('quizzes')}
+                      className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white text-sm font-semibold hover:bg-[var(--color-guinda-800)] transition-colors"
+                    >
+                      Ir a los quizzes
+                    </button>
+                  ) : null}
                 </div>
               ) : (
                 unidades.map((u) => <UnidadCard key={u.id} unidad={u} />)
