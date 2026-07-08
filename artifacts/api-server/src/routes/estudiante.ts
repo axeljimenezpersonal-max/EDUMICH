@@ -515,14 +515,26 @@ router.post('/cambiar-password', async (req, res) => {
 router.get('/modulos', async (req, res) => {
   const userId = req.user!.userId;
 
-  // 1. ¿Tiene pago verificado?
+  // 1. ¿Tiene pago verificado? El plan se desbloquea con CUALQUIERA de:
+  //    (a) un pago verificado del modelo antiguo `pagos`, o
+  //    (b) un pago de examen (`pagos_examen`) con estado 'pagado' — la fuente
+  //        de verdad canónica del cobro de derechos de examen (individual o
+  //        grupal), vinculado por `pagos_examen_inscripciones`.
   const [pagoVerificado] = await db
     .select({ id: pagos.id })
     .from(pagos)
     .where(and(eq(pagos.estudianteId, userId), eq(pagos.estado, 'verificado')))
     .limit(1);
 
-  const planDesbloqueado = !!pagoVerificado;
+  const pagoExamenRes = await db.execute<{ n: number }>(sql`
+    SELECT COUNT(*)::int AS n
+    FROM pagos_examen_inscripciones pei
+    JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+    JOIN examenes_inscripciones ei ON ei.id = pei.examen_inscripcion_id
+    WHERE ei.estudiante_id = ${userId} AND pe.estado = 'pagado'`);
+  const tienePagoExamen = Number((pagoExamenRes.rows?.[0] as { n: number } | undefined)?.n ?? 0) > 0;
+
+  const planDesbloqueado = !!pagoVerificado || tienePagoExamen;
 
   // 2. Exámenes inscritos (para badge y contador)
   const examenes = await db

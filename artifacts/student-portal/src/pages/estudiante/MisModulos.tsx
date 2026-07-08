@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { ChevronRight, Lock, BookOpen, CreditCard, CheckCircle2, CalendarCheck } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_MODULOS } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_MODULOS, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api, type MisModulosResponse, type ModuloListItem, type ProgresoEstado } from '../../lib/api';
 
 const NIVEL_LABELS: Record<number, string> = {
@@ -160,7 +160,7 @@ export default function MisModulos() {
         <>
           {/* ── Aviso de bloqueo ── */}
           {!desbloqueado && (
-            <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-4 items-start">
+            <div data-tour="mod-bloqueo" className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-5 flex gap-4 items-start">
               <div className="bg-amber-100 rounded-full p-2 flex-shrink-0">
                 <CreditCard size={20} className="text-amber-600" />
               </div>
@@ -179,7 +179,7 @@ export default function MisModulos() {
           )}
 
           {/* ── Progreso global ── */}
-          <div className={`rounded-lg overflow-hidden mb-8 text-white p-6 ${
+          <div data-tour="mod-progreso" className={`rounded-lg overflow-hidden mb-8 text-white p-6 ${
             desbloqueado
               ? 'bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)]'
               : 'bg-gradient-to-r from-stone-600 to-stone-500'
@@ -248,7 +248,7 @@ export default function MisModulos() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {items.map((m) =>
-                    (desbloqueado && m.inscritoExamen)
+                    desbloqueado
                       ? <ModuloCard key={m.id} modulo={m} />
                       : <ModuloCardLocked key={m.id} modulo={m} />
                   )}
@@ -261,7 +261,7 @@ export default function MisModulos() {
               <h2 data-tour="mod-lista" className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sinNivel.map((m) =>
-                  (desbloqueado && m.inscritoExamen)
+                  desbloqueado
                     ? <ModuloCard key={m.id} modulo={m} />
                     : <ModuloCardLocked key={m.id} modulo={m} />
                 )}
@@ -280,7 +280,12 @@ export default function MisModulos() {
           )}
         </>
       )}
-          <PageTour storageKey="edumich_tour_modulos_v1" steps={TOUR_MODULOS} />
+      <SectionTour
+        steps={TOUR_MODULOS}
+        storageKey="edumich_sec_modulos_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Módulos"
+      />
     </EstudianteLayout>
   );
 }
