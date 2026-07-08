@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { LogOut, User, Bell, ChevronRight, X, Check } from 'lucide-react';
+import { LogOut, User, Bell, ChevronRight, X, Check, HelpCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { safeUrl } from '../lib/safeUrl';
 import { BrandLogo } from './BrandLogo';
@@ -327,6 +327,17 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
               ) : null}
               <User size={18} style={userPhotoUrl ? { display: 'none' } : {}} />
             </div>
+            {/* Ayuda: relanza el recorrido de bienvenida del rol actual.
+                El evento lo escucha <OnboardingTour/> montado en cada layout. */}
+            <button
+              data-tour="help-button"
+              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              className="p-2 rounded-md text-stone-500 hover:text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] transition-colors"
+              aria-label="Ver tutorial guiado"
+              title="Ver tutorial guiado"
+            >
+              <HelpCircle size={18} />
+            </button>
             <HeaderNotifBell />
             {onLogout && (
               <button

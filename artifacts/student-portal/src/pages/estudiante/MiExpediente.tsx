@@ -11,8 +11,8 @@ import {
   Pencil, AlertCircle, Award, Calendar, ClipboardList, Download, FileText, Lock,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_EXPEDIENTE } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_EXPEDIENTE, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api, type ExpedienteResponse, type TipoDocumento } from '../../lib/api';
 import DocumentoUploader from '../../components/DocumentoUploader';
 
@@ -108,9 +108,9 @@ function DatosPersonalesSection({
   }
 
   return (
-    <div className="bg-white border border-stone-200 rounded-lg p-5 mb-6">
+    <div data-tour="exp-datos" className="bg-white border border-stone-200 rounded-lg p-5 mb-6 scroll-mt-24">
       <div className="flex items-center justify-between mb-4">
-        <h2 data-tour="exp-datos" className="font-serif text-base font-bold text-stone-900">Datos personales</h2>
+        <h2 className="font-serif text-base font-bold text-stone-900">Datos personales</h2>
         {!editing ? (
           <button
             onClick={() => setEditing(true)}
@@ -281,7 +281,7 @@ export default function MiExpediente() {
           <MatriculaCard data={data} />
 
           {/* Progreso */}
-          <div className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-lg p-5 mb-6">
+          <div data-tour="exp-progreso" className="bg-gradient-to-r from-[var(--color-guinda-800)] to-[var(--color-guinda-600)] text-white rounded-lg p-5 mb-6">
             <div className="text-[10px] font-semibold uppercase tracking-widest opacity-70 mb-3">
               Progreso del expediente
             </div>
@@ -329,8 +329,8 @@ export default function MiExpediente() {
             </span>
           </a>
 
-          <section className="mb-6">
-            <h2 data-tour="exp-obligatorios" className="font-serif text-base font-bold text-stone-900 mb-3">Documentos obligatorios</h2>
+          <section data-tour="exp-obligatorios" className="mb-6 scroll-mt-24">
+            <h2 className="font-serif text-base font-bold text-stone-900 mb-3">Documentos obligatorios</h2>
             <div className="space-y-3">
               {obligatorios.map((def) => (
                 <DocumentoUploader
@@ -383,8 +383,8 @@ export default function MiExpediente() {
             </div>
           </section>
 
-          <section className="mb-6">
-            <h2 data-tour="exp-credencial" className="font-serif text-base font-bold text-stone-900 mb-1">Documentos para la credencial</h2>
+          <section data-tour="exp-credencial" className="mb-6 scroll-mt-24">
+            <h2 className="font-serif text-base font-bold text-stone-900 mb-1">Documentos para la credencial</h2>
             <p className="text-xs text-stone-500 mb-3">
               No son obligatorios para inscribirte, pero tu fotografía se usa para emitir tu credencial (credencial digital).
             </p>
@@ -411,7 +411,12 @@ export default function MiExpediente() {
         </>
       )}
 
-      <PageTour storageKey="edumich_tour_expediente_v1" steps={TOUR_EXPEDIENTE} />
+      <SectionTour
+        steps={TOUR_EXPEDIENTE}
+        storageKey="edumich_sec_expediente_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Expediente"
+      />
     </EstudianteLayout>
   );
 }

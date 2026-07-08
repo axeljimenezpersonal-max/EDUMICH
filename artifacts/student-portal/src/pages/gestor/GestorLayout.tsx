@@ -10,14 +10,15 @@ import { LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSq
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
+import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 
 const NAV = [
-  { to: '/gestor', icon: LayoutDashboard, label: 'Inicio' },
-  { to: '/gestor/alumnos', icon: Users, label: 'Mis alumnos' },
-  { to: '/gestor/alumnos/nuevo', icon: FilePlus2, label: 'Nuevo alumno' },
-  { to: '/gestor/pagos', icon: CreditCard, label: 'Pagos' },
-  { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones' },
-  { to: '/gestor/mensajes', icon: MessageSquare, label: 'Mensajes' },
+  { to: '/gestor', icon: LayoutDashboard, label: 'Inicio', tour: 'nav-inicio' },
+  { to: '/gestor/alumnos', icon: Users, label: 'Mis alumnos', tour: 'nav-alumnos' },
+  { to: '/gestor/alumnos/nuevo', icon: FilePlus2, label: 'Nuevo alumno', tour: 'nav-nuevo' },
+  { to: '/gestor/pagos', icon: CreditCard, label: 'Pagos', tour: 'nav-pagos' },
+  { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones', tour: 'nav-calificaciones' },
+  { to: '/gestor/mensajes', icon: MessageSquare, label: 'Mensajes', tour: 'nav-mensajes' },
 ];
 
 export function GestorLayout({ children }: { children: ReactNode }) {
@@ -67,6 +68,7 @@ export function GestorLayout({ children }: { children: ReactNode }) {
                   <li key={item.to}>
                     <Link
                       href={item.to}
+                      data-tour={item.tour}
                       className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
                         active
                           ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
@@ -88,6 +90,12 @@ export function GestorLayout({ children }: { children: ReactNode }) {
       </div>
 
       <AppFooter />
+
+      <OnboardingTour
+        rol={me?.rol}
+        nombre={me?.perfil?.nombreCompleto}
+        municipio={me?.perfil?.municipio}
+      />
     </div>
   );
 }

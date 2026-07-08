@@ -1,0 +1,300 @@
+/**
+ * Fuente única de verdad de los recorridos de bienvenida por rol.
+ *
+ * Cada paso puede iluminar un elemento de la interfaz vía `anchor`, que se
+ * resuelve como `[data-tour="<anchor>"]`. Sin `anchor`, la tarjeta se centra.
+ * Los textos admiten los tokens {nombre} y {municipio}, que se sustituyen con
+ * los datos del usuario en tiempo de ejecución.
+ */
+
+import type { Rol } from '../../lib/api';
+
+export type Placement = 'top' | 'bottom' | 'left' | 'right' | 'auto';
+
+export interface TourStep {
+  id: string;
+  anchor?: string;
+  placement?: Placement;
+  icon?: string;   // nombre de icono de lucide-react
+  title: string;
+  body: string;
+}
+
+// ── Estudiante ─────────────────────────────────────────────────
+const ESTUDIANTE: TourStep[] = [
+  {
+    id: 'est-welcome',
+    icon: 'GraduationCap',
+    title: '¡Bienvenido a tu portal, {nombre}!',
+    body: 'Este es tu espacio en Preparatoria Abierta Michoacán. En menos de un minuto te muestro cómo avanzar en tu proceso, paso a paso.',
+  },
+  {
+    id: 'est-expediente',
+    anchor: 'nav-expediente',
+    placement: 'right',
+    icon: 'FolderOpen',
+    title: '1. Completa tu expediente',
+    body: 'Aquí subes tus documentos: CURP, acta de nacimiento, INE, comprobante de domicilio, certificado de secundaria y tu foto. Es lo primero que revisa la administración.',
+  },
+  {
+    id: 'est-convocatoria',
+    anchor: 'nav-convocatoria',
+    placement: 'right',
+    icon: 'Calendar',
+    title: '2. Inscríbete a la convocatoria',
+    body: 'Elige los módulos que quieres presentar en la etapa activa. Tu cédula de inscripción la elabora la administración y la puedes consultar en tu expediente.',
+  },
+  {
+    id: 'est-pagos',
+    anchor: 'nav-pagos',
+    placement: 'right',
+    icon: 'CreditCard',
+    title: '3. Paga tus exámenes',
+    body: 'Aquí ves qué exámenes ya están pagados y cuáles faltan, solicitas tu orden de pago ante la Tesorería y subes tu comprobante. Solo lo pagado se puede calificar.',
+  },
+  {
+    id: 'est-calificaciones',
+    anchor: 'nav-calificaciones',
+    placement: 'right',
+    icon: 'GraduationCap',
+    title: '4. Consulta tus calificaciones',
+    body: 'Tu historial académico completo: módulos aprobados, promedio y descarga en PDF cuando lo necesites.',
+  },
+  {
+    id: 'est-modulos',
+    anchor: 'nav-modulos',
+    placement: 'right',
+    icon: 'BookOpen',
+    title: '5. Estudia y practica',
+    body: 'Consulta el material de cada módulo y practica con las evaluaciones antes de tu examen oficial.',
+  },
+  {
+    id: 'est-identificacion',
+    anchor: 'nav-identificacion',
+    placement: 'right',
+    icon: 'BadgeCheck',
+    title: '6. Tu identificación y pase',
+    body: 'Aquí está tu credencial digital y tu pase de examen con código QR para el día de la aplicación.',
+  },
+  {
+    id: 'est-mensajes',
+    anchor: 'nav-mensajes',
+    placement: 'right',
+    icon: 'MessageSquare',
+    title: '7. ¿Dudas? Escríbenos',
+    body: 'Chatea directo con la Secretaría cuando necesites ayuda. Te respondemos en horario de oficina.',
+  },
+  {
+    id: 'est-help',
+    anchor: 'help-button',
+    placement: 'bottom',
+    icon: 'CheckCircle2',
+    title: '¡Listo, ya sabes lo básico!',
+    body: 'Puedes repetir este recorrido cuando quieras con el botón de ayuda (?) aquí arriba. ¡Mucho éxito en tu preparatoria!',
+  },
+];
+
+// ── Gestor ─────────────────────────────────────────────────────
+const GESTOR: TourStep[] = [
+  {
+    id: 'ges-welcome',
+    icon: 'Sparkles',
+    title: '¡Hola, {nombre}!',
+    body: 'Esta es tu plataforma para gestionar a los alumnos de Preparatoria Abierta en {municipio}. Te doy un recorrido corto para que empieces con el pie derecho.',
+  },
+  {
+    id: 'ges-kpis',
+    anchor: 'kpis',
+    placement: 'bottom',
+    icon: 'LayoutDashboard',
+    title: 'Tu resumen de un vistazo',
+    body: 'Aquí ves tus números clave: cuántos alumnos tienes, cuántos ya están inscritos y cuántos documentos están pendientes de revisar.',
+  },
+  {
+    id: 'ges-alumnos',
+    anchor: 'nav-alumnos',
+    placement: 'right',
+    icon: 'Users',
+    title: 'Aquí están tus alumnos',
+    body: 'Da clic en "Mis alumnos" para ver la lista completa. Desde ahí revisas el estado, los documentos y el avance de cada uno.',
+  },
+  {
+    id: 'ges-nuevo',
+    anchor: 'nav-nuevo',
+    placement: 'right',
+    icon: 'FilePlus2',
+    title: 'Dar de alta a alguien nuevo',
+    body: '¿Llega un alumno nuevo? Usa "Nuevo alumno", captura sus datos básicos y queda vinculado a la convocatoria activa con su cuenta lista.',
+  },
+  {
+    id: 'ges-pagos',
+    anchor: 'nav-pagos',
+    placement: 'right',
+    icon: 'CreditCard',
+    title: 'Pagos de exámenes',
+    body: 'Consulta el estado de pago de cada alumno. También puedes hacer un pago grupal ante Tesorería con un solo comprobante para varios exámenes.',
+  },
+  {
+    id: 'ges-calificaciones',
+    anchor: 'nav-calificaciones',
+    placement: 'right',
+    icon: 'GraduationCap',
+    title: 'Calificaciones',
+    body: 'Sigue los resultados de tus alumnos: exámenes oficiales y evaluaciones de práctica, para saber quién ya está listo para presentar.',
+  },
+  {
+    id: 'ges-mensajes',
+    anchor: 'nav-mensajes',
+    placement: 'right',
+    icon: 'MessageSquare',
+    title: 'Canal con la Secretaría',
+    body: 'Cualquier duda del trámite, escríbela aquí. Es tu línea directa con la administración estatal.',
+  },
+  {
+    id: 'ges-help',
+    anchor: 'help-button',
+    placement: 'bottom',
+    icon: 'CheckCircle2',
+    title: '¡Listo, {nombre}!',
+    body: 'Ya conoces lo esencial de tu panel. Si quieres repasar, el botón de ayuda (?) está siempre aquí arriba. ¡Mucho éxito con tus alumnos!',
+  },
+];
+
+// ── Administrador ──────────────────────────────────────────────
+const ADMIN: TourStep[] = [
+  {
+    id: 'adm-welcome',
+    icon: 'Sparkles',
+    title: '¡Bienvenido, {nombre}!',
+    body: 'Este es el panel de administración estatal de Preparatoria Abierta. Desde aquí supervisas a alumnos, gestores, pagos y calificaciones de todo el estado.',
+  },
+  {
+    id: 'adm-solicitudes',
+    anchor: 'nav-solicitudes',
+    placement: 'right',
+    icon: 'Inbox',
+    title: 'Solicitudes por revisar',
+    body: 'Aquí llegan las cuentas y trámites que esperan tu aprobación. Es tu bandeja de entrada: revísala primero cada día.',
+  },
+  {
+    id: 'adm-alumnos',
+    anchor: 'nav-alumnos',
+    placement: 'right',
+    icon: 'Users',
+    title: 'Alumnos de todo el estado',
+    body: 'Consulta el expediente completo de cualquier alumno, revisa sus documentos y aprueba o rechaza lo que suben.',
+  },
+  {
+    id: 'adm-gestores',
+    anchor: 'nav-gestores',
+    placement: 'right',
+    icon: 'UserCheck',
+    title: 'Gestores municipales',
+    body: 'Administra a los gestores de cada municipio: quién los coordina y cuántos alumnos tienen a su cargo.',
+  },
+  {
+    id: 'adm-pagos',
+    anchor: 'nav-pagos',
+    placement: 'right',
+    icon: 'CreditCard',
+    title: 'Pagos y órdenes',
+    body: 'Verifica los comprobantes de pago y concilia contra las líneas de captura de Tesorería. Solo lo confirmado habilita el examen.',
+  },
+  {
+    id: 'adm-calificaciones',
+    anchor: 'nav-calificaciones',
+    placement: 'right',
+    icon: 'GraduationCap',
+    title: 'Carga de calificaciones',
+    body: 'Sube los resultados por Excel al cerrar cada etapa. El sistema cruza por folio y marca aprobados (≥60) automáticamente.',
+  },
+  {
+    id: 'adm-verificacion',
+    anchor: 'nav-verificacion',
+    placement: 'right',
+    icon: 'ScanLine',
+    title: 'Verificación de pases',
+    body: 'El día del examen, escanea el código QR del pase de cada alumno para validar su asistencia en el momento.',
+  },
+  {
+    id: 'adm-chat',
+    anchor: 'nav-chat',
+    placement: 'right',
+    icon: 'MessageSquare',
+    title: 'Chat en vivo',
+    body: 'Responde a alumnos y gestores en tiempo real. Tú puedes escribir a cualquiera; ellos solo a la Secretaría.',
+  },
+  {
+    id: 'adm-help',
+    anchor: 'help-button',
+    placement: 'bottom',
+    icon: 'CheckCircle2',
+    title: '¡Todo listo!',
+    body: 'Ese es el recorrido general. El botón de ayuda (?) reinicia esta guía cuando lo necesites. Cada sección tiene además su propio detalle.',
+  },
+];
+
+// ── Dirección de Programa (solo lectura) ───────────────────────
+const DIRECCION: TourStep[] = [
+  {
+    id: 'dir-welcome',
+    icon: 'Sparkles',
+    title: '¡Bienvenido, {nombre}!',
+    body: 'Este es tu tablero de dirección: una vista estratégica y de solo lectura del programa en todo el estado. Aquí no se opera el trámite, se lee su pulso.',
+  },
+  {
+    id: 'dir-panorama',
+    anchor: 'nav-panorama',
+    placement: 'right',
+    icon: 'LayoutDashboard',
+    title: 'Panorama general',
+    body: 'Los indicadores clave del programa de un vistazo: alcance, inscripción y avance global del estado.',
+  },
+  {
+    id: 'dir-academico',
+    anchor: 'nav-academico',
+    placement: 'right',
+    icon: 'GraduationCap',
+    title: 'Desempeño académico',
+    body: 'Aprobación, avance modular y resultados por etapa. Para entender cómo va el aprendizaje, no solo la inscripción.',
+  },
+  {
+    id: 'dir-salud',
+    anchor: 'nav-salud',
+    placement: 'right',
+    icon: 'HeartPulse',
+    title: 'Salud del sistema',
+    body: 'El estado operativo de la plataforma y los cuellos de botella del trámite, para anticipar problemas.',
+  },
+  {
+    id: 'dir-proyecciones',
+    anchor: 'nav-proyecciones',
+    placement: 'right',
+    icon: 'TrendingUp',
+    title: 'Proyecciones',
+    body: 'Tendencias y estimaciones para planear las próximas convocatorias con datos, no con corazonadas.',
+  },
+  {
+    id: 'dir-reportes',
+    anchor: 'nav-reportes',
+    placement: 'right',
+    icon: 'BarChart2',
+    title: 'Reportes',
+    body: 'Descarga la información consolidada para tus informes institucionales.',
+  },
+  {
+    id: 'dir-help',
+    anchor: 'help-button',
+    placement: 'bottom',
+    icon: 'CheckCircle2',
+    title: '¡Listo!',
+    body: 'Ese es tu tablero. El botón de ayuda (?) repite esta guía cuando lo necesites.',
+  },
+];
+
+export const STEPS_BY_ROL: Record<Rol, TourStep[]> = {
+  estudiante: ESTUDIANTE,
+  gestor: GESTOR,
+  admin: ADMIN,
+  direccion: DIRECCION,
+};

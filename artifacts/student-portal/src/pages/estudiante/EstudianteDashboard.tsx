@@ -26,11 +26,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_INICIO, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api, type DashboardEstudiante, type Aviso, type ContactosResponse, type ExamenInscritoDashboard } from '../../lib/api';
-import { Tour } from '../../components/tour/Tour';
-import { ESTUDIANTE_TOUR } from '../../components/tour/estudianteTour';
-
-const TOUR_KEY = 'edumich_tour_estudiante_v1';
 
 interface AnuncioItem {
   id: number;
@@ -112,7 +110,6 @@ export default function EstudianteDashboard() {
   const [loading, setLoading] = useState(true);
   const [anuncios, setAnuncios] = useState<AnuncioItem[]>([]);
   const [closedAnuncioIds, setClosedAnuncioIds] = useState<Set<number>>(new Set());
-  const [tourAbierto, setTourAbierto] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -132,19 +129,6 @@ export default function EstudianteDashboard() {
       .then(r => setAnuncios(r.anuncios.filter(a => !a.yaVisto)))
       .catch(console.error);
   }, []);
-
-  // Auto-inicia el tour la primera vez que el alumno llega a su panel.
-  useEffect(() => {
-    // Auto-inicio solo en desktop la primera vez (el tour resalta el menú lateral).
-    if (loading || !data || localStorage.getItem(TOUR_KEY) || window.innerWidth < 768) return;
-    const t = setTimeout(() => setTourAbierto(true), 600);
-    return () => clearTimeout(t);
-  }, [loading, data]);
-
-  function cerrarTour() {
-    setTourAbierto(false);
-    localStorage.setItem(TOUR_KEY, '1');
-  }
 
   function cerrarAnuncio(id: number) {
     setClosedAnuncioIds(prev => new Set(prev).add(id));
@@ -190,7 +174,6 @@ export default function EstudianteDashboard() {
 
   return (
     <EstudianteLayout>
-      {tourAbierto && <Tour steps={ESTUDIANTE_TOUR} onClose={cerrarTour} />}
       <div className="space-y-6">
         {/* Banners de anuncios institucionales */}
         {visibleAnuncios.map(a => {
@@ -285,7 +268,7 @@ export default function EstudianteDashboard() {
 
         {/* Fichas PDF */}
         {(data.folioPreregistro || data.matriculaOficialDGB || data.licenciaDigital) && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div data-tour="dash-ficha" className="grid grid-cols-1 sm:grid-cols-3 gap-3">
 
             {/* ── Ficha de pre-registro ── */}
             {data.folioPreregistro && (
@@ -526,8 +509,7 @@ export default function EstudianteDashboard() {
             </p>
           </div>
           <button
-            data-tour="btn-tutorial"
-            onClick={() => setTourAbierto(true)}
+            onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
             className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
             style={{ color: 'var(--color-guinda-700)' }}
           >
@@ -536,7 +518,7 @@ export default function EstudianteDashboard() {
         </div>
 
         {/* Estado de inscripción + siguientes pasos */}
-        <div className="bg-white border border-stone-200 rounded-md p-5">
+        <div data-tour="dash-estado" className="bg-white border border-stone-200 rounded-md p-5">
           <div className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-3">
             Estado de tu inscripción
           </div>
@@ -588,7 +570,7 @@ export default function EstudianteDashboard() {
         )}
 
         {/* KPI cards 2×2 */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div data-tour="dash-kpis" className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-stone-200 rounded-md p-4">
             <BookOpen size={18} className="text-[var(--color-guinda-600)] mb-2" />
             <div className="font-serif text-2xl font-bold text-stone-900">
@@ -626,7 +608,7 @@ export default function EstudianteDashboard() {
         </div>
 
         {/* Avisos recientes */}
-        <div className="bg-white border border-stone-200 rounded-md p-5">
+        <div data-tour="dash-avisos" className="bg-white border border-stone-200 rounded-md p-5">
           <div className="flex items-center justify-between mb-4">
             <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">
               Avisos importantes
@@ -673,7 +655,7 @@ export default function EstudianteDashboard() {
 
         {/* Contactos */}
         {(contactos?.gestor || contactos?.admin) && (
-          <div className="bg-white border border-stone-200 rounded-md p-5">
+          <div data-tour="dash-ayuda" className="bg-white border border-stone-200 rounded-md p-5">
             <div className="flex items-center gap-2 mb-4">
               <Info size={15} className="text-[var(--color-guinda-600)]" />
               <div className="text-xs font-semibold uppercase tracking-widest text-stone-500">
@@ -739,6 +721,13 @@ export default function EstudianteDashboard() {
           </div>
         )}
       </div>
+
+      <SectionTour
+        steps={TOUR_INICIO}
+        storageKey="edumich_sec_inicio_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Inicio"
+      />
     </EstudianteLayout>
   );
 }

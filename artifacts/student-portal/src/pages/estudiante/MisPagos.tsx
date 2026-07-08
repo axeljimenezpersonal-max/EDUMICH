@@ -13,8 +13,8 @@ import {
   X, AlertTriangle, Eye, RefreshCw,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_PAGOS } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_PAGOS, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import PagoCard from '../../components/PagoCard';
 import { PagoStepper } from '../../components/PagoStepper';
 import {
@@ -141,7 +141,7 @@ export default function MisPagos() {
         <div className="space-y-5">
 
           {/* ── Resumen ── */}
-          <div className="grid grid-cols-3 gap-3">
+          <div data-tour="pagos-resumen" className="grid grid-cols-3 gap-3">
             <div className="bg-white border border-stone-200 rounded-xl p-4">
               <div className="text-[10px] font-semibold uppercase tracking-widest text-stone-400">Exámenes inscritos</div>
               <div className="text-2xl font-bold font-serif text-stone-900 mt-1">{inscripcionesActivas.length}</div>
@@ -253,7 +253,12 @@ export default function MisPagos() {
         </div>
       )}
 
-      <PageTour storageKey="edumich_tour_pagos_v1" steps={TOUR_PAGOS} />
+      <SectionTour
+        steps={TOUR_PAGOS}
+        storageKey="edumich_sec_pagos_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Pagos"
+      />
     </EstudianteLayout>
   );
 }

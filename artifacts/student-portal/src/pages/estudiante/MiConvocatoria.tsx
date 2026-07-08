@@ -21,8 +21,8 @@ import {
   Pencil,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_INSCRIPCION } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_INSCRIPCION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
 import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria, ExpedienteResponse } from '../../lib/api';
 
@@ -646,7 +646,7 @@ export default function MiConvocatoria() {
           const aprobadosCount = DOCS_EXPEDIENTE.filter((d) => estadoDoc(d.tipo) === 'aprobado').length;
 
           return (
-            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+            <div data-tour="insc-requisitos" className="bg-white border border-stone-200 rounded-xl overflow-hidden scroll-mt-24">
               {/* Encabezado con progreso */}
               <div className="px-5 py-4 border-b border-stone-100 bg-amber-50/60">
                 <div className="flex items-center justify-between gap-3 mb-2.5">
@@ -882,7 +882,12 @@ export default function MiConvocatoria() {
         </div>
       )}
 
-          <PageTour storageKey="edumich_tour_inscripcion_v1" steps={TOUR_INSCRIPCION} />
+          <SectionTour
+            steps={TOUR_INSCRIPCION}
+            storageKey="edumich_sec_inscripcion_v1"
+            gateKey={GATE_ESTUDIANTE}
+            buttonLabel="Tutorial de Inscripción"
+          />
     </EstudianteLayout>
   );
 }

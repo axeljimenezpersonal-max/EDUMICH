@@ -2,8 +2,11 @@ import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard, GraduationCap } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
+import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
+import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { demoActive, disableDemo } from '../../lib/demo';
 
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
@@ -130,6 +133,27 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         </div>
       </nav>
 
+      <OnboardingTour
+        rol={me?.rol}
+        nombre={me?.perfil?.nombreCompleto}
+        municipio={me?.perfil?.municipio}
+      />
+
+      {demoActive() && (
+        <div
+          className="fixed left-3 bottom-20 md:bottom-3 z-[60] flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow-lg"
+          style={{ background: 'var(--color-guinda-800)' }}
+        >
+          <Eye size={14} />
+          Vista demo · alumno nuevo
+          <button
+            onClick={() => { disableDemo(); window.location.href = '/login'; }}
+            className="ml-1 rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30 transition-colors"
+          >
+            Salir
+          </button>
+        </div>
+      )}
     </div>
   );
 }

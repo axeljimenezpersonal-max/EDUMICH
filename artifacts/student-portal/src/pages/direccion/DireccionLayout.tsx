@@ -9,10 +9,11 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   LogOut, LayoutDashboard, GraduationCap, Activity, TrendingUp,
-  BarChart2, HeartPulse, Eye, ShieldCheck,
+  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AppFooter } from '../../components/AppFooter';
+import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 
 function apellido(nombre: string): string {
   const parts = nombre.trim().split(/\s+/);
@@ -50,12 +51,12 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
   }
 
   const items = [
-    { href: '/direccion',              icon: LayoutDashboard, label: 'Panorama' },
-    { href: '/direccion/academico',    icon: GraduationCap,   label: 'Académico' },
-    { href: '/direccion/operacion',    icon: Activity,        label: 'Operación' },
-    { href: '/direccion/salud',        icon: HeartPulse,      label: 'Salud del sistema' },
-    { href: '/direccion/proyecciones', icon: TrendingUp,      label: 'Proyecciones' },
-    { href: '/direccion/reportes',     icon: BarChart2,       label: 'Reportes' },
+    { href: '/direccion',              icon: LayoutDashboard, label: 'Panorama',          tour: 'nav-panorama' },
+    { href: '/direccion/academico',    icon: GraduationCap,   label: 'Académico',         tour: 'nav-academico' },
+    { href: '/direccion/operacion',    icon: Activity,        label: 'Operación',         tour: 'nav-operacion' },
+    { href: '/direccion/salud',        icon: HeartPulse,      label: 'Salud del sistema', tour: 'nav-salud' },
+    { href: '/direccion/proyecciones', icon: TrendingUp,      label: 'Proyecciones',      tour: 'nav-proyecciones' },
+    { href: '/direccion/reportes',     icon: BarChart2,       label: 'Reportes',          tour: 'nav-reportes' },
   ];
 
   return (
@@ -113,6 +114,15 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
             <button
+              data-tour="help-button"
+              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}
+              aria-label="Ver tutorial guiado"
+              title="Ver tutorial guiado"
+            >
+              <HelpCircle size={14} />
+            </button>
+            <button
               onClick={handleLogout}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}
               title="Cerrar sesión"
@@ -147,10 +157,11 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
               INDICADORES
             </div>
             <ul className="list-none">
-              {items.map(({ href, icon: Icon, label }) => (
+              {items.map(({ href, icon: Icon, label, tour }) => (
                 <li key={href}>
                   <a
                     href={href}
+                    data-tour={tour}
                     className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
                     style={linkStyle(href)}
                   >
@@ -173,6 +184,8 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <AppFooter />
+
+      <OnboardingTour rol="direccion" nombre={nombre} />
     </div>
   );
 }

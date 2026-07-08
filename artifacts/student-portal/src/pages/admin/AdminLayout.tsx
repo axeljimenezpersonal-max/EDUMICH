@@ -4,11 +4,12 @@ import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
-  MessageSquare, GraduationCap,
+  MessageSquare, GraduationCap, HelpCircle,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
 import { AppFooter } from '../../components/AppFooter';
+import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -325,20 +326,20 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   }
 
   const personasItems = [
-    { href: '/admin/alumnos',    icon: Users,    label: 'Alumnos',    badge: sidebar.totalAlumnos,    muted: true },
-    { href: '/admin/gestores',   icon: UserCheck, label: 'Gestores',  badge: sidebar.totalGestores,   muted: true },
-    { href: '/admin/solicitudes', icon: Inbox,   label: 'Solicitudes', badge: sidebar.solicitudesPendientes, muted: false },
-    { href: '/admin/ordenes-pago', icon: CreditCard, label: 'Pagos', muted: false },
-    { href: '/admin/calificaciones', icon: GraduationCap, label: 'Calificaciones', muted: false },
+    { href: '/admin/alumnos',    icon: Users,    label: 'Alumnos',    badge: sidebar.totalAlumnos,    muted: true,  tour: 'nav-alumnos' },
+    { href: '/admin/gestores',   icon: UserCheck, label: 'Gestores',  badge: sidebar.totalGestores,   muted: true,  tour: 'nav-gestores' },
+    { href: '/admin/solicitudes', icon: Inbox,   label: 'Solicitudes', badge: sidebar.solicitudesPendientes, muted: false, tour: 'nav-solicitudes' },
+    { href: '/admin/ordenes-pago', icon: CreditCard, label: 'Pagos', muted: false, tour: 'nav-pagos' },
+    { href: '/admin/calificaciones', icon: GraduationCap, label: 'Calificaciones', muted: false, tour: 'nav-calificaciones' },
   ];
 
   const otrosItems = [
-    { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación' },
-    { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias' },
-    { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios' },
-    { href: '/admin/chat',          icon: MessageSquare, label: 'Chat en vivo' },
-    { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes' },
-    { href: '/admin/configuracion', icon: Settings,   label: 'Configuración' },
+    { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación', tour: 'nav-verificacion' },
+    { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias', tour: undefined },
+    { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios', tour: undefined },
+    { href: '/admin/chat',          icon: MessageSquare, label: 'Chat en vivo', tour: 'nav-chat' },
+    { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes', tour: 'nav-reportes' },
+    { href: '/admin/configuracion', icon: Settings,   label: 'Configuración', tour: undefined },
   ];
 
   return (
@@ -390,6 +391,15 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 placeholder="Buscar alumno, gestor, folio..."
               />
             </div>
+            <button
+              data-tour="help-button"
+              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              aria-label="Ver tutorial guiado"
+              title="Ver tutorial guiado"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}
+            >
+              <HelpCircle size={16} />
+            </button>
             <NotifBell />
             <div className="flex items-center gap-2.5">
               <div className="text-right" style={{ lineHeight: 1.2 }}>
@@ -459,10 +469,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               PERSONAS
             </div>
             <ul className="list-none">
-              {personasItems.map(({ href, icon: Icon, label, badge, muted }) => (
+              {personasItems.map(({ href, icon: Icon, label, badge, muted, tour }) => (
                 <li key={href}>
                   <a
                     href={href}
+                    data-tour={tour}
                     className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
                     style={linkStyle(href)}
                   >
@@ -483,10 +494,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
               OTROS
             </div>
             <ul className="list-none">
-              {otrosItems.map(({ href, icon: Icon, label }) => (
+              {otrosItems.map(({ href, icon: Icon, label, tour }) => (
                 <li key={href}>
                   <a
                     href={href}
+                    data-tour={tour}
                     className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
                     style={linkStyle(href)}
                   >
@@ -505,6 +517,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <AppFooter />
+
+      <OnboardingTour rol="admin" nombre={sidebar.nombreAdmin} />
     </div>
   );
 }

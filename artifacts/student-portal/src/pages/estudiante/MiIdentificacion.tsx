@@ -3,8 +3,8 @@ import { Link } from 'wouter';
 import { BadgeCheck, Download, Loader2, Lock, RotateCcw, Shield, RefreshCw } from 'lucide-react';
 import { QRCodeSVG as QRCodeReact } from 'qrcode.react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_IDENTIFICACION } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_IDENTIFICACION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
 
 // ── Paleta institucional (espejo del template) ──────────────────────────
@@ -381,7 +381,7 @@ export default function MiIdentificacion() {
           Credencial digital
         </h1>
 
-        <div className="bg-white border border-stone-200 rounded-xl p-10 max-w-lg text-center mx-auto">
+        <div data-tour="id-estado" className="bg-white border border-stone-200 rounded-xl p-10 max-w-lg text-center mx-auto scroll-mt-24">
           <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center mx-auto mb-4">
             <Lock size={28} className="text-stone-400" />
           </div>
@@ -416,6 +416,13 @@ export default function MiIdentificacion() {
             </Link>
           </div>
         </div>
+
+        <SectionTour
+          steps={TOUR_IDENTIFICACION}
+          storageKey="edumich_sec_identificacion_v1"
+          gateKey={GATE_ESTUDIANTE}
+          buttonLabel="Tutorial de Identificación"
+        />
       </EstudianteLayout>
     );
   }
@@ -563,7 +570,12 @@ export default function MiIdentificacion() {
           </span>
         </div>
       </div>
-          <PageTour storageKey="edumich_tour_identificacion_v1" steps={TOUR_IDENTIFICACION} />
+      <SectionTour
+        steps={TOUR_IDENTIFICACION}
+        storageKey="edumich_sec_identificacion_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Identificación"
+      />
     </EstudianteLayout>
   );
 }

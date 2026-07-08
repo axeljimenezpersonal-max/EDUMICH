@@ -8,8 +8,8 @@
 import { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_CALIFICACIONES } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_CALIFICACIONES, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { api, type MeResponse } from '../../lib/api';
 
@@ -43,7 +43,12 @@ export default function MisCalificaciones() {
         </div>
       )}
 
-      <PageTour storageKey="edumich_tour_calificaciones_v1" steps={TOUR_CALIFICACIONES} />
+      <SectionTour
+        steps={TOUR_CALIFICACIONES}
+        storageKey="edumich_sec_calificaciones_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Calificaciones"
+      />
     </EstudianteLayout>
   );
 }

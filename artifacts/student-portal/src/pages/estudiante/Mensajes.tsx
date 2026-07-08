@@ -3,15 +3,20 @@
  */
 
 import { EstudianteLayout } from './EstudianteLayout';
-import { PageTour } from '../../components/tour/PageTour';
-import { TOUR_MENSAJES } from '../../components/tour/estudianteToursPagina';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_MENSAJES, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { CitizenChat } from '../../components/chat/CitizenChat';
 
 export default function Mensajes() {
   return (
     <EstudianteLayout>
       <CitizenChat />
-          <PageTour storageKey="edumich_tour_mensajes_v1" steps={TOUR_MENSAJES} />
+      <SectionTour
+        steps={TOUR_MENSAJES}
+        storageKey="edumich_sec_mensajes_v1"
+        gateKey={GATE_ESTUDIANTE}
+        buttonLabel="Tutorial de Mensajes"
+      />
     </EstudianteLayout>
   );
 }

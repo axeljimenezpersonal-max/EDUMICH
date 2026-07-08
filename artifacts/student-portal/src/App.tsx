@@ -70,11 +70,16 @@ import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
 import ManualAdmin from './pages/capacitacion/ManualAdmin';
+import DemoEstudiante from './pages/demo/DemoEstudiante';
 
 export default function App() {
   return (
     <Switch>
       <Route path="/login" component={Login} />
+
+      {/* Demo pública: ingreso de un alumno nuevo (sin login, datos ficticios) */}
+      <Route path="/demo/estudiante" component={DemoEstudiante} />
+      <Route path="/demo"><Redirect to="/demo/estudiante" /></Route>
 
       {/* Rutas del gestor */}
       <Route path="/gestor" component={GestorDashboard} />

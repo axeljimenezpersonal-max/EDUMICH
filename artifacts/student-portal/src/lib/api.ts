@@ -5,6 +5,8 @@
  * Ubicación destino en Replit: artifacts/student-portal/src/lib/api.ts
  */
 
+import { demoResponse } from './demo';
+
 const API_BASE = '/api';
 
 /** Zod-style issue returned by the server on 400 validation errors */
@@ -38,6 +40,10 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+  // Modo demo: intercepta endpoints con datos ficticios de un alumno nuevo.
+  const demo = demoResponse(path, init.method ?? 'GET');
+  if (demo.hit) return demo.data as T;
+
   // Timeout de seguridad: si el servidor no responde (p. ej. durante un
   // redeploy), abortamos en vez de dejar el spinner girando indefinidamente.
   const controller = new AbortController();
