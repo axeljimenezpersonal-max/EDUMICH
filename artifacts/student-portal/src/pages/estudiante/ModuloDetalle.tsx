@@ -277,7 +277,7 @@ export default function ModuloDetalle() {
               {NIVEL_LABELS[modulo.nivel]}
             </span>
           )}
-          <span className="text-xs text-stone-400">Módulo {modulo.numero} de 21</span>
+          <span className="text-xs text-stone-400">Módulo {modulo.numero} de 22</span>
         </div>
 
         <h1 className="font-serif text-2xl font-bold text-stone-900 mb-2">{modulo.nombre}</h1>
