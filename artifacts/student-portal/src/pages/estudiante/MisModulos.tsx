@@ -172,7 +172,8 @@ export default function MisModulos() {
                   Para acceder a tus módulos de estudio necesitas tener un{' '}
                   <strong>pago verificado</strong> de tus derechos de examen. Puedes
                   pagarlo tú desde la sección <strong>Pagos</strong> o hacerlo a través de
-                  tu gestor; una vez verificado, los 21 módulos se desbloquearán automáticamente.
+                  tu gestor; una vez verificado, se desbloquearán automáticamente los{' '}
+                  <strong>módulos que inscribiste</strong> a examen.
                 </p>
               </div>
             </div>
@@ -248,7 +249,7 @@ export default function MisModulos() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {items.map((m) =>
-                    desbloqueado
+                    (desbloqueado && m.inscritoExamen)
                       ? <ModuloCard key={m.id} modulo={m} />
                       : <ModuloCardLocked key={m.id} modulo={m} />
                   )}
@@ -261,7 +262,7 @@ export default function MisModulos() {
               <h2 data-tour="mod-lista" className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sinNivel.map((m) =>
-                  desbloqueado
+                  (desbloqueado && m.inscritoExamen)
                     ? <ModuloCard key={m.id} modulo={m} />
                     : <ModuloCardLocked key={m.id} modulo={m} />
                 )}

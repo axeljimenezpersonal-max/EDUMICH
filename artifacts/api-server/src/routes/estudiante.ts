@@ -536,14 +536,18 @@ router.get('/modulos', async (req, res) => {
 
   const planDesbloqueado = !!pagoVerificado || tienePagoExamen;
 
-  // 2. Exámenes inscritos (para badge y contador)
+  // 2. Exámenes inscritos (para badge y contador). Solo los NO cancelados:
+  // un examen cancelado no debe contar como módulo inscrito ni desbloquearlo.
   const examenes = await db
     .select({
       moduloId: examenesInscripciones.moduloId,
       estado: examenesInscripciones.estado,
     })
     .from(examenesInscripciones)
-    .where(eq(examenesInscripciones.estudianteId, userId));
+    .where(and(
+      eq(examenesInscripciones.estudianteId, userId),
+      ne(examenesInscripciones.estado, 'cancelado')
+    ));
 
   const examenPorModulo = new Map(examenes.map((e) => [e.moduloId, e.estado]));
   const totalInscritos = examenes.length;
