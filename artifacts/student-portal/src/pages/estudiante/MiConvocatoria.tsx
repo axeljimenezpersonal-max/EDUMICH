@@ -168,6 +168,7 @@ function ModulosInscripcion({
   etapa,
   calendarioEtapa,
   misExamenesIds,
+  misModulosPagados,
   costoExamen,
   hayPreinscripcion,
   onEditarPreinscripcion,
@@ -176,6 +177,7 @@ function ModulosInscripcion({
   etapa: EtapaConvocatoria;
   calendarioEtapa: CalendarioMes['etapas'][0] | null;
   misExamenesIds: number[];  // ids de modulos ya inscritos
+  misModulosPagados: number[];  // ids de modulos con examen pagado
   costoExamen: number;
   hayPreinscripcion: boolean;
   onEditarPreinscripcion: () => void;
@@ -286,13 +288,18 @@ function ModulosInscripcion({
     const disabled = !isAlreadyIn && isDisabled(m.id);
 
     if (isAlreadyIn) {
+      const pagado = misModulosPagados.includes(m.id);
       return (
-        <div className="flex items-start gap-2 p-2.5 rounded-lg border border-amber-200 bg-amber-50/70 select-none">
-          <Clock size={15} className="shrink-0 mt-0.5 text-amber-600" />
+        <div className={`flex items-start gap-2 p-2.5 rounded-lg border select-none ${pagado ? 'border-emerald-200 bg-emerald-50/70' : 'border-amber-200 bg-amber-50/70'}`}>
+          {pagado
+            ? <CheckCircle2 size={15} className="shrink-0 mt-0.5 text-emerald-600" />
+            : <Clock size={15} className="shrink-0 mt-0.5 text-amber-600" />}
           <div className="min-w-0 flex-1">
-            <div className="text-[11px] font-bold text-amber-700">Módulo {m.numero}</div>
+            <div className={`text-[11px] font-bold ${pagado ? 'text-emerald-700' : 'text-amber-700'}`}>Módulo {m.numero}</div>
             <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
-            <div className="text-[10px] font-bold text-amber-700 mt-0.5">Pre-inscrito · falta pago</div>
+            <div className={`text-[10px] font-bold mt-0.5 ${pagado ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {pagado ? 'Pagado · inscripción confirmada' : 'Pre-inscrito · falta pago'}
+            </div>
           </div>
         </div>
       );
@@ -588,6 +595,13 @@ export default function MiConvocatoria() {
         .map((e) => e.modulo.id)
     : [];
 
+  // IDs de módulos cuyo examen YA está pagado (para mostrar "Pagado" y no "falta pago")
+  const misModulosPagados = etapaActiva
+    ? misExamenes
+        .filter((e) => e.etapa.clave === etapaActiva.clave && e.pagado)
+        .map((e) => e.modulo.id)
+    : [];
+
   // Pre-inscripciones aún sin pago de la etapa activa (editables)
   const preinscritosNoPagados = etapaActiva
     ? misExamenes.filter((e) => e.etapa.clave === etapaActiva.clave && !e.pagado)
@@ -752,6 +766,7 @@ export default function MiConvocatoria() {
             etapa={etapaActiva}
             calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}
             misExamenesIds={misModulosInscritos}
+            misModulosPagados={misModulosPagados}
             costoExamen={costoExamen}
             hayPreinscripcion={preinscritosNoPagados.length > 0}
             onEditarPreinscripcion={() => { setErrorEditar(null); setConfirmEditar(true); }}
