@@ -280,6 +280,7 @@ export interface ModuloListItem {
   nombre: string;
   descripcionCorta: string | null;
   inscritoExamen: boolean;
+  pagado: boolean;
   estadoExamen: string | null;
   progreso: ProgresoModulo;
 }

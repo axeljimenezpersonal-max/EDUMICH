@@ -526,15 +526,18 @@ router.get('/modulos', async (req, res) => {
     .where(and(eq(pagos.estudianteId, userId), eq(pagos.estado, 'verificado')))
     .limit(1);
 
-  const pagoExamenRes = await db.execute<{ n: number }>(sql`
-    SELECT COUNT(*)::int AS n
+  // Módulos cuyo examen está PAGADO (pagos_examen 'pagado'). Solo estos se
+  // desbloquean: el alumno puede tener módulos inscritos SIN pagar (p. ej. quitó
+  // uno de la ficha) y esos NO deben abrirse.
+  const pagRes = await db.execute<{ modulo_id: number }>(sql`
+    SELECT DISTINCT ei.modulo_id
     FROM pagos_examen_inscripciones pei
     JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
     JOIN examenes_inscripciones ei ON ei.id = pei.examen_inscripcion_id
-    WHERE ei.estudiante_id = ${userId} AND pe.estado = 'pagado'`);
-  const tienePagoExamen = Number((pagoExamenRes.rows?.[0] as { n: number } | undefined)?.n ?? 0) > 0;
+    WHERE ei.estudiante_id = ${userId} AND pe.estado = 'pagado' AND ei.estado <> 'cancelado'`);
+  const modulosPagados = new Set((pagRes.rows as { modulo_id: number }[]).map((r) => Number(r.modulo_id)));
 
-  const planDesbloqueado = !!pagoVerificado || tienePagoExamen;
+  const planDesbloqueado = !!pagoVerificado || modulosPagados.size > 0;
 
   // 2. Exámenes inscritos (para badge y contador). Solo los NO cancelados:
   // un examen cancelado no debe contar como módulo inscrito ni desbloquearlo.
@@ -593,6 +596,7 @@ router.get('/modulos', async (req, res) => {
       nombre: r.nombre,
       descripcionCorta: r.descripcion ?? null,
       inscritoExamen: examenPorModulo.has(r.id),
+      pagado: modulosPagados.has(r.id),
       estadoExamen: examenPorModulo.get(r.id) ?? null,
       progreso: {
         estado: r.estado ?? 'no_iniciado',

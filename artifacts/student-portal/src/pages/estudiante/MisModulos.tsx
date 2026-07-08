@@ -41,7 +41,7 @@ function ModuloCard({ modulo }: { modulo: ModuloListItem }) {
       <div
         className={`relative bg-white border rounded-lg p-5 cursor-pointer overflow-hidden
           hover:-translate-y-0.5 hover:shadow-md transition-all group
-          ${modulo.inscritoExamen ? 'border-[var(--color-guinda-300)] ring-1 ring-[var(--color-guinda-200)]' : 'border-stone-200'}`}
+          ${modulo.pagado ? 'border-emerald-300 ring-1 ring-emerald-200' : 'border-stone-200'}`}
       >
         {/* Número decorativo */}
         <div className="absolute -top-3 -right-1 text-[72px] font-bold leading-none text-[var(--color-guinda-100)] select-none pointer-events-none">
@@ -53,10 +53,10 @@ function ModuloCard({ modulo }: { modulo: ModuloListItem }) {
           <span className={`inline-block text-[11px] px-2 py-0.5 rounded-full font-semibold ${STATUS_STYLE[estado]}`}>
             {STATUS_LABEL[estado]}
           </span>
-          {modulo.inscritoExamen && (
-            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-[var(--color-guinda-50)] text-[var(--color-guinda-700)] border border-[var(--color-guinda-200)]">
-              <CalendarCheck size={9} />
-              Examen inscrito
+          {modulo.pagado && (
+            <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <CheckCircle2 size={9} />
+              Pagado
             </span>
           )}
         </div>
@@ -223,8 +223,8 @@ export default function MisModulos() {
           {desbloqueado && data.resumen.totalInscritos > 0 && (
             <div className="flex flex-wrap gap-3 mb-6 text-xs text-stone-600">
               <span className="flex items-center gap-1.5">
-                <span className="inline-block w-3 h-3 rounded-full bg-[var(--color-guinda-200)] border border-[var(--color-guinda-400)]" />
-                Tienes examen inscrito en esta convocatoria
+                <span className="inline-block w-3 h-3 rounded-full bg-emerald-200 border border-emerald-400" />
+                Examen pagado · módulo disponible
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={12} className="text-green-600" />
@@ -249,7 +249,7 @@ export default function MisModulos() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                   {items.map((m) =>
-                    (desbloqueado && m.inscritoExamen)
+                    m.pagado
                       ? <ModuloCard key={m.id} modulo={m} />
                       : <ModuloCardLocked key={m.id} modulo={m} />
                   )}
@@ -262,7 +262,7 @@ export default function MisModulos() {
               <h2 data-tour="mod-lista" className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sinNivel.map((m) =>
-                  (desbloqueado && m.inscritoExamen)
+                  m.pagado
                     ? <ModuloCard key={m.id} modulo={m} />
                     : <ModuloCardLocked key={m.id} modulo={m} />
                 )}
