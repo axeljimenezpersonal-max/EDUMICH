@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import {
   Landmark, Plus, Search, Loader2, ChevronLeft, FileUp, CheckCircle2,
   XCircle, Ban, Copy, Check, Download, BarChart3, Clock, AlertCircle, ClipboardList, X,
-  Lock, Pencil, ExternalLink,
+  Lock, Pencil, ExternalLink, FileText,
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
@@ -388,9 +388,27 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
           </div>
 
           {p.tieneComprobante && (
-            <a href={`/api/pagos-examen/${id}/comprobante`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-semibold text-[var(--color-guinda-700)] hover:underline">
-              <Download size={15} /> Ver comprobante del alumno
-            </a>
+            <div className="bg-white border-2 border-[#e8c4d4] rounded-xl overflow-hidden">
+              <div className="px-4 py-2.5 bg-[var(--color-guinda-50,#faf0f3)] border-b border-[#e8c4d4] flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-2 text-sm font-bold text-[var(--color-guinda-800)]">
+                  <FileText size={15} /> Comprobante de pago del alumno / gestor
+                </div>
+                <a
+                  href={`/api/pagos-examen/${id}/comprobante`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors"
+                >
+                  <ExternalLink size={13} /> Ver completo
+                </a>
+              </div>
+              <iframe
+                title="Comprobante de pago"
+                src={`/api/pagos-examen/${id}/comprobante#toolbar=0&view=FitH`}
+                className="w-full bg-stone-100"
+                style={{ height: 480, border: 'none' }}
+              />
+            </div>
           )}
         </div>
 
@@ -499,12 +517,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               <div className="flex items-center gap-2 text-sm font-bold text-stone-800">
                 <Clock size={15} className="text-amber-600" /> Comprobante por validar
               </div>
-              <p className="text-[11px] text-stone-500 -mt-1">El gestor/alumno subió su comprobante. Revísalo: al validarlo, la orden se marca pagada automáticamente.</p>
-              {p.tieneComprobante && (
-                <a href={`/api/pagos-examen/${id}/comprobante`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 text-sm font-bold uppercase tracking-wide px-4 py-3 rounded-lg border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors w-full justify-center shadow-sm">
-                  <Download size={17} /> Ver comprobante
-                </a>
-              )}
+              <p className="text-[11px] text-stone-500 -mt-1">El gestor/alumno subió su comprobante; revísalo en el <strong>recuadro del comprobante</strong> y valida o rechaza aquí abajo. Al validar, la orden se marca pagada automáticamente.</p>
             </div>
           )}
 
