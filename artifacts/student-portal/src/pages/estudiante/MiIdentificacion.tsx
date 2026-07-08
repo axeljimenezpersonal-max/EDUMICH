@@ -464,7 +464,7 @@ export default function MiIdentificacion() {
         </div>
       ) : null}
 
-      <div style={{ maxWidth: 400 }}>
+      <div style={{ maxWidth: 680 }}>
         {/* ── Credencial rectangular volteable (misma que ve la administración) ── */}
         <CredencialPreview basePath="/estudiante" flippable />
 

@@ -5,7 +5,7 @@
  * Recibe `basePath` (p. ej. /admin/alumnos/25 o /estudiante) y consulta
  * `${basePath}/credencial`. SIEMPRE refleja la credencial realmente emitida.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { ShieldCheck, ImageOff, RotateCcw } from 'lucide-react';
 import { api } from '../lib/api';
@@ -65,8 +65,8 @@ function Frente({ d, fill }: { d: CredData; fill?: boolean }) {
         <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: 'var(--color-guinda-700)' }}>
           <ShieldCheck size={13} /> Documento verificable
         </div>
-        <div style={{ background: '#fff', padding: 4, borderRadius: 6, border: '1px solid #eadfd7' }}>
-          <QRCodeSVG value={d.verifyUrl} size={54} fgColor="#2a1720" bgColor="#ffffff" level="M" />
+        <div style={{ background: '#fff', padding: 5, borderRadius: 6, border: '1px solid #eadfd7' }}>
+          <QRCodeSVG value={d.verifyUrl} size={68} fgColor="#2a1720" bgColor="#ffffff" level="M" />
         </div>
       </div>
     </div>
@@ -110,6 +110,10 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
   const [d, setD] = useState<CredData | null>(null);
   const [err, setErr] = useState(false);
   const [flipped, setFlipped] = useState(false);
+  // Escala responsiva: la credencial volteable llena todo el ancho disponible
+  // (hasta 2x) para que se vea GRANDE y el QR sea fácil de escanear.
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
 
   useEffect(() => {
     let alive = true;
@@ -119,25 +123,42 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
     return () => { alive = false; };
   }, [basePath]);
 
+  useEffect(() => {
+    if (!flippable) return;
+    const el = wrapRef.current;
+    if (!el) return;
+    const update = () => setScale(Math.max(1, Math.min(2, el.clientWidth / CARD_W)));
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [flippable, d]);
+
   if (err) return <div className="text-sm text-center py-6" style={{ color: '#a89a8e' }}>No se pudo cargar la credencial.</div>;
   if (!d) return <div className="h-64 rounded-2xl animate-pulse" style={{ background: '#f3ede8' }} />;
   if (!d.emitida) return null;
 
-  // ── Modo volteable (alumno): una sola tarjeta que gira ──
+  // ── Modo volteable (alumno): una sola tarjeta GRANDE que gira ──
   if (flippable) {
     return (
-      <div className="flex flex-col items-center gap-3">
-        <div
-          onClick={() => setFlipped((f) => !f)}
-          style={{ width: CARD_W, maxWidth: '100%', height: FLIP_H, perspective: 1500, cursor: 'pointer' }}
-          title="Toca para girar"
-        >
-          <div style={{ position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d', transition: 'transform .6s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
-            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
-              <Frente d={d} fill />
-            </div>
-            <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
-              <Reverso d={d} fill />
+      <div className="flex flex-col items-center gap-4">
+        <div ref={wrapRef} style={{ width: '100%' }}>
+          {/* Contenedor que reserva el tamaño ESCALADO */}
+          <div style={{ width: CARD_W * scale, height: FLIP_H * scale, marginInline: 'auto' }}>
+            {/* Escalador (agranda toda la tarjeta y el QR) + perspectiva para el flip */}
+            <div
+              onClick={() => setFlipped((f) => !f)}
+              style={{ width: CARD_W, height: FLIP_H, transform: `scale(${scale})`, transformOrigin: 'top left', perspective: 1400, cursor: 'pointer' }}
+              title="Toca para girar"
+            >
+              <div style={{ position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d', transition: 'transform .6s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
+                <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+                  <Frente d={d} fill />
+                </div>
+                <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+                  <Reverso d={d} fill />
+                </div>
+              </div>
             </div>
           </div>
         </div>
