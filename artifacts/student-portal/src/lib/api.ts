@@ -222,6 +222,7 @@ export interface DashboardEstudiante {
   inscripcionActiva: {
     id: number;
     estado: string;
+    confirmada: boolean;
     convocatoriaNombre: string;
     fechaCierre: string | null;
     fechaExamen: string | null;

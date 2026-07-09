@@ -261,10 +261,20 @@ router.get('/dashboard', async (req, res) => {
   // Siguientes pasos dinámicos
   const siguientesPasos: Array<{ texto: string; urgencia: 'baja' | 'media' | 'alta' }> = [];
 
+  // Tener matrícula DGB = inscripción CONFIRMADA. Manda sobre el estado interno
+  // de la solicitud (que puede quedarse atrás) y sobre un doc en revisión: un
+  // alumno ya inscrito no debe ver "documentos pendientes" como si le faltara algo.
+  const inscritoConfirmado = !!est.matriculaOficialDGB;
+
   if (!insc) {
     siguientesPasos.push({
       texto: 'No tienes una inscripción activa. Contacta a tu gestor municipal.',
       urgencia: 'alta',
+    });
+  } else if (inscritoConfirmado) {
+    siguientesPasos.push({
+      texto: 'Tu inscripción está confirmada. Prepárate para presentar tus exámenes.',
+      urgencia: 'baja',
     });
   } else if (tieneRechazados) {
     siguientesPasos.push({
@@ -365,6 +375,7 @@ router.get('/dashboard', async (req, res) => {
       ? {
           id: insc.id,
           estado: insc.estado,
+          confirmada: inscritoConfirmado,
           convocatoriaNombre: insc.convocatoriaNombre ?? '',
           fechaCierre: insc.fechaCierre,
           fechaExamen: insc.fechaExamen,

@@ -477,11 +477,24 @@ export default function EstudianteDashboard() {
             {data.inscripcionActiva ? (
               <>
                 <div className="flex flex-wrap items-center gap-3 mb-4">
-                  <EstadoBadge estado={data.inscripcionActiva.estado} />
+                  {/* Si ya tiene matrícula DGB, la inscripción está confirmada:
+                      se muestra en verde, sin el estado interno que confunde. */}
+                  {data.inscripcionActiva.confirmada ? (
+                    <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-sm font-semibold text-green-800">
+                      <CheckCircle2 size={14} /> Inscripción confirmada
+                    </span>
+                  ) : (
+                    <EstadoBadge estado={data.inscripcionActiva.estado} />
+                  )}
                   <span className="text-sm text-stone-500">
                     {data.inscripcionActiva.convocatoriaNombre}
                   </span>
                 </div>
+                {data.inscripcionActiva.confirmada && (
+                  <p className="mb-3 text-sm text-stone-500">
+                    Tu matrícula oficial ya fue asignada por la SEP-DGB. Tu lugar está asegurado.
+                  </p>
+                )}
                 <ul className="space-y-2">
                   {data.siguientesPasos.slice(0, 3).map((paso, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-stone-700">
