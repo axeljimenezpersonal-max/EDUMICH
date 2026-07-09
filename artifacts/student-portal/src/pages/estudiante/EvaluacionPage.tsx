@@ -121,22 +121,22 @@ function OpcionBtn({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-start gap-3 px-5 py-4 rounded-xl border-2 text-left transition-all duration-150 ${
+      className={`w-full flex items-center gap-4 px-5 sm:px-6 py-5 rounded-2xl border-2 text-left transition-all duration-150 ${
         seleccionada
-          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-700)] text-white shadow-md'
-          : 'border-stone-200 bg-white text-stone-800 hover:border-[var(--color-guinda-300)] hover:bg-[var(--color-crema-50)]'
+          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-700)] text-white shadow-lg scale-[1.01]'
+          : 'border-stone-300 bg-stone-50 text-stone-900 shadow-sm hover:border-[var(--color-guinda-500)] hover:bg-white hover:shadow-md'
       }`}
     >
       <span
-        className={`shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold border-2 mt-0.5 transition-colors ${
+        className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold border-2 transition-colors ${
           seleccionada
-            ? 'border-white/60 text-white'
-            : 'border-stone-300 text-stone-500'
+            ? 'border-white/50 bg-white/15 text-white'
+            : 'border-stone-300 bg-white text-stone-600'
         }`}
       >
         {letra}
       </span>
-      <span className="text-sm leading-relaxed pt-0.5">{texto}</span>
+      <span className="text-base sm:text-lg font-medium leading-relaxed">{texto}</span>
     </button>
   );
 }
@@ -509,23 +509,23 @@ export default function EvaluacionPage() {
 
           {/* Módulo */}
           <div className="flex-1 min-w-0 text-center px-2">
-            <span className="text-sm font-semibold text-stone-700 truncate block">
+            <span className="text-base font-semibold text-stone-700 truncate block">
               {moduloInfo?.nombre}
             </span>
-            <span className="text-xs text-stone-400">
+            <span className="text-sm text-stone-400">
               {contestadas} de {total} contestadas
             </span>
           </div>
 
           {/* Timer */}
-          <div className={`flex items-center gap-1.5 text-sm shrink-0 ${timerColor} ${timerPulse}`}>
-            <Clock size={14} />
+          <div className={`flex items-center gap-1.5 text-base shrink-0 ${timerColor} ${timerPulse}`}>
+            <Clock size={16} />
             {formatTimer(timerSecs)}
           </div>
         </div>
 
         {/* Mapa de puntos numerados — scroll horizontal en móvil si no caben */}
-        <div className="pb-3 flex items-center gap-1.5 overflow-x-auto px-4 sm:px-6 scrollbar-none justify-start sm:justify-center">
+        <div className="pb-3 flex items-center gap-2 overflow-x-auto px-4 sm:px-6 scrollbar-none justify-start sm:justify-center">
           {preguntas.map((p, i) => {
             const contestada = !!respuestas[p.id];
             const actual = i === indice;
@@ -534,7 +534,7 @@ export default function EvaluacionPage() {
                 key={p.id}
                 onClick={() => setIndice(i)}
                 aria-label={`Pregunta ${i + 1}${contestada ? ' (contestada)' : ''}`}
-                className={`w-7 h-7 rounded-full text-[11px] font-bold transition-all duration-150 ${
+                className={`shrink-0 w-9 h-9 rounded-full text-sm font-bold transition-all duration-150 ${
                   actual
                     ? 'bg-[var(--color-guinda-700)] text-white ring-2 ring-[var(--color-guinda-300)] ring-offset-1 scale-110'
                     : contestada
@@ -551,33 +551,33 @@ export default function EvaluacionPage() {
 
       {/* Área de pregunta */}
       <main className="flex-1 flex items-start justify-center px-4 sm:px-6 py-8">
-        <div className="w-full max-w-2xl space-y-5">
+        <div className="w-full max-w-3xl space-y-6">
           {/* Tarjeta de pregunta */}
-          <div className="bg-white rounded-2xl border border-stone-200 shadow-sm p-6 sm:p-8">
+          <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-10">
             {/* Meta */}
-            <div className="flex flex-wrap items-center gap-2 mb-5">
-              <span className="text-xs font-medium text-stone-400">
+            <div className="flex flex-wrap items-center gap-2.5 mb-6">
+              <span className="text-sm font-semibold text-[var(--color-guinda-700)]">
                 Pregunta {indice + 1} de {total}
               </span>
               {pregunta.dificultad && (
-                <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-bold ${DIFICULTAD_COLOR[pregunta.dificultad]}`}>
+                <span className={`text-xs px-2 py-0.5 rounded-md font-bold ${DIFICULTAD_COLOR[pregunta.dificultad]}`}>
                   {DIFICULTAD_LABEL[pregunta.dificultad]}
                 </span>
               )}
               {pregunta.tema && (
-                <span className="text-[10px] text-stone-400 truncate max-w-[160px] sm:max-w-[260px]">
+                <span className="text-xs text-stone-400 truncate max-w-[180px] sm:max-w-[300px]">
                   {pregunta.tema}
                 </span>
               )}
             </div>
 
             {/* Texto de la pregunta */}
-            <p className="text-stone-900 font-semibold text-lg sm:text-xl leading-snug mb-7">
+            <p className="text-stone-900 font-bold text-2xl sm:text-3xl leading-snug mb-8">
               {pregunta.pregunta}
             </p>
 
             {/* Opciones */}
-            <div className="space-y-3">
+            <div className="space-y-3.5">
               {OPCIONES.map((k) => (
                 <OpcionBtn
                   key={k}
@@ -595,9 +595,9 @@ export default function EvaluacionPage() {
             <button
               onClick={() => setIndice((i) => Math.max(0, i - 1))}
               disabled={indice === 0}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-stone-200 text-sm text-stone-600 bg-white hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-2 px-6 py-4 rounded-2xl border-2 border-stone-200 text-base font-semibold text-stone-700 bg-white hover:bg-stone-50 hover:border-stone-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft size={16} />
+              <ChevronLeft size={20} />
               Anterior
             </button>
 
@@ -606,23 +606,23 @@ export default function EvaluacionPage() {
             {indice < total - 1 ? (
               <button
                 onClick={() => setIndice((i) => Math.min(total - 1, i + 1))}
-                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-stone-800 text-white text-sm hover:bg-stone-700 transition-colors"
+                className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-stone-800 text-white text-base font-semibold hover:bg-stone-700 shadow-sm hover:shadow transition-all"
               >
                 Siguiente
-                <ChevronRight size={16} />
+                <ChevronRight size={20} />
               </button>
             ) : (
               <button
                 onClick={handleEnviar}
                 disabled={!todasContestadas}
                 title={!todasContestadas ? `Falta(n) ${total - contestadas} pregunta(s) por contestar` : ''}
-                className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
+                className={`flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-semibold transition-colors ${
                   todasContestadas
-                    ? 'bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)]'
+                    ? 'bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] shadow-md'
                     : 'bg-stone-100 text-stone-400 cursor-not-allowed'
                 }`}
               >
-                <Trophy size={15} />
+                <Trophy size={18} />
                 Enviar evaluacion
               </button>
             )}
@@ -630,16 +630,16 @@ export default function EvaluacionPage() {
 
           {/* Texto de ayuda bajo navegación */}
           {!todasContestadas ? (
-            <p className="text-center text-xs text-stone-400">
+            <p className="text-center text-sm text-stone-400">
               Usa los puntos de arriba para navegar entre preguntas
             </p>
           ) : indice < total - 1 ? (
             <div className="flex justify-center">
               <button
                 onClick={handleEnviar}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-[var(--color-guinda-700)] text-white text-sm font-semibold hover:bg-[var(--color-guinda-800)] transition-colors"
+                className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--color-guinda-700)] text-white text-base font-semibold hover:bg-[var(--color-guinda-800)] shadow-md transition-colors"
               >
-                <Trophy size={15} />
+                <Trophy size={18} />
                 Enviar evaluacion
               </button>
             </div>
