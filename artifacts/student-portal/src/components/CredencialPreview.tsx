@@ -110,10 +110,15 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
   const [d, setD] = useState<CredData | null>(null);
   const [err, setErr] = useState(false);
   const [flipped, setFlipped] = useState(false);
-  // Escala responsiva: la credencial volteable llena todo el ancho disponible
-  // (hasta 2x) para que se vea GRANDE y el QR sea fácil de escanear.
+  // Escala responsiva: la credencial volteable llena el ancho disponible
+  // (hasta 1.6x) para verse GRANDE con el QR fácil de escanear.
   const wrapRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
+  // Altura NATURAL de cada cara (medida en un render oculto a ancho de diseño):
+  // el contenedor del flip usa la mayor, así NINGUNA cara se corta.
+  const frenteRef = useRef<HTMLDivElement>(null);
+  const reversoRef = useRef<HTMLDivElement>(null);
+  const [faceH, setFaceH] = useState<number | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -127,10 +132,17 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
     if (!flippable) return;
     const el = wrapRef.current;
     if (!el) return;
-    const update = () => setScale(Math.max(1, Math.min(2, el.clientWidth / CARD_W)));
+    const update = () => {
+      setScale(Math.max(1, Math.min(1.6, el.clientWidth / CARD_W)));
+      const fh = frenteRef.current?.offsetHeight ?? 0;
+      const rh = reversoRef.current?.offsetHeight ?? 0;
+      if (fh || rh) setFaceH(Math.max(fh, rh));
+    };
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
+    if (frenteRef.current) ro.observe(frenteRef.current);
+    if (reversoRef.current) ro.observe(reversoRef.current);
     return () => ro.disconnect();
   }, [flippable, d]);
 
@@ -140,15 +152,21 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
 
   // ── Modo volteable (alumno): una sola tarjeta GRANDE que gira ──
   if (flippable) {
+    const H = faceH ?? FLIP_H;
     return (
       <div className="flex flex-col items-center gap-4">
         <div ref={wrapRef} style={{ width: '100%' }}>
+          {/* Medidor oculto: caras a ancho de diseño para conocer su altura real */}
+          <div style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', width: CARD_W, left: -9999, top: 0 }} aria-hidden>
+            <div ref={frenteRef}><Frente d={d} /></div>
+            <div ref={reversoRef}><Reverso d={d} /></div>
+          </div>
           {/* Contenedor que reserva el tamaño ESCALADO */}
-          <div style={{ width: CARD_W * scale, height: FLIP_H * scale, marginInline: 'auto' }}>
+          <div style={{ width: CARD_W * scale, height: H * scale, marginInline: 'auto' }}>
             {/* Escalador (agranda toda la tarjeta y el QR) + perspectiva para el flip */}
             <div
               onClick={() => setFlipped((f) => !f)}
-              style={{ width: CARD_W, height: FLIP_H, transform: `scale(${scale})`, transformOrigin: 'top left', perspective: 1400, cursor: 'pointer' }}
+              style={{ width: CARD_W, height: H, transform: `scale(${scale})`, transformOrigin: 'top left', perspective: 1400, cursor: 'pointer' }}
               title="Toca para girar"
             >
               <div style={{ position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d', transition: 'transform .6s cubic-bezier(.4,0,.2,1)', transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}>
