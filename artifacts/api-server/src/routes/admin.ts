@@ -5,9 +5,10 @@
  */
 
 import { Router } from 'express';
-import { and, eq, sql, desc, gte, count, countDistinct, isNull, SQL } from 'drizzle-orm';
+import { and, eq, sql, desc, gte, count, countDistinct, isNull, inArray, isNotNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { guardarSubida, archivoStream, archivoExiste, archivoEliminar } from '../services/storage';
+import { guardarSubida, archivoStream, archivoExiste, archivoEliminar, archivoBuffer } from '../services/storage';
+import { parsearRelacionCalificaciones } from '../services/relacionCalificacionesPdf';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import multer from 'multer';
@@ -4231,6 +4232,265 @@ router.post('/alumnos/:id/calificaciones-pdf', uploadCalificaciones.single('arch
 });
 
 // (El PDF se sirve desde /api/calificaciones/estudiantes/:id/pdf-oficial — compartido.)
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RELACIÓN OFICIAL DE CALIFICACIONES (PDF de la SEP) — carga masiva
+// Flujo en 2 pasos: /analizar (parsea + valida, NO guarda) → /aplicar (confirma).
+// La calificación del PDF viene en escala 0-10; se almacena ×10 (0-100, ≥60 = aprobado).
+// ═══════════════════════════════════════════════════════════════════════════
+
+const RELACION_DIR = process.env.STORAGE_DIR
+  ? path.join(process.env.STORAGE_DIR, 'relacion-calif')
+  : '/tmp/prepa-storage/relacion-calif';
+
+const uploadRelacion = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => { await fsp.mkdir(RELACION_DIR, { recursive: true }); cb(null, RELACION_DIR); },
+    filename: (_req, _file, cb) => cb(null, `relacion-${Date.now()}.pdf`),
+  }),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') { cb(new Error('Solo se acepta PDF')); return; }
+    cb(null, true);
+  },
+});
+
+/** Escala 0-10 (PDF) → 0-100 (plataforma). */
+const califA100 = (c: number) => Math.round(Math.min(10, Math.max(0, c)) * 10);
+
+interface FilaRelacion {
+  matricula: string;
+  nombrePdf: string;
+  modulo: number;
+  moduloNombre: string | null;
+  calificacionPdf: number;   // 0-10
+  calificacion: number;      // 0-100
+  aciertos: number;
+  aprobado: boolean;
+  estudianteId: number | null;
+  alumnoSistema: string | null;
+  gestorId: number | null;
+  calificacionPrevia: number | null; // 0-100 ya registrada en esa etapa/módulo
+  estado: 'nueva' | 'reemplazo' | 'sin_matricula' | 'sin_modulo';
+}
+
+/** Parsea el PDF (desde una ref de storage) y resuelve cada renglón contra la BD. */
+async function construirFilasRelacion(ref: string): Promise<{ cabecera: any; filas: FilaRelacion[] }> {
+  const buffer = await archivoBuffer(ref);
+  const parsed = await parsearRelacionCalificaciones(buffer);
+  const etapaClave = parsed.cabecera.etapa ?? 'DESCONOCIDA';
+
+  // Catálogo de módulos numero→{id,nombre}
+  const mods = await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos);
+  const modByNum = new Map(mods.map((m) => [m.numero, m]));
+
+  // Estudiantes con matrícula DGB. Traemos todos los que tengan matrícula y
+  // cruzamos en JS (normalizando espacios) — evita bindings de arreglo frágiles
+  // y tolera cualquier formato de captura.
+  const norm = (s: string) => s.replace(/\s/g, '').toUpperCase();
+  const conMatricula = await db
+    .select({
+      userId: estudiantes.userId,
+      nombreCompleto: estudiantes.nombreCompleto,
+      gestorId: estudiantes.gestorId,
+      matricula: estudiantes.matriculaOficialDGB,
+    })
+    .from(estudiantes)
+    .where(isNotNull(estudiantes.matriculaOficialDGB));
+  const estByMat = new Map(conMatricula.filter((e) => e.matricula).map((e) => [norm(e.matricula!), e]));
+
+  // Calificaciones ya existentes en esta etapa (para marcar reemplazos).
+  const estIds = conMatricula.map((e) => e.userId);
+  const previasRows = estIds.length
+    ? await db
+        .select({ estudianteId: calificaciones.estudianteId, moduloId: calificaciones.moduloId, calificacion: calificaciones.calificacion })
+        .from(calificaciones)
+        .where(and(eq(calificaciones.etapaClave, etapaClave), inArray(calificaciones.estudianteId, estIds)))
+    : [];
+  const previaKey = (eid: number, mid: number) => `${eid}:${mid}`;
+  const previas = new Map(previasRows.map((p) => [previaKey(p.estudianteId, p.moduloId), p.calificacion]));
+
+  const filas: FilaRelacion[] = [];
+  for (const a of parsed.alumnos) {
+    const est = estByMat.get(norm(a.matricula));
+    for (const c of a.calificaciones) {
+      const mod = modByNum.get(c.modulo) ?? null;
+      const cal100 = califA100(c.calificacion);
+      let estado: FilaRelacion['estado'];
+      if (!est) estado = 'sin_matricula';
+      else if (!mod) estado = 'sin_modulo';
+      else if (previas.has(previaKey(est.userId, mod.id))) estado = 'reemplazo';
+      else estado = 'nueva';
+      filas.push({
+        matricula: a.matricula,
+        nombrePdf: a.nombre,
+        modulo: c.modulo,
+        moduloNombre: mod?.nombre ?? null,
+        calificacionPdf: c.calificacion,
+        calificacion: cal100,
+        aciertos: c.aciertos,
+        aprobado: cal100 >= 60,
+        estudianteId: est?.userId ?? null,
+        alumnoSistema: est?.nombreCompleto ?? null,
+        gestorId: est?.gestorId ?? null,
+        calificacionPrevia: est && mod ? (previas.get(previaKey(est.userId, mod.id)) ?? null) : null,
+        estado,
+      });
+    }
+  }
+  return { cabecera: parsed.cabecera, filas };
+}
+
+// POST /admin/calificaciones/relacion/analizar — sube el PDF, lo parsea y valida.
+router.post('/calificaciones/relacion/analizar', uploadRelacion.single('pdf'), async (req, res) => {
+  if (!req.file) { res.status(400).json({ error: 'No se recibió el PDF' }); return; }
+  try {
+    const ref = await guardarSubida(req.file, 'relacion-calif');
+    const { cabecera, filas } = await construirFilasRelacion(ref);
+    if (filas.length === 0) {
+      await archivoEliminar(ref).catch(() => {});
+      res.status(422).json({ error: 'No se detectaron calificaciones en el PDF. ¿Es la Relación oficial de la SEP?' });
+      return;
+    }
+    const resumen = {
+      total: filas.length,
+      nuevas: filas.filter((f) => f.estado === 'nueva').length,
+      reemplazos: filas.filter((f) => f.estado === 'reemplazo').length,
+      sinMatricula: filas.filter((f) => f.estado === 'sin_matricula').length,
+      sinModulo: filas.filter((f) => f.estado === 'sin_modulo').length,
+      alumnos: new Set(filas.map((f) => f.matricula)).size,
+    };
+    res.json({ loteRef: ref, cabecera, resumen, filas });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo leer el PDF' });
+  }
+});
+
+// POST /admin/calificaciones/relacion/aplicar — confirma y guarda.
+const aplicarRelacionSchema = z.object({
+  loteRef: z.string().min(1),
+  reemplazar: z.boolean().default(false),
+  // pares matricula-modulo a EXCLUIR (el admin los desmarcó en la previa).
+  excluir: z.array(z.object({ matricula: z.string(), modulo: z.number().int() })).optional(),
+});
+
+router.post('/calificaciones/relacion/aplicar', async (req, res) => {
+  const userId = req.user!.userId;
+  const parse = aplicarRelacionSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues }); return; }
+  const { loteRef, reemplazar, excluir } = parse.data;
+
+  if (!(await archivoExiste(loteRef))) { res.status(404).json({ error: 'El lote expiró; vuelve a subir el PDF.' }); return; }
+
+  try {
+    // Re-parsea del archivo guardado: las calificaciones SIEMPRE vienen del PDF,
+    // nunca del cliente (el cliente solo decide qué aplicar).
+    const { cabecera, filas } = await construirFilasRelacion(loteRef);
+    const etapaClave = cabecera.etapa ?? 'DESCONOCIDA';
+    const fechaExamen = cabecera.fechaExamenISO ?? new Date().toISOString().slice(0, 10);
+    const excluidas = new Set((excluir ?? []).map((e) => `${e.matricula}:${e.modulo}`));
+
+    // Resolver sede por nombre (opcional).
+    let sedeId: number | null = null;
+    if (cabecera.sede) {
+      const nombreSede = String(cabecera.sede).replace(/^\d+\s*/, '').trim();
+      if (nombreSede) {
+        const [s] = await db.select({ id: sedes.id }).from(sedes).where(sql`lower(${sedes.nombre}) = lower(${nombreSede})`).limit(1);
+        sedeId = s?.id ?? null;
+      }
+    }
+
+    const aplicables = filas.filter(
+      (f) => (f.estado === 'nueva' || (f.estado === 'reemplazo' && reemplazar)) &&
+        f.estudianteId != null && !excluidas.has(`${f.matricula}:${f.modulo}`)
+    );
+
+    let aplicadas = 0;
+    const afectadosPorGestor = new Map<number, Set<number>>();  // gestorId → set alumnos
+    const afectadosAlumno = new Map<number, { modulos: number[]; aprobados: number }>();
+
+    await db.transaction(async (tx) => {
+      for (const f of aplicables) {
+        const mod = await tx.select({ id: modulos.id }).from(modulos).where(eq(modulos.numero, f.modulo)).limit(1);
+        const moduloId = mod[0]?.id;
+        if (!moduloId || f.estudianteId == null) continue;
+
+        // upsert manual (no hay unique en calificaciones): borra la previa de esa etapa/módulo.
+        await tx.delete(calificaciones).where(and(
+          eq(calificaciones.estudianteId, f.estudianteId),
+          eq(calificaciones.moduloId, moduloId),
+          eq(calificaciones.etapaClave, etapaClave),
+        ));
+        await tx.insert(calificaciones).values({
+          estudianteId: f.estudianteId,
+          moduloId,
+          etapaClave,
+          calificacion: f.calificacion,
+          aciertos: f.aciertos,
+          aprobado: f.aprobado,
+          intento: 1,
+          fechaExamen,
+          sedeId,
+          capturadoPorUserId: userId,
+          notas: `Relación oficial SEP · aciertos: ${f.aciertos} · calif. original ${f.calificacionPdf}/10`,
+        });
+
+        if (f.aprobado) {
+          await tx.insert(estudiantesModulosProgreso).values({
+            estudianteId: f.estudianteId, moduloId, estado: 'aprobado',
+            mejorCalificacion: f.calificacion, ultimaCalificacion: f.calificacion, ultimaActividad: new Date(),
+          }).onConflictDoUpdate({
+            target: [estudiantesModulosProgreso.estudianteId, estudiantesModulosProgreso.moduloId],
+            set: {
+              estado: 'aprobado',
+              mejorCalificacion: sql`GREATEST(EXCLUDED.mejor_calificacion, ${f.calificacion})`,
+              ultimaCalificacion: f.calificacion, ultimaActividad: new Date(),
+            },
+          });
+        }
+
+        aplicadas++;
+        if (f.gestorId != null) {
+          if (!afectadosPorGestor.has(f.gestorId)) afectadosPorGestor.set(f.gestorId, new Set());
+          afectadosPorGestor.get(f.gestorId)!.add(f.estudianteId);
+        }
+        const al = afectadosAlumno.get(f.estudianteId) ?? { modulos: [], aprobados: 0 };
+        al.modulos.push(f.modulo);
+        if (f.aprobado) al.aprobados++;
+        afectadosAlumno.set(f.estudianteId, al);
+      }
+    });
+
+    // Notificaciones: una por alumno afectado, una por gestor (agrupada).
+    for (const [alumnoId, info] of afectadosAlumno) {
+      await notificar({
+        userId: alumnoId, tipo: 'calificacion_disponible', prioridad: 'alta',
+        titulo: `Calificaciones de la etapa ${etapaClave}`,
+        cuerpo: `Ya están disponibles tus resultados oficiales de ${info.modulos.length} módulo(s) (${info.aprobados} aprobado(s)). Consúltalos en Calificaciones.`,
+        enlace: '/estudiante/calificaciones',
+      });
+    }
+    for (const [gestorId, alumnos] of afectadosPorGestor) {
+      await notificar({
+        userId: gestorId, tipo: 'calificaciones_recibidas', prioridad: 'normal',
+        titulo: `Calificaciones etapa ${etapaClave}`,
+        cuerpo: `Llegaron calificaciones oficiales para ${alumnos.size} de tus alumnos. Ya las pueden ver en su portal.`,
+        enlace: '/gestor/calificaciones',
+      });
+    }
+
+    await tryAuditLog({
+      userId, accion: 'aplicar_relacion_calificaciones', entidad: 'calificaciones',
+      detalle: `Aplicó ${aplicadas} calificaciones desde la Relación oficial (etapa ${etapaClave})`,
+      metadata: { etapaClave, aplicadas, reemplazar, gestores: afectadosPorGestor.size, alumnos: afectadosAlumno.size },
+      req,
+    });
+
+    res.json({ ok: true, aplicadas, alumnosNotificados: afectadosAlumno.size, gestoresNotificados: afectadosPorGestor.size, etapaClave });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error al aplicar' });
+  }
+});
 
 // ─── POST /admin/alumnos/:id/matricula ───────────────────────────────────────
 const adminMatriculaSchema = z.object({

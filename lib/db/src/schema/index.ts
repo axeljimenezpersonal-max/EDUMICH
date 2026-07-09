@@ -642,6 +642,9 @@ export const calificaciones = pgTable(
     ),
     etapaClave: varchar('etapa_clave', { length: 20 }).notNull(),
     calificacion: integer('calificacion').notNull(),
+    // Aciertos (respuestas correctas) reportados en la Relación oficial de la
+    // SEP. Nullable: las capturadas a mano o por Excel no lo traen.
+    aciertos: integer('aciertos'),
     aprobado: boolean('aprobado').notNull(),
     intento: integer('intento').notNull().default(1),
     fechaExamen: date('fecha_examen').notNull(),
@@ -1527,6 +1530,8 @@ export const notifTipoEnum = pgEnum('notif_tipo', [
   'credencial_renovada',
   'solicitud_renovacion_credencial',
   'chat_mensaje',
+  'calificacion_disponible',
+  'calificaciones_recibidas',
 ]);
 
 export const notifPrioridadEnum = pgEnum('notif_prioridad', ['baja', 'normal', 'alta', 'urgente']);
