@@ -17,6 +17,14 @@ import path from 'path';
 import { createReadStream, existsSync } from 'fs';
 import fsp from 'node:fs/promises';
 import multer from 'multer';
+import {
+  guardarSubida,
+  archivoStream,
+  archivoExiste,
+  archivoBuffer,
+  refEsS3,
+  urlFirmada,
+} from '../services/storage';
 import { db } from '../db';
 import {
   users,
@@ -760,10 +768,18 @@ router.get('/modulos/:moduloId/material/:materialId/descargar', async (req, res)
     return;
   }
 
+  const safeName = material.nombre.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() || 'material';
+
+  // Material en S3 (p. ej. libros del Plan 22, 100+ MB): descarga directa desde
+  // S3 con URL firmada temporal — no pasa por el servidor.
+  if (refEsS3(material.rutaArchivo)) {
+    const url = await urlFirmada(material.rutaArchivo, 900);
+    if (url) { res.redirect(url); return; }
+  }
+
   const STORAGE_DIR = path.join(process.cwd(), 'storage');
   const filePath = path.join(STORAGE_DIR, material.rutaArchivo.replace(/^\//, ''));
 
-  const safeName = material.nombre.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() || 'material';
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"`);
 
@@ -963,7 +979,8 @@ router.post(
       return;
     }
 
-    const rutaRelativa = path.relative(EXPEDIENTE_DIR, req.file.path);
+    // Persistir en el almacenamiento definitivo (S3 si está activo; local si no)
+    const refArchivo = await guardarSubida(req.file, 'expediente');
 
     await db
       .insert(expedienteDocumentos)
@@ -971,7 +988,7 @@ router.post(
         estudianteId: userId,
         tipo,
         estado: 'pendiente_revision',
-        rutaArchivo: req.file.path,
+        rutaArchivo: refArchivo,
         nombreOriginal: nombreArchivoUtf8(req.file.originalname),
         tamanoBytes: req.file.size,
         subidoPorUserId: userId,
@@ -982,7 +999,7 @@ router.post(
         target: [expedienteDocumentos.estudianteId, expedienteDocumentos.tipo],
         set: {
           estado: 'pendiente_revision',
-          rutaArchivo: req.file.path,
+          rutaArchivo: refArchivo,
           nombreOriginal: nombreArchivoUtf8(req.file.originalname),
           tamanoBytes: req.file.size,
           subidoPorUserId: userId,
@@ -1027,7 +1044,7 @@ async function servirDocExpediente(
     return;
   }
 
-  if (!existsSync(doc.rutaArchivo)) {
+  if (!(await archivoExiste(doc.rutaArchivo))) {
     res.status(404).json({ error: 'Archivo no disponible en almacenamiento' });
     return;
   }
@@ -1041,7 +1058,7 @@ async function servirDocExpediente(
   const safe = doc.nombreOriginal.replace(/[^a-zA-Z0-9_\-. ]/g, '').trim() || 'documento';
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
-  createReadStream(doc.rutaArchivo).pipe(res);
+  archivoStream(doc.rutaArchivo).pipe(res);
 }
 
 // ─── GET /estudiante/expediente/documento/:tipo/preview ──────────────────
@@ -2220,7 +2237,7 @@ router.get('/mi-foto', async (req, res) => {
       )
     );
 
-  if (!doc || !existsSync(doc.rutaArchivo)) {
+  if (!doc || !(await archivoExiste(doc.rutaArchivo))) {
     res.status(404).json({ error: 'Sin foto aprobada' });
     return;
   }
@@ -2230,7 +2247,7 @@ router.get('/mi-foto', async (req, res) => {
     : 'image/jpeg';
   res.setHeader('Content-Type', mime);
   res.setHeader('Cache-Control', 'private, max-age=3600');
-  createReadStream(doc.rutaArchivo).pipe(res);
+  archivoStream(doc.rutaArchivo).pipe(res);
 });
 
 // ─── GET /estudiante/mi-identificacion ───────────────────────────────────
@@ -2293,7 +2310,7 @@ router.get('/mi-identificacion', async (req, res) => {
       eq(expedienteDocumentos.tipo, 'foto'),
       eq(expedienteDocumentos.estado, 'aprobado'),
     ));
-  const tieneFoto = !!(fotoDoc && existsSync(fotoDoc.rutaArchivo));
+  const tieneFoto = !!(fotoDoc && (await archivoExiste(fotoDoc.rutaArchivo)));
 
   res.json({
     tieneIdentificacion: true,
@@ -2476,9 +2493,9 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
     ));
 
   let fotoImg: any = null;
-  if (fotoDocPDF && existsSync(fotoDocPDF.rutaArchivo)) {
+  if (fotoDocPDF && (await archivoExiste(fotoDocPDF.rutaArchivo))) {
     try {
-      const fotoBytes = await fsp.readFile(fotoDocPDF.rutaArchivo);
+      const fotoBytes = await archivoBuffer(fotoDocPDF.rutaArchivo);
       fotoImg = /\.png$/i.test(fotoDocPDF.rutaArchivo)
         ? await doc.embedPng(fotoBytes)
         : await doc.embedJpg(fotoBytes);

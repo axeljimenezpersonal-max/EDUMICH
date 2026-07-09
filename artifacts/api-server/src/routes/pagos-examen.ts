@@ -32,7 +32,7 @@ import { authRequired } from '../middleware/auth';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen';
 import { DIAS_ANTES_EXAMEN_VENCE_PAGO } from '../config/reglas';
-import { STORAGE_ES_EFIMERO } from '../services/storage';
+import { STORAGE_ES_EFIMERO, guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 
 // Mensaje claro cuando un archivo (orden/comprobante) figura en la BD pero su
 // archivo físico ya no existe (almacenamiento efímero de Railway hasta migrar a S3).
@@ -230,11 +230,11 @@ router.get('/:id/orden', async (req, res) => {
     if (!p.ordenPagoPath) {
       return res.status(404).json({ error: 'Orden de pago aún no disponible' });
     }
-    if (!existsSync(p.ordenPagoPath)) {
+    if (!(await archivoExiste(p.ordenPagoPath))) {
       return res.status(404).json({ error: MSG_ARCHIVO_PERDIDO });
     }
     res.setHeader('Content-Disposition', `inline; filename="${p.ordenPagoNombre ?? 'orden-de-pago.pdf'}"`);
-    return createReadStream(p.ordenPagoPath).pipe(res);
+    return archivoStream(p.ordenPagoPath).pipe(res);
   } catch {
     return res.status(500).json({ error: 'Error al descargar la orden' });
   }
@@ -273,10 +273,11 @@ router.post('/:id/comprobante', subirComprobanteMw, async (req, res) => {
       return res.status(409).json({ error: 'La orden no admite comprobante en su estado actual' });
     }
 
+    const refComprobante = await guardarSubida(req.file, 'pagos-examen');
     await db
       .update(pagosExamen)
       .set({
-        comprobantePath: req.file.path,
+        comprobantePath: refComprobante,
         comprobanteNombre: nombreArchivoUtf8(req.file.originalname),
         metodoPago: metodoPago ?? p.metodoPago,
         estado: 'en_revision',
@@ -304,11 +305,11 @@ router.get('/:id/comprobante', async (req, res) => {
     if (!p.comprobantePath) {
       return res.status(404).json({ error: 'Sin comprobante' });
     }
-    if (!existsSync(p.comprobantePath)) {
+    if (!(await archivoExiste(p.comprobantePath))) {
       return res.status(404).json({ error: MSG_ARCHIVO_PERDIDO });
     }
     res.setHeader('Content-Disposition', `inline; filename="${p.comprobanteNombre ?? 'comprobante'}"`);
-    return createReadStream(p.comprobantePath).pipe(res);
+    return archivoStream(p.comprobantePath).pipe(res);
   } catch {
     return res.status(500).json({ error: 'Error al descargar el comprobante' });
   }
@@ -759,13 +760,14 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
     const { vencimientoSugerido } = await fechasDeEtapa(p.etapaId);
     const vencimientoFinal = fechaVencimiento || p.fechaVencimiento || vencimientoSugerido;
 
+    const refOrden = req.file ? await guardarSubida(req.file, 'pagos-examen') : null;
     await db
       .update(pagosExamen)
       .set({
         lineaCaptura: lineaCaptura ?? p.lineaCaptura,
         linkPago: linkPago ?? p.linkPago,
         fechaVencimiento: vencimientoFinal,
-        ordenPagoPath: req.file ? req.file.path : p.ordenPagoPath,
+        ordenPagoPath: refOrden ?? p.ordenPagoPath,
         ordenPagoNombre: req.file ? nombreArchivoUtf8(req.file.originalname) : p.ordenPagoNombre,
         fechaEmision: new Date(),
         estado: 'emitida',

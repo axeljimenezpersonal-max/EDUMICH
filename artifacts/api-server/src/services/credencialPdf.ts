@@ -8,8 +8,8 @@
  * REGLA: la fotografía solo se incrusta si el documento 'foto' está APROBADO.
  */
 import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage, type PDFImage } from 'pdf-lib';
-import { readFileSync, existsSync } from 'node:fs';
 import QRCode from 'qrcode';
+import { archivoBuffer } from './storage';
 import { and, eq } from 'drizzle-orm';
 import { db } from '../db';
 import {
@@ -138,7 +138,7 @@ export async function generarCredencialPdf(
   let foto: PDFImage | null = null;
   if (fotoPath) {
     try {
-      const b = readFileSync(fotoPath);
+      const b = await archivoBuffer(fotoPath);
       foto = b[0] === 0x89 ? await doc.embedPng(b) : await doc.embedJpg(b);
     } catch { /* foto ilegible */ }
   }

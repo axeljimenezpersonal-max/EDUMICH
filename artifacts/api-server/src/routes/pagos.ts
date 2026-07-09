@@ -10,8 +10,8 @@ import { desc, eq } from 'drizzle-orm';
 import multer from 'multer';
 import path from 'path';
 import fsp from 'node:fs/promises';
-import { createReadStream, existsSync } from 'fs';
 import { z } from 'zod';
+import { guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 import { db } from '../db';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import {
@@ -174,6 +174,7 @@ router.post(
     }
     const data = parse.data;
 
+    const refComprobante = await guardarSubida(file, 'pagos');
     const [pago] = await db
       .insert(pagos)
       .values({
@@ -185,7 +186,7 @@ router.post(
         metodoPago: data.metodoPago,
         referenciaBancaria: data.referenciaBancaria ?? null,
         notas: data.notas ?? null,
-        rutaComprobante: file.path,
+        rutaComprobante: refComprobante,
         nombreComprobante: nombreArchivoUtf8(file.originalname),
         tamanoBytes: file.size,
         estado: 'pendiente',
@@ -227,7 +228,7 @@ router.get('/:pagoId/comprobante', async (req, res) => {
     res.status(403).json({ error: 'Sin acceso' }); return;
   }
 
-  if (!existsSync(pago.rutaComprobante)) {
+  if (!(await archivoExiste(pago.rutaComprobante))) {
     res.status(404).json({ error: 'Archivo no disponible' }); return;
   }
 
@@ -246,7 +247,7 @@ router.get('/:pagoId/comprobante', async (req, res) => {
   res.setHeader('Content-Type', mime);
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Content-Disposition', `${isImage ? 'inline' : 'attachment'}; filename="${safe}"`);
-  createReadStream(pago.rutaComprobante).pipe(res);
+  archivoStream(pago.rutaComprobante).pipe(res);
 });
 
 export default router;

@@ -6,7 +6,7 @@
 import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, degrees } from 'pdf-lib';
 import { winAnsiSafe } from '../utils/pdfText';
 import QRCode from 'qrcode';
-import { existsSync, readFileSync } from 'fs';
+import { archivoBuffer, archivoExiste } from './storage';
 
 // ── Color palette ─────────────────────────────────────────────────────────
 const GUINDA   = rgb(0.50, 0.05, 0.12);  // #800d1f approx — guinda Michoacán
@@ -481,9 +481,9 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
   const fotoX = PAGE_W - MARGIN - fotoW;
   const fotoY = y + 4;
 
-  if (data.fotoPath && existsSync(data.fotoPath)) {
+  if (data.fotoPath && (await archivoExiste(data.fotoPath))) {
     try {
-      const fotoBytes = readFileSync(data.fotoPath);
+      const fotoBytes = await archivoBuffer(data.fotoPath);
       const fotoImg = fotoBytes[0] === 0x89 // PNG magic bytes
         ? await doc.embedPng(fotoBytes)
         : await doc.embedJpg(fotoBytes);

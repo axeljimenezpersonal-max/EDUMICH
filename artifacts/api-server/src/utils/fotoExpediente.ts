@@ -7,9 +7,9 @@
  * o rechazada, los documentos se generan sin fotografía.
  */
 import { and, eq } from 'drizzle-orm';
-import { existsSync } from 'node:fs';
 import { db } from '../db';
 import { expedienteDocumentos } from '@workspace/db/schema';
+import { archivoExiste } from '../services/storage';
 
 export async function rutaFotoAprobada(estudianteId: number): Promise<string | null> {
   const [foto] = await db
@@ -20,5 +20,5 @@ export async function rutaFotoAprobada(estudianteId: number): Promise<string | n
       eq(expedienteDocumentos.tipo, 'foto'),
       eq(expedienteDocumentos.estado, 'aprobado'),
     ));
-  return foto && existsSync(foto.rutaArchivo) ? foto.rutaArchivo : null;
+  return foto && (await archivoExiste(foto.rutaArchivo)) ? foto.rutaArchivo : null;
 }

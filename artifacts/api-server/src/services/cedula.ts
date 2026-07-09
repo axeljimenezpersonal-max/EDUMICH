@@ -19,6 +19,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { estudiantes, users, gestores, administradores, firmasUsuario, expedienteDocumentos, municipios } from '@workspace/db/schema';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
+import { archivoBuffer } from './storage';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 
 // ── Resolución de la plantilla (funciona en dev y en Docker/Railway) ────────
@@ -360,7 +361,7 @@ export async function generarCedulaPdf(
   // tamaño/orientación de la imagen subida, para que quepa y se vea consistente.
   if (fotoPath) {
     try {
-      const bytes = readFileSync(fotoPath);
+      const bytes = await archivoBuffer(fotoPath);
       const esPng = bytes[0] === 0x89 && bytes[1] === 0x50;
       const esJpg = bytes[0] === 0xff && bytes[1] === 0xd8;
       if (esPng || esJpg) {

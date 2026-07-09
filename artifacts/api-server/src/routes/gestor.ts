@@ -18,7 +18,7 @@ import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import path from 'path';
 import fs from 'node:fs/promises';
-import { createReadStream, existsSync } from 'fs';
+import { guardarSubida, archivoStream, archivoExiste, archivoEliminar } from '../services/storage';
 import { db } from '../db';
 import {
   users,
@@ -544,7 +544,7 @@ router.post(
               inscripcionId: insc.id,
               nombre: def.nombre,
               archivoOriginal: nombreArchivoUtf8(def.file.originalname),
-              storageKey: def.file.path,
+              storageKey: await guardarSubida(def.file, 'expediente'),
               tamanoBytes: def.file.size,
               tipoSugerido: def.tipo,
               estado: 'pendiente_revision',
@@ -832,7 +832,7 @@ router.post('/alumnos/:id/documentos', upload.single('archivo'), async (req, res
       inscripcionId: insc.id,
       nombre,
       archivoOriginal: nombreArchivoUtf8(file.originalname),
-      storageKey: file.path,
+      storageKey: await guardarSubida(file, 'expediente'),
       tamanoBytes: file.size,
       tipoSugerido,
       estado: 'pendiente_revision',
@@ -1106,13 +1106,16 @@ router.post(
       return;
     }
 
+    // Persistir en el almacenamiento definitivo (S3 si está activo; local si no)
+    const refArchivo = await guardarSubida(req.file, 'expediente');
+
     await db
       .insert(expedienteDocumentos)
       .values({
         estudianteId: alumnoId,
         tipo,
         estado: 'pendiente_revision',
-        rutaArchivo: req.file.path,
+        rutaArchivo: refArchivo,
         nombreOriginal: nombreArchivoUtf8(req.file.originalname),
         tamanoBytes: req.file.size,
         subidoPorUserId: gestorId,
@@ -1123,7 +1126,7 @@ router.post(
         target: [expedienteDocumentos.estudianteId, expedienteDocumentos.tipo],
         set: {
           estado: 'pendiente_revision',
-          rutaArchivo: req.file.path,
+          rutaArchivo: refArchivo,
           nombreOriginal: nombreArchivoUtf8(req.file.originalname),
           tamanoBytes: req.file.size,
           subidoPorUserId: gestorId,
@@ -1179,7 +1182,7 @@ async function servirDocExpedienteGestor(
     );
 
   if (!doc) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
-  if (!existsSync(doc.rutaArchivo)) {
+  if (!(await archivoExiste(doc.rutaArchivo))) {
     res.status(404).json({ error: 'Archivo no disponible' });
     return;
   }
@@ -1204,7 +1207,7 @@ async function servirDocExpedienteGestor(
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
-  createReadStream(doc.rutaArchivo).pipe(res);
+  archivoStream(doc.rutaArchivo).pipe(res);
 }
 
 // ─── POST /gestor/alumnos/:id/reenviar-credenciales ──────────────────
@@ -2437,9 +2440,10 @@ router.post('/pagos-grupales/:id/comprobante', uploadComprobanteGrupal.single('c
     ? req.body.fechaPago
     : new Date().toISOString().slice(0, 10);
 
+  const refComprobanteGrupal = await guardarSubida(req.file, 'pagos-grupales');
   await db.update(pagosGrupales)
     .set({
-      rutaComprobante: req.file.path,
+      rutaComprobante: refComprobanteGrupal,
       nombreComprobante: nombreArchivoUtf8(req.file.originalname),
       fechaPago,
       estado: 'en_revision',
@@ -2464,13 +2468,13 @@ router.get('/pagos-grupales/:id/comprobante', async (req, res) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
   const pg = await pagoGrupalDelGestor(req.user!.userId, id);
-  if (!pg?.rutaComprobante || !existsSync(pg.rutaComprobante)) {
+  if (!pg?.rutaComprobante || !(await archivoExiste(pg.rutaComprobante))) {
     res.status(404).json({ error: 'Sin comprobante' }); return;
   }
   const ext = path.extname(pg.rutaComprobante).toLowerCase();
   res.setHeader('Content-Type', MIME_POR_EXT[ext] ?? 'application/octet-stream');
   res.setHeader('Content-Disposition', 'inline; filename="comprobante' + ext + '"');
-  createReadStream(pg.rutaComprobante).pipe(res);
+  archivoStream(pg.rutaComprobante).pipe(res);
 });
 
 // ─── DELETE /gestor/pagos-grupales/:id — cancelar (si no está verificado) ─
@@ -2482,8 +2486,8 @@ router.delete('/pagos-grupales/:id', async (req, res) => {
   if (!pg) { res.status(404).json({ error: 'Pago no encontrado' }); return; }
   if (pg.estado === 'verificado') { res.status(400).json({ error: 'No se puede cancelar un pago verificado' }); return; }
 
-  if (pg.rutaComprobante && existsSync(pg.rutaComprobante)) {
-    try { await fs.unlink(pg.rutaComprobante); } catch { /* noop */ }
+  if (pg.rutaComprobante) {
+    await archivoEliminar(pg.rutaComprobante).catch(() => {});
   }
   await db.delete(pagosGrupales).where(eq(pagosGrupales.id, id));
 

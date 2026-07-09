@@ -141,6 +141,33 @@ export function archivoEliminar(ref: string): Promise<void> {
   return driverDe(ref).remove(ref);
 }
 
+/** Lee el archivo completo a memoria (para incrustar en PDFs: foto de cédula/credencial). */
+export async function archivoBuffer(ref: string): Promise<Buffer> {
+  if (!refEsS3(ref)) return fsp.readFile(ref);
+  const chunks: Buffer[] = [];
+  for await (const c of archivoStream(ref)) chunks.push(c as Buffer);
+  return Buffer.concat(chunks);
+}
+
+/**
+ * Persiste una subida de multer (diskStorage temporal) en el almacenamiento
+ * definitivo y devuelve la `ref` a guardar en la BD.
+ *  - Driver local: se conserva la ruta de multer tal cual (comportamiento
+ *    histórico, cero cambios sin S3).
+ *  - Driver S3: sube el buffer bajo `carpeta/<basename>` y borra el temporal.
+ */
+export async function guardarSubida(
+  file: { path: string; mimetype?: string },
+  carpeta: string
+): Promise<string> {
+  if (process.env.STORAGE_DRIVER !== 's3') return file.path;
+  const key = `${carpeta}/${path.basename(file.path)}`;
+  const buf = await fsp.readFile(file.path);
+  const { ref } = await storage.put(key, buf, file.mimetype);
+  await fsp.rm(file.path, { force: true }).catch(() => {});
+  return ref;
+}
+
 /**
  * URL firmada temporal para descargas directas desde S3 (libros pesados, etc.).
  * Solo aplica a refs `s3:`; para refs locales devuelve null (servir por stream).

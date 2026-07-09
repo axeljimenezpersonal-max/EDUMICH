@@ -7,7 +7,7 @@
 import { Router } from 'express';
 import { and, eq, sql, desc, gte, count, countDistinct, isNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { createReadStream, existsSync } from 'node:fs';
+import { guardarSubida, archivoStream, archivoExiste, archivoEliminar } from '../services/storage';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import multer from 'multer';
@@ -3887,7 +3887,7 @@ async function servirDocExpedienteAdmin(
     );
 
   if (!doc) { res.status(404).json({ error: 'Documento no encontrado' }); return; }
-  if (!existsSync(doc.rutaArchivo)) {
+  if (!(await archivoExiste(doc.rutaArchivo))) {
     res.status(404).json({ error: 'Archivo no disponible en el servidor' });
     return;
   }
@@ -3918,7 +3918,7 @@ async function servirDocExpedienteAdmin(
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
-  createReadStream(doc.rutaArchivo).pipe(res);
+  archivoStream(doc.rutaArchivo).pipe(res);
 }
 
 // ─── GET /admin/alumnos/:id/expediente/:tipo/preview ─────────────────────────
@@ -4221,10 +4221,11 @@ router.post('/alumnos/:id/calificaciones-pdf', uploadCalificaciones.single('arch
 
   // Borrar el anterior si existía
   const [prev] = await db.select({ p: estudiantes.calificacionesPdfPath }).from(estudiantes).where(eq(estudiantes.userId, alumnoId));
-  if (prev?.p && existsSync(prev.p)) { try { await fsp.unlink(prev.p); } catch { /* noop */ } }
+  if (prev?.p) { await archivoEliminar(prev.p).catch(() => {}); }
 
+  const refPdf = await guardarSubida(req.file, 'calificaciones');
   await db.update(estudiantes)
-    .set({ calificacionesPdfPath: req.file.path, calificacionesPdfSubidoEn: new Date(), updatedAt: new Date() })
+    .set({ calificacionesPdfPath: refPdf, calificacionesPdfSubidoEn: new Date(), updatedAt: new Date() })
     .where(eq(estudiantes.userId, alumnoId));
   res.json({ ok: true });
 });
@@ -4654,13 +4655,13 @@ router.get('/pagos-grupales/:id/comprobante', async (req, res) => {
   const id = Number(req.params.id);
   if (!id) { res.status(400).json({ error: 'ID inválido' }); return; }
   const [pg] = await db.select().from(pagosGrupales).where(eq(pagosGrupales.id, id));
-  if (!pg?.rutaComprobante || !existsSync(pg.rutaComprobante)) {
+  if (!pg?.rutaComprobante || !(await archivoExiste(pg.rutaComprobante))) {
     res.status(404).json({ error: 'Sin comprobante' }); return;
   }
   const ext = path.extname(pg.rutaComprobante).toLowerCase();
   res.setHeader('Content-Type', MIME_COMPROBANTE[ext] ?? 'application/octet-stream');
   res.setHeader('Content-Disposition', 'inline; filename="comprobante' + ext + '"');
-  createReadStream(pg.rutaComprobante).pipe(res);
+  archivoStream(pg.rutaComprobante).pipe(res);
 });
 
 // ─── POST /admin/pagos-grupales/:id/verificar ──────────────────────────────
