@@ -556,20 +556,25 @@ export default function EstudianteDashboard() {
                   const [y, m, d] = ex.fechaExamen.split('-').map(Number);
                   fechaStr = `${d} ${MESES[m - 1]} ${y}`;
                 }
-                const estadoColor: Record<string, string> = {
-                  inscrito:        'bg-blue-50 text-blue-700',
-                  pase_descargado: 'bg-sky-50 text-sky-700',
-                  pase_validado:   'bg-green-50 text-green-700',
-                  aprobado:        'bg-emerald-50 text-emerald-700',
-                  reprobado:       'bg-red-50 text-red-700',
-                };
-                const estadoLabel: Record<string, string> = {
-                  inscrito:        'Inscrito',
-                  pase_descargado: 'Pase descargado',
-                  pase_validado:   'Validado en sede',
-                  aprobado:        'Aprobado',
-                  reprobado:       'No aprobado',
-                };
+                // Inscripción y pago SIEMPRE relacionados: un examen inscrito sin
+                // pago consumado está "pre-inscrito" (ámbar); con pago va en verde.
+                let badgeCls = 'bg-stone-100 text-stone-600';
+                let badgeLabel = ex.estado;
+                if (ex.estado === 'cancelado') {
+                  badgeCls = 'bg-stone-100 text-stone-500'; badgeLabel = 'Cancelado';
+                } else if (ex.estado === 'aprobado') {
+                  badgeCls = 'bg-emerald-50 text-emerald-700'; badgeLabel = 'Aprobado';
+                } else if (ex.estado === 'reprobado') {
+                  badgeCls = 'bg-red-50 text-red-700'; badgeLabel = 'No aprobado';
+                } else if (ex.estado === 'pase_validado') {
+                  badgeCls = 'bg-green-50 text-green-700'; badgeLabel = 'Validado en sede';
+                } else if (ex.estado === 'pase_descargado') {
+                  badgeCls = 'bg-sky-50 text-sky-700'; badgeLabel = 'Pase descargado';
+                } else if (ex.pagado) {
+                  badgeCls = 'bg-green-50 text-green-700'; badgeLabel = 'Inscrito';
+                } else {
+                  badgeCls = 'bg-amber-50 text-amber-700'; badgeLabel = 'Pre-inscrito · falta pago';
+                }
                 return (
                   <Link key={ex.id} href={`/estudiante/convocatoria/pase/${ex.id}`}>
                     <div className="px-3 sm:px-5 py-3 sm:py-3.5 flex items-center gap-3 sm:gap-4 hover:bg-stone-50 transition-colors cursor-pointer">
@@ -595,8 +600,8 @@ export default function EstudianteDashboard() {
 
                       {/* Estado */}
                       <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${estadoColor[ex.estado] ?? 'bg-stone-100 text-stone-600'}`}>
-                          {estadoLabel[ex.estado] ?? ex.estado}
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full whitespace-nowrap ${badgeCls}`}>
+                          {badgeLabel}
                         </span>
                         <ChevronRight size={13} className="text-stone-300" />
                       </div>
@@ -646,10 +651,16 @@ export default function EstudianteDashboard() {
           </div>
         )}
 
-        {/* KPI cards 2×2 */}
+        {/* KPI cards 2×2 — cada tarjeta lleva a su sección */}
         <div data-tour="dash-kpis" className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div className="bg-white border border-stone-200 rounded-md p-4">
-            <BookOpen size={18} className="text-[var(--color-guinda-600)] mb-2" />
+          <Link
+            href="/estudiante/calificaciones"
+            className="group bg-white border border-stone-200 rounded-xl p-4 shadow-[0_1px_2px_rgba(74,14,32,0.03)] transition-all hover:border-[var(--color-guinda-300)] hover:shadow-md"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <BookOpen size={18} className="text-[var(--color-guinda-600)]" />
+              <ChevronRight size={15} className="text-stone-300 group-hover:text-[var(--color-guinda-500)] transition-colors" />
+            </div>
             <div className="font-serif text-2xl font-bold text-stone-900">
               {data.kpis.modulosAprobados}
               <span className="text-stone-400 text-base font-normal">
@@ -657,31 +668,49 @@ export default function EstudianteDashboard() {
               </span>
             </div>
             <div className="text-xs text-stone-500 mt-0.5">Módulos aprobados</div>
-          </div>
+          </Link>
 
-          <div className="bg-white border border-stone-200 rounded-md p-4">
-            <FileCheck2 size={18} className="text-green-600 mb-2" />
+          <Link
+            href="/estudiante/expediente"
+            className="group bg-white border border-stone-200 rounded-xl p-4 shadow-[0_1px_2px_rgba(74,14,32,0.03)] transition-all hover:border-green-300 hover:shadow-md"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <FileCheck2 size={18} className="text-green-600" />
+              <ChevronRight size={15} className="text-stone-300 group-hover:text-green-500 transition-colors" />
+            </div>
             <div className="font-serif text-2xl font-bold text-stone-900">
               {data.kpis.documentosAprobados}
             </div>
             <div className="text-xs text-stone-500 mt-0.5">Docs aprobados</div>
-          </div>
+          </Link>
 
-          <div className="bg-white border border-stone-200 rounded-md p-4">
-            <Clock size={18} className="text-amber-500 mb-2" />
+          <Link
+            href="/estudiante/expediente"
+            className="group bg-white border border-stone-200 rounded-xl p-4 shadow-[0_1px_2px_rgba(74,14,32,0.03)] transition-all hover:border-amber-300 hover:shadow-md"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Clock size={18} className="text-amber-500" />
+              <ChevronRight size={15} className="text-stone-300 group-hover:text-amber-500 transition-colors" />
+            </div>
             <div className="font-serif text-2xl font-bold text-stone-900">
               {data.kpis.documentosPendientes}
             </div>
             <div className="text-xs text-stone-500 mt-0.5">Docs pendientes</div>
-          </div>
+          </Link>
 
-          <div className="bg-white border border-stone-200 rounded-md p-4">
-            <Bell size={18} className="text-[var(--color-guinda-500)] mb-2" />
+          <Link
+            href="/estudiante/avisos"
+            className="group bg-white border border-stone-200 rounded-xl p-4 shadow-[0_1px_2px_rgba(74,14,32,0.03)] transition-all hover:border-[var(--color-guinda-300)] hover:shadow-md"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <Bell size={18} className="text-[var(--color-guinda-500)]" />
+              <ChevronRight size={15} className="text-stone-300 group-hover:text-[var(--color-guinda-500)] transition-colors" />
+            </div>
             <div className="font-serif text-2xl font-bold text-stone-900">
               {data.avisosNoLeidos}
             </div>
             <div className="text-xs text-stone-500 mt-0.5">Avisos sin leer</div>
-          </div>
+          </Link>
         </div>
 
         {/* Avisos recientes */}

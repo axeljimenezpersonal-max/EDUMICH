@@ -320,6 +320,24 @@ router.get('/dashboard', async (req, res) => {
     .where(eq(examenesInscripciones.estudianteId, userId))
     .orderBy(modulos.numero);
 
+  // Módulos aprobados — MISMA fuente que la vista de Calificaciones: módulos
+  // distintos con una calificación aprobatoria. (Antes estaba hardcodeado a 0.)
+  const aprobadosRes = await db.execute<{ n: number }>(sql`
+    SELECT COUNT(DISTINCT modulo_id)::int AS n
+    FROM calificaciones
+    WHERE estudiante_id = ${userId} AND aprobado = true`);
+  const modulosAprobados = Number(aprobadosRes.rows[0]?.n ?? 0);
+
+  // Exámenes con pago CONSUMADO (pagos_examen 'pagado'). Un examen inscrito pero
+  // sin pago está "pre-inscrito": inscripción y pago SIEMPRE van relacionados.
+  const pagadosExRes = await db.execute<{ examen_inscripcion_id: number }>(sql`
+    SELECT DISTINCT pei.examen_inscripcion_id
+    FROM pagos_examen_inscripciones pei
+    JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+    JOIN examenes_inscripciones ei ON ei.id = pei.examen_inscripcion_id
+    WHERE ei.estudiante_id = ${userId} AND pe.estado = 'pagado'`);
+  const examenesPagados = new Set(pagadosExRes.rows.map((r) => Number(r.examen_inscripcion_id)));
+
   res.json({
     estudiante: {
       nombreCompleto: est.nombreCompleto,
@@ -353,8 +371,8 @@ router.get('/dashboard', async (req, res) => {
         }
       : null,
     kpis: {
-      modulosAprobados: 0,
-      modulosTotales: 21,
+      modulosAprobados,
+      modulosTotales: 22,
       documentosAprobados,
       documentosPendientes,
     },
@@ -364,6 +382,7 @@ router.get('/dashboard', async (req, res) => {
       id: e.id,
       folio: e.folio,
       estado: e.estado,
+      pagado: examenesPagados.has(e.id),
       moduloNumero: e.moduloNumero,
       moduloNombre: e.moduloNombre,
       fechaExamen: e.dia === 'sabado' ? e.etapaExamenSabado : e.etapaExamenDomingo,
@@ -2331,7 +2350,7 @@ router.get('/mi-identificacion', async (req, res) => {
       diasParaVencer: vigenciaDate ? Math.ceil((vigenciaDate.getTime() - Date.now()) / 86400000) : null,
       plan: 'Plan 22 · Modular',
       modulosAprobados,
-      modulosTotales: 21,
+      modulosTotales: 22,
       verifyUrl,
     },
   });

@@ -202,6 +202,7 @@ export interface ExamenInscritoDashboard {
   id: number;
   folio: string;
   estado: string;
+  pagado: boolean;
   moduloNumero: number;
   moduloNombre: string;
   fechaExamen: string | null;

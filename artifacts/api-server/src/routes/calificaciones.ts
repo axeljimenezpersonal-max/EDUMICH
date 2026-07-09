@@ -84,7 +84,7 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     rows.length > 0
       ? Math.round(rows.reduce((s, r) => s + r.calificacion, 0) / rows.length)
       : 0;
-  const porcentajeAvance = Math.round((totalAprobados / 21) * 100);
+  const porcentajeAvance = Math.round((totalAprobados / 22) * 100);
 
   const [estPdf] = await db
     .select({ p: estudiantes.calificacionesPdfPath, en: estudiantes.calificacionesPdfSubidoEn })
