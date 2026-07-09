@@ -43,17 +43,20 @@ type Tab = 'temario' | 'quizzes' | 'areas';
 // ─── Componente: ítem de tema (con subtemas anidados) ─────────────────────
 function TemaItem({ tema }: { tema: TemaNode }) {
   return (
-    <li>
-      <div className="flex items-start gap-2 text-sm text-stone-700">
-        <div className="w-1.5 h-1.5 rounded-full bg-[var(--color-guinda-500)] mt-[7px] shrink-0" />
-        <span>{tema.titulo}</span>
+    <li className="break-inside-avoid">
+      <div className="group flex items-start gap-2.5 rounded-md px-2 py-1.5 -mx-2 transition-colors hover:bg-[var(--color-crema-50)]">
+        {/* Marcador tipo diamante (look técnico) */}
+        <span className="mt-[6px] h-[7px] w-[7px] shrink-0 rotate-45 rounded-[2px] bg-[var(--color-guinda-500)] shadow-[0_0_0_3px_rgba(122,29,53,0.08)]" />
+        <span className="text-[13.5px] leading-snug text-stone-700 transition-colors group-hover:text-stone-950">
+          {tema.titulo}
+        </span>
       </div>
       {tema.subtemas.length > 0 && (
-        <ul className="ml-5 mt-1.5 space-y-1.5">
+        <ul className="ml-[13px] mt-1 space-y-0.5 border-l border-stone-200 pl-3.5">
           {tema.subtemas.map((sub) => (
-            <li key={sub.id} className="flex items-start gap-2 text-sm text-stone-500">
-              <div className="w-1 h-1 rounded-full bg-stone-400 mt-[7px] shrink-0" />
-              <span>{sub.titulo}</span>
+            <li key={sub.id} className="flex items-start gap-2 py-0.5">
+              <span className="mt-[7px] h-[5px] w-[5px] shrink-0 rounded-full border border-stone-300 bg-white" />
+              <span className="text-[12.5px] leading-snug text-stone-500">{sub.titulo}</span>
             </li>
           ))}
         </ul>
@@ -64,23 +67,40 @@ function TemaItem({ tema }: { tema: TemaNode }) {
 
 // ─── Componente: tarjeta de unidad ────────────────────────────────────────
 function UnidadCard({ unidad }: { unidad: UnidadDetalle }) {
+  // Total de temas + subtemas para el contador del encabezado.
+  const totalTemas = unidad.temas.reduce((n, t) => n + 1 + t.subtemas.length, 0);
   return (
-    <div className="border border-stone-200 rounded-lg overflow-hidden">
-      <div className="bg-[var(--color-crema-100)] px-5 py-4 border-b border-stone-200">
-        <div className="text-[10px] font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
-          Unidad {unidad.numero}
+    <div className="overflow-hidden rounded-xl border border-stone-200/80 bg-white shadow-[0_1px_2px_rgba(74,14,32,0.04),0_8px_24px_-12px_rgba(74,14,32,0.10)]">
+      {/* Encabezado: badge de unidad en guinda + título + propósito */}
+      <div className="flex items-start gap-3.5 border-b border-stone-100 px-5 py-4">
+        <div
+          className="flex h-11 w-11 shrink-0 flex-col items-center justify-center rounded-lg text-white shadow-sm"
+          style={{ background: 'linear-gradient(150deg, var(--color-guinda-600), var(--color-guinda-800))' }}
+        >
+          <span className="text-[8px] font-semibold uppercase tracking-wider text-white/70 leading-none">U</span>
+          <span className="text-lg font-bold leading-none">{unidad.numero}</span>
         </div>
-        <h3 className="font-serif text-base font-bold text-stone-900">{unidad.titulo}</h3>
-        {unidad.proposito && (
-          <p className="text-sm text-stone-600 mt-1.5 leading-relaxed">{unidad.proposito}</p>
-        )}
+        <div className="min-w-0 flex-1">
+          <div className="mb-0.5 flex items-center gap-2">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--color-guinda-700)]">
+              Unidad {unidad.numero}
+            </span>
+            {totalTemas > 0 && (
+              <span className="rounded-full bg-stone-100 px-2 py-0.5 text-[10px] font-semibold text-stone-500">
+                {totalTemas} tema{totalTemas === 1 ? '' : 's'}
+              </span>
+            )}
+          </div>
+          <h3 className="font-serif text-base font-bold leading-snug text-stone-900">{unidad.titulo}</h3>
+          {unidad.proposito && (
+            <p className="mt-1.5 text-sm leading-relaxed text-stone-500">{unidad.proposito}</p>
+          )}
+        </div>
       </div>
       {unidad.temas.length > 0 && (
         <div className="px-5 py-4">
-          <div className="text-[10px] uppercase tracking-widest text-stone-400 font-semibold mb-3">
-            TEMAS
-          </div>
-          <ul className="space-y-2.5">
+          {/* Temas en 2 columnas (denso, tipo dashboard) en pantallas anchas */}
+          <ul className="space-y-1 sm:columns-2 sm:gap-x-8 sm:space-y-0">
             {unidad.temas.map((t) => (
               <TemaItem key={t.id} tema={t} />
             ))}
@@ -456,13 +476,16 @@ export default function ModuloDetalle() {
         {/* Columna derecha: sidebar */}
         <div className="space-y-4">
           {/* Materiales */}
-          <div className="bg-white border border-stone-200 rounded-lg p-4">
+          <div className="rounded-xl border border-stone-200/80 bg-white p-4 shadow-[0_1px_2px_rgba(74,14,32,0.04),0_8px_24px_-12px_rgba(74,14,32,0.10)]">
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-3 flex items-center gap-2">
               <FileText size={14} className="text-[var(--color-guinda-700)]" />
               Material de estudio
             </h3>
             {materiales.length === 0 ? (
-              <p className="text-xs text-stone-400">Sin materiales disponibles aún.</p>
+              <div className="rounded-lg border border-dashed border-stone-200 bg-[var(--color-crema-50)] px-3 py-5 text-center">
+                <FileText size={20} className="mx-auto mb-1.5 text-stone-300" />
+                <p className="text-xs text-stone-400">Sin materiales disponibles aún.</p>
+              </div>
             ) : (
               <ul className="space-y-3">
                 {materiales.map((m) => (
