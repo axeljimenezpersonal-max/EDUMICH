@@ -173,10 +173,73 @@ export default function EstudianteDashboard() {
   const mostrarBannerVigenciaRojo = data.folioPreregistro && !data.matriculaOficialDGB && diasVigencia !== null && diasVigencia <= 0;
   const mostrarBannerVigenciaAmarillo = data.folioPreregistro && !data.matriculaOficialDGB && diasVigencia !== null && diasVigencia > 0 && diasVigencia <= 3;
 
+  // ── Fase del alumno: define un inicio distinto según dónde va en su trámite ──
+  //   nuevo       → aún sin folio ni matrícula (debe subir documentos)
+  //   preinscrito → tiene folio de pre-registro, espera su matrícula oficial
+  //   inscrito    → ya tiene matrícula DGB (trámite consumado)
+  const fase: 'nuevo' | 'preinscrito' | 'inscrito' = data.matriculaOficialDGB
+    ? 'inscrito'
+    : data.folioPreregistro
+    ? 'preinscrito'
+    : 'nuevo';
+  const faseCfg = {
+    nuevo:       { label: 'Registro en proceso', bg: '#f5f5f4', color: '#57534e', dot: '#a8a29e', nudge: 'Sube tus documentos para comenzar tu registro en Preparatoria Abierta.' },
+    preinscrito: { label: 'Pre-registrado',       bg: '#eff6ff', color: '#1d4ed8', dot: '#3b82f6', nudge: 'Completa tu expediente para que la administración te asigne tu matrícula oficial.' },
+    inscrito:    { label: 'Inscrito',              bg: '#dcfce7', color: '#15803d', dot: '#22c55e', nudge: 'Estás inscrito oficialmente. Revisa tus exámenes y prepárate para presentar.' },
+  }[fase];
+  // Documentos del expediente pendientes: solo relevante antes de estar inscrito.
+  const mostrarExpediente = fase !== 'inscrito' && mostrarBannerDocs;
+
   return (
     <EstudianteLayout>
       <div className="space-y-6">
-        {/* Banners de anuncios institucionales */}
+        {/* ── 1. SALUDO (siempre primero) ── */}
+        <div className="overflow-hidden rounded-xl border border-stone-200/80 bg-white p-5 sm:p-6 shadow-[0_1px_2px_rgba(74,14,32,0.04),0_10px_28px_-14px_rgba(74,14,32,0.12)]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--color-guinda-700)]">
+                Portal del estudiante
+              </div>
+              <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-tight text-stone-900">
+                Hola, {primerNombre}
+              </h1>
+              <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  style={{ background: faseCfg.bg, color: faseCfg.color }}
+                >
+                  <span className="h-1.5 w-1.5 rounded-full" style={{ background: faseCfg.dot }} />
+                  {faseCfg.label}
+                </span>
+                {fase === 'inscrito' && data.matriculaOficialDGB && (
+                  <span className="text-xs text-stone-400">
+                    Matrícula <span className="font-mono font-semibold text-stone-600">{data.matriculaOficialDGB}</span>
+                  </span>
+                )}
+                {fase === 'preinscrito' && data.folioPreregistro && (
+                  <span className="text-xs text-stone-400">
+                    Folio <span className="font-mono font-semibold text-stone-600">{data.folioPreregistro}</span>
+                  </span>
+                )}
+                {data.estudiante.municipio && (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-xs text-stone-400">
+                    <MapPin size={11} /> {data.estudiante.municipio}
+                  </span>
+                )}
+              </div>
+              <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-stone-500">{faseCfg.nudge}</p>
+            </div>
+            <button
+              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
+              style={{ color: 'var(--color-guinda-700)' }}
+            >
+              <Sparkles size={14} /> Ver tutorial
+            </button>
+          </div>
+        </div>
+
+        {/* ── 2. ANUNCIOS institucionales ── */}
         {visibleAnuncios.map(a => {
           const colorMap = {
             urgente:    { bg: '#fff1f2', border: '#fecdd3', text: '#be123c', icon: '#f43f5e' },
@@ -405,7 +468,61 @@ export default function EstudianteDashboard() {
           </div>
         )}
 
-        {/* ── Módulos inscritos en convocatoria ── */}
+        {/* ── 6. Estado de inscripción + siguientes pasos ── */}
+        {(data.inscripcionActiva || fase !== 'nuevo') && (
+          <div data-tour="dash-estado" className="bg-white border border-stone-200 rounded-xl p-5 shadow-[0_1px_2px_rgba(74,14,32,0.04),0_8px_24px_-14px_rgba(74,14,32,0.10)]">
+            <div className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-3">
+              Estado de tu inscripción
+            </div>
+            {data.inscripcionActiva ? (
+              <>
+                <div className="flex flex-wrap items-center gap-3 mb-4">
+                  <EstadoBadge estado={data.inscripcionActiva.estado} />
+                  <span className="text-sm text-stone-500">
+                    {data.inscripcionActiva.convocatoriaNombre}
+                  </span>
+                </div>
+                <ul className="space-y-2">
+                  {data.siguientesPasos.slice(0, 3).map((paso, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-stone-700">
+                      <UrgenciaIcon urgencia={paso.urgencia} />
+                      {paso.texto}
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p className="text-stone-500 text-sm">Aún no tienes una inscripción activa a convocatoria.</p>
+            )}
+          </div>
+        )}
+
+        {/* ── 7. Convocatoria + cuenta regresiva ── */}
+        {data.inscripcionActiva && (
+          <div className="bg-[var(--color-guinda-700)] text-white rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_10px_28px_-14px_rgba(74,14,32,0.5)]">
+            <div>
+              <div className="text-xs opacity-80 mb-1">Convocatoria activa</div>
+              <div className="font-serif text-lg font-bold">
+                {data.inscripcionActiva.convocatoriaNombre}
+              </div>
+              {data.inscripcionActiva.fechaCierre && (
+                <div className="text-xs opacity-75 mt-1">
+                  Cierre de inscripciones: {data.inscripcionActiva.fechaCierre}
+                </div>
+              )}
+            </div>
+            {diasExamen !== null && (
+              <div className="text-center sm:text-right shrink-0">
+                <div className="font-serif text-4xl font-bold">{diasExamen}</div>
+                <div className="text-xs opacity-80">
+                  {diasExamen === 1 ? 'día para tu examen' : 'días para tu examen'}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── 8. Módulos inscritos en convocatoria ── */}
         {data.examenesInscritos && data.examenesInscritos.length > 0 && (
           <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
             <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
@@ -491,8 +608,8 @@ export default function EstudianteDashboard() {
           </div>
         )}
 
-        {/* Banner: completa tu expediente */}
-        {mostrarBannerDocs && (
+        {/* Banner: completa tu expediente (solo antes de estar inscrito) */}
+        {mostrarExpediente && (
           <div
             className="rounded-md p-4 flex flex-col sm:flex-row sm:items-start gap-3"
             style={{
@@ -526,79 +643,6 @@ export default function EstudianteDashboard() {
                 </Link>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Saludo */}
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="font-serif text-2xl font-bold text-stone-900">
-              Hola, {primerNombre}
-            </h1>
-            <p className="text-stone-500 text-sm mt-0.5">
-              {data.estudiante.municipio
-                ? `Municipio: ${data.estudiante.municipio}`
-                : data.estudiante.email}
-            </p>
-          </div>
-          <button
-            onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
-            className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
-            style={{ color: 'var(--color-guinda-700)' }}
-          >
-            <Sparkles size={14} /> Ver tutorial
-          </button>
-        </div>
-
-        {/* Estado de inscripción + siguientes pasos */}
-        <div data-tour="dash-estado" className="bg-white border border-stone-200 rounded-md p-5">
-          <div className="text-xs font-semibold uppercase tracking-widest text-stone-500 mb-3">
-            Estado de tu inscripción
-          </div>
-          {data.inscripcionActiva ? (
-            <>
-              <div className="flex flex-wrap items-center gap-3 mb-4">
-                <EstadoBadge estado={data.inscripcionActiva.estado} />
-                <span className="text-sm text-stone-500">
-                  {data.inscripcionActiva.convocatoriaNombre}
-                </span>
-              </div>
-              <ul className="space-y-2">
-                {data.siguientesPasos.slice(0, 3).map((paso, i) => (
-                  <li key={i} className="flex items-start gap-2 text-sm text-stone-700">
-                    <UrgenciaIcon urgencia={paso.urgencia} />
-                    {paso.texto}
-                  </li>
-                ))}
-              </ul>
-            </>
-          ) : (
-            <p className="text-stone-500 text-sm">No tienes inscripción activa.</p>
-          )}
-        </div>
-
-        {/* Convocatoria + cuenta regresiva */}
-        {data.inscripcionActiva && (
-          <div className="bg-[var(--color-guinda-700)] text-white rounded-md p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <div className="text-xs opacity-80 mb-1">Convocatoria activa</div>
-              <div className="font-serif text-lg font-bold">
-                {data.inscripcionActiva.convocatoriaNombre}
-              </div>
-              {data.inscripcionActiva.fechaCierre && (
-                <div className="text-xs opacity-75 mt-1">
-                  Cierre de inscripciones: {data.inscripcionActiva.fechaCierre}
-                </div>
-              )}
-            </div>
-            {diasExamen !== null && (
-              <div className="text-center sm:text-right shrink-0">
-                <div className="font-serif text-4xl font-bold">{diasExamen}</div>
-                <div className="text-xs opacity-80">
-                  {diasExamen === 1 ? 'día para tu examen' : 'días para tu examen'}
-                </div>
-              </div>
-            )}
           </div>
         )}
 
