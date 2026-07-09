@@ -227,6 +227,10 @@ export interface DashboardEstudiante {
     fechaCierre: string | null;
     fechaExamen: string | null;
   } | null;
+  credencial?: {
+    emitida: boolean;
+    fotoEstado: 'aprobado' | 'pendiente_revision' | 'rechazado' | null;
+  };
   kpis: {
     modulosAprobados: number;
     modulosTotales: number;

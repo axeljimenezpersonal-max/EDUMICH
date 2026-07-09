@@ -510,6 +510,49 @@ export default function EstudianteDashboard() {
           </div>
         )}
 
+        {/* ── 6b. Estado de la credencial (widget de acción fijo) ── */}
+        {(() => {
+          const cred = data.credencial;
+          if (!cred) return null;
+          // Deriva estado + mensaje + acción.
+          let cfg: { icon: typeof BadgeCheck; iconColor: string; ring: string; bg: string; titulo: string; texto: string; cta: string; href: string; ctaBg: string };
+          if (!cred.emitida) {
+            cfg = { icon: AlertCircle, iconColor: '#78716c', ring: '#e7e5e4', bg: '#fafaf9', titulo: 'Credencial aún no emitida', texto: 'Se emite al completar tu inscripción y tu expediente.', cta: 'Ir a mi expediente', href: '/estudiante/expediente', ctaBg: '#57534e' };
+          } else if (cred.fotoEstado === 'aprobado') {
+            cfg = { icon: BadgeCheck, iconColor: '#15803d', ring: '#bbf7d0', bg: 'linear-gradient(160deg,#f0fdf4,#ffffff)', titulo: 'Tu credencial está lista', texto: 'Emitida con tu fotografía oficial. Ya puedes descargarla y usarla.', cta: 'Ver mi credencial', href: '/estudiante/identificacion', ctaBg: '#16a34a' };
+          } else if (cred.fotoEstado === 'pendiente_revision') {
+            cfg = { icon: Clock, iconColor: '#b45309', ring: '#fde68a', bg: '#fffbeb', titulo: 'Tu fotografía está en revisión', texto: 'La administración está validando tu foto. En cuanto se apruebe aparecerá en tu credencial.', cta: 'Ver mi expediente', href: '/estudiante/expediente', ctaBg: '#b45309' };
+          } else if (cred.fotoEstado === 'rechazado') {
+            cfg = { icon: AlertTriangle, iconColor: '#b91c1c', ring: '#fca5a5', bg: '#fff1f2', titulo: 'Tu fotografía fue rechazada', texto: 'Súbela de nuevo para completar tu credencial con tu foto oficial.', cta: 'Volver a subir mi foto', href: '/estudiante/expediente', ctaBg: '#dc2626' };
+          } else {
+            cfg = { icon: Upload, iconColor: '#b45309', ring: '#fde68a', bg: 'linear-gradient(160deg,#fffbeb,#ffffff)', titulo: 'Falta tu fotografía', texto: 'Tu credencial está emitida pero aún sin foto. Súbela en tu expediente para completarla.', cta: 'Subir mi fotografía', href: '/estudiante/expediente', ctaBg: 'var(--color-guinda-700)' };
+          }
+          const Icon = cfg.icon;
+          return (
+            <div className="overflow-hidden rounded-xl border border-stone-200/80 shadow-[0_1px_2px_rgba(74,14,32,0.04),0_8px_24px_-14px_rgba(74,14,32,0.10)]" style={{ background: cfg.bg }}>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-4 p-5">
+                <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white" style={{ boxShadow: `0 0 0 2px ${cfg.ring}` }}>
+                    <Icon size={20} style={{ color: cfg.iconColor }} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[10px] font-semibold uppercase tracking-widest text-stone-400 mb-0.5">Estado de tu credencial</div>
+                    <div className="font-semibold text-stone-900">{cfg.titulo}</div>
+                    <p className="mt-0.5 text-sm leading-relaxed text-stone-500">{cfg.texto}</p>
+                  </div>
+                </div>
+                <Link
+                  href={cfg.href}
+                  className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                  style={{ background: cfg.ctaBg }}
+                >
+                  {cfg.cta} <ChevronRight size={15} />
+                </Link>
+              </div>
+            </div>
+          );
+        })()}
+
         {/* ── 7. Convocatoria + cuenta regresiva ── */}
         {data.inscripcionActiva && (
           <div className="bg-[var(--color-guinda-700)] text-white rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_10px_28px_-14px_rgba(74,14,32,0.5)]">

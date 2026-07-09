@@ -242,6 +242,8 @@ router.get('/dashboard', async (req, res) => {
   ).size;
   const documentosPendientes = expDocs.filter((d) => d.estado === 'pendiente_revision').length;
   const tieneRechazados = expDocs.some((d) => d.estado === 'rechazado');
+  // Estado de la fotografía (la credencial solo la muestra cuando está aprobada).
+  const fotoDoc = expDocs.find((d) => d.tipo === 'foto');
 
   // Avisos no leídos
   const [{ avisosNoLeidos }] = await db
@@ -386,6 +388,11 @@ router.get('/dashboard', async (req, res) => {
       modulosTotales: 22,
       documentosAprobados,
       documentosPendientes,
+    },
+    credencial: {
+      emitida: !!est.licenciaDigital,
+      // 'aprobado' | 'pendiente_revision' | 'rechazado' | null (sin subir)
+      fotoEstado: fotoDoc?.estado ?? null,
     },
     siguientesPasos,
     avisosNoLeidos: Number(avisosNoLeidos),
