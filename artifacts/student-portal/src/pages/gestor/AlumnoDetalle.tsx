@@ -55,6 +55,7 @@ import CalificacionesTabContent from '../../components/CalificacionesTabContent'
 import { CredencialPreview } from '../../components/CredencialPreview';
 import FirmaPad from '../../components/FirmaPad';
 import { CampoCopiable } from '../../components/CampoCopiable';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 interface AlumnoConMatricula {
   userId: number;
@@ -975,13 +976,13 @@ function PlanDeEstudiosTab({
   onReload: () => void | Promise<void>;
 }) {
   const [quitando, setQuitando] = useState<number | null>(null);
+  const [confirmarQuitar, setConfirmarQuitar] = useState<number | null>(null);
   // moduloId -> { inscId, pagoEstado } de las inscripciones activas del alumno.
   const inscPorModulo = new Map<number, { inscId: number; pagoEstado?: string }>(
     (data?.inscripcionesActivas ?? []).map((i) => [i.moduloId, { inscId: i.id, pagoEstado: i.pagoEstado }])
   );
 
   async function quitarModulo(inscId: number) {
-    if (!window.confirm('¿Quitar este módulo de la inscripción del alumno?')) return;
     setQuitando(inscId);
     try {
       await api.delete(`/gestor/alumnos/${alumnoId}/examenes/${inscId}`);
@@ -1110,7 +1111,7 @@ function PlanDeEstudiosTab({
             <span className={`text-[10px] font-bold ${cfg.label}`}>{cfg.text}</span>
             {puedeQuitar ? (
               <button
-                onClick={() => quitarModulo(ins!.inscId)}
+                onClick={() => setConfirmarQuitar(ins!.inscId)}
                 disabled={quitando === ins!.inscId}
                 className="inline-flex items-center gap-1 text-[10px] font-semibold text-red-600 hover:text-red-700 disabled:opacity-50"
               >
@@ -1132,6 +1133,19 @@ function PlanDeEstudiosTab({
 
   return (
     <div className="space-y-5">
+      {/* Confirmación al quitar un módulo (reemplaza el confirm() del navegador) */}
+      {confirmarQuitar !== null && (
+        <ConfirmModal
+          icon={<AlertCircle size={18} />}
+          danger
+          title="Quitar módulo de la inscripción"
+          message="El módulo se quitará de la inscripción del alumno en esta convocatoria. Podrás volver a agregarlo mientras el período siga abierto."
+          confirmLabel="Sí, quitar módulo"
+          onConfirm={() => { const id = confirmarQuitar; setConfirmarQuitar(null); quitarModulo(id); }}
+          onClose={() => setConfirmarQuitar(null)}
+        />
+      )}
+
       {/* Convocatoria activa — card principal (guinda) */}
       <div className="bg-[var(--color-guinda-700)] rounded-xl p-5 text-white">
         <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-white/70 font-bold mb-2">
