@@ -520,15 +520,15 @@ export default function EstudianteDashboard() {
             cfg = { icon: AlertCircle, iconColor: '#78716c', ring: '#e7e5e4', bg: '#fafaf9', titulo: 'Credencial aún no emitida', texto: 'Se emite al completar tu inscripción y tu expediente.', cta: 'Ir a mi expediente', href: '/estudiante/expediente', ctaBg: '#57534e' };
           } else if (cred.fotoPerdida) {
             // Hay registro de foto pero el archivo ya no está: la credencial sale sin foto.
-            cfg = { icon: AlertTriangle, iconColor: '#b91c1c', ring: '#fca5a5', bg: '#fff1f2', titulo: 'No encontramos tu fotografía', texto: 'Tu credencial se está mostrando sin foto. Vuelve a subir tu fotografía en el expediente para que aparezca.', cta: 'Volver a subir mi foto', href: '/estudiante/expediente', ctaBg: '#dc2626' };
+            cfg = { icon: AlertTriangle, iconColor: '#b91c1c', ring: '#fca5a5', bg: '#fff1f2', titulo: 'No encontramos tu fotografía', texto: 'Tu credencial se está mostrando sin foto. Vuelve a subir tu fotografía en el expediente para que aparezca.', cta: 'Volver a subir mi foto', href: '/estudiante/expediente?doc=foto', ctaBg: '#dc2626' };
           } else if (cred.fotoEstado === 'aprobado') {
             cfg = { icon: BadgeCheck, iconColor: '#15803d', ring: '#bbf7d0', bg: 'linear-gradient(160deg,#f0fdf4,#ffffff)', titulo: 'Tu credencial está lista', texto: 'Emitida con tu fotografía oficial. Ya puedes descargarla y usarla.', cta: 'Ver mi credencial', href: '/estudiante/identificacion', ctaBg: '#16a34a' };
           } else if (cred.fotoEstado === 'pendiente_revision') {
-            cfg = { icon: Clock, iconColor: '#b45309', ring: '#fde68a', bg: '#fffbeb', titulo: 'Tu fotografía está en revisión', texto: 'La administración está validando tu foto. En cuanto se apruebe aparecerá en tu credencial.', cta: 'Ver mi expediente', href: '/estudiante/expediente', ctaBg: '#b45309' };
+            cfg = { icon: Clock, iconColor: '#b45309', ring: '#fde68a', bg: '#fffbeb', titulo: 'Tu fotografía está en revisión', texto: 'La administración está validando tu foto. En cuanto se apruebe aparecerá en tu credencial.', cta: 'Ver mi fotografía', href: '/estudiante/expediente?doc=foto', ctaBg: '#b45309' };
           } else if (cred.fotoEstado === 'rechazado') {
-            cfg = { icon: AlertTriangle, iconColor: '#b91c1c', ring: '#fca5a5', bg: '#fff1f2', titulo: 'Tu fotografía fue rechazada', texto: 'Súbela de nuevo para completar tu credencial con tu foto oficial.', cta: 'Volver a subir mi foto', href: '/estudiante/expediente', ctaBg: '#dc2626' };
+            cfg = { icon: AlertTriangle, iconColor: '#b91c1c', ring: '#fca5a5', bg: '#fff1f2', titulo: 'Tu fotografía fue rechazada', texto: 'Súbela de nuevo para completar tu credencial con tu foto oficial.', cta: 'Volver a subir mi foto', href: '/estudiante/expediente?doc=foto', ctaBg: '#dc2626' };
           } else {
-            cfg = { icon: Upload, iconColor: '#b45309', ring: '#fde68a', bg: 'linear-gradient(160deg,#fffbeb,#ffffff)', titulo: 'Falta tu fotografía', texto: 'Tu credencial está emitida pero aún sin foto. Súbela en tu expediente para completarla.', cta: 'Subir mi fotografía', href: '/estudiante/expediente', ctaBg: 'var(--color-guinda-700)' };
+            cfg = { icon: Upload, iconColor: '#b45309', ring: '#fde68a', bg: 'linear-gradient(160deg,#fffbeb,#ffffff)', titulo: 'Falta tu fotografía', texto: 'Tu credencial está emitida pero aún sin foto. Súbela en tu expediente para completarla.', cta: 'Subir mi fotografía', href: '/estudiante/expediente?doc=foto', ctaBg: 'var(--color-guinda-700)' };
           }
           const Icon = cfg.icon;
           return (

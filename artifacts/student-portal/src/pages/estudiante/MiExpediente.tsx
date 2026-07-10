@@ -255,6 +255,21 @@ export default function MiExpediente() {
     api.get<ExpedienteResponse>('/estudiante/expediente').then(setData).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
+  // Enlace profundo: /estudiante/expediente?doc=foto baja directo a la sección
+  // de Fotografía (desde el widget de credencial en Inicio).
+  useEffect(() => {
+    if (!data) return;
+    if (new URLSearchParams(window.location.search).get('doc') !== 'foto') return;
+    // Reintentos: los uploaders cargan de forma asíncrona y empujan el layout,
+    // así que reafirmamos el scroll unas cuantas veces hasta que quede fijo.
+    const timers = [150, 500, 900, 1400].map((ms) =>
+      setTimeout(() => {
+        document.getElementById('doc-foto')?.scrollIntoView({ block: 'start' });
+      }, ms)
+    );
+    return () => timers.forEach(clearTimeout);
+  }, [data]);
+
   const obligatorios = DOCUMENTOS.filter((d) => d.obligatorio);
   const opcionales = DOCUMENTOS.filter((d) => !d.obligatorio);
   const totalObligatorios = obligatorios.length;
@@ -384,7 +399,7 @@ export default function MiExpediente() {
             </div>
           </section>
 
-          <section data-tour="exp-credencial" className="mb-6 scroll-mt-24">
+          <section id="doc-foto" data-tour="exp-credencial" className="mb-6 scroll-mt-24">
             <h2 className="font-serif text-base font-bold text-stone-900 mb-1">Documentos para la credencial</h2>
             <p className="text-xs text-stone-500 mb-3">
               No son obligatorios para inscribirte, pero tu fotografía se usa para emitir tu credencial (credencial digital).
