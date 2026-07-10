@@ -1494,12 +1494,19 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
     res.status(400).json({ error: 'La inscripción no está abierta para esta etapa' });
     return;
   }
-  // Guard por fecha: nunca después del cierre de solicitud o si el examen ya pasó.
+  // CANDADO ESTRICTO por fecha: solo dentro de la ventana de solicitud, como en
+  // SIOSAD — ni antes de que abra, ni después de que cierre (ni examen ya pasado).
   const hoyStr = new Date().toISOString().slice(0, 10);
+  const apertura = etapa.solicitudInicio ? String(etapa.solicitudInicio) : null;
   const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
   const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;
+  const fmtF = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long' });
+  if (apertura && hoyStr < apertura) {
+    res.status(400).json({ error: `La ventana de solicitud aún no abre. Abre el ${fmtF(apertura)}.` });
+    return;
+  }
   if ((cierre && cierre < hoyStr) || (examen && examen < hoyStr)) {
-    res.status(400).json({ error: 'El período de inscripción de esta etapa ya cerró.' });
+    res.status(400).json({ error: 'El período de solicitud de esta etapa ya cerró.' });
     return;
   }
 

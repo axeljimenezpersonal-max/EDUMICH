@@ -1949,6 +1949,7 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
       id: convocatoriasEtapas.id,
       clave: convocatoriasEtapas.clave,
       estado: convocatoriasEtapas.estado,
+      solicitudInicio: convocatoriasEtapas.solicitudInicio,
       solicitudFin: convocatoriasEtapas.solicitudFin,
       examenSabado: convocatoriasEtapas.examenSabado,
       examenDomingo: convocatoriasEtapas.examenDomingo,
@@ -1957,16 +1958,23 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
     .where(eq(convocatoriasEtapas.id, etapaId));
   if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
 
-  // 2.b. No se puede inscribir a una etapa cuyo período ya cerró (o cuyo examen
-  // ya pasó). El gestor puede inscribir fuera del estado 'abierta', pero NUNCA
-  // después de la fecha límite de solicitud.
+  // 2.b. CANDADO ESTRICTO: solo se puede solicitar/inscribir DENTRO de la ventana
+  // de solicitud [solicitud_inicio, solicitud_fin], como en SIOSAD. Ni antes de
+  // que abra ni después de que cierre (ni con el examen ya pasado).
   const hoyStr = new Date().toISOString().slice(0, 10);
+  const apertura = etapa.solicitudInicio ? String(etapa.solicitudInicio) : null;
   const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
   const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;
-  if ((cierre && cierre < hoyStr) || (examen && examen < hoyStr)) {
-    const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+  const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (apertura && hoyStr < apertura) {
     res.status(400).json({
-      error: `El período de inscripción de la etapa ${etapa.clave} ya cerró${cierre ? ` (venció el ${fmt(cierre)})` : ''}. No se puede inscribir a una convocatoria pasada.`,
+      error: `La ventana de solicitud de la etapa ${etapa.clave} aún no abre. Abre el ${fmt(apertura)}.`,
+    });
+    return;
+  }
+  if ((cierre && cierre < hoyStr) || (examen && examen < hoyStr)) {
+    res.status(400).json({
+      error: `El período de solicitud de la etapa ${etapa.clave} ya cerró${cierre ? ` (venció el ${fmt(cierre)})` : ''}. No se puede inscribir a una convocatoria pasada.`,
     });
     return;
   }
