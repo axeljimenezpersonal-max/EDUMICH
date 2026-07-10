@@ -3,7 +3,7 @@
  * pdf-lib (puro JS, sin canvas/chromium).
  */
 
-import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, degrees } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PDFFont, PDFPage, degrees, pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath } from 'pdf-lib';
 import { winAnsiSafe } from '../utils/pdfText';
 import QRCode from 'qrcode';
 import { archivoBuffer, archivoExiste } from './storage';
@@ -488,7 +488,18 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
         ? await doc.embedPng(fotoBytes)
         : await doc.embedJpg(fotoBytes);
       page.drawRectangle({ x: fotoX - 3, y: fotoY - fotoH - 3, width: fotoW + 6, height: fotoH + 6, color: GUINDA });
-      page.drawImage(fotoImg, { x: fotoX, y: fotoY - fotoH, width: fotoW, height: fotoH });
+      // Foto estilo "cover": llena el recuadro sin deformar (escala al lado mayor)
+      // y recorta el sobrante con un clip.
+      const bx = fotoX, by = fotoY - fotoH;
+      const s = Math.max(fotoW / fotoImg.width, fotoH / fotoImg.height);
+      const w = fotoImg.width * s, h = fotoImg.height * s;
+      page.pushOperators(
+        pushGraphicsState(),
+        moveTo(bx, by), lineTo(bx + fotoW, by), lineTo(bx + fotoW, by + fotoH), lineTo(bx, by + fotoH), closePath(),
+        clip(), endPath(),
+      );
+      page.drawImage(fotoImg, { x: bx + (fotoW - w) / 2, y: by + (fotoH - h) / 2, width: w, height: h });
+      page.pushOperators(popGraphicsState());
       fotoEmbedded = true;
     } catch { /* skip photo if unreadable */ }
   }

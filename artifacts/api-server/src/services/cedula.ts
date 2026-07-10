@@ -10,7 +10,7 @@
  * "Completar la cédula" = completar los datos del alumno.
  */
 
-import { PDFDocument, StandardFonts, rgb, TextAlignment } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, TextAlignment, pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath } from 'pdf-lib';
 import { winAnsiSafe } from '../utils/pdfText';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
@@ -382,10 +382,17 @@ export async function generarCedulaPdf(
         // La plantilla trae impreso el texto "FOTOGRAFÍA": lo tapamos con un
         // fondo blanco (dentro del marco) para que no se asome tras la foto.
         page.drawRectangle({ x: boxX + 2, y: boxY + 2, width: boxW - 4, height: boxH - 4, color: rgb(1, 1, 1) });
-        // Foto con aspect-fit, centrada dentro del recuadro.
-        const escala = Math.min(boxW / img.width, boxH / img.height);
+        // Foto estilo "cover": llena TODO el recuadro (escala al lado mayor) y se
+        // recorta el sobrante con un clip, sin franjas blancas ni desbordes.
+        const escala = Math.max(boxW / img.width, boxH / img.height);
         const w = img.width * escala, h = img.height * escala;
+        page.pushOperators(
+          pushGraphicsState(),
+          moveTo(boxX, boxY), lineTo(boxX + boxW, boxY), lineTo(boxX + boxW, boxY + boxH), lineTo(boxX, boxY + boxH), closePath(),
+          clip(), endPath(),
+        );
         page.drawImage(img, { x: boxX + (boxW - w) / 2, y: boxY + (boxH - h) / 2, width: w, height: h });
+        page.pushOperators(popGraphicsState());
       }
     } catch {
       /* foto ilegible: se omite */

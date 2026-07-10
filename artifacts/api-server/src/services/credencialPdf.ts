@@ -7,7 +7,7 @@
  *
  * REGLA: la fotografía solo se incrusta si el documento 'foto' está APROBADO.
  */
-import { PDFDocument, rgb, StandardFonts, type PDFFont, type PDFPage, type PDFImage } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath, type PDFFont, type PDFPage, type PDFImage } from 'pdf-lib';
 import QRCode from 'qrcode';
 import { archivoBuffer } from './storage';
 import { and, eq } from 'drizzle-orm';
@@ -34,10 +34,21 @@ function txt(page: PDFPage, s: string, x: number, y: number, font: PDFFont, size
   page.drawText(s ?? '', { x, y, size, font, color });
 }
 
-function fitImg(page: PDFPage, img: PDFImage, bx: number, by: number, bw: number, bh: number) {
-  const s = Math.min(bw / img.width, bh / img.height);
+/**
+ * Dibuja la imagen llenando TODO el recuadro (estilo object-fit: cover): escala
+ * al lado mayor y recorta el sobrante con un clip, para que no queden franjas
+ * blancas ni se desborde sobre el resto de la credencial.
+ */
+function coverImg(page: PDFPage, img: PDFImage, bx: number, by: number, bw: number, bh: number) {
+  const s = Math.max(bw / img.width, bh / img.height);
   const w = img.width * s, h = img.height * s;
+  page.pushOperators(
+    pushGraphicsState(),
+    moveTo(bx, by), lineTo(bx + bw, by), lineTo(bx + bw, by + bh), lineTo(bx, by + bh), closePath(),
+    clip(), endPath(),
+  );
   page.drawImage(img, { x: bx + (bw - w) / 2, y: by + (bh - h) / 2, width: w, height: h });
+  page.pushOperators(popGraphicsState());
 }
 
 export interface CredencialData {
@@ -159,7 +170,7 @@ export async function generarCredencialPdf(
   // Foto
   const foX = CX + 16, foY = fY + 22, foW = 78, foH = 96;
   page.drawRectangle({ x: foX - 2, y: foY - 2, width: foW + 4, height: foH + 4, color: rgb(1, 1, 1), borderColor: DORADO, borderWidth: 1.5 });
-  if (foto) fitImg(page, foto, foX, foY, foW, foH);
+  if (foto) coverImg(page, foto, foX, foY, foW, foH);
   else {
     page.drawRectangle({ x: foX, y: foY, width: foW, height: foH, color: rgb(0.93, 0.90, 0.86) });
     txt(page, 'SIN FOTO', foX + 16, foY + foH / 2, reg, 7, PIEDRA_500);
