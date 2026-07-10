@@ -27,8 +27,8 @@ interface CredData {
 }
 
 const GUINDA_HEADER = 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)';
-const CARD_W = 360;
-const FLIP_H = 272; // alto fijo para que frente y reverso coincidan al voltear
+const CARD_W = 460; // más ancha (proporción de credencial) — frente y reverso iguales
+const FLIP_H = 210; // alto fijo de respaldo; en modo volteable se mide dinámicamente
 
 function Campo({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
@@ -44,13 +44,14 @@ function Campo({ label, value, mono }: { label: string; value: string; mono?: bo
 /** Frente. `fill` estira a la altura del contenedor (modo volteable). */
 function Frente({ d, fill }: { d: CredData; fill?: boolean }) {
   return (
-    <div style={{ height: fill ? '100%' : undefined, display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e7dcd3', background: '#fbf7f5', boxShadow: '0 8px 26px rgba(74,14,32,0.10)' }}>
+    <div style={{ width: '100%', height: fill ? '100%' : undefined, display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e7dcd3', background: '#fbf7f5', boxShadow: '0 8px 26px rgba(74,14,32,0.10)' }}>
       <div style={{ background: GUINDA_HEADER, padding: '13px 18px', borderBottom: '3px solid #b8975a' }}>
         <div className="text-white font-bold text-[13px] tracking-wide">CREDENCIAL DEL ESTUDIANTE</div>
         <div className="text-[10px]" style={{ color: 'rgba(255,255,255,0.82)' }}>Preparatoria Abierta Michoacán · IEMSyS</div>
       </div>
-      <div className="p-4 flex gap-4" style={{ flex: 1 }}>
-        <div style={{ width: 88, height: 108, borderRadius: 8, overflow: 'hidden', border: '2px solid #b8975a', background: '#efe7de', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Cuerpo en 3 columnas: foto · datos · QR (al lado, no debajo) */}
+      <div className="p-4 flex gap-4 items-center" style={{ flex: 1 }}>
+        <div style={{ width: 92, height: 112, borderRadius: 8, overflow: 'hidden', border: '2px solid #b8975a', background: '#efe7de', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           {d.fotoUrl
             ? <img src={d.fotoUrl} alt="Foto" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             : <div className="flex flex-col items-center gap-1 text-[9px]" style={{ color: '#b3a596' }}><ImageOff size={18} /> Sin foto</div>}
@@ -60,13 +61,13 @@ function Frente({ d, fill }: { d: CredData; fill?: boolean }) {
           <Campo label="Matrícula oficial DGB" value={d.matricula ?? 'Sin asignar'} mono />
           <Campo label="Folio de credencial" value={d.folio} mono />
         </div>
-      </div>
-      <div className="px-4 pb-4 flex items-end justify-between">
-        <div className="flex items-center gap-1.5 text-[10px] font-semibold" style={{ color: 'var(--color-guinda-700)' }}>
-          <ShieldCheck size={13} /> Documento verificable
-        </div>
-        <div style={{ background: '#fff', padding: 5, borderRadius: 6, border: '1px solid #eadfd7' }}>
-          <QRCodeSVG value={d.verifyUrl} size={68} fgColor="#2a1720" bgColor="#ffffff" level="M" />
+        <div className="shrink-0 flex flex-col items-center gap-1.5">
+          <div style={{ background: '#fff', padding: 6, borderRadius: 8, border: '1px solid #eadfd7' }}>
+            <QRCodeSVG value={d.verifyUrl} size={92} fgColor="#2a1720" bgColor="#ffffff" level="M" />
+          </div>
+          <div className="flex items-center gap-1 text-[9px] font-semibold" style={{ color: 'var(--color-guinda-700)' }}>
+            <ShieldCheck size={11} /> Verificable
+          </div>
         </div>
       </div>
     </div>
@@ -76,7 +77,7 @@ function Frente({ d, fill }: { d: CredData; fill?: boolean }) {
 /** Reverso (datos + estado + convocatorias). */
 function Reverso({ d, fill }: { d: CredData; fill?: boolean }) {
   return (
-    <div style={{ height: fill ? '100%' : undefined, display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e7dcd3', background: '#ffffff', boxShadow: '0 8px 26px rgba(74,14,32,0.10)' }}>
+    <div style={{ width: '100%', height: fill ? '100%' : undefined, display: 'flex', flexDirection: 'column', borderRadius: 16, overflow: 'hidden', border: '1px solid #e7dcd3', background: '#ffffff', boxShadow: '0 8px 26px rgba(74,14,32,0.10)' }}>
       <div style={{ background: 'var(--color-guinda-800)', padding: '11px 18px' }}>
         <div className="text-white font-bold text-[12px] tracking-wide">DATOS DE LA CREDENCIAL</div>
       </div>
@@ -133,7 +134,8 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
     const el = wrapRef.current;
     if (!el) return;
     const update = () => {
-      setScale(Math.max(1, Math.min(1.6, el.clientWidth / CARD_W)));
+      // Se achica para caber en móvil (la tarjeta es ancha) y crece hasta 1.5x en pantallas grandes.
+      setScale(Math.max(0.5, Math.min(1.5, el.clientWidth / CARD_W)));
       const fh = frenteRef.current?.offsetHeight ?? 0;
       const rh = reversoRef.current?.offsetHeight ?? 0;
       if (fh || rh) setFaceH(Math.max(fh, rh));
@@ -190,11 +192,12 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
     );
   }
 
-  // ── Modo lado a lado (admin / gestor): todo visible ──
+  // ── Modo lado a lado (admin / gestor): ambas del MISMO tamaño (items-stretch
+  //    + fill hace que las dos tomen la altura de la más alta). ──
   return (
-    <div className="flex flex-wrap gap-5 justify-center">
-      <div style={{ width: CARD_W }}><Frente d={d} /></div>
-      <div style={{ width: CARD_W }}><Reverso d={d} /></div>
+    <div className="flex flex-wrap gap-5 justify-center items-stretch">
+      <div style={{ width: CARD_W, maxWidth: '100%', flexShrink: 0, display: 'flex' }}><Frente d={d} fill /></div>
+      <div style={{ width: CARD_W, maxWidth: '100%', flexShrink: 0, display: 'flex' }}><Reverso d={d} fill /></div>
     </div>
   );
 }

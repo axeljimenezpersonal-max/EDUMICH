@@ -100,17 +100,41 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
 }) {
   return (
     <>
-      <div className="flex items-start justify-between gap-4 mb-5">
-        <div>
-          <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">Tesorería del Estado</div>
-          <h1 className="font-serif text-3xl font-bold text-stone-900">Pagos</h1>
-          <p className="text-stone-600 mt-1 text-sm max-w-2xl">
-            Solicita la ficha de pago de tus alumnos; la coordinación la emite y luego subes tu comprobante.
-          </p>
+      <div className="mb-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">Tesorería del Estado</div>
+            <h1 className="font-serif text-3xl font-bold text-stone-900">Pagos de exámenes</h1>
+          </div>
+          <button onClick={onNuevo} className="gov-btn-primary inline-flex items-center gap-2 whitespace-nowrap">
+            <Plus size={16} /> Solicitar ficha
+          </button>
         </div>
-        <button onClick={onNuevo} className="gov-btn-primary inline-flex items-center gap-2 whitespace-nowrap">
-          <Plus size={16} /> Nuevo pago
-        </button>
+
+        {/* Instrucción prominente + flujo de 3 pasos */}
+        <div className="mt-4 rounded-2xl border border-[var(--color-guinda-100)] p-5 sm:p-6" style={{ background: 'linear-gradient(150deg, var(--color-crema-50), #ffffff)' }}>
+          <p className="font-serif text-lg sm:text-xl font-bold text-stone-900 leading-snug">
+            Solicita la ficha de pago de tus alumnos o de los exámenes a realizar.
+          </p>
+          <p className="mt-1 text-sm sm:text-base text-stone-600">
+            La coordinación emite las fichas ante la Tesorería y tú subes el comprobante.
+          </p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            {[
+              { n: 1, t: 'Solicitas la ficha', d: 'Eliges los exámenes de tus alumnos.' },
+              { n: 2, t: 'La coordinación la emite', d: 'Genera la línea de captura ante Tesorería.' },
+              { n: 3, t: 'Subes tu comprobante', d: 'Pagas y adjuntas el recibo.' },
+            ].map((s) => (
+              <div key={s.n} className="flex items-start gap-3 rounded-xl bg-white/70 border border-stone-100 px-3.5 py-3">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--color-guinda-700)] text-sm font-bold text-white">{s.n}</span>
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold text-stone-900 leading-tight">{s.t}</div>
+                  <div className="text-xs text-stone-500 mt-0.5 leading-snug">{s.d}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       {loading ? (
