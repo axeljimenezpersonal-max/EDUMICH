@@ -518,6 +518,9 @@ export default function EstudianteDashboard() {
           let cfg: { icon: typeof BadgeCheck; iconColor: string; ring: string; bg: string; titulo: string; texto: string; cta: string; href: string; ctaBg: string };
           if (!cred.emitida) {
             cfg = { icon: AlertCircle, iconColor: '#78716c', ring: '#e7e5e4', bg: '#fafaf9', titulo: 'Credencial aún no emitida', texto: 'Se emite al completar tu inscripción y tu expediente.', cta: 'Ir a mi expediente', href: '/estudiante/expediente', ctaBg: '#57534e' };
+          } else if (cred.fotoPerdida) {
+            // Hay registro de foto pero el archivo ya no está: la credencial sale sin foto.
+            cfg = { icon: AlertTriangle, iconColor: '#b91c1c', ring: '#fca5a5', bg: '#fff1f2', titulo: 'No encontramos tu fotografía', texto: 'Tu credencial se está mostrando sin foto. Vuelve a subir tu fotografía en el expediente para que aparezca.', cta: 'Volver a subir mi foto', href: '/estudiante/expediente', ctaBg: '#dc2626' };
           } else if (cred.fotoEstado === 'aprobado') {
             cfg = { icon: BadgeCheck, iconColor: '#15803d', ring: '#bbf7d0', bg: 'linear-gradient(160deg,#f0fdf4,#ffffff)', titulo: 'Tu credencial está lista', texto: 'Emitida con tu fotografía oficial. Ya puedes descargarla y usarla.', cta: 'Ver mi credencial', href: '/estudiante/identificacion', ctaBg: '#16a34a' };
           } else if (cred.fotoEstado === 'pendiente_revision') {

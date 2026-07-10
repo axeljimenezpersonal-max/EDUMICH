@@ -230,6 +230,7 @@ export interface DashboardEstudiante {
   credencial?: {
     emitida: boolean;
     fotoEstado: 'aprobado' | 'pendiente_revision' | 'rechazado' | null;
+    fotoPerdida: boolean;
   };
   kpis: {
     modulosAprobados: number;

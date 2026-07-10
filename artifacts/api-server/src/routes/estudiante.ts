@@ -233,7 +233,7 @@ router.get('/dashboard', async (req, res) => {
   // Aprobados = obligatorios aprobados (0-5); pendientes/rechazados en cualquier doc.
   const OBLIG_EXP = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
   const expDocs = await db
-    .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado })
+    .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado, rutaArchivo: expedienteDocumentos.rutaArchivo })
     .from(expedienteDocumentos)
     .where(eq(expedienteDocumentos.estudianteId, userId));
 
@@ -244,6 +244,11 @@ router.get('/dashboard', async (req, res) => {
   const tieneRechazados = expDocs.some((d) => d.estado === 'rechazado');
   // Estado de la fotografía (la credencial solo la muestra cuando está aprobada).
   const fotoDoc = expDocs.find((d) => d.tipo === 'foto');
+  // FILTRO REAL: ¿el archivo de la foto existe de verdad? En almacenamiento
+  // efímero (Railway sin volumen) el archivo puede perderse en un redeploy aunque
+  // el registro siga en BD → la credencial saldría sin foto sin que el alumno
+  // sepa por qué. Detectarlo permite avisarle que la vuelva a subir.
+  const fotoArchivoPresente = fotoDoc?.rutaArchivo ? await archivoExiste(fotoDoc.rutaArchivo) : false;
 
   // Avisos no leídos
   const [{ avisosNoLeidos }] = await db
@@ -393,6 +398,9 @@ router.get('/dashboard', async (req, res) => {
       emitida: !!est.licenciaDigital,
       // 'aprobado' | 'pendiente_revision' | 'rechazado' | null (sin subir)
       fotoEstado: fotoDoc?.estado ?? null,
+      // Hay registro de foto pero el archivo físico ya no está (almacenamiento
+      // efímero): la credencial saldrá sin foto y hay que volver a subirla.
+      fotoPerdida: !!fotoDoc && !fotoArchivoPresente,
     },
     siguientesPasos,
     avisosNoLeidos: Number(avisosNoLeidos),
