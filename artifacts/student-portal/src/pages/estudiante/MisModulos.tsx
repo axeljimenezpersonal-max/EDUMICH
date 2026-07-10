@@ -88,7 +88,36 @@ function ModuloCard({ modulo }: { modulo: ModuloListItem }) {
 }
 
 // ── Tarjeta de módulo (bloqueado) ─────────────────────────────────────────────
+// Dos variantes:
+//  · gris  → módulo sin inscribir (bloqueado de fondo).
+//  · ámbar → examen PRE-INSCRITO pero sin pagar: está a un pago de desbloquearse.
 function ModuloCardLocked({ modulo }: { modulo: ModuloListItem }) {
+  const porPagar = modulo.inscritoExamen && !modulo.pagado;
+
+  if (porPagar) {
+    return (
+      <Link href="/estudiante/pagos" className="block">
+        <div className="relative overflow-hidden rounded-lg border border-amber-300 bg-amber-50/70 p-5 ring-1 ring-amber-200 transition-shadow hover:shadow-md select-none cursor-pointer">
+          <div className="absolute -top-3 -right-1 text-[72px] font-bold leading-none text-amber-200/70 pointer-events-none">
+            {modulo.numero}
+          </div>
+          <span className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full font-semibold bg-amber-200 text-amber-800 mb-2">
+            <Lock size={9} />
+            Bloqueado · falta pago
+          </span>
+          <h3 className="font-serif text-sm font-semibold text-stone-800 leading-snug mb-3 pr-10">
+            {modulo.nombre}
+          </h3>
+          <div className="h-1.5 bg-amber-200/70 rounded-full mb-3" />
+          <div className="flex items-center justify-between text-xs">
+            <span className="font-semibold text-amber-800">Paga tu examen para desbloquearlo</span>
+            <ChevronRight size={14} className="text-amber-500" />
+          </div>
+        </div>
+      </Link>
+    );
+  }
+
   return (
     <div className="relative bg-stone-50 border border-stone-200 rounded-lg p-5 overflow-hidden opacity-60 cursor-not-allowed select-none">
       {/* Número decorativo */}
@@ -239,6 +268,10 @@ export default function MisModulos() {
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-3 rounded-full bg-emerald-200 border border-emerald-400" />
                 Examen pagado · módulo disponible
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-block w-3 h-3 rounded-full bg-amber-200 border border-amber-400" />
+                Pre-inscrito · paga para desbloquear
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={12} className="text-green-600" />
