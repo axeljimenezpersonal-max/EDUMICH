@@ -230,7 +230,7 @@ export default function GestorDashboard() {
           label="Pagos pendientes"
           value={data?.kpis.pagosPendientes ?? 0}
           accent="warning"
-          to="/gestor/alumnos?estado=pago_pendiente"
+          to="/gestor/pagos?estado=emitida"
         />
       </div>
 

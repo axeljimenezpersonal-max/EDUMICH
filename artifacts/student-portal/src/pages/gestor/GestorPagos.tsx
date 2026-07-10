@@ -98,7 +98,12 @@ export default function GestorPagos() {
 function ListaView({ pagos, loading, onNuevo, onAbrir }: {
   pagos: PagoExamenAlumno[]; loading: boolean; onNuevo: () => void; onAbrir: (id: number) => void;
 }) {
-  const [estadoFiltro, setEstadoFiltro] = useState<PagoExamenEstado | 'todos'>('todos');
+  // Puede llegar preseleccionado desde el inicio (KPI "Pagos pendientes" → ?estado=emitida).
+  const [estadoFiltro, setEstadoFiltro] = useState<PagoExamenEstado | 'todos'>(() => {
+    const q = new URLSearchParams(window.location.search).get('estado');
+    const validos: (PagoExamenEstado | 'todos')[] = ['todos', 'pendiente_emision', 'emitida', 'en_revision', 'pagado', 'vencido'];
+    return (validos as string[]).includes(q ?? '') ? (q as PagoExamenEstado) : 'todos';
+  });
   const FILTROS: { val: PagoExamenEstado | 'todos'; label: string }[] = [
     { val: 'todos', label: 'Todas' },
     { val: 'pendiente_emision', label: 'Solicitadas' },
