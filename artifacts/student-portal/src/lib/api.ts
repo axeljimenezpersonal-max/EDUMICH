@@ -128,6 +128,7 @@ export interface DashboardGestor {
     alumnosTotales: number;
     alumnosConInscripcion: number;
     documentosPendientes: number;
+    pagosPendientes: number;
   };
 }
 

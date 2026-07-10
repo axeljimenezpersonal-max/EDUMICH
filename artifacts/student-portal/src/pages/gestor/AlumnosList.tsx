@@ -20,6 +20,17 @@ const ESTADO_PROCESO: Record<string, { label: string; bg: string; color: string;
   al_corriente:        { label: 'Al corriente',         bg: '#d1fae5', color: '#166534', dot: '#16a34a' },
 };
 
+/** Predicado del filtro por estado (compartido por los chips y el conteo). */
+function estadoMatch(a: AlumnoListItem, val: string): boolean {
+  switch (val) {
+    case 'inscrito': return !!a.inscripcion;
+    case 'docs_pendientes': return a.estadoProceso === 'faltan_documentos' || a.estadoProceso === 'documento_rechazado';
+    case 'pago_pendiente': return a.estadoProceso === 'pago_pendiente' || a.modulosPorPagar > 0;
+    case 'al_corriente': return a.estadoProceso === 'al_corriente';
+    default: return true;
+  }
+}
+
 export default function AlumnosList() {
   const [alumnos, setAlumnos] = useState<AlumnoListItem[] | null>(null);
   const [filtro, setFiltro] = useState('');
@@ -37,7 +48,22 @@ export default function AlumnosList() {
     }
   }, []);
 
+  // Filtro por estado (se puede llegar preseleccionado desde el inicio del gestor,
+  // p.ej. /gestor/alumnos?estado=pago_pendiente).
+  const [estadoFiltro, setEstadoFiltro] = useState<string>(
+    () => new URLSearchParams(window.location.search).get('estado') || 'todos'
+  );
+
+  const FILTROS: { val: string; label: string }[] = [
+    { val: 'todos', label: 'Todos' },
+    { val: 'inscrito', label: 'Con inscripción' },
+    { val: 'docs_pendientes', label: 'Documentos pendientes' },
+    { val: 'pago_pendiente', label: 'Pago pendiente' },
+    { val: 'al_corriente', label: 'Al corriente' },
+  ];
+
   const filtered = (alumnos ?? []).filter((a) => {
+    if (!estadoMatch(a, estadoFiltro)) return false;
     const q = filtro.trim().toLowerCase();
     if (!q) return true;
     return a.nombreCompleto.toLowerCase().includes(q) || a.curp.toLowerCase().includes(q);
@@ -82,8 +108,8 @@ export default function AlumnosList() {
         </Link>
       </div>
 
-      {/* Filtro */}
-      <div className="bg-white border border-stone-200 rounded-md p-3 mb-4">
+      {/* Filtro: búsqueda + chips por estado */}
+      <div className="bg-white border border-stone-200 rounded-md p-3 mb-4 space-y-3">
         <div className="relative">
           <Search
             size={16}
@@ -95,6 +121,26 @@ export default function AlumnosList() {
             placeholder="Buscar por nombre o CURP..."
             className="gov-input pl-10"
           />
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {FILTROS.map((f) => {
+            const activo = estadoFiltro === f.val;
+            const n = (alumnos ?? []).filter((a) => estadoMatch(a, f.val)).length;
+            return (
+              <button
+                key={f.val}
+                onClick={() => setEstadoFiltro(f.val)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
+                  activo
+                    ? 'bg-[var(--color-guinda-700)] text-white border-[var(--color-guinda-700)]'
+                    : 'bg-white text-stone-600 border-stone-200 hover:border-[var(--color-guinda-300)]'
+                }`}
+              >
+                {f.label}
+                <span className={`rounded-full px-1.5 text-[10px] ${activo ? 'bg-white/20' : 'bg-stone-100 text-stone-500'}`}>{n}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 

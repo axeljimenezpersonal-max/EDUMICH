@@ -98,6 +98,16 @@ export default function GestorPagos() {
 function ListaView({ pagos, loading, onNuevo, onAbrir }: {
   pagos: PagoExamenAlumno[]; loading: boolean; onNuevo: () => void; onAbrir: (id: number) => void;
 }) {
+  const [estadoFiltro, setEstadoFiltro] = useState<PagoExamenEstado | 'todos'>('todos');
+  const FILTROS: { val: PagoExamenEstado | 'todos'; label: string }[] = [
+    { val: 'todos', label: 'Todas' },
+    { val: 'pendiente_emision', label: 'Solicitadas' },
+    { val: 'emitida', label: 'Listas para pagar' },
+    { val: 'en_revision', label: 'En revisión' },
+    { val: 'pagado', label: 'Pagadas' },
+    { val: 'vencido', label: 'Vencidas' },
+  ];
+  const fichasFiltradas = estadoFiltro === 'todos' ? pagos : pagos.filter((p) => p.estado === estadoFiltro);
   return (
     <>
       <div className="mb-6">
@@ -137,6 +147,30 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
         </div>
       </div>
 
+      {/* Filtro por estado */}
+      {!loading && pagos.length > 0 && (
+        <div className="mb-4 flex flex-wrap gap-2">
+          {FILTROS.map((f) => {
+            const activo = estadoFiltro === f.val;
+            const n = f.val === 'todos' ? pagos.length : pagos.filter((p) => p.estado === f.val).length;
+            return (
+              <button
+                key={f.val}
+                onClick={() => setEstadoFiltro(f.val)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold border transition-colors ${
+                  activo
+                    ? 'bg-[var(--color-guinda-700)] text-white border-[var(--color-guinda-700)]'
+                    : 'bg-white text-stone-600 border-stone-200 hover:border-[var(--color-guinda-300)]'
+                }`}
+              >
+                {f.label}
+                <span className={`rounded-full px-1.5 text-[10px] ${activo ? 'bg-white/20' : 'bg-stone-100 text-stone-500'}`}>{n}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>
       ) : pagos.length === 0 ? (
@@ -158,7 +192,9 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
               </tr>
             </thead>
             <tbody>
-              {pagos.map((p) => (
+              {fichasFiltradas.length === 0 ? (
+                <tr><td colSpan={5} className="px-4 py-8 text-center text-sm text-stone-400">Sin fichas en este estado.</td></tr>
+              ) : fichasFiltradas.map((p) => (
                 <tr key={p.id} onClick={() => onAbrir(p.id)} className="border-b border-stone-100 last:border-0 hover:bg-[var(--color-crema-50)] cursor-pointer">
                   <td className="px-4 py-3 font-mono text-xs text-stone-700">{p.folio ?? `#${p.id}`}</td>
                   <td className="px-4 py-3 text-center text-stone-700">{p.cantidadExamenes}</td>

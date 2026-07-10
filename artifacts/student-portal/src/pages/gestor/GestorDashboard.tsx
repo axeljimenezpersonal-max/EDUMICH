@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X } from 'lucide-react';
+import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X, CreditCard, ChevronRight } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, type DashboardGestor, type Convocatoria } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
@@ -202,25 +202,35 @@ export default function GestorDashboard() {
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      {/* KPIs — cada tarjeta lleva a su lista filtrada */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard
           icon={Users}
           label="Alumnos totales"
           value={data?.kpis.alumnosTotales ?? 0}
           accent="primary"
+          to="/gestor/alumnos"
         />
         <KpiCard
           icon={FileCheck2}
           label="Con inscripción"
           value={data?.kpis.alumnosConInscripcion ?? 0}
           accent="neutral"
+          to="/gestor/alumnos?estado=inscrito"
         />
         <KpiCard
           icon={FilePlus2}
           label="Documentos pendientes"
           value={data?.kpis.documentosPendientes ?? 0}
           accent="warning"
+          to="/gestor/alumnos?estado=docs_pendientes"
+        />
+        <KpiCard
+          icon={CreditCard}
+          label="Pagos pendientes"
+          value={data?.kpis.pagosPendientes ?? 0}
+          accent="warning"
+          to="/gestor/alumnos?estado=pago_pendiente"
         />
       </div>
 
@@ -249,11 +259,13 @@ function KpiCard({
   label,
   value,
   accent,
+  to,
 }: {
   icon: typeof Users;
   label: string;
   value: number;
   accent: 'primary' | 'neutral' | 'warning';
+  to?: string;
 }) {
   const accentBg =
     accent === 'primary'
@@ -261,20 +273,26 @@ function KpiCard({
       : accent === 'warning'
         ? 'bg-amber-100 text-amber-800'
         : 'bg-stone-100 text-stone-700';
-  return (
-    <div className="bg-white border border-stone-200 rounded-md p-5">
+  const inner = (
+    <>
       <div className="flex items-center justify-between mb-3">
-        <div
-          className={`w-9 h-9 rounded-md flex items-center justify-center ${accentBg}`}
-          aria-hidden
-        >
+        <div className={`w-9 h-9 rounded-md flex items-center justify-center ${accentBg}`} aria-hidden>
           <Icon size={18} />
         </div>
+        {to && <ChevronRight size={16} className="text-stone-300 group-hover:text-[var(--color-guinda-500)] transition-colors" />}
       </div>
       <div className="font-serif text-3xl font-bold text-stone-900">{value}</div>
       <div className="text-sm text-stone-600 mt-1">{label}</div>
-    </div>
+    </>
   );
+  if (to) {
+    return (
+      <Link href={to} className="group bg-white border border-stone-200 rounded-xl p-5 shadow-[0_1px_2px_rgba(74,14,32,0.03)] transition-all hover:border-[var(--color-guinda-300)] hover:shadow-md">
+        {inner}
+      </Link>
+    );
+  }
+  return <div className="bg-white border border-stone-200 rounded-md p-5">{inner}</div>;
 }
 
 function ActionCard({

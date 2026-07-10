@@ -158,6 +158,20 @@ router.get('/dashboard', async (req, res) => {
       )
     );
 
+  // Alumnos con pago pendiente: tienen al menos un examen inscrito (no cancelado)
+  // sin un pago consumado. Coincide con el badge "Pago pendiente" de la lista.
+  const pagosPend = await db.execute<{ c: number }>(sql`
+    SELECT COUNT(DISTINCT ei.estudiante_id)::int AS c
+    FROM examenes_inscripciones ei
+    JOIN estudiantes e ON e.user_id = ei.estudiante_id
+    WHERE e.gestor_id = ${userId}
+      AND ei.estado <> 'cancelado'
+      AND NOT EXISTS (
+        SELECT 1 FROM pagos_examen_inscripciones pei
+        JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+        WHERE pei.examen_inscripcion_id = ei.id AND pe.estado = 'pagado'
+      )`);
+
   res.json({
     municipio: ctx.nombreMunicipio,
     gestorNombre: ctx.nombreCompleto,
@@ -165,6 +179,7 @@ router.get('/dashboard', async (req, res) => {
       alumnosTotales: total,
       alumnosConInscripcion: conInscripcion.length,
       documentosPendientes: docsPendientes[0]?.c ?? 0,
+      pagosPendientes: Number(pagosPend.rows[0]?.c ?? 0),
     },
   });
 });
