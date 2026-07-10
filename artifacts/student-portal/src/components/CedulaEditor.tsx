@@ -199,7 +199,7 @@ export function CedulaEditor({
             </div>
             <p className="text-xs text-stone-500 mb-3">
               Guarda hasta dos firmas y elige cuál se estampa como responsable en las cédulas de los
-              alumnos sin gestor. Puedes volver a firmar o cambiar la firma en uso cuando quieras.
+              alumnos sin gestor. Para cambiar una firma, bórrala y vuelve a dibujarla.
             </p>
             <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
           </div>

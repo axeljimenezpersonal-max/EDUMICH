@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pen, Eraser, Check, Trash2, Loader2, RotateCcw, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Pen, Eraser, Check, Trash2, Loader2, CheckCircle2, AlertTriangle } from 'lucide-react';
 import { api, type FirmaResponse } from '../lib/api';
 
 /**
@@ -219,13 +219,8 @@ export default function FirmaPad({
                 <span className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Firma {n}</span>
                 {img && (
                   <div className="flex items-center gap-0.5">
-                    <button
-                      onClick={() => setDrawingSlot(n)}
-                      title="Volver a firmar"
-                      className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
-                    >
-                      <RotateCcw size={13} />
-                    </button>
+                    {/* Para volver a firmar se borra y se vuelve a dibujar: un solo
+                        botón (eliminar) en vez de dos que hacían lo mismo. */}
                     <button
                       onClick={() => setConfirmarBorrar(n)}
                       disabled={guardando}
