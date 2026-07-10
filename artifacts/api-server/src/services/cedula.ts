@@ -164,18 +164,26 @@ async function reunirDatos(estudianteId: number, responsableUserId?: number): Pr
     municipioNombre = m?.nombre ?? '';
   }
 
-  // Responsable de la inscripción: el gestor si el alumno tiene uno asignado;
-  // si no (alumnos auto-registrados), el administrador que procesa la cédula.
+  // Responsable de la inscripción: el gestor si el alumno tiene uno asignado y ese
+  // gestor YA registró su firma. Si el alumno no tiene gestor —o su gestor aún no
+  // tiene firma— firma el administrador que procesa la cédula (nombre + firma
+  // juntos, para que el documento sea coherente y nunca salga la línea en blanco).
   let responsableNombre = '';
   let firmaResponsable: string | null = null;
+  let firmaGestor: string | null = null;
   if (est.gestorId) {
     const [g] = await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, est.gestorId));
-    responsableNombre = g?.nombre ?? '';
     const [fr] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, est.gestorId));
-    firmaResponsable = firmaActiva(fr);
-  } else {
+    firmaGestor = firmaActiva(fr);
+    if (firmaGestor) {
+      responsableNombre = g?.nombre ?? '';
+      firmaResponsable = firmaGestor;
+    }
+  }
+  // Sin gestor, o gestor sin firma registrada → responsable = administrador.
+  if (!firmaResponsable) {
     const admin = await resolverAdminResponsable(responsableUserId);
-    responsableNombre = admin.nombre;
+    responsableNombre = admin.nombre || responsableNombre;
     firmaResponsable = admin.firma;
   }
 
