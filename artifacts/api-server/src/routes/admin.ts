@@ -2373,10 +2373,12 @@ router.get('/calificaciones/tabla', async (req, res) => {
       municipio: string | null; etapa_id: number; etapa_clave: string; etapa_anio: number;
       modulo_numero: number; modulo_nombre: string; folio: string; estado: string;
       calificacion: number | null; aciertos: number | null; sede: string | null;
+      matricula: string | null;
     };
     const result = await db.execute<Row>(sql`
       SELECT
         ei.id AS inscripcion_id, ei.estudiante_id, es.nombre_completo AS alumno, es.curp,
+        es.matricula_oficial_dgb AS matricula,
         mu.nombre AS municipio, ce.id AS etapa_id, ce.clave AS etapa_clave, ce.anio AS etapa_anio,
         m.numero AS modulo_numero, m.nombre AS modulo_nombre, ei.folio, ei.estado,
         ei.calificacion, c.aciertos, s.nombre AS sede
@@ -2408,6 +2410,7 @@ router.get('/calificaciones/tabla', async (req, res) => {
         estadoExamen: r.estado,
         calificacion: r.calificacion,
         aciertos: r.aciertos,
+        matricula: r.matricula,
         sede: r.sede,
       })),
     });

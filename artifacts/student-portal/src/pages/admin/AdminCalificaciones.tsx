@@ -9,10 +9,10 @@
  * enlace a la captura manual (correcciones puntuales).
  */
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import {
-  GraduationCap, Download, Search, X, CheckCircle2, XCircle, MinusCircle,
+  GraduationCap, Download, Search, X, CheckCircle2,
   UploadCloud, Loader2, PencilLine, AlertTriangle, RefreshCw,
   FileText, Bell, ShieldCheck,
 } from 'lucide-react';
@@ -35,6 +35,7 @@ interface Row {
   estadoExamen: string;
   calificacion: number | null;
   aciertos: number | null;
+  matricula: string | null;
   sede: string | null;
 }
 
@@ -397,13 +398,15 @@ function RelKpi({ label, value, tone }: { label: string; value: number; tone: 'n
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Tabla general
+// Tabla general (pivote por convocatoria, idéntico a la Relación de la SEP)
 // ═══════════════════════════════════════════════════════════════════════
+type ModCell = { modulo: number; moduloNombre: string; calif: number | null; aciertos: number | null; estado: string };
+type AlumnoPivote = { estudianteId: number; nombre: string; curp: string | null; matricula: string | null; mods: ModCell[] };
+type GrupoConvocatoria = { etapaId: number; etapaClave: string; etapaAnio: number; alumnos: AlumnoPivote[]; maxMods: number };
+
 function TablaGeneral({ rows }: { rows: Row[] | null }) {
   const [q, setQ] = useState('');
   const [fEtapa, setFEtapa] = useState<number | 'all'>('all');
-  const [fModulo, setFModulo] = useState<number | 'all'>('all');
-  const [fEstado, setFEstado] = useState<EstadoCalif | 'all'>('all');
 
   const etapas = useMemo(() => {
     const m = new Map<number, string>();
@@ -411,25 +414,17 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
     return Array.from(m, ([id, label]) => ({ id, label })).sort((a, b) => b.label.localeCompare(a.label));
   }, [rows]);
 
-  const modulosOpts = useMemo(() => {
-    const m = new Map<number, { numero: number; nombre: string }>();
-    (rows ?? []).forEach((r) => m.set(r.moduloNumero, { numero: r.moduloNumero, nombre: r.moduloNombre }));
-    return Array.from(m.values()).sort((a, b) => a.numero - b.numero);
-  }, [rows]);
-
   const filtradas = useMemo(() => {
     const query = q.trim().toLowerCase();
     return (rows ?? []).filter((r) => {
       if (fEtapa !== 'all' && r.etapaId !== fEtapa) return false;
-      if (fModulo !== 'all' && r.moduloNumero !== fModulo) return false;
-      if (fEstado !== 'all' && estadoDe(r) !== fEstado) return false;
       if (query) {
-        const hay = `${r.alumno ?? ''} ${r.curp ?? ''} ${r.folio} ${r.municipio ?? ''}`.toLowerCase();
+        const hay = `${r.alumno ?? ''} ${r.curp ?? ''} ${r.matricula ?? ''} ${r.folio} ${r.municipio ?? ''}`.toLowerCase();
         if (!hay.includes(query)) return false;
       }
       return true;
     });
-  }, [rows, q, fEtapa, fModulo, fEstado]);
+  }, [rows, q, fEtapa]);
 
   const stats = useMemo(() => {
     const total = filtradas.length;
@@ -443,13 +438,41 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
     return { total, aprobados, reprobados, sinCalificar, promedio };
   }, [filtradas]);
 
-  const hayFiltros = q !== '' || fEtapa !== 'all' || fModulo !== 'all' || fEstado !== 'all';
+  // ── Pivote idéntico a la Relación de la SEP ──────────────────────────────
+  // Una convocatoria = una sección. Dentro, UN renglón por alumno (sin repetir
+  // nombre) con sus módulos en horizontal como tripletes (Módulo · Cal · Aci).
+  const grupos = useMemo(() => {
+    const convMap = new Map<number, GrupoConvocatoria>();
+    for (const r of filtradas) {
+      let g = convMap.get(r.etapaId);
+      if (!g) {
+        g = { etapaId: r.etapaId, etapaClave: r.etapaClave, etapaAnio: r.etapaAnio, alumnos: [], maxMods: 0 };
+        convMap.set(r.etapaId, g);
+      }
+      let a = g.alumnos.find((x) => x.estudianteId === r.estudianteId);
+      if (!a) {
+        a = { estudianteId: r.estudianteId, nombre: r.alumno ?? '—', curp: r.curp, matricula: r.matricula, mods: [] };
+        g.alumnos.push(a);
+      }
+      a.mods.push({ modulo: r.moduloNumero, moduloNombre: r.moduloNombre, calif: r.calificacion, aciertos: r.aciertos, estado: r.estadoExamen });
+    }
+    const arr = Array.from(convMap.values());
+    for (const g of arr) {
+      for (const a of g.alumnos) a.mods.sort((x, y) => x.modulo - y.modulo);
+      g.alumnos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+      g.maxMods = g.alumnos.reduce((mx, a) => Math.max(mx, a.mods.length), 0);
+    }
+    arr.sort((a, b) => `${b.etapaClave} ${b.etapaAnio}`.localeCompare(`${a.etapaClave} ${a.etapaAnio}`, 'es'));
+    return arr;
+  }, [filtradas]);
+
+  const hayFiltros = q !== '' || fEtapa !== 'all';
 
   function exportar() {
-    const headers = ['Alumno', 'CURP', 'Municipio', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Sede', 'Calificación', 'Aciertos', 'Estado'];
+    const headers = ['Alumno', 'CURP', 'Matrícula', 'Municipio', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Sede', 'Calificación', 'Aciertos', 'Estado'];
     const cuerpo = filtradas.map((r) =>
       [
-        r.alumno ?? '', r.curp ?? '', r.municipio ?? '', `${r.etapaClave} · ${r.etapaAnio}`,
+        r.alumno ?? '', r.curp ?? '', r.matricula ?? '', r.municipio ?? '', `${r.etapaClave} · ${r.etapaAnio}`,
         r.moduloNumero, r.moduloNombre, r.folio, r.sede ?? '',
         r.calificacion == null ? '' : r.calificacion / 10, r.aciertos ?? '',
         ESTADO_META[estadoDe(r)].label,
@@ -486,7 +509,7 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por alumno, CURP, folio o municipio…"
+              placeholder="Buscar por alumno, matrícula o CURP…"
               className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
             />
           </div>
@@ -498,28 +521,9 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
             <option value="all">Todas las convocatorias</option>
             {etapas.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
           </select>
-          <select
-            value={String(fModulo)}
-            onChange={(e) => setFModulo(e.target.value === 'all' ? 'all' : Number(e.target.value))}
-            className="rounded-lg border border-stone-200 bg-white py-2 pl-3 pr-8 text-sm text-stone-700 focus:outline-none"
-          >
-            <option value="all">Todos los módulos</option>
-            {modulosOpts.map((m) => <option key={m.numero} value={m.numero}>Módulo {m.numero} — {m.nombre}</option>)}
-          </select>
-          <select
-            value={fEstado}
-            onChange={(e) => setFEstado(e.target.value as EstadoCalif | 'all')}
-            className="rounded-lg border border-stone-200 bg-white py-2 pl-3 pr-8 text-sm text-stone-700 focus:outline-none"
-          >
-            <option value="all">Todos los estados</option>
-            <option value="aprobado">Aprobados</option>
-            <option value="reprobado">No aprobados</option>
-            <option value="sin_calificar">Sin calificar</option>
-            <option value="no_presento">No presentó</option>
-          </select>
           {hayFiltros && (
             <button
-              onClick={() => { setQ(''); setFEtapa('all'); setFModulo('all'); setFEstado('all'); }}
+              onClick={() => { setQ(''); setFEtapa('all'); }}
               className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100"
             >
               <X size={13} /> Limpiar
@@ -536,78 +540,90 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
         </div>
       </div>
 
-      {/* Tabla */}
+      {/* Leyenda */}
+      <p className="mb-3 text-xs text-stone-500">
+        Un renglón por alumno; sus módulos en horizontal, tal cual la Relación de la SEP.
+        {' '}<strong className="text-stone-700">Mód</strong> = módulo · <strong className="text-stone-700">Cal</strong> = calificación 0–10 (6 aprueba) · <strong className="text-stone-700">Aci</strong> = aciertos · <span className="text-stone-400">—</span> = aún sin registrar.
+      </p>
+
+      {/* Relación por convocatoria (idéntica al PDF de la SEP) */}
       {rows === null ? (
         <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">
           <RefreshCw size={18} className="mx-auto mb-2 animate-spin" /> Cargando…
         </div>
-      ) : filtradas.length === 0 ? (
+      ) : grupos.length === 0 ? (
         <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-sm text-stone-500">
-          {rows.length === 0 ? 'Aún no hay exámenes registrados.' : 'Ningún registro coincide con los filtros.'}
+          {rows.length === 0 ? 'Aún no hay exámenes registrados.' : 'Ningún alumno coincide con la búsqueda.'}
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-stone-200 bg-white text-[11px] uppercase tracking-wider text-stone-500">
-                  <th className="px-3 py-2.5 text-left font-semibold">Alumno</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Municipio</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Convocatoria</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Módulo</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Folio</th>
-                  <th className="px-3 py-2.5 text-center font-semibold">Calif.</th>
-                  <th className="px-3 py-2.5 text-center font-semibold">Aciertos</th>
-                  <th className="px-3 py-2.5 text-left font-semibold">Estado</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filtradas.map((r, i) => {
-                  const est = estadoDe(r);
-                  const meta = ESTADO_META[est];
-                  return (
-                    <tr key={r.inscripcionId} className={`border-b border-stone-100 last:border-0 ${i % 2 ? 'bg-stone-50/40' : 'bg-white'} hover:bg-[var(--color-crema-50)]`}>
-                      <td className="px-3 py-2">
-                        <Link href={`/admin/alumnos/${r.estudianteId}`} className="font-medium text-stone-900 hover:text-[var(--color-guinda-700)]">
-                          {r.alumno ?? '—'}
-                        </Link>
-                        <div className="font-mono text-[10px] text-stone-400">{r.curp ?? ''}</div>
-                      </td>
-                      <td className="px-3 py-2 text-xs text-stone-500">{r.municipio ?? '—'}</td>
-                      <td className="px-3 py-2 text-xs text-stone-600">{r.etapaClave} · {r.etapaAnio}</td>
-                      <td className="px-3 py-2 text-stone-700">
-                        <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold" style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)' }}>
-                          {r.moduloNumero}
-                        </span>
-                        <span className="text-xs text-stone-600">{r.moduloNombre}</span>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-[11px] text-stone-500">{r.folio}</td>
-                      <td className="px-3 py-2 text-center">
-                        {r.calificacion !== null ? (
-                          <span className="inline-block min-w-[2.25rem] rounded-md px-2 py-0.5 font-mono text-sm font-bold" style={{ background: meta.bg, color: meta.color }}>
-                            {calif10(r.calificacion)}
-                          </span>
-                        ) : (
-                          <span className="font-mono text-stone-300">—</span>
-                        )}
-                      </td>
-                      <td className="px-3 py-2 text-center font-mono text-sm text-stone-600">
-                        {r.aciertos ?? <span className="text-stone-300">—</span>}
-                      </td>
-                      <td className="px-3 py-2">
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: meta.color }}>
-                          {est === 'aprobado' && <CheckCircle2 size={13} />}
-                          {est === 'reprobado' && <XCircle size={13} />}
-                          {(est === 'sin_calificar' || est === 'no_presento') && <MinusCircle size={13} className="text-stone-400" />}
-                          {meta.label}
-                        </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+        <div className="space-y-6">
+          {grupos.map((g) => (
+            <div key={g.etapaId}>
+              <div className="mb-2 flex items-baseline gap-2">
+                <h3 className="font-serif text-lg font-bold text-stone-900">Convocatoria {g.etapaClave}</h3>
+                <span className="text-xs text-stone-500">· {g.etapaAnio} · {g.alumnos.length} alumno{g.alumnos.length === 1 ? '' : 's'}</span>
+              </div>
+              <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
+                <div className="overflow-x-auto">
+                  <table className="text-sm">
+                    <thead>
+                      <tr className="border-b-2 border-stone-200 bg-[var(--color-crema-100)] text-[10px] uppercase tracking-wider text-stone-600">
+                        <th className="px-2 py-2 text-center font-semibold">Nº</th>
+                        <th className="px-3 py-2 text-left font-semibold">Nombre</th>
+                        <th className="px-3 py-2 text-left font-semibold">Matrícula</th>
+                        {Array.from({ length: g.maxMods }).map((_, i) => (
+                          <Fragment key={i}>
+                            <th className="border-l border-stone-200 px-2 py-2 text-center font-semibold">Mód</th>
+                            <th className="px-2 py-2 text-center font-semibold">Cal</th>
+                            <th className="px-2 py-2 text-center font-semibold">Aci</th>
+                          </Fragment>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {g.alumnos.map((a, idx) => (
+                        <tr key={a.estudianteId} className={`border-b border-stone-100 last:border-0 ${idx % 2 ? 'bg-stone-50/40' : 'bg-white'} hover:bg-[var(--color-crema-50)]`}>
+                          <td className="px-2 py-2 text-center text-xs text-stone-400">{idx + 1}</td>
+                          <td className="px-3 py-2 whitespace-nowrap">
+                            <Link href={`/admin/alumnos/${a.estudianteId}`} className="font-medium text-stone-900 hover:text-[var(--color-guinda-700)]">{a.nombre}</Link>
+                            {a.curp && <div className="font-mono text-[10px] text-stone-400">{a.curp}</div>}
+                          </td>
+                          <td className="px-3 py-2 font-mono text-[11px] text-stone-600 whitespace-nowrap">{a.matricula ?? '—'}</td>
+                          {Array.from({ length: g.maxMods }).map((_, i) => {
+                            const m = a.mods[i];
+                            if (!m) return (
+                              <Fragment key={i}>
+                                <td className="border-l border-stone-100" />
+                                <td />
+                                <td />
+                              </Fragment>
+                            );
+                            const est = estadoDe({ calificacion: m.calif, estadoExamen: m.estado });
+                            const meta = ESTADO_META[est];
+                            return (
+                              <Fragment key={i}>
+                                <td className="border-l border-stone-100 px-2 py-2 text-center">
+                                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-[10px] font-bold" style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)' }} title={m.moduloNombre}>{m.modulo}</span>
+                                </td>
+                                <td className="px-2 py-2 text-center">
+                                  {m.calif !== null
+                                    ? <span className="font-mono text-sm font-bold" style={{ color: meta.color }}>{calif10(m.calif)}</span>
+                                    : <span className="font-mono text-[11px] text-stone-300">—</span>}
+                                </td>
+                                <td className="px-2 py-2 text-center font-mono text-xs text-stone-600">
+                                  {m.aciertos ?? <span className="text-stone-300">—</span>}
+                                </td>
+                              </Fragment>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </>
