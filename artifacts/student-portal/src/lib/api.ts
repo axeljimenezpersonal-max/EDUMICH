@@ -668,6 +668,7 @@ export interface CalificacionExamen {
   aprobado: boolean | null;
   fechaExamen: string | null;
   capturada: boolean;
+  enProceso: boolean;
 }
 
 export interface CalificacionesResponse {

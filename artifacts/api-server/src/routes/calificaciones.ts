@@ -96,19 +96,23 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
   const pagadosRows = await db.execute<{
     inscripcion_id: number; folio: string; modulo_numero: number; modulo_nombre: string;
     calificacion: number | null; aprobado: boolean | null; fecha_examen: string | null; estado: string;
+    examen_etapa: string | null;
   }>(sql`
     SELECT ei.id AS inscripcion_id, ei.folio, ei.estado,
            m.numero AS modulo_numero, m.nombre AS modulo_nombre,
-           c.calificacion, c.aprobado, c.fecha_examen::text AS fecha_examen
+           c.calificacion, c.aprobado, c.fecha_examen::text AS fecha_examen,
+           ce.examen_sabado::text AS examen_etapa
     FROM examenes_inscripciones ei
     JOIN modulos m ON m.id = ei.modulo_id
     JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id
     JOIN pagos_examen pe ON pe.id = pei.pago_examen_id AND pe.estado = 'pagado'
+    LEFT JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
     LEFT JOIN calificaciones c ON c.inscripcion_examen_id = ei.id
     WHERE ei.estudiante_id = ${estudianteId} AND ei.estado <> 'cancelado'
-    GROUP BY ei.id, ei.folio, ei.estado, m.numero, m.nombre, c.calificacion, c.aprobado, c.fecha_examen
+    GROUP BY ei.id, ei.folio, ei.estado, m.numero, m.nombre, c.calificacion, c.aprobado, c.fecha_examen, ce.examen_sabado
     ORDER BY m.numero
   `);
+  const hoyStr = new Date().toISOString().slice(0, 10);
   const calificacionesExamen = pagadosRows.rows.map((r) => ({
     inscripcionId: Number(r.inscripcion_id),
     folio: r.folio,
@@ -118,6 +122,8 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     aprobado: r.aprobado,
     fechaExamen: r.fecha_examen,
     capturada: r.calificacion != null,
+    // Ya presentó (examen de la etapa pasó) pero aún sin calificación → en proceso.
+    enProceso: r.calificacion == null && !!r.examen_etapa && String(r.examen_etapa) < hoyStr,
   }));
 
   res.json({

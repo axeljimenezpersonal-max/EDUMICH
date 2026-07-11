@@ -155,7 +155,9 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                       <td className="px-4 py-2.5 text-right">
                         {c.capturada
                           ? <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{c.aprobado ? 'Aprobado' : 'No aprobado'}</span>
-                          : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700"><Clock size={11} /> Pendiente de captura</span>}
+                          : c.enProceso
+                          ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700"><Clock size={11} /> Calificación en proceso</span>
+                          : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500"><Clock size={11} /> Examen por presentar</span>}
                       </td>
                     </tr>
                   ))}

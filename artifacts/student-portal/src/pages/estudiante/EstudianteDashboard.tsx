@@ -670,6 +670,11 @@ export default function EstudianteDashboard() {
                 }
                 // Inscripción y pago SIEMPRE relacionados: un examen inscrito sin
                 // pago consumado está "pre-inscrito" (ámbar); con pago va en verde.
+                // "Calificación en proceso": ya presentó (examen pagado y su fecha
+                // pasó) pero aún no hay calificación (~4-5 días después del examen).
+                const hoyStr = new Date().toISOString().slice(0, 10);
+                const examPasado = !!ex.fechaExamen && ex.fechaExamen < hoyStr;
+                const yaPresento = ex.pagado || ex.estado === 'pase_validado' || ex.estado === 'pase_descargado';
                 let badgeCls = 'bg-stone-100 text-stone-600';
                 let badgeLabel = ex.estado;
                 if (ex.estado === 'cancelado') {
@@ -678,6 +683,8 @@ export default function EstudianteDashboard() {
                   badgeCls = 'bg-emerald-50 text-emerald-700'; badgeLabel = 'Aprobado';
                 } else if (ex.estado === 'reprobado') {
                   badgeCls = 'bg-red-50 text-red-700'; badgeLabel = 'No aprobado';
+                } else if (examPasado && yaPresento) {
+                  badgeCls = 'bg-indigo-50 text-indigo-700'; badgeLabel = 'Calificación en proceso';
                 } else if (ex.estado === 'pase_validado') {
                   badgeCls = 'bg-green-50 text-green-700'; badgeLabel = 'Validado en sede';
                 } else if (ex.estado === 'pase_descargado') {
