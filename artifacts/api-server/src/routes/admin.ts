@@ -5,7 +5,7 @@
  */
 
 import { Router } from 'express';
-import { and, eq, sql, desc, gte, count, countDistinct, isNull, inArray, isNotNull, SQL } from 'drizzle-orm';
+import { and, eq, ne, sql, desc, gte, count, countDistinct, isNull, inArray, isNotNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { guardarSubida, archivoStream, archivoExiste, archivoEliminar, archivoBuffer } from '../services/storage';
 import { parsearRelacionCalificaciones } from '../services/relacionCalificacionesPdf';
@@ -33,6 +33,9 @@ import {
   expedienteDocumentos,
   administradores,
   convocatoriasEtapas,
+  convocatoriasModulosHorarios,
+  pagosExamen,
+  pagosExamenInscripciones,
   anuncios,
   anunciosVistos,
   outbox,
@@ -1619,6 +1622,167 @@ router.get('/etapas', async (_req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error interno' });
+  }
+});
+
+// ─── Inscripción / baja de módulos por el ADMINISTRADOR ───────────────────
+// Regla dura: máximo 4 módulos por convocatoria (capacidad de horarios: sáb/dom
+// × 2 turnos). El admin puede corregir inscripciones sin candado de ventana ni
+// de expediente (es una herramienta de corrección), pero SIEMPRE respeta el
+// tope de 4, los choques de horario y los duplicados.
+const MAX_MODULOS_POR_ETAPA = 4;
+
+// GET /admin/estudiantes/:id/convocatoria/:etapaId/modulos — módulos ofertados
+// en esa convocatoria + cuáles ya tiene el alumno + cupo.
+router.get('/estudiantes/:id/convocatoria/:etapaId/modulos', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  const etapaId = Number(req.params.etapaId);
+  if (!alumnoId || !etapaId) { res.status(400).json({ error: 'Parámetros inválidos' }); return; }
+  try {
+    const horariosRows = await db
+      .select({ id: convocatoriasModulosHorarios.id, moduloId: convocatoriasModulosHorarios.moduloId, dia: convocatoriasModulosHorarios.dia, hora: convocatoriasModulosHorarios.hora })
+      .from(convocatoriasModulosHorarios)
+      .where(eq(convocatoriasModulosHorarios.etapaId, etapaId));
+    const modIds = [...new Set(horariosRows.map((h) => h.moduloId))];
+    const modulosRows = modIds.length
+      ? await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(inArray(modulos.id, modIds))
+      : [];
+    const modById = new Map(modulosRows.map((m) => [m.id, m]));
+    const activas = await db
+      .select({ moduloId: examenesInscripciones.moduloId })
+      .from(examenesInscripciones)
+      .where(and(eq(examenesInscripciones.estudianteId, alumnoId), eq(examenesInscripciones.etapaId, etapaId), ne(examenesInscripciones.estado, 'cancelado')));
+    const yaSet = new Set(activas.map((a) => a.moduloId));
+    const lista = horariosRows
+      .map((h) => {
+        const m = modById.get(h.moduloId);
+        return { id: h.moduloId, numero: m?.numero ?? null, nombre: m?.nombre ?? null, horarioId: h.id, dia: h.dia, hora: h.hora, yaInscrito: yaSet.has(h.moduloId) };
+      })
+      .sort((a, b) => (a.numero ?? 0) - (b.numero ?? 0));
+    res.json({ modulos: lista, activos: yaSet.size, maxModulos: MAX_MODULOS_POR_ETAPA });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error interno' });
+  }
+});
+
+// POST /admin/estudiantes/:id/inscribir-examen — Body: { etapaId, modulosIds }
+const adminInscribirSchema = z.object({
+  etapaId: z.number().int().positive(),
+  modulosIds: z.array(z.number().int().positive()).min(1),
+});
+router.post('/estudiantes/:id/inscribir-examen', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const parse = adminInscribirSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Datos inválidos', detalle: parse.error.errors }); return; }
+  const { etapaId, modulosIds } = parse.data;
+  try {
+    const [alumno] = await db
+      .select({ userId: estudiantes.userId, municipioId: estudiantes.municipioId })
+      .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+    if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+    const [etapa] = await db
+      .select({ id: convocatoriasEtapas.id, clave: convocatoriasEtapas.clave, examenSabado: convocatoriasEtapas.examenSabado, examenDomingo: convocatoriasEtapas.examenDomingo })
+      .from(convocatoriasEtapas).where(eq(convocatoriasEtapas.id, etapaId));
+    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+
+    const horariosRows = await db
+      .select({ id: convocatoriasModulosHorarios.id, moduloId: convocatoriasModulosHorarios.moduloId, dia: convocatoriasModulosHorarios.dia, hora: convocatoriasModulosHorarios.hora })
+      .from(convocatoriasModulosHorarios)
+      .where(and(eq(convocatoriasModulosHorarios.etapaId, etapaId), inArray(convocatoriasModulosHorarios.moduloId, modulosIds)));
+    const horarioByModuloId = new Map(horariosRows.map((h) => [h.moduloId, h]));
+
+    const existentes = await db
+      .select({ moduloId: examenesInscripciones.moduloId, dia: convocatoriasModulosHorarios.dia, hora: convocatoriasModulosHorarios.hora })
+      .from(examenesInscripciones)
+      .innerJoin(convocatoriasModulosHorarios, eq(convocatoriasModulosHorarios.id, examenesInscripciones.horarioId))
+      .where(and(eq(examenesInscripciones.estudianteId, alumnoId), eq(examenesInscripciones.etapaId, etapaId), ne(examenesInscripciones.estado, 'cancelado')));
+    const inscritosModuloIds = new Set(existentes.map((i) => i.moduloId));
+    const existingSlots = new Set(existentes.map((i) => `${i.dia}-${i.hora}`));
+    let activos = inscritosModuloIds.size;
+
+    let sedeId: number | null = null;
+    if (alumno.municipioId) {
+      const [s] = await db.select({ id: sedes.id }).from(sedes).where(eq(sedes.municipioId, alumno.municipioId)).limit(1);
+      if (s) sedeId = s.id;
+    }
+    if (!sedeId) { const [s] = await db.select({ id: sedes.id }).from(sedes).limit(1); if (s) sedeId = s.id; }
+    if (!sedeId) { res.status(500).json({ error: 'No hay sedes configuradas' }); return; }
+
+    const modulosRows = await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(inArray(modulos.id, modulosIds));
+    const modulosById = new Map(modulosRows.map((m) => [m.id, m]));
+
+    const sinHorario: number[] = [];
+    const conflicto: number[] = [];
+    const yaInscritos: number[] = [];
+    const excedeLimite: number[] = [];
+    const aInscribir: Array<{ moduloId: number; horarioId: number; folio: string }> = [];
+
+    for (const moduloId of modulosIds) {
+      const horario = horarioByModuloId.get(moduloId);
+      if (!horario) { sinHorario.push(moduloId); continue; }
+      if (inscritosModuloIds.has(moduloId)) { yaInscritos.push(moduloId); continue; }
+      const slot = `${horario.dia}-${horario.hora}`;
+      if (existingSlots.has(slot)) { conflicto.push(moduloId); continue; }
+      if (activos >= MAX_MODULOS_POR_ETAPA) { excedeLimite.push(moduloId); continue; }
+      const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
+      aInscribir.push({ moduloId, horarioId: horario.id, folio });
+      existingSlots.add(slot); inscritosModuloIds.add(moduloId); activos++;
+    }
+
+    const inscritos: Array<{ folio: string; moduloId: number; moduloNombre: string | null }> = [];
+    for (const item of aInscribir) {
+      await db.insert(examenesInscripciones).values({
+        estudianteId: alumnoId, etapaId: etapa.id, moduloId: item.moduloId,
+        horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
+      });
+      const mod = modulosById.get(item.moduloId);
+      inscritos.push({ folio: item.folio, moduloId: item.moduloId, moduloNombre: mod?.nombre ?? null });
+    }
+
+    if (inscritos.length) {
+      await tryAuditLog({
+        userId: req.user!.userId, accion: 'inscribir_examenes', entidad: 'examenes_inscripciones', entidadId: alumnoId,
+        detalle: `Admin inscribió al alumno ${alumnoId} en ${inscritos.length} examen(es) — etapa ${etapa.clave}`,
+        metadata: { etapaId: etapa.id, inscritos: inscritos.map((i) => i.folio) }, req,
+      });
+    }
+
+    res.json({ ok: true, inscritos, sinHorario, conflicto, yaInscritos, excedeLimite, maxModulos: MAX_MODULOS_POR_ETAPA });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error interno' });
+  }
+});
+
+// DELETE /admin/estudiantes/:id/examenes/:inscId — quitar un módulo inscrito
+router.delete('/estudiantes/:id/examenes/:inscId', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  const inscId = Number(req.params.inscId);
+  if (!alumnoId || !inscId) { res.status(400).json({ error: 'Parámetros inválidos' }); return; }
+  try {
+    const [insc] = await db
+      .select({ id: examenesInscripciones.id, estado: examenesInscripciones.estado })
+      .from(examenesInscripciones)
+      .where(and(eq(examenesInscripciones.id, inscId), eq(examenesInscripciones.estudianteId, alumnoId)));
+    if (!insc) { res.status(404).json({ error: 'Inscripción no encontrada' }); return; }
+    if (insc.estado === 'presentado') { res.status(409).json({ error: 'No se puede quitar: el examen ya se presentó.' }); return; }
+    const linked = await db.execute<{ id: number }>(sql`
+      SELECT pe.id FROM pagos_examen pe
+      JOIN pagos_examen_inscripciones pei ON pei.pago_examen_id = pe.id
+      WHERE pei.examen_inscripcion_id = ${inscId} AND pe.estado <> 'cancelado'`);
+    if (linked.rows.length > 0) {
+      res.status(409).json({ error: 'No se puede quitar: el módulo ya tiene una orden de pago. Cancela la orden primero.' });
+      return;
+    }
+    await db.delete(examenesInscripciones).where(eq(examenesInscripciones.id, inscId));
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'quitar_examen', entidad: 'examenes_inscripciones', entidadId: alumnoId,
+      detalle: `Admin quitó la inscripción ${inscId} del alumno ${alumnoId}`, req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo quitar el módulo' });
   }
 });
 

@@ -1628,6 +1628,15 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
 
   const occupiedSlots = new Set(existingInscripciones.map((e) => `${e.dia}|${e.hora}`));
 
+  // Regla dura: máximo 4 módulos por convocatoria (sáb/dom × 2 turnos).
+  const MAX_MODULOS_POR_ETAPA = 4;
+  if (existingInscripciones.length + horariosPorModulo.length > MAX_MODULOS_POR_ETAPA) {
+    res.status(400).json({
+      error: `Máximo ${MAX_MODULOS_POR_ETAPA} módulos por convocatoria. Ya tienes ${existingInscripciones.length} inscrito(s) en esta etapa.`,
+    });
+    return;
+  }
+
   // Check conflicts within new modules too
   const newSlots = new Set<string>();
   for (const { horario, moduloId } of horariosPorModulo) {

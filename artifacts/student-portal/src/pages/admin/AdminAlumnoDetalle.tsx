@@ -5,7 +5,7 @@ import {
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
   Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2, ClipboardList,
-  CalendarClock, ExternalLink,
+  CalendarClock, ExternalLink, Trash2,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
@@ -554,10 +554,32 @@ const MODULO_ESTADO_CFG: Record<string, { label: string; bg: string; color: stri
   solicitado: { label: 'Solicitado',  bg: '#fef9c3', color: '#854d0e', dot: '#d97706' },
 };
 
-function ModulosInscritos({ examenes }: { examenes: Examen[] }) {
-  if (examenes.length === 0) {
-    return <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>Este alumno no tiene módulos inscritos todavía.</p>;
+const MAX_MODULOS_POR_ETAPA = 4;
+
+function ModulosInscritos({ examenes, alumnoId, onChanged, showToast }: {
+  examenes: Examen[];
+  alumnoId: number;
+  onChanged: () => Promise<void> | void;
+  showToast: (msg: string, ok: boolean) => void;
+}) {
+  const [inscribirOpen, setInscribirOpen] = useState(false);
+  const [quitarTarget, setQuitarTarget] = useState<Examen | null>(null);
+  const [quitando, setQuitando] = useState(false);
+
+  async function handleQuitar(e: Examen) {
+    setQuitando(true);
+    try {
+      await api.delete(`/admin/estudiantes/${alumnoId}/examenes/${e.id}`);
+      showToast('Módulo quitado del alumno.', true);
+      setQuitarTarget(null);
+      await onChanged();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'No se pudo quitar el módulo', false);
+    } finally {
+      setQuitando(false);
+    }
   }
+
   // Agrupar por convocatoria (etapa)
   const grupos = new Map<number, { clave: string; anio: number | null; items: Examen[] }>();
   for (const e of examenes) {
@@ -565,47 +587,246 @@ function ModulosInscritos({ examenes }: { examenes: Examen[] }) {
     if (!g) { g = { clave: e.etapaClave ?? `Etapa #${e.etapaId}`, anio: e.etapaAnio, items: [] }; grupos.set(e.etapaId, g); }
     g.items.push(e);
   }
+
   return (
     <div className="space-y-4">
-      {[...grupos.values()].map((g) => (
-        <div key={g.clave} style={{ border: '1px solid #eadfd7', borderRadius: 12, overflow: 'hidden' }}>
-          {/* Encabezado de la convocatoria */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'linear-gradient(135deg,#fbf7f8,#fff)', borderBottom: '1px solid #f0e9e3' }}>
-            <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fbe6ea', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-              <CalendarClock size={17} style={{ color: 'var(--color-guinda-700)' }} />
+      {/* Barra de acción */}
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs" style={{ color: '#6b635e' }}>
+          Máximo <strong>{MAX_MODULOS_POR_ETAPA} módulos</strong> por convocatoria.
+        </p>
+        <button
+          onClick={() => setInscribirOpen(true)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg text-white shadow-sm hover:opacity-90"
+          style={{ background: 'var(--color-guinda-700)' }}
+        >
+          <Plus size={14} /> Inscribir módulo
+        </button>
+      </div>
+
+      {examenes.length === 0 ? (
+        <p className="text-sm text-center py-8" style={{ color: '#a89a8e' }}>Este alumno no tiene módulos inscritos todavía.</p>
+      ) : (
+        [...grupos.values()].map((g) => (
+          <div key={g.clave} style={{ border: '1px solid #eadfd7', borderRadius: 12, overflow: 'hidden' }}>
+            {/* Encabezado de la convocatoria */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'linear-gradient(135deg,#fbf7f8,#fff)', borderBottom: '1px solid #f0e9e3' }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, background: '#fbe6ea', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <CalendarClock size={17} style={{ color: 'var(--color-guinda-700)' }} />
+              </div>
+              <div>
+                <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a89a8e' }}>Convocatoria</div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}>{g.clave}{g.anio ? ` · ${g.anio}` : ''}</div>
+              </div>
+              <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: g.items.length > MAX_MODULOS_POR_ETAPA ? '#b91c1c' : '#6b635e' }}>
+                {g.items.length} de {MAX_MODULOS_POR_ETAPA} módulos{g.items.length > MAX_MODULOS_POR_ETAPA ? ' · excede el máximo' : ''}
+              </span>
             </div>
+            {/* Módulos con su tiempo de aplicación */}
             <div>
-              <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: '#a89a8e' }}>Convocatoria</div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}>{g.clave}{g.anio ? ` · ${g.anio}` : ''}</div>
-            </div>
-            <span style={{ marginLeft: 'auto', fontSize: 11, fontWeight: 600, color: '#6b635e' }}>{g.items.length} módulo{g.items.length === 1 ? '' : 's'}</span>
-          </div>
-          {/* Módulos con su tiempo de aplicación */}
-          <div>
-            {g.items.map((e) => {
-              const cfg = MODULO_ESTADO_CFG[e.moduloEstado] ?? MODULO_ESTADO_CFG.solicitado;
-              return (
-                <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: '1px solid #f7f2ed' }}>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2a2a2a' }}>
-                      {e.moduloNumero != null ? `Módulo ${e.moduloNumero} — ` : ''}{e.moduloNombre ?? 'Módulo'}
+              {g.items.map((e) => {
+                const cfg = MODULO_ESTADO_CFG[e.moduloEstado] ?? MODULO_ESTADO_CFG.solicitado;
+                // Se puede quitar solo si no tiene orden de pago y no se presentó.
+                const removible = e.moduloEstado === 'solicitado' && e.estado !== 'presentado';
+                return (
+                  <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderTop: '1px solid #f7f2ed' }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 13.5, fontWeight: 600, color: '#2a2a2a' }}>
+                        {e.moduloNumero != null ? `Módulo ${e.moduloNumero} — ` : ''}{e.moduloNombre ?? 'Módulo'}
+                      </div>
+                      <div style={{ fontSize: 12, color: '#6b635e', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <CalendarClock size={12} style={{ color: '#a89a8e', flexShrink: 0 }} />
+                        {e.fechaExamen ? fmtFechaExamen(e.fechaExamen) : 'Fecha por definir'}
+                        {e.hora && <span style={{ color: '#a89a8e' }}>· {e.hora} h</span>}
+                      </div>
                     </div>
-                    <div style={{ fontSize: 12, color: '#6b635e', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <CalendarClock size={12} style={{ color: '#a89a8e', flexShrink: 0 }} />
-                      {e.fechaExamen ? fmtFechaExamen(e.fechaExamen) : 'Fecha por definir'}
-                      {e.hora && <span style={{ color: '#a89a8e' }}>· {e.hora} h</span>}
-                    </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: cfg.bg, color: cfg.color, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                      <span style={{ width: 6, height: 6, borderRadius: 99, background: cfg.dot }} />
+                      {cfg.label}
+                    </span>
+                    {removible ? (
+                      <button
+                        onClick={() => setQuitarTarget(e)}
+                        title="Quitar módulo"
+                        className="flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-stone-400 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    ) : (
+                      <span className="flex-shrink-0 w-7 h-7" title="No se puede quitar: tiene pago o ya se presentó" />
+                    )}
                   </div>
-                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', padding: '3px 9px', borderRadius: 99, background: cfg.bg, color: cfg.color, flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: 99, background: cfg.dot }} />
-                    {cfg.label}
-                  </span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
+        ))
+      )}
+
+      {inscribirOpen && (
+        <InscribirModuloModal
+          alumnoId={alumnoId}
+          onClose={() => setInscribirOpen(false)}
+          onDone={async () => { setInscribirOpen(false); await onChanged(); }}
+          showToast={showToast}
+        />
+      )}
+
+      {quitarTarget && (
+        <ConfirmModal
+          danger
+          icon={<Trash2 size={18} />}
+          title="Quitar módulo"
+          message={<>¿Quitar <strong>{quitarTarget.moduloNombre ?? `Módulo ${quitarTarget.moduloNumero}`}</strong> de la convocatoria <strong>{quitarTarget.etapaClave}</strong>? La inscripción se eliminará.</>}
+          confirmLabel={quitando ? 'Quitando…' : 'Quitar módulo'}
+          onConfirm={() => handleQuitar(quitarTarget)}
+          onClose={() => { if (!quitando) setQuitarTarget(null); }}
+        />
+      )}
+    </div>
+  );
+}
+
+// Modal para inscribir módulos (admin): elige convocatoria → módulos (respeta máx. 4).
+type ModuloOpcion = { id: number; numero: number | null; nombre: string | null; dia: string; hora: string; yaInscrito: boolean };
+type EtapaOpcion = { id: number; clave: string; anio: number; estado: string; nombreCompleto: string };
+
+function InscribirModuloModal({ alumnoId, onClose, onDone, showToast }: {
+  alumnoId: number;
+  onClose: () => void;
+  onDone: () => Promise<void> | void;
+  showToast: (msg: string, ok: boolean) => void;
+}) {
+  const [etapas, setEtapas] = useState<EtapaOpcion[]>([]);
+  const [etapaId, setEtapaId] = useState<number | ''>('');
+  const [modulos, setModulos] = useState<ModuloOpcion[]>([]);
+  const [activos, setActivos] = useState(0);
+  const [maxModulos, setMaxModulos] = useState(MAX_MODULOS_POR_ETAPA);
+  const [sel, setSel] = useState<Set<number>>(new Set());
+  const [loadingMods, setLoadingMods] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    api.get<{ etapas: EtapaOpcion[] }>('/admin/etapas').then((r) => setEtapas(r.etapas)).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!etapaId) { setModulos([]); setSel(new Set()); return; }
+    setLoadingMods(true); setSel(new Set());
+    api.get<{ modulos: ModuloOpcion[]; activos: number; maxModulos: number }>(`/admin/estudiantes/${alumnoId}/convocatoria/${etapaId}/modulos`)
+      .then((r) => { setModulos(r.modulos); setActivos(r.activos); setMaxModulos(r.maxModulos); })
+      .catch(() => { setModulos([]); })
+      .finally(() => setLoadingMods(false));
+  }, [etapaId, alumnoId]);
+
+  const cupo = Math.max(0, maxModulos - activos); // cuántos más puede inscribir
+  const puedeMas = cupo - sel.size;
+
+  function toggle(m: ModuloOpcion) {
+    if (m.yaInscrito) return;
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(m.id)) { n.delete(m.id); return n; }
+      if (n.size >= cupo) return prev; // no exceder el cupo
+      n.add(m.id);
+      return n;
+    });
+  }
+
+  async function guardar() {
+    if (!etapaId || sel.size === 0) return;
+    setSaving(true);
+    try {
+      const r = await api.post<{ inscritos: unknown[]; excedeLimite: number[]; conflicto: number[]; maxModulos: number }>(
+        `/admin/estudiantes/${alumnoId}/inscribir-examen`,
+        { etapaId: Number(etapaId), modulosIds: [...sel] }
+      );
+      const n = r.inscritos?.length ?? 0;
+      if (n > 0) showToast(`${n} módulo${n === 1 ? '' : 's'} inscrito${n === 1 ? '' : 's'}.`, true);
+      if (r.excedeLimite?.length) showToast(`Máximo ${r.maxModulos} módulos por convocatoria; ${r.excedeLimite.length} no se inscribieron.`, false);
+      else if (r.conflicto?.length) showToast(`${r.conflicto.length} módulo(s) con choque de horario.`, false);
+      else if (n === 0) showToast('No se inscribió ningún módulo.', false);
+      await onDone();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'No se pudo inscribir', false);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }} onClick={() => { if (!saving) onClose(); }}>
+      <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+          <h3 className="font-serif text-lg font-bold text-stone-900">Inscribir módulos</h3>
+          <button onClick={() => { if (!saving) onClose(); }} className="text-stone-400 hover:text-stone-600"><X size={18} /></button>
         </div>
-      ))}
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1 uppercase tracking-widest">Convocatoria</label>
+            <select
+              value={String(etapaId)}
+              onChange={(e) => setEtapaId(e.target.value ? Number(e.target.value) : '')}
+              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+            >
+              <option value="">Selecciona convocatoria…</option>
+              {etapas.map((e) => <option key={e.id} value={e.id}>{e.clave} · {e.anio}</option>)}
+            </select>
+          </div>
+
+          {etapaId !== '' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold text-stone-600 uppercase tracking-widest">Módulos ofertados</label>
+                <span className={`text-xs font-semibold ${cupo === 0 ? 'text-red-600' : 'text-stone-500'}`}>
+                  {activos} de {maxModulos} inscritos · {puedeMas > 0 ? `puedes agregar ${puedeMas}` : 'sin cupo'}
+                </span>
+              </div>
+              {loadingMods ? (
+                <div className="py-8 text-center text-sm text-stone-400"><Loader2 size={16} className="inline animate-spin" /> Cargando módulos…</div>
+              ) : modulos.length === 0 ? (
+                <p className="py-6 text-center text-sm text-stone-400">Esta convocatoria no tiene módulos con horario configurado.</p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto rounded-lg border border-stone-200 divide-y divide-stone-100">
+                  {modulos.map((m) => {
+                    const checked = sel.has(m.id);
+                    const disabled = m.yaInscrito || (!checked && sel.size >= cupo);
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => toggle(m)}
+                        disabled={disabled}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 text-left ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-[var(--color-crema-50)]'}`}
+                      >
+                        <span className={`flex h-4 w-4 flex-shrink-0 items-center justify-center rounded border ${checked ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
+                          {checked && <CheckCircle size={12} className="text-white" />}
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-medium text-stone-800">
+                            {m.numero != null ? `Módulo ${m.numero} — ` : ''}{m.nombre ?? 'Módulo'}
+                          </span>
+                          <span className="block text-[11px] text-stone-500 capitalize">{m.dia} · {m.hora} h {m.yaInscrito && '· ya inscrito'}</span>
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <div className="flex gap-2 px-6 py-4 border-t border-stone-100">
+          <button onClick={() => { if (!saving) onClose(); }} className="flex-1 py-2.5 rounded-lg border border-stone-300 text-stone-600 text-sm font-semibold hover:bg-stone-50">Cancelar</button>
+          <button
+            onClick={guardar}
+            disabled={saving || sel.size === 0}
+            className="flex-1 py-2.5 rounded-lg text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+            style={{ background: 'var(--color-guinda-700)' }}
+          >
+            {saving ? <><Loader2 size={14} className="animate-spin" /> Inscribiendo…</> : <>Inscribir {sel.size > 0 ? `(${sel.size})` : ''}</>}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1134,7 +1355,15 @@ export default function AdminAlumnoDetalle() {
             <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} mostrarFirmaResponsable />
           )}
           {activeTab === 'modulos' && (
-            <ModulosInscritos examenes={examenes} />
+            <ModulosInscritos
+              examenes={examenes}
+              alumnoId={alumnoId}
+              showToast={showToast}
+              onChanged={async () => {
+                const fresh = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
+                setData(fresh);
+              }}
+            />
           )}
           {activeTab === 'credencial' && (
             !alumno.licenciaDigital ? (

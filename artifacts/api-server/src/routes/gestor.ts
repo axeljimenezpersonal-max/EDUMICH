@@ -2082,9 +2082,13 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
   const modulosById = new Map(modulosRows.map((m) => [m.id, m]));
 
   // 7. Process each requested module
+  // Regla dura: máximo 4 módulos por convocatoria (sáb/dom × 2 turnos).
+  const MAX_MODULOS_POR_ETAPA = 4;
+  let activos = inscritosModuloIds.size;
   const sinHorario: number[] = [];
   const conflicto: number[] = [];
   const yaInscritos: number[] = [];
+  const excedeLimite: number[] = [];
   const aInscribir: Array<{
     moduloId: number;
     horarioId: number;
@@ -2109,12 +2113,17 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
       conflicto.push(moduloId);
       continue;
     }
+    if (activos >= MAX_MODULOS_POR_ETAPA) {
+      excedeLimite.push(moduloId);
+      continue;
+    }
     const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
     const fechaExamen = horario.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
     aInscribir.push({ moduloId, horarioId: horario.id, dia: horario.dia, hora: horario.hora, fechaExamen, folio });
     // Track the new slot so subsequent modules in this request don't conflict
     existingSlots.add(slot);
     inscritosModuloIds.add(moduloId);
+    activos++;
   }
 
   // 8. Insert
@@ -2167,6 +2176,8 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
     sinHorario,
     conflicto,
     yaInscritos,
+    excedeLimite,
+    maxModulos: MAX_MODULOS_POR_ETAPA,
     periodoAbierto,
     ...(periodoAbierto ? {} : { advertencia: 'El período de inscripción no está abierto, pero el gestor puede inscribir manualmente.' }),
   });
