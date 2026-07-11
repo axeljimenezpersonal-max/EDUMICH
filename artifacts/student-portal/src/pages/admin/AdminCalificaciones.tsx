@@ -565,17 +565,17 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
               </div>
               <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
                 <div className="overflow-x-auto">
-                  <table className="text-sm">
+                  <table className="w-full text-sm">
                     <thead>
-                      <tr className="border-b-2 border-stone-200 bg-[var(--color-crema-100)] text-[10px] uppercase tracking-wider text-stone-600">
-                        <th className="px-2 py-2 text-center font-semibold">Nº</th>
-                        <th className="px-3 py-2 text-left font-semibold">Nombre</th>
-                        <th className="px-3 py-2 text-left font-semibold">Matrícula</th>
+                      <tr className="border-b-2 border-stone-200 bg-[var(--color-crema-100)] text-[11px] uppercase tracking-wider text-stone-600">
+                        <th className="px-3 py-2.5 text-center font-semibold">Nº</th>
+                        <th className="px-4 py-2.5 text-left font-semibold" style={{ width: '100%' }}>Nombre</th>
+                        <th className="px-4 py-2.5 text-left font-semibold">Matrícula</th>
                         {Array.from({ length: g.maxMods }).map((_, i) => (
                           <Fragment key={i}>
-                            <th className="border-l border-stone-200 px-2 py-2 text-center font-semibold">Mód</th>
-                            <th className="px-2 py-2 text-center font-semibold">Cal</th>
-                            <th className="px-2 py-2 text-center font-semibold">Aci</th>
+                            <th className="border-l border-stone-200 px-3 py-2.5 text-center font-semibold">Mód</th>
+                            <th className="px-3 py-2.5 text-center font-semibold">Cal</th>
+                            <th className="px-3 py-2.5 text-center font-semibold">Aci</th>
                           </Fragment>
                         ))}
                       </tr>
@@ -583,34 +583,34 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
                     <tbody>
                       {g.alumnos.map((a, idx) => (
                         <tr key={a.estudianteId} className={`border-b border-stone-100 last:border-0 ${idx % 2 ? 'bg-stone-50/40' : 'bg-white'} hover:bg-[var(--color-crema-50)]`}>
-                          <td className="px-2 py-2 text-center text-xs text-stone-400">{idx + 1}</td>
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            <Link href={`/admin/alumnos/${a.estudianteId}`} className="font-medium text-stone-900 hover:text-[var(--color-guinda-700)]">{a.nombre}</Link>
+                          <td className="px-3 py-3 text-center text-xs text-stone-400">{idx + 1}</td>
+                          <td className="px-4 py-3 whitespace-nowrap" style={{ width: '100%' }}>
+                            <Link href={`/admin/alumnos/${a.estudianteId}`} className="font-semibold text-[15px] text-stone-900 hover:text-[var(--color-guinda-700)]">{a.nombre}</Link>
                             {a.curp && <div className="font-mono text-[10px] text-stone-400">{a.curp}</div>}
                           </td>
-                          <td className="px-3 py-2 font-mono text-[11px] text-stone-600 whitespace-nowrap">{a.matricula ?? '—'}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-stone-600 whitespace-nowrap">{a.matricula ?? '—'}</td>
                           {Array.from({ length: g.maxMods }).map((_, i) => {
                             const m = a.mods[i];
                             if (!m) return (
                               <Fragment key={i}>
-                                <td className="border-l border-stone-100" />
-                                <td />
-                                <td />
+                                <td className="border-l border-stone-100 px-3 py-3" />
+                                <td className="px-3 py-3" />
+                                <td className="px-3 py-3" />
                               </Fragment>
                             );
                             const est = estadoDe({ calificacion: m.calif, estadoExamen: m.estado });
                             const meta = ESTADO_META[est];
                             return (
                               <Fragment key={i}>
-                                <td className="border-l border-stone-100 px-2 py-2 text-center">
-                                  <span className="inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded px-1 text-[10px] font-bold" style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)' }} title={m.moduloNombre}>{m.modulo}</span>
+                                <td className="border-l border-stone-100 px-3 py-3 text-center">
+                                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-xs font-bold" style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)' }} title={m.moduloNombre}>{m.modulo}</span>
                                 </td>
-                                <td className="px-2 py-2 text-center">
+                                <td className="px-3 py-3 text-center">
                                   {m.calif !== null
-                                    ? <span className="font-mono text-sm font-bold" style={{ color: meta.color }}>{calif10(m.calif)}</span>
-                                    : <span className="font-mono text-[11px] text-stone-300">—</span>}
+                                    ? <span className="font-mono text-base font-bold" style={{ color: meta.color }}>{calif10(m.calif)}</span>
+                                    : <span className="font-mono text-sm text-stone-300">—</span>}
                                 </td>
-                                <td className="px-2 py-2 text-center font-mono text-xs text-stone-600">
+                                <td className="px-3 py-3 text-center font-mono text-sm text-stone-600">
                                   {m.aciertos ?? <span className="text-stone-300">—</span>}
                                 </td>
                               </Fragment>
