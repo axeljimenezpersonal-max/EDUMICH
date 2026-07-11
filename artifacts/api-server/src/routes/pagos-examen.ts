@@ -1032,8 +1032,12 @@ router.get('/contabilidad', async (req, res) => {
 });
 
 /**
- * Marca como 'vencido' toda orden emitida/en_revisión cuya fecha de vencimiento
- * ya pasó. Se ejecuta por cron. Nunca toca órdenes ya pagadas o canceladas.
+ * Marca fichas como 'vencido'. Se ejecuta por cron (cada hora) y al arrancar.
+ * Nunca toca órdenes ya pagadas o canceladas. Dos reglas:
+ *  (a) orden emitida/en_revisión cuya fecha de vencimiento ya pasó;
+ *  (b) ficha aún NO pagada (pendiente_emision/emitida) cuya VENTANA DE SOLICITUD
+ *      de la etapa ya cerró (solicitud_fin) — no se pagó a tiempo, como SIOSAD.
+ *      'en_revision' se excluye: ya tiene comprobante, lo verifica la administración.
  */
 export async function vencerPagosExamen(): Promise<number> {
   const hoy = new Date().toISOString().slice(0, 10);
@@ -1047,7 +1051,17 @@ export async function vencerPagosExamen(): Promise<number> {
       )
     )
     .returning({ id: pagosExamen.id });
-  return res.length;
+
+  // (b) Vencimiento por cierre de la ventana de solicitud de la etapa.
+  const porVentana = await db.execute<{ id: number }>(sql`
+    UPDATE pagos_examen pe SET estado = 'vencido', updated_at = now()
+    FROM convocatorias_etapas ce
+    WHERE pe.etapa_id = ce.id
+      AND pe.estado IN ('pendiente_emision', 'emitida')
+      AND ce.solicitud_fin < ${hoy}
+    RETURNING pe.id`);
+
+  return res.length + porVentana.rows.length;
 }
 
 export default router;

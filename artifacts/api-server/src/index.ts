@@ -180,6 +180,9 @@ app.listen(PORT, '0.0.0.0', async () => {
   await sincronizarEstadosEtapas()
     .then((n) => console.log(`✅ Estados de etapas sincronizados (${n} cambios)`))
     .catch((e) => console.error('[Etapas] Error al sincronizar:', e));
+  await vencerPagosExamen()
+    .then((n) => console.log(`✅ Fichas de pago vencidas revisadas (${n} marcadas)`))
+    .catch((e) => console.error('[Pagos] Error al vencer fichas:', e));
 });
 
 export default app;
