@@ -27,9 +27,34 @@ interface AlumnoPendienteDocs {
   docsFaltantes: number;
 }
 
+interface EtapaActivaGestor {
+  clave: string;
+  solicitudInicio: string | null;
+  solicitudFin: string | null;
+  examenSabado: string | null;
+  examenDomingo: string | null;
+  ventana: 'abierta' | 'proxima';
+}
+
+// Rango de fechas compacto: "13–17 abr" o "30 abr – 2 may".
+function rangoFechas(a: string | null, b: string | null): string {
+  const M = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  if (!a || !b) return '—';
+  const da = new Date(a + 'T00:00:00'), db = new Date(b + 'T00:00:00');
+  return da.getMonth() === db.getMonth()
+    ? `${da.getDate()}–${db.getDate()} ${M[db.getMonth()]}`
+    : `${da.getDate()} ${M[da.getMonth()]} – ${db.getDate()} ${M[db.getMonth()]}`;
+}
+function diasHasta(s: string | null): number | null {
+  if (!s) return null;
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  return Math.ceil((new Date(s + 'T00:00:00').getTime() - hoy.getTime()) / 86400000);
+}
+
 export default function GestorDashboard() {
   const [data, setData] = useState<DashboardGestor | null>(null);
   const [conv, setConv] = useState<Convocatoria | null>(null);
+  const [etapaAct, setEtapaAct] = useState<EtapaActivaGestor | null>(null);
   const [alumnosPendientes, setAlumnosPendientes] = useState<AlumnoPendienteDocs[]>([]);
   const [anuncios, setAnuncios] = useState<AnuncioItem[]>([]);
   const [closedIds, setClosedIds] = useState<Set<number>>(new Set());
@@ -37,8 +62,8 @@ export default function GestorDashboard() {
   useEffect(() => {
     api.get<DashboardGestor>('/gestor/dashboard').then(setData).catch(console.error);
     api
-      .get<{ convocatoria: Convocatoria | null }>('/gestor/convocatoria-activa')
-      .then((r) => setConv(r.convocatoria))
+      .get<{ convocatoria: Convocatoria | null; etapaActiva: EtapaActivaGestor | null }>('/gestor/convocatoria-activa')
+      .then((r) => { setConv(r.convocatoria); setEtapaAct(r.etapaActiva); })
       .catch(console.error);
     api
       .get<{ alumnos: AlumnoPendienteDocs[] }>('/gestor/alumnos-pendientes-docs')
@@ -165,39 +190,53 @@ export default function GestorDashboard() {
                 {conv.nombre}
               </div>
 
+              {etapaAct && (
+                <div className="mt-1.5 text-sm text-white/70">
+                  Etapa <strong className="font-semibold text-white/90">{etapaAct.clave}</strong>
+                  {etapaAct.ventana === 'proxima' && ' · próxima ventana'}
+                </div>
+              )}
+
               <div className="mt-4 flex flex-wrap gap-2.5">
+                {/* Dos fechas oficiales de la etapa: solicitud/pago y presentación. */}
                 <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
                   <Calendar size={15} className="opacity-80" />
-                  Cierra el{' '}
+                  Solicitud y pago:{' '}
                   <strong className="font-semibold">
-                    {new Date(conv.fechaCierre).toLocaleDateString('es-MX', {
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric',
-                    })}
+                    {etapaAct ? rangoFechas(etapaAct.solicitudInicio, etapaAct.solicitudFin)
+                      : new Date(conv.fechaCierre).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}
                   </strong>
                 </span>
-                {conv.fechaExamen && (
-                  <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
-                    <FileCheck2 size={15} className="opacity-80" />
-                    Examen el{' '}
-                    <strong className="font-semibold">
-                      {new Date(conv.fechaExamen).toLocaleDateString('es-MX', {
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric',
-                      })}
-                    </strong>
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
+                  <FileCheck2 size={15} className="opacity-80" />
+                  Presentación:{' '}
+                  <strong className="font-semibold">
+                    {etapaAct ? rangoFechas(etapaAct.examenSabado, etapaAct.examenDomingo)
+                      : conv.fechaExamen ? new Date(conv.fechaExamen).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '—'}
+                  </strong>
+                </span>
               </div>
             </div>
 
-            <div className="hidden shrink-0 sm:block">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/12 ring-1 ring-white/20">
-                <Calendar size={30} className="text-white" />
-              </div>
-            </div>
+            {/* Cuenta regresiva: días para el cierre de solicitud/pago (lo que apremia al gestor). */}
+            {etapaAct && (() => {
+              const d = diasHasta(etapaAct.solicitudFin);
+              if (d === null || d < 0) return null;
+              const abrir = diasHasta(etapaAct.solicitudInicio);
+              const proxima = etapaAct.ventana === 'proxima' && abrir !== null && abrir > 0;
+              const num = proxima ? abrir : d;
+              return (
+                <div className="hidden shrink-0 text-center sm:block">
+                  <div className="rounded-2xl bg-white/12 px-6 py-4 ring-1 ring-white/20">
+                    <div className="font-serif text-4xl font-bold leading-none">{num}</div>
+                    <div className="mt-1 text-[11px] text-white/80 max-w-[120px]">
+                      {proxima ? (num === 1 ? 'día para que abra' : 'días para que abra')
+                        : (num === 1 ? 'día para el cierre de solicitud' : 'días para el cierre de solicitud')}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
       )}

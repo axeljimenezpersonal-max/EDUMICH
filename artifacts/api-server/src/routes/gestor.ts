@@ -883,7 +883,39 @@ router.get('/convocatoria-activa', async (_req, res) => {
     .where(eq(convocatorias.estado, 'abierta'))
     .orderBy(desc(convocatorias.fechaApertura))
     .limit(1);
-  res.json({ convocatoria: conv ?? null });
+
+  // Etapa relevante para el gestor: la que tiene la ventana de solicitud ABIERTA
+  // hoy; si ninguna, la PRÓXIMA en abrir. Trae las dos fechas (solicitud/examen).
+  const hoy = new Date().toISOString().slice(0, 10);
+  const [abierta] = await db.execute<{ clave: string; si: string; sf: string; es: string; ed: string }>(sql`
+    SELECT clave, solicitud_inicio::text si, solicitud_fin::text sf, examen_sabado::text es, examen_domingo::text ed
+    FROM convocatorias_etapas
+    WHERE solicitud_inicio <= ${hoy} AND solicitud_fin >= ${hoy}
+    ORDER BY solicitud_inicio DESC LIMIT 1`).then((r) => r.rows);
+  type EtapaVentana = { clave: string; si: string; sf: string; es: string; ed: string; ventana: 'abierta' | 'proxima' };
+  let etapaActiva: EtapaVentana | null = abierta ? { ...abierta, ventana: 'abierta' } : null;
+  if (!etapaActiva) {
+    const [prox] = await db.execute<{ clave: string; si: string; sf: string; es: string; ed: string }>(sql`
+      SELECT clave, solicitud_inicio::text si, solicitud_fin::text sf, examen_sabado::text es, examen_domingo::text ed
+      FROM convocatorias_etapas
+      WHERE solicitud_inicio > ${hoy}
+      ORDER BY solicitud_inicio ASC LIMIT 1`).then((r) => r.rows);
+    if (prox) etapaActiva = { ...prox, ventana: 'proxima' as const };
+  }
+
+  res.json({
+    convocatoria: conv ?? null,
+    etapaActiva: etapaActiva
+      ? {
+          clave: etapaActiva.clave,
+          solicitudInicio: etapaActiva.si,
+          solicitudFin: etapaActiva.sf,
+          examenSabado: etapaActiva.es,
+          examenDomingo: etapaActiva.ed,
+          ventana: etapaActiva.ventana,
+        }
+      : null,
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────
