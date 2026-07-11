@@ -265,6 +265,26 @@ router.post('/:id/comprobante', subirComprobanteMw, async (req, res) => {
     if (!p || !(await tieneAcceso(p, req.user!))) return res.status(404).json({ error: 'No existe' });
     if (!req.file) return res.status(400).json({ error: 'Falta el archivo' });
 
+    // CANDADO ESTRICTO DE PAGO: el comprobante solo se acepta DENTRO de la ventana
+    // de solicitud de la etapa. Después del cierre (ej. el día 18 si cerró el 17)
+    // ya no se puede pagar, igual que en SIOSAD.
+    if (p.etapaId != null) {
+      const [et] = await db
+        .select({ clave: convocatoriasEtapas.clave, si: convocatoriasEtapas.solicitudInicio, sf: convocatoriasEtapas.solicitudFin })
+        .from(convocatoriasEtapas)
+        .where(eq(convocatoriasEtapas.id, p.etapaId));
+      if (et) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+        if (et.si && hoy < String(et.si)) {
+          return res.status(400).json({ error: `La ventana de solicitud de la etapa ${et.clave} aún no abre (abre el ${fmt(String(et.si))}).` });
+        }
+        if (et.sf && String(et.sf) < hoy) {
+          return res.status(400).json({ error: `El plazo para pagar la etapa ${et.clave} venció el ${fmt(String(et.sf))}. Ya no se puede subir comprobante.` });
+        }
+      }
+    }
+
     const { metodoPago } = req.body as { metodoPago?: string };
 
     try {
@@ -403,6 +423,24 @@ router.post('/solicitar', async (req, res) => {
     const estudianteId = grupal ? null : inscs[0].estudianteId;
     const etapaId = inscs[0].etapaId ?? null;
     const cantidad = ids.length;
+
+    // CANDADO ESTRICTO: solo se solicita ficha DENTRO de la ventana de solicitud.
+    if (etapaId != null) {
+      const [et] = await db
+        .select({ clave: convocatoriasEtapas.clave, si: convocatoriasEtapas.solicitudInicio, sf: convocatoriasEtapas.solicitudFin })
+        .from(convocatoriasEtapas)
+        .where(eq(convocatoriasEtapas.id, etapaId));
+      if (et) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+        if (et.si && hoy < String(et.si)) {
+          return res.status(400).json({ error: `La ventana de solicitud de la etapa ${et.clave} aún no abre (abre el ${fmt(String(et.si))}).` });
+        }
+        if (et.sf && String(et.sf) < hoy) {
+          return res.status(400).json({ error: `El plazo de solicitud/pago de la etapa ${et.clave} venció el ${fmt(String(et.sf))}. Ya no se pueden solicitar fichas.` });
+        }
+      }
+    }
 
     let referencia: string | null = null;
     if (!grupal) {
