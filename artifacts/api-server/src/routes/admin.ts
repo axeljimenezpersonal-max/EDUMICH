@@ -47,7 +47,6 @@ import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/passwor
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
-import { generarPlantillaCalificaciones, parsearExcelCalificaciones } from '../services/calificacionesExcel';
 import { tryAuditLog } from '../utils/audit';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
@@ -2410,128 +2409,6 @@ router.get('/calificaciones/tabla', async (req, res) => {
         sede: r.sede,
       })),
     });
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error interno';
-    res.status(500).json({ error: message });
-  }
-});
-
-// ─── GET /admin/calificaciones/plantilla-excel?etapaId= ──────────────────
-// Descarga la plantilla .xlsx con los exámenes pendientes de calificar.
-router.get('/calificaciones/plantilla-excel', async (req, res) => {
-  const etapaId = parseInt(req.query.etapaId as string) || 0;
-  if (!etapaId) { res.status(400).json({ error: 'etapaId requerido' }); return; }
-  try {
-    const [etapa] = await db
-      .select()
-      .from(convocatoriasEtapas)
-      .where(eq(convocatoriasEtapas.id, etapaId));
-    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
-
-    type Row = {
-      folio: string; alumno: string; curp: string | null;
-      modulo_numero: number; modulo_nombre: string; sede: string | null;
-    };
-    const result = await db.execute<Row>(sql`
-      SELECT ei.folio, es.nombre_completo AS alumno, es.curp,
-             m.numero AS modulo_numero, m.nombre AS modulo_nombre, s.nombre AS sede
-      FROM examenes_inscripciones ei
-      JOIN estudiantes es ON es.user_id = ei.estudiante_id
-      JOIN modulos m ON m.id = ei.modulo_id
-      LEFT JOIN sedes s ON s.id = ei.sede_id
-      WHERE ei.etapa_id = ${etapaId}
-        AND ei.calificacion IS NULL
-        AND ei.estado NOT IN ('cancelado', 'no_presento')
-        AND ${EXAMEN_PAGADO_SQL}
-      ORDER BY m.numero, es.nombre_completo
-    `);
-
-    const label = `${etapa.clave} · ${etapa.anio}`;
-    const buffer = await generarPlantillaCalificaciones(
-      label,
-      result.rows.map((r) => ({
-        folio: r.folio,
-        alumno: r.alumno,
-        curp: r.curp ?? '',
-        moduloNumero: r.modulo_numero,
-        moduloNombre: r.modulo_nombre,
-        sede: r.sede ?? '',
-      }))
-    );
-
-    const nombre = `Calificaciones_${etapa.clave.replace(/[^A-Za-z0-9]/g, '')}_${etapa.anio}.xlsx`;
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${nombre}"`);
-    res.send(buffer);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : 'Error interno';
-    res.status(500).json({ error: message });
-  }
-});
-
-// ─── POST /admin/calificaciones/subir-excel ───────────────────────────────
-// Sube el .xlsx capturado; cruza por FOLIO y registra las calificaciones con
-// la misma lógica que la captura manual. Solo aplica a exámenes SIN calificación.
-const uploadExcelCalif = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 5 * 1024 * 1024 },
-});
-
-router.post('/calificaciones/subir-excel', (req, res, next) => {
-  uploadExcelCalif.single('archivo')(req, res, (err: unknown) => {
-    if (err) {
-      const msg = err instanceof Error
-        ? (err.message.includes('File too large') ? 'El archivo supera 5 MB' : err.message)
-        : 'No se pudo subir el archivo';
-      res.status(400).json({ error: msg });
-      return;
-    }
-    next();
-  });
-}, async (req, res) => {
-  const userId = req.user!.userId;
-  if (!req.file) { res.status(400).json({ error: 'Adjunta el archivo .xlsx' }); return; }
-
-  try {
-    const { filas, errores } = await parsearExcelCalificaciones(req.file.buffer);
-    if (filas.length === 0 && errores.length > 0) {
-      res.status(400).json({ error: errores[0].motivo, errores });
-      return;
-    }
-
-    // Cruce por folio → inscripción. Solo exámenes sin calificación previa.
-    const omitidas: { folio: string; motivo: string }[] = [...errores.map((e) => ({ folio: e.folio || `fila ${e.fila}`, motivo: e.motivo }))];
-    const items: { inscripcionId: number; calificacion?: number; noPresento?: boolean }[] = [];
-
-    for (const f of filas) {
-      const [insc] = await db
-        .select({ id: examenesInscripciones.id, calificacion: examenesInscripciones.calificacion, estado: examenesInscripciones.estado })
-        .from(examenesInscripciones)
-        .where(eq(examenesInscripciones.folio, f.folio.toUpperCase().trim()));
-      if (!insc) { omitidas.push({ folio: f.folio, motivo: 'Folio no encontrado' }); continue; }
-      if (insc.calificacion !== null) { omitidas.push({ folio: f.folio, motivo: `Ya tenía calificación (${insc.calificacion})` }); continue; }
-      if (insc.estado === 'cancelado') { omitidas.push({ folio: f.folio, motivo: 'Inscripción cancelada' }); continue; }
-      if (!(await examenEstaPagado(insc.id))) { omitidas.push({ folio: f.folio, motivo: 'Sin pago verificado — no se puede calificar' }); continue; }
-      items.push({ inscripcionId: insc.id, calificacion: f.calificacion, noPresento: f.noPresento });
-    }
-
-    if (items.length > 0) {
-      await aplicarCalificacionesLote(items, userId);
-    }
-
-    const aplicadas = items.filter((i) => i.calificacion !== undefined).length;
-    const noPresento = items.filter((i) => i.noPresento).length;
-
-    await tryAuditLog({
-      userId,
-      accion: 'capturar_calificacion_excel',
-      entidad: 'calificaciones',
-      detalle: `Subió Excel de calificaciones: ${aplicadas} aplicadas, ${noPresento} no presentó, ${omitidas.length} omitidas`,
-      metadata: { archivo: req.file.originalname, aplicadas, noPresento, omitidas: omitidas.length },
-      req,
-    });
-
-    res.json({ ok: true, aplicadas, noPresento, omitidas });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });

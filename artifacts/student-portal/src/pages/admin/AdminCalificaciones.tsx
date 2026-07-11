@@ -1,21 +1,19 @@
 /**
- * Calificaciones (admin) — carga profesional por Excel + tabla general.
+ * Calificaciones (admin) — carga por la RELACIÓN OFICIAL de la SEP (PDF) + tabla general.
  *
- * Flujo Excel:
- *  1. Elegir etapa y descargar la plantilla .xlsx (folios pendientes de calificar).
- *  2. Capturar CALIFICACIÓN (0-100) o marcar NO PRESENTÓ y subir el archivo.
- *  3. El sistema cruza por FOLIO, registra (misma lógica que la captura manual:
- *     ≥60 aprueba) y muestra el resumen con omitidas y motivos.
+ * Flujo único (así trabaja la coordinación): la Secretaría manda la "Relación de
+ * Calificaciones y Aciertos" en PDF. Se sube tal cual → previa con validación por
+ * semáforos (cruce por matrícula DGB) → aplicar. El Excel se retiró (no se usa).
  *
- * También incluye la tabla de TODAS las calificaciones con filtros y export,
- * y enlace a la captura manual existente.
+ * Incluye también la tabla de TODAS las calificaciones con filtros y export, y
+ * enlace a la captura manual (correcciones puntuales).
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import {
   GraduationCap, Download, Search, X, CheckCircle2, XCircle, MinusCircle,
-  FileSpreadsheet, UploadCloud, Loader2, PencilLine, AlertTriangle, RefreshCw,
+  UploadCloud, Loader2, PencilLine, AlertTriangle, RefreshCw,
   FileText, Bell, ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
@@ -39,12 +37,6 @@ interface Row {
   sede: string | null;
 }
 
-interface ResumenSubida {
-  ok: boolean;
-  aplicadas: number;
-  noPresento: number;
-  omitidas: { folio: string; motivo: string }[];
-}
 
 type EstadoCalif = 'aprobado' | 'reprobado' | 'no_presento' | 'sin_calificar';
 
@@ -92,7 +84,7 @@ export default function AdminCalificaciones() {
           </div>
           <h1 className="font-serif text-3xl font-bold text-stone-900">Calificaciones</h1>
           <p className="text-stone-600 mt-1">
-            Registra las calificaciones oficiales por Excel y consulta el histórico completo.
+            Sube la Relación oficial de la SEP y consulta el histórico completo de calificaciones.
           </p>
         </div>
         <Link
@@ -108,7 +100,6 @@ export default function AdminCalificaciones() {
       )}
 
       <SubidaRelacionPdf onAplicado={cargar} />
-      <SubidaExcel rows={rows} onAplicado={cargar} />
       <TablaGeneral rows={rows} />
     </AdminLayout>
   );
@@ -231,7 +222,6 @@ function SubidaRelacionPdf({ onAplicado }: { onAplicado: () => void }) {
       <div className="flex items-center gap-2 px-5 py-3" style={{ background: 'var(--color-guinda-800)' }}>
         <FileText size={16} className="text-white" />
         <h2 className="text-sm font-semibold text-white">Relación oficial de calificaciones (PDF de la SEP)</h2>
-        <span className="ml-auto rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold text-white">Recomendado</span>
       </div>
 
       {/* Paso 1: elegir archivo */}
@@ -402,179 +392,6 @@ function RelKpi({ label, value, tone }: { label: string; value: number; tone: 'n
     <div className="rounded-lg px-3 py-2 text-center" style={{ background: c.bg }}>
       <div className="text-lg font-bold" style={{ color: c.color }}>{value}</div>
       <div className="text-[11px] font-medium" style={{ color: c.color }}>{label}</div>
-    </div>
-  );
-}
-
-// ═══════════════════════════════════════════════════════════════════════
-// Carga por Excel (3 pasos)
-// ═══════════════════════════════════════════════════════════════════════
-function SubidaExcel({ rows, onAplicado }: { rows: Row[] | null; onAplicado: () => void }) {
-  const [etapaId, setEtapaId] = useState<number | ''>('');
-  const [archivo, setArchivo] = useState<File | null>(null);
-  const [subiendo, setSubiendo] = useState(false);
-  const [resumen, setResumen] = useState<ResumenSubida | null>(null);
-  const [errorSubida, setErrorSubida] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-
-  // Etapas con exámenes pendientes de calificar (derivadas de la tabla).
-  const etapas = useMemo(() => {
-    const m = new Map<number, { id: number; label: string; pendientes: number }>();
-    (rows ?? []).forEach((r) => {
-      const pendiente = r.calificacion === null && !['cancelado', 'no_presento'].includes(r.estadoExamen);
-      const cur = m.get(r.etapaId) ?? { id: r.etapaId, label: `${r.etapaClave} · ${r.etapaAnio}`, pendientes: 0 };
-      if (pendiente) cur.pendientes++;
-      m.set(r.etapaId, cur);
-    });
-    return Array.from(m.values()).sort((a, b) => b.label.localeCompare(a.label));
-  }, [rows]);
-
-  function elegirArchivo(f: File | null) {
-    setResumen(null);
-    setErrorSubida(null);
-    if (f && !f.name.toLowerCase().endsWith('.xlsx')) {
-      setErrorSubida('El archivo debe ser .xlsx (usa la plantilla descargable).');
-      return;
-    }
-    setArchivo(f);
-  }
-
-  async function subir() {
-    if (!archivo || subiendo) return;
-    setSubiendo(true);
-    setErrorSubida(null);
-    setResumen(null);
-    try {
-      const fd = new FormData();
-      fd.append('archivo', archivo);
-      const r = await api.post<ResumenSubida>('/admin/calificaciones/subir-excel', fd);
-      setResumen(r);
-      setArchivo(null);
-      if (fileRef.current) fileRef.current.value = '';
-      onAplicado();
-    } catch (e) {
-      setErrorSubida(e instanceof Error ? e.message : 'No se pudo procesar el archivo');
-    } finally {
-      setSubiendo(false);
-    }
-  }
-
-  const etapaSel = etapas.find((e) => e.id === etapaId);
-
-  return (
-    <div className="mb-6 overflow-hidden rounded-xl border border-stone-200 bg-white">
-      <div className="flex items-center gap-2 px-5 py-3" style={{ background: 'var(--color-guinda-700)' }}>
-        <FileSpreadsheet size={15} className="text-white" />
-        <h2 className="text-sm font-semibold text-white">Subir calificaciones desde Excel</h2>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-3">
-        {/* Paso 1 */}
-        <div className="rounded-xl border border-stone-200 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: 'var(--color-guinda-700)' }}>1</span>
-            <span className="text-sm font-bold text-stone-900">Descarga la plantilla</span>
-          </div>
-          <p className="mb-3 text-xs leading-relaxed text-stone-500">
-            Elige la convocatoria; la plantilla trae los folios <strong>con pago verificado</strong> pendientes de calificar.
-          </p>
-          <select
-            value={etapaId}
-            onChange={(e) => setEtapaId(e.target.value ? Number(e.target.value) : '')}
-            className="mb-2.5 w-full rounded-lg border border-stone-200 bg-white py-2 pl-3 pr-8 text-sm text-stone-700 focus:border-[var(--color-guinda-500)] focus:outline-none"
-          >
-            <option value="">Selecciona convocatoria…</option>
-            {etapas.map((e) => (
-              <option key={e.id} value={e.id}>{e.label} ({e.pendientes} pendientes)</option>
-            ))}
-          </select>
-          <a
-            href={etapaId ? `/api/admin/calificaciones/plantilla-excel?etapaId=${etapaId}` : undefined}
-            aria-disabled={!etapaId}
-            className={`inline-flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-xs font-semibold ${
-              etapaId
-                ? 'border-stone-200 bg-white text-[var(--color-guinda-700)] hover:bg-stone-50'
-                : 'pointer-events-none border-stone-100 bg-stone-50 text-stone-300'
-            }`}
-          >
-            <Download size={14} /> Descargar plantilla {etapaSel ? `(${etapaSel.pendientes})` : ''}
-          </a>
-        </div>
-
-        {/* Paso 2 */}
-        <div className="rounded-xl border border-stone-200 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: 'var(--color-guinda-700)' }}>2</span>
-            <span className="text-sm font-bold text-stone-900">Captura y sube</span>
-          </div>
-          <p className="mb-3 text-xs leading-relaxed text-stone-500">
-            Llena <strong>CALIFICACIÓN</strong> (0–100) o marca <strong>NO PRESENTÓ</strong> con una X, sin tocar el FOLIO.
-          </p>
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".xlsx"
-            className="hidden"
-            onChange={(e) => elegirArchivo(e.target.files?.[0] ?? null)}
-          />
-          <button
-            onClick={() => fileRef.current?.click()}
-            className="mb-2.5 flex w-full items-center justify-center gap-2 rounded-lg border-2 border-dashed border-stone-200 px-3 py-3 text-xs font-medium text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)]"
-          >
-            <UploadCloud size={16} />
-            {archivo ? archivo.name : 'Elegir archivo .xlsx…'}
-          </button>
-          <button
-            onClick={subir}
-            disabled={!archivo || subiendo}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
-            style={{ background: 'var(--color-guinda-700)' }}
-          >
-            {subiendo ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
-            {subiendo ? 'Procesando…' : 'Subir y registrar'}
-          </button>
-        </div>
-
-        {/* Paso 3 — resultado */}
-        <div className="rounded-xl border border-stone-200 p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: 'var(--color-guinda-700)' }}>3</span>
-            <span className="text-sm font-bold text-stone-900">Resultado</span>
-          </div>
-          {errorSubida && (
-            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800">{errorSubida}</div>
-          )}
-          {!errorSubida && !resumen && (
-            <p className="text-xs leading-relaxed text-stone-400">
-              Aquí verás cuántas calificaciones se registraron y cuáles filas se omitieron (con el motivo).
-            </p>
-          )}
-          {resumen && (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                <CheckCircle2 size={14} /> {resumen.aplicadas} calificaciones registradas
-              </div>
-              {resumen.noPresento > 0 && (
-                <div className="flex items-center gap-2 rounded-lg bg-stone-100 px-3 py-2 text-xs font-semibold text-stone-600">
-                  <MinusCircle size={14} /> {resumen.noPresento} marcados como no presentó
-                </div>
-              )}
-              {resumen.omitidas.length > 0 && (
-                <details className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  <summary className="flex cursor-pointer items-center gap-1.5 font-semibold">
-                    <AlertTriangle size={13} /> {resumen.omitidas.length} omitidas — ver motivos
-                  </summary>
-                  <ul className="mt-2 max-h-36 space-y-1 overflow-y-auto">
-                    {resumen.omitidas.map((o, i) => (
-                      <li key={i}><span className="font-mono">{o.folio}</span>: {o.motivo}</li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
