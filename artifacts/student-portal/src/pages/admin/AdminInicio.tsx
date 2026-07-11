@@ -28,9 +28,9 @@ type DashboardData = {
   } | null;
   tareasPendientes: {
     documentosPorRevisar: number;
-    pagosPorVerificar: number;
+    pagosPorEmitir: number;
+    pagosPorRevisar: number;
     solicitudesCuenta: number;
-    calificacionesPorCapturar: number;
   };
   kpisGenerales: {
     alumnosActivos: { total: number; deltaSemana: number };
@@ -274,11 +274,19 @@ export default function AdminInicio() {
               />
               <TareaCard
                 variant="pendiente"
+                icon={<FileCheck size={22} />}
+                num={data?.tareasPendientes.pagosPorEmitir ?? 0}
+                label="Pagos por emitir"
+                cta="Emitir línea de captura"
+                onClick={() => setLocation('/admin/ordenes-pago?estado=pendiente_emision')}
+              />
+              <TareaCard
+                variant="guinda"
                 icon={<CreditCard size={22} />}
-                num={data?.tareasPendientes.pagosPorVerificar ?? 0}
-                label="Pagos por verificar"
+                num={data?.tareasPendientes.pagosPorRevisar ?? 0}
+                label="Pagos por revisar"
                 cta="Verificar contra banco"
-                onClick={() => setLocation('/admin/alumnos?filtro=pagos_pendientes')}
+                onClick={() => setLocation('/admin/ordenes-pago?estado=en_revision')}
               />
               <TareaCard
                 variant="info"
@@ -287,14 +295,6 @@ export default function AdminInicio() {
                 label="Solicitudes de cuenta"
                 cta="Aprobar o rechazar"
                 onClick={() => setLocation('/admin/solicitudes')}
-              />
-              <TareaCard
-                variant="guinda"
-                icon={<GraduationCap size={22} />}
-                num={data?.tareasPendientes.calificacionesPorCapturar ?? 0}
-                label="Calificaciones por capturar"
-                cta="Capturar ahora"
-                onClick={() => setLocation('/admin/calificaciones')}
               />
             </div>
           </div>

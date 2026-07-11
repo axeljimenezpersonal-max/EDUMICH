@@ -76,7 +76,7 @@ function EstadoChip({ estado }: { estado: PagoExamenEstado }) {
 
 export default function AdminOrdenesPago() {
   const [seccion, setSeccion] = useState<'ordenes' | 'contabilidad'>('ordenes');
-  const [filtro, setFiltro] = useState('');
+  const [filtro, setFiltro] = useState(() => new URLSearchParams(window.location.search).get('estado') || '');
   const [gestorId, setGestorId] = useState('');
   const [etapaId, setEtapaId] = useState('');
   const [q, setQ] = useState('');

@@ -1100,10 +1100,13 @@ router.get('/dashboard', async (req, res) => {
       }
     } catch {}
 
+    // Tareas reales del administrador con el modelo de pago vía Tesorería
+    // (pagos_examen). Ya NO existe "calificaciones por capturar": las
+    // calificaciones entran por la Relación PDF de la SEP, no se capturan aquí.
     let documentosPorRevisar = 0;
-    let pagosPorVerificar = 0;
+    let pagosPorEmitir = 0;    // orden creada, falta emitir la línea de captura
+    let pagosPorRevisar = 0;   // comprobante subido, falta verificar contra banco
     let solicitudesCuentaPendientes = 0;
-    let calificacionesPorCapturar = 0;
 
     try {
       const [{ cnt }] = await db
@@ -1116,9 +1119,23 @@ router.get('/dashboard', async (req, res) => {
     try {
       const [{ cnt }] = await db
         .select({ cnt: count() })
-        .from(pagos)
-        .where(eq(pagos.estado, 'pendiente'));
-      pagosPorVerificar = Number(cnt);
+        .from(pagosExamen)
+        .where(eq(pagosExamen.estado, 'pendiente_emision'));
+      pagosPorEmitir = Number(cnt);
+    } catch {}
+
+    try {
+      const [{ cnt }] = await db
+        .select({ cnt: count() })
+        .from(pagosExamen)
+        .where(eq(pagosExamen.estado, 'en_revision'));
+      pagosPorRevisar = Number(cnt);
+      // Pagos grupales (gestor) con comprobante también esperan verificación.
+      const [{ cnt: cntG }] = await db
+        .select({ cnt: count() })
+        .from(pagosGrupales)
+        .where(eq(pagosGrupales.estado, 'en_revision'));
+      pagosPorRevisar += Number(cntG);
     } catch {}
 
     try {
@@ -1129,23 +1146,8 @@ router.get('/dashboard', async (req, res) => {
       solicitudesCuentaPendientes = Number(cnt);
     } catch {}
 
-    try {
-      const [{ cnt }] = await db
-        .select({ cnt: count() })
-        .from(examenesInscripciones)
-        .where(
-          and(
-            isNull(examenesInscripciones.calificacion),
-            eq(examenesInscripciones.estado, 'presentado')
-          )
-        );
-      calificacionesPorCapturar = Number(cnt);
-    } catch {
-      calificacionesPorCapturar = 0;
-    }
-
     const totalTareasPendientes =
-      documentosPorRevisar + pagosPorVerificar + solicitudesCuentaPendientes + calificacionesPorCapturar;
+      documentosPorRevisar + pagosPorEmitir + pagosPorRevisar + solicitudesCuentaPendientes;
 
     let alumnosActivosTotal = 0;
     let alumnosActivosDelta = 0;
@@ -1513,9 +1515,9 @@ router.get('/dashboard', async (req, res) => {
       convocatoriaActiva,
       tareasPendientes: {
         documentosPorRevisar,
-        pagosPorVerificar,
+        pagosPorEmitir,
+        pagosPorRevisar,
         solicitudesCuenta: solicitudesCuentaPendientes,
-        calificacionesPorCapturar,
       },
       kpisGenerales: {
         alumnosActivos: { total: alumnosActivosTotal, deltaSemana: alumnosActivosDelta },
