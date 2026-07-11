@@ -7,11 +7,50 @@
 import { Router } from 'express';
 import { eq, sql, and, or, isNull, gte } from 'drizzle-orm';
 import { db } from '../db';
-import { anuncios, anunciosVistos, estudiantes, gestores } from '@workspace/db/schema';
+import { anuncios, anunciosVistos, estudiantes, gestores, convocatoriasEtapas } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
 
 const router = Router();
 router.use(authRequired);
+
+// ─── GET /anuncios/calendario ─────────────────────────────────────────────
+// Anuncios de FECHAS calculados en vivo desde el calendario oficial de etapas
+// (siempre al día, sin cron). Visible para alumno, gestor y admin. Devuelve la
+// ventana de solicitud abierta hoy (o la próxima en abrir) y el examen próximo.
+router.get('/calendario', async (_req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const dias = (s: string) => Math.ceil((new Date(s + 'T00:00:00').getTime() - new Date(hoy + 'T00:00:00').getTime()) / 86400000);
+  const eventos: Array<{
+    tipo: 'ventana_abierta' | 'ventana_proxima' | 'examen';
+    clave: string; fecha: string; fechaFin?: string; dias: number; urgencia: 'alta' | 'media' | 'baja';
+  }> = [];
+
+  // Ventana de solicitud ABIERTA hoy → si no hay, la PRÓXIMA en abrir.
+  const [abierta] = await db.execute<{ clave: string; sf: string }>(sql`
+    SELECT clave, solicitud_fin::text sf FROM convocatorias_etapas
+    WHERE solicitud_inicio <= ${hoy} AND solicitud_fin >= ${hoy}
+    ORDER BY solicitud_fin ASC LIMIT 1`).then((r) => r.rows);
+  if (abierta) {
+    const d = dias(abierta.sf);
+    eventos.push({ tipo: 'ventana_abierta', clave: abierta.clave, fecha: abierta.sf, dias: d, urgencia: d <= 3 ? 'alta' : 'media' });
+  } else {
+    const [prox] = await db.execute<{ clave: string; si: string }>(sql`
+      SELECT clave, solicitud_inicio::text si FROM convocatorias_etapas
+      WHERE solicitud_inicio > ${hoy} ORDER BY solicitud_inicio ASC LIMIT 1`).then((r) => r.rows);
+    if (prox) eventos.push({ tipo: 'ventana_proxima', clave: prox.clave, fecha: prox.si, dias: dias(prox.si), urgencia: 'baja' });
+  }
+
+  // Próximo examen (dentro de los próximos 14 días).
+  const [exam] = await db.execute<{ clave: string; es: string; ed: string }>(sql`
+    SELECT clave, examen_sabado::text es, examen_domingo::text ed FROM convocatorias_etapas
+    WHERE examen_sabado >= ${hoy} ORDER BY examen_sabado ASC LIMIT 1`).then((r) => r.rows);
+  if (exam) {
+    const d = dias(exam.es);
+    if (d <= 14) eventos.push({ tipo: 'examen', clave: exam.clave, fecha: exam.es, fechaFin: exam.ed, dias: d, urgencia: d <= 3 ? 'alta' : 'media' });
+  }
+
+  res.json({ eventos });
+});
 
 router.get('/mios', async (req, res) => {
   const { userId, rol } = req.user!;

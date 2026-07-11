@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X, CreditCard, ChevronRight } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
+import { AvisosCalendario } from '../../components/AvisosCalendario';
 import { api, type DashboardGestor, type Convocatoria } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
 
@@ -153,6 +154,9 @@ export default function GestorDashboard() {
           </div>
         </div>
       )}
+
+      {/* Fechas del calendario oficial (ventana de solicitud/pago, examen) */}
+      <div className="mb-6"><AvisosCalendario /></div>
 
       {/* Convocatoria activa — banner destacado */}
       {conv && (
