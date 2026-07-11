@@ -934,6 +934,7 @@ router.get('/calificaciones', async (req, res) => {
         estudianteId: examenesInscripciones.estudianteId,
         alumno: estudiantes.nombreCompleto,
         curp: estudiantes.curp,
+        matricula: estudiantes.matriculaOficialDGB,
         etapaId: examenesInscripciones.etapaId,
         etapaClave: convocatoriasEtapas.clave,
         etapaEtapa: convocatoriasEtapas.etapa,

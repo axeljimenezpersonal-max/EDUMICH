@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, calif10 } from '../../lib/api';
+import { RelacionCalificacionesPivote } from '../../components/RelacionCalificacionesPivote';
 
 // Calificación mínima aprobatoria de exámenes oficiales (la que aplica la
 // captura del admin: >= 60 aprueba).
@@ -29,6 +30,7 @@ interface CalifRow {
   estudianteId: number;
   alumno: string | null;
   curp: string | null;
+  matricula: string | null;
   etapaId: number;
   etapaClave: string;
   etapaEtapa: string;
@@ -161,11 +163,6 @@ function ExamenesView() {
 
   const [q, setQ] = useState('');
   const [fEtapa, setFEtapa] = useState<number | 'all'>('all');
-  const [fModulo, setFModulo] = useState<number | 'all'>('all');
-  const [fEstado, setFEstado] = useState<EstadoCalif | 'all'>('all');
-  const [groupBy, setGroupBy] = useState<GroupBy>('modulo');
-  const [sortKey, setSortKey] = useState<SortKey>('alumno');
-  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   useEffect(() => {
     api
@@ -180,45 +177,17 @@ function ExamenesView() {
     return Array.from(m, ([id, label]) => ({ id, label })).sort((a, b) => b.label.localeCompare(a.label));
   }, [rows]);
 
-  const modulosOpts = useMemo(() => {
-    const m = new Map<number, { numero: number; nombre: string }>();
-    (rows ?? []).forEach((r) => m.set(r.moduloNumero, { numero: r.moduloNumero, nombre: r.moduloNombre }));
-    return Array.from(m.values()).sort((a, b) => a.numero - b.numero);
-  }, [rows]);
-
   const filtradas = useMemo(() => {
     const query = q.trim().toLowerCase();
     return (rows ?? []).filter((r) => {
       if (fEtapa !== 'all' && r.etapaId !== fEtapa) return false;
-      if (fModulo !== 'all' && r.moduloNumero !== fModulo) return false;
-      if (fEstado !== 'all' && estadoDe(r) !== fEstado) return false;
       if (query) {
-        const hay = `${r.alumno ?? ''} ${r.curp ?? ''} ${r.folio}`.toLowerCase();
+        const hay = `${r.alumno ?? ''} ${r.curp ?? ''} ${r.matricula ?? ''} ${r.folio}`.toLowerCase();
         if (!hay.includes(query)) return false;
       }
       return true;
     });
-  }, [rows, q, fEtapa, fModulo, fEstado]);
-
-  const ordenadas = useMemo(() => {
-    const arr = [...filtradas];
-    const dir = sortDir === 'asc' ? 1 : -1;
-    arr.sort((a, b) => {
-      let cmp = 0;
-      switch (sortKey) {
-        case 'alumno': cmp = (a.alumno ?? '').localeCompare(b.alumno ?? ''); break;
-        case 'modulo': cmp = a.moduloNumero - b.moduloNumero; break;
-        case 'convocatoria': cmp = convLabel(a).localeCompare(convLabel(b)); break;
-        case 'calificacion': {
-          const av = a.calificacion ?? -1, bv = b.calificacion ?? -1;
-          cmp = av - bv; break;
-        }
-      }
-      if (cmp === 0) cmp = (a.alumno ?? '').localeCompare(b.alumno ?? '') || a.moduloNumero - b.moduloNumero;
-      return cmp * dir;
-    });
-    return arr;
-  }, [filtradas, sortKey, sortDir]);
+  }, [rows, q, fEtapa]);
 
   const stats = useMemo(() => {
     const total = filtradas.length;
@@ -233,43 +202,14 @@ function ExamenesView() {
     return { total, aprobados, reprobados, sinCalificar, promedio, tasa };
   }, [filtradas]);
 
-  const grupos = useMemo(() => {
-    if (groupBy === 'ninguno') return null;
-    const map = new Map<string, { label: string; sub: string; rows: CalifRow[]; orden: number | string }>();
-    for (const r of ordenadas) {
-      let key: string, label: string, sub: string, orden: number | string;
-      if (groupBy === 'modulo') {
-        key = `m${r.moduloNumero}`; label = moduloLabel(r); sub = ''; orden = r.moduloNumero;
-      } else if (groupBy === 'alumno') {
-        key = `a${r.estudianteId}`; label = r.alumno ?? '—'; sub = r.curp ?? ''; orden = r.alumno ?? '';
-      } else {
-        key = `e${r.etapaId}`; label = convLabel(r); sub = ''; orden = r.etapaClave;
-      }
-      if (!map.has(key)) map.set(key, { label, sub, rows: [], orden });
-      map.get(key)!.rows.push(r);
-    }
-    return Array.from(map.values()).sort((a, b) =>
-      typeof a.orden === 'number' && typeof b.orden === 'number'
-        ? a.orden - b.orden
-        : String(a.orden).localeCompare(String(b.orden))
-    );
-  }, [ordenadas, groupBy]);
-
-  function toggleSort(k: SortKey) {
-    if (sortKey === k) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortKey(k); setSortDir('asc'); }
-  }
-
-  function limpiarFiltros() {
-    setQ(''); setFEtapa('all'); setFModulo('all'); setFEstado('all');
-  }
-  const hayFiltros = q !== '' || fEtapa !== 'all' || fModulo !== 'all' || fEstado !== 'all';
+  function limpiarFiltros() { setQ(''); setFEtapa('all'); }
+  const hayFiltros = q !== '' || fEtapa !== 'all';
 
   function exportar() {
     descargarCSV(
-      ['Alumno', 'CURP', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Aciertos', 'Estado'],
-      ordenadas.map((r) => [
-        r.alumno ?? '', r.curp ?? '', convLabel(r), r.moduloNumero, r.moduloNombre,
+      ['Alumno', 'CURP', 'Matrícula', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Aciertos', 'Estado'],
+      filtradas.map((r) => [
+        r.alumno ?? '', r.curp ?? '', r.matricula ?? '', convLabel(r), r.moduloNumero, r.moduloNombre,
         r.folio, r.calificacion == null ? '' : r.calificacion / 10, r.aciertos ?? '', ESTADO_META[estadoDe(r)].label,
       ]),
       'examenes_oficiales'
@@ -294,46 +234,13 @@ function ExamenesView() {
 
       {/* Barra de herramientas */}
       <div className="mb-4 rounded-xl border border-stone-200 bg-white p-3">
-        <div className="mb-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-wider text-stone-500">Agrupar por</span>
-          {([
-            ['modulo', 'Módulo', BookOpen],
-            ['alumno', 'Alumno', User],
-            ['convocatoria', 'Convocatoria', CalendarDays],
-            ['ninguno', 'Sin agrupar', Layers],
-          ] as const).map(([val, label, Icon]) => (
-            <button
-              key={val}
-              onClick={() => setGroupBy(val)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                groupBy === val ? 'border-transparent text-white' : 'border-stone-200 text-stone-600 hover:bg-stone-50'
-              }`}
-              style={groupBy === val ? { background: 'var(--color-guinda-700)' } : undefined}
-            >
-              <Icon size={13} />
-              {label}
-            </button>
-          ))}
-          <div className="ml-auto">
-            <button
-              onClick={exportar}
-              disabled={ordenadas.length === 0}
-              className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
-              style={{ background: 'var(--color-guinda-700)' }}
-            >
-              <Download size={14} />
-              Descargar Excel {ordenadas.length > 0 && `(${ordenadas.length})`}
-            </button>
-          </div>
-        </div>
-
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[200px] flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Buscar por nombre, CURP o folio…"
+              placeholder="Buscar por nombre, matrícula, CURP o folio…"
               className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
             />
           </div>
@@ -341,64 +248,36 @@ function ExamenesView() {
             <option value="all">Todas las convocatorias</option>
             {etapas.map((e) => <option key={e.id} value={e.id}>{e.label}</option>)}
           </Select>
-          <Select value={String(fModulo)} onChange={(v) => setFModulo(v === 'all' ? 'all' : Number(v))}>
-            <option value="all">Todos los módulos</option>
-            {modulosOpts.map((m) => <option key={m.numero} value={m.numero}>Módulo {m.numero} — {m.nombre}</option>)}
-          </Select>
-          <Select value={fEstado} onChange={(v) => setFEstado(v as EstadoCalif | 'all')}>
-            <option value="all">Todos los estados</option>
-            <option value="aprobado">Aprobados</option>
-            <option value="reprobado">No aprobados</option>
-            <option value="sin_calificar">Sin calificar</option>
-            <option value="no_presento">No presentó</option>
-          </Select>
           {hayFiltros && (
             <button onClick={limpiarFiltros} className="inline-flex items-center gap-1 rounded-lg px-2.5 py-2 text-xs font-medium text-stone-500 hover:bg-stone-100">
               <X size={13} /> Limpiar
             </button>
           )}
+          <button
+            onClick={exportar}
+            disabled={filtradas.length === 0}
+            className="ml-auto inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
+            style={{ background: 'var(--color-guinda-700)' }}
+          >
+            <Download size={14} />
+            Descargar Excel {filtradas.length > 0 && `(${filtradas.length})`}
+          </button>
         </div>
       </div>
 
-      {/* Contenido */}
+      {/* Relación por convocatoria (idéntica a la del admin / SEP) */}
       {rows === null ? (
         <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">Cargando calificaciones…</div>
-      ) : ordenadas.length === 0 ? (
+      ) : rows.length === 0 ? (
         <EmptyState
-          hayFiltros={hayFiltros}
+          hayFiltros={false}
           onLimpiar={limpiarFiltros}
-          totalCargadas={(rows ?? []).length}
+          totalCargadas={0}
           vacioTitulo="Aún no hay calificaciones"
           vacioTexto="Cuando tus alumnos presenten exámenes y se registren sus calificaciones, aparecerán aquí."
         />
-      ) : grupos ? (
-        <div className="space-y-4">
-          {grupos.map((g) => {
-            const gCal = g.rows.filter((r) => r.calificacion !== null);
-            const gAprob = g.rows.filter((r) => estadoDe(r) === 'aprobado').length;
-            const gProm = gCal.length ? Math.round(gCal.reduce((s, r) => s + (r.calificacion ?? 0), 0) / gCal.length) : null;
-            return (
-              <div key={g.label} className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 bg-[var(--color-crema-100)] px-4 py-2.5">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-bold text-stone-900">{g.label}</div>
-                    {g.sub && <div className="font-mono text-[11px] text-stone-500">{g.sub}</div>}
-                  </div>
-                  <div className="flex items-center gap-3 text-[11px] font-medium text-stone-500">
-                    <span>{g.rows.length} exam.</span>
-                    <span className="text-emerald-700">{gAprob} aprob.</span>
-                    <span>Prom. <strong className="text-stone-800">{gProm ?? '—'}</strong></span>
-                  </div>
-                </div>
-                <Tabla rows={g.rows} groupBy={groupBy} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-              </div>
-            );
-          })}
-        </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-          <Tabla rows={ordenadas} groupBy={groupBy} sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} />
-        </div>
+        <RelacionCalificacionesPivote rows={filtradas} alumnoHref={(id) => `/gestor/alumnos/${id}`} />
       )}
     </>
   );

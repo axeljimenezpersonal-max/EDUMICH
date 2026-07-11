@@ -9,7 +9,7 @@
  * enlace a la captura manual (correcciones puntuales).
  */
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'wouter';
 import {
   GraduationCap, Download, Search, X, CheckCircle2,
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
+import { RelacionCalificacionesPivote } from '../../components/RelacionCalificacionesPivote';
 
 // ── Tipos ─────────────────────────────────────────────────────────────
 interface Row {
@@ -400,10 +401,6 @@ function RelKpi({ label, value, tone }: { label: string; value: number; tone: 'n
 // ═══════════════════════════════════════════════════════════════════════
 // Tabla general (pivote por convocatoria, idéntico a la Relación de la SEP)
 // ═══════════════════════════════════════════════════════════════════════
-type ModCell = { modulo: number; moduloNombre: string; calif: number | null; aciertos: number | null; estado: string };
-type AlumnoPivote = { estudianteId: number; nombre: string; curp: string | null; matricula: string | null; mods: ModCell[] };
-type GrupoConvocatoria = { etapaId: number; etapaClave: string; etapaAnio: number; alumnos: AlumnoPivote[]; maxMods: number };
-
 function TablaGeneral({ rows }: { rows: Row[] | null }) {
   const [q, setQ] = useState('');
   const [fEtapa, setFEtapa] = useState<number | 'all'>('all');
@@ -436,34 +433,6 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
       ? Math.round(calificadas.reduce((s, r) => s + (r.calificacion ?? 0), 0) / calificadas.length)
       : null;
     return { total, aprobados, reprobados, sinCalificar, promedio };
-  }, [filtradas]);
-
-  // ── Pivote idéntico a la Relación de la SEP ──────────────────────────────
-  // Una convocatoria = una sección. Dentro, UN renglón por alumno (sin repetir
-  // nombre) con sus módulos en horizontal como tripletes (Módulo · Cal · Aci).
-  const grupos = useMemo(() => {
-    const convMap = new Map<number, GrupoConvocatoria>();
-    for (const r of filtradas) {
-      let g = convMap.get(r.etapaId);
-      if (!g) {
-        g = { etapaId: r.etapaId, etapaClave: r.etapaClave, etapaAnio: r.etapaAnio, alumnos: [], maxMods: 0 };
-        convMap.set(r.etapaId, g);
-      }
-      let a = g.alumnos.find((x) => x.estudianteId === r.estudianteId);
-      if (!a) {
-        a = { estudianteId: r.estudianteId, nombre: r.alumno ?? '—', curp: r.curp, matricula: r.matricula, mods: [] };
-        g.alumnos.push(a);
-      }
-      a.mods.push({ modulo: r.moduloNumero, moduloNombre: r.moduloNombre, calif: r.calificacion, aciertos: r.aciertos, estado: r.estadoExamen });
-    }
-    const arr = Array.from(convMap.values());
-    for (const g of arr) {
-      for (const a of g.alumnos) a.mods.sort((x, y) => x.modulo - y.modulo);
-      g.alumnos.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
-      g.maxMods = g.alumnos.reduce((mx, a) => Math.max(mx, a.mods.length), 0);
-    }
-    arr.sort((a, b) => `${b.etapaClave} ${b.etapaAnio}`.localeCompare(`${a.etapaClave} ${a.etapaAnio}`, 'es'));
-    return arr;
   }, [filtradas]);
 
   const hayFiltros = q !== '' || fEtapa !== 'all';
@@ -540,91 +509,17 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
         </div>
       </div>
 
-      {/* Leyenda */}
-      <p className="mb-3 text-xs text-stone-500">
-        Un renglón por alumno; sus módulos en horizontal, tal cual la Relación de la SEP.
-        {' '}<strong className="text-stone-700">Mód</strong> = módulo · <strong className="text-stone-700">Cal</strong> = calificación 0–10 (6 aprueba) · <strong className="text-stone-700">Aci</strong> = aciertos · <span className="text-stone-400">—</span> = aún sin registrar.
-      </p>
-
       {/* Relación por convocatoria (idéntica al PDF de la SEP) */}
       {rows === null ? (
         <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-stone-500">
           <RefreshCw size={18} className="mx-auto mb-2 animate-spin" /> Cargando…
         </div>
-      ) : grupos.length === 0 ? (
+      ) : rows.length === 0 ? (
         <div className="rounded-xl border border-stone-200 bg-white p-12 text-center text-sm text-stone-500">
-          {rows.length === 0 ? 'Aún no hay exámenes registrados.' : 'Ningún alumno coincide con la búsqueda.'}
+          Aún no hay exámenes registrados.
         </div>
       ) : (
-        <div className="space-y-6">
-          {grupos.map((g) => (
-            <div key={g.etapaId}>
-              <div className="mb-2 flex items-baseline gap-2">
-                <h3 className="font-serif text-lg font-bold text-stone-900">Convocatoria {g.etapaClave}</h3>
-                <span className="text-xs text-stone-500">· {g.etapaAnio} · {g.alumnos.length} alumno{g.alumnos.length === 1 ? '' : 's'}</span>
-              </div>
-              <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b-2 border-stone-200 bg-[var(--color-crema-100)] text-[11px] uppercase tracking-wider text-stone-600">
-                        <th className="px-3 py-2.5 text-center font-semibold">Nº</th>
-                        <th className="px-4 py-2.5 text-left font-semibold" style={{ width: '100%' }}>Nombre</th>
-                        <th className="px-4 py-2.5 text-left font-semibold">Matrícula</th>
-                        {Array.from({ length: g.maxMods }).map((_, i) => (
-                          <Fragment key={i}>
-                            <th className="border-l border-stone-200 px-3 py-2.5 text-center font-semibold">Mód</th>
-                            <th className="px-3 py-2.5 text-center font-semibold">Cal</th>
-                            <th className="px-3 py-2.5 text-center font-semibold">Aci</th>
-                          </Fragment>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {g.alumnos.map((a, idx) => (
-                        <tr key={a.estudianteId} className={`border-b border-stone-100 last:border-0 ${idx % 2 ? 'bg-stone-50/40' : 'bg-white'} hover:bg-[var(--color-crema-50)]`}>
-                          <td className="px-3 py-3 text-center text-xs text-stone-400">{idx + 1}</td>
-                          <td className="px-4 py-3 whitespace-nowrap" style={{ width: '100%' }}>
-                            <Link href={`/admin/alumnos/${a.estudianteId}`} className="font-semibold text-[15px] text-stone-900 hover:text-[var(--color-guinda-700)]">{a.nombre}</Link>
-                            {a.curp && <div className="font-mono text-[10px] text-stone-400">{a.curp}</div>}
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs text-stone-600 whitespace-nowrap">{a.matricula ?? '—'}</td>
-                          {Array.from({ length: g.maxMods }).map((_, i) => {
-                            const m = a.mods[i];
-                            if (!m) return (
-                              <Fragment key={i}>
-                                <td className="border-l border-stone-100 px-3 py-3" />
-                                <td className="px-3 py-3" />
-                                <td className="px-3 py-3" />
-                              </Fragment>
-                            );
-                            const est = estadoDe({ calificacion: m.calif, estadoExamen: m.estado });
-                            const meta = ESTADO_META[est];
-                            return (
-                              <Fragment key={i}>
-                                <td className="border-l border-stone-100 px-3 py-3 text-center">
-                                  <span className="inline-flex h-6 min-w-[1.5rem] items-center justify-center rounded px-1.5 text-xs font-bold" style={{ background: '#f8f4ec', color: 'var(--color-guinda-700)' }} title={m.moduloNombre}>{m.modulo}</span>
-                                </td>
-                                <td className="px-3 py-3 text-center">
-                                  {m.calif !== null
-                                    ? <span className="font-mono text-base font-bold" style={{ color: meta.color }}>{calif10(m.calif)}</span>
-                                    : <span className="font-mono text-sm text-stone-300">—</span>}
-                                </td>
-                                <td className="px-3 py-3 text-center font-mono text-sm text-stone-600">
-                                  {m.aciertos ?? <span className="text-stone-300">—</span>}
-                                </td>
-                              </Fragment>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <RelacionCalificacionesPivote rows={filtradas} alumnoHref={(id) => `/admin/alumnos/${id}`} />
       )}
     </>
   );
