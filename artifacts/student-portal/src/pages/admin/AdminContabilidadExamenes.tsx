@@ -4,7 +4,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Search, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
-import { api, type ContabilidadExamenes, type ExamenContable } from '../../lib/api';
+import { api, calif10, type ContabilidadExamenes, type ExamenContable } from '../../lib/api';
 
 type Filtro = 'todos' | 'pagados' | 'sin_pagar' | 'en_proceso' | 'aprobados';
 
@@ -110,8 +110,8 @@ export function ContabilidadExamenesPanel() {
                     {e.presentado ? <CheckCircle2 size={16} className="text-blue-600 inline" /> : <span className="text-stone-300">—</span>}
                   </td>
                   <td className="px-4 py-2.5 text-center">
-                    {e.aprobado ? <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs"><CheckCircle2 size={14} /> {e.calificacion ?? ''}</span>
-                      : e.presentado ? <span className="inline-flex items-center gap-1 text-red-600 text-xs"><XCircle size={14} /> {e.calificacion ?? ''}</span>
+                    {e.aprobado ? <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold text-xs"><CheckCircle2 size={14} /> {e.calificacion != null ? calif10(e.calificacion) : ''}</span>
+                      : e.presentado ? <span className="inline-flex items-center gap-1 text-red-600 text-xs"><XCircle size={14} /> {e.calificacion != null ? calif10(e.calificacion) : ''}</span>
                       : <span className="text-stone-300">—</span>}
                   </td>
                   <td className="px-4 py-2.5 font-mono text-[11px] text-stone-400">{e.fichaFolio ?? '—'}</td>

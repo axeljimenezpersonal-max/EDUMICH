@@ -17,7 +17,7 @@ import {
   FileText, Bell, ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 
 // ── Tipos ─────────────────────────────────────────────────────────────
 interface Row {
@@ -34,9 +34,9 @@ interface Row {
   folio: string;
   estadoExamen: string;
   calificacion: number | null;
+  aciertos: number | null;
   sede: string | null;
 }
-
 
 type EstadoCalif = 'aprobado' | 'reprobado' | 'no_presento' | 'sin_calificar';
 
@@ -446,11 +446,12 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
   const hayFiltros = q !== '' || fEtapa !== 'all' || fModulo !== 'all' || fEstado !== 'all';
 
   function exportar() {
-    const headers = ['Alumno', 'CURP', 'Municipio', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Sede', 'Calificación', 'Estado'];
+    const headers = ['Alumno', 'CURP', 'Municipio', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Sede', 'Calificación', 'Aciertos', 'Estado'];
     const cuerpo = filtradas.map((r) =>
       [
         r.alumno ?? '', r.curp ?? '', r.municipio ?? '', `${r.etapaClave} · ${r.etapaAnio}`,
-        r.moduloNumero, r.moduloNombre, r.folio, r.sede ?? '', r.calificacion ?? '',
+        r.moduloNumero, r.moduloNombre, r.folio, r.sede ?? '',
+        r.calificacion == null ? '' : r.calificacion / 10, r.aciertos ?? '',
         ESTADO_META[estadoDe(r)].label,
       ].map(csvCell).join(',')
     );
@@ -474,7 +475,7 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
         <Kpi label="Aprobados" value={stats.aprobados} tone="green" />
         <Kpi label="No aprobados" value={stats.reprobados} tone="red" />
         <Kpi label="Sin calificar" value={stats.sinCalificar} tone="amber" />
-        <Kpi label="Promedio" value={stats.promedio ?? '—'} tone="guinda" />
+        <Kpi label="Promedio" value={stats.promedio != null ? calif10(stats.promedio) : '—'} tone="guinda" />
       </div>
 
       {/* Filtros */}
@@ -556,6 +557,7 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
                   <th className="px-3 py-2.5 text-left font-semibold">Módulo</th>
                   <th className="px-3 py-2.5 text-left font-semibold">Folio</th>
                   <th className="px-3 py-2.5 text-center font-semibold">Calif.</th>
+                  <th className="px-3 py-2.5 text-center font-semibold">Aciertos</th>
                   <th className="px-3 py-2.5 text-left font-semibold">Estado</th>
                 </tr>
               </thead>
@@ -583,11 +585,14 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
                       <td className="px-3 py-2 text-center">
                         {r.calificacion !== null ? (
                           <span className="inline-block min-w-[2.25rem] rounded-md px-2 py-0.5 font-mono text-sm font-bold" style={{ background: meta.bg, color: meta.color }}>
-                            {r.calificacion}
+                            {calif10(r.calificacion)}
                           </span>
                         ) : (
                           <span className="font-mono text-stone-300">—</span>
                         )}
+                      </td>
+                      <td className="px-3 py-2 text-center font-mono text-sm text-stone-600">
+                        {r.aciertos ?? <span className="text-stone-300">—</span>}
                       </td>
                       <td className="px-3 py-2">
                         <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: meta.color }}>

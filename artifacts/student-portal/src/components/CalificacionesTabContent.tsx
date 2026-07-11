@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Lock, GraduationCap, Grid3x3, List, Download, Award, ClipboardCheck, Clock } from 'lucide-react';
-import { api, type CalificacionesResponse, type CalifRow, type CalificacionExamen } from '../lib/api';
+import { api, calif10, type CalificacionesResponse, type CalifRow, type CalificacionExamen } from '../lib/api';
 
 // Metas del Plan Modular por nivel (total 21)
 const META_NIVEL: Record<number, number> = { 1: 4, 2: 6, 3: 6, 4: 5 };
@@ -138,7 +138,8 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                   <tr>
                     <th className="px-4 py-2.5 font-semibold">Folio</th>
                     <th className="px-4 py-2.5 font-semibold">Módulo</th>
-                    <th className="px-4 py-2.5 font-semibold text-center">Calificación</th>
+                    <th className="px-4 py-2.5 font-semibold text-center">Calif.</th>
+                    <th className="px-4 py-2.5 font-semibold text-center">Aciertos</th>
                     <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
                   </tr>
                 </thead>
@@ -149,8 +150,11 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                       <td className="px-4 py-2.5 text-stone-800">Módulo {c.moduloNumero} — {c.moduloNombre}</td>
                       <td className="px-4 py-2.5 text-center">
                         {c.capturada
-                          ? <span className={`font-bold ${c.aprobado ? 'text-emerald-700' : 'text-red-600'}`}>{c.calificacion}</span>
+                          ? <span className={`font-bold ${c.aprobado ? 'text-emerald-700' : 'text-red-600'}`}>{calif10(c.calificacion)}</span>
                           : <span className="text-stone-300">—</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-center font-mono text-stone-600">
+                        {c.capturada && c.aciertos != null ? c.aciertos : <span className="text-stone-300">—</span>}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         {c.capturada
@@ -194,8 +198,8 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
               className="text-4xl font-bold leading-none"
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
-              {resumen.promedioGlobal}
-              <span className="text-base opacity-60 font-normal">/100</span>
+              {calif10(resumen.promedioGlobal)}
+              <span className="text-base opacity-60 font-normal">/10</span>
             </div>
             <div className="text-[9px] uppercase tracking-wider opacity-80 mt-1">Promedio</div>
           </div>
@@ -316,11 +320,16 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                     </div>
                   </div>
                   <div
-                    className="text-right font-bold text-emerald-600 text-xl leading-none"
+                    className="text-right leading-none"
                     style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
-                    {row.calificacion}
-                    <span className="text-xs font-normal text-stone-400">/100</span>
+                    <div className="font-bold text-emerald-600 text-xl">
+                      {calif10(row.calificacion)}
+                      <span className="text-xs font-normal text-stone-400">/10</span>
+                    </div>
+                    {row.aciertos != null && (
+                      <div className="text-[10px] font-normal text-stone-400 mt-0.5">{row.aciertos} aciertos</div>
+                    )}
                   </div>
                   <div className="text-center">
                     <span className="inline-block bg-emerald-100 text-emerald-700 text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wide">
@@ -392,11 +401,16 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                     </div>
                   </div>
                   <div
-                    className={`text-3xl font-bold leading-none ${row.aprobado ? 'text-emerald-600' : 'text-red-600'}`}
+                    className="text-right leading-none"
                     style={{ fontFamily: "'Poppins', sans-serif" }}
                   >
-                    {row.calificacion}
-                    <span className="text-sm font-normal text-stone-400">/100</span>
+                    <div className={`text-3xl font-bold ${row.aprobado ? 'text-emerald-600' : 'text-red-600'}`}>
+                      {calif10(row.calificacion)}
+                      <span className="text-sm font-normal text-stone-400">/10</span>
+                    </div>
+                    {row.aciertos != null && (
+                      <div className="text-[10px] font-normal text-stone-400 mt-0.5">{row.aciertos} aciertos</div>
+                    )}
                   </div>
                   <span
                     className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${

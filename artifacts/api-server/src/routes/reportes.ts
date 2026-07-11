@@ -209,21 +209,22 @@ async function datosAcademico(f: FiltrosReporte) {
 
   const totalRows = rows.rows.length;
   const aprobados = rows.rows.filter((r) => r.aprobado).length;
+  // Calificación interna 0–100 → escala SEP 0–10 (coincide con el PDF oficial).
   const promedio = totalRows > 0
-    ? (rows.rows.reduce((s, r) => s + Number(r.calificacion), 0) / totalRows).toFixed(1)
+    ? (rows.rows.reduce((s, r) => s + Number(r.calificacion), 0) / totalRows / 10).toFixed(1)
     : '0';
 
   const kpis = [
     { label: 'Total evaluaciones', valor: totalRows },
     { label: 'Aprobados', valor: aprobados },
     { label: 'Tasa aprobación', valor: totalRows > 0 ? `${((aprobados / totalRows) * 100).toFixed(1)}%` : '0%' },
-    { label: 'Promedio general', valor: promedio, unidad: 'pts' },
+    { label: 'Promedio general', valor: promedio, unidad: '/10' },
   ];
 
   return {
     kpis,
     columnas: ['Alumno', 'Módulo', 'Calificación', 'Aprobado', 'Fecha Examen', 'Etapa'],
-    filas: rows.rows.map((r) => [r.alumno, r.modulo, r.calificacion, r.aprobado ? 'Sí' : 'No', r.fecha_examen, r.etapa]),
+    filas: rows.rows.map((r) => [r.alumno, r.modulo, r.calificacion == null ? '' : Number(r.calificacion) / 10, r.aprobado ? 'Sí' : 'No', r.fecha_examen, r.etapa]),
   };
 }
 

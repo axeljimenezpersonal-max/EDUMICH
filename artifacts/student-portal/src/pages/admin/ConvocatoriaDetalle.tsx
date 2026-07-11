@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 import {
   ArrowLeft, Download, Users, GraduationCap, CheckCircle, XCircle,
   Clock, Search, ChevronDown, ChevronRight,
@@ -126,8 +126,8 @@ export default function ConvocatoriaDetalle() {
     if (!coincideBusqueda) return false;
 
     if (filtroEstado === 'todos') return true;
-    const tieneAprobado = i.modulos.some((m) => m.calificacion !== null && m.calificacion >= 70);
-    const tieneReprobado = i.modulos.some((m) => m.calificacion !== null && m.calificacion < 70);
+    const tieneAprobado = i.modulos.some((m) => m.calificacion !== null && m.calificacion >= 60);
+    const tieneReprobado = i.modulos.some((m) => m.calificacion !== null && m.calificacion < 60);
     const tienePendiente = i.modulos.some((m) => m.calificacion === null);
     if (filtroEstado === 'aprobados') return tieneAprobado;
     if (filtroEstado === 'reprobados') return tieneReprobado;
@@ -161,7 +161,7 @@ export default function ConvocatoriaDetalle() {
         r.total++;
         if (mod.calificacion === null) {
           r.pendientes++;
-        } else if (mod.calificacion >= 70) {
+        } else if (mod.calificacion >= 60) {
           r.aprobados++;
         } else {
           r.reprobados++;
@@ -360,8 +360,8 @@ export default function ConvocatoriaDetalle() {
 
                   {inscritosFiltrados.map((insc, idx) => {
                     const isExpanded = expanded.has(insc.estudianteId);
-                    const aprobados = insc.modulos.filter((m) => m.calificacion !== null && m.calificacion >= 70).length;
-                    const reprobados = insc.modulos.filter((m) => m.calificacion !== null && m.calificacion < 70).length;
+                    const aprobados = insc.modulos.filter((m) => m.calificacion !== null && m.calificacion >= 60).length;
+                    const reprobados = insc.modulos.filter((m) => m.calificacion !== null && m.calificacion < 60).length;
 
                     return (
                       <div key={insc.estudianteId} className="border-b border-stone-50 last:border-b-0">
@@ -441,8 +441,8 @@ export default function ConvocatoriaDetalle() {
                           <div className="px-12 pb-3 pt-1 border-t border-stone-50" style={{ background: '#fafaf9' }}>
                             <div className="flex flex-col gap-1.5">
                               {insc.modulos.map((mod) => {
-                                const aprobado = mod.calificacion !== null && mod.calificacion >= 70;
-                                const reprobado = mod.calificacion !== null && mod.calificacion < 70;
+                                const aprobado = mod.calificacion !== null && mod.calificacion >= 60;
+                                const reprobado = mod.calificacion !== null && mod.calificacion < 60;
                                 return (
                                   <div
                                     key={mod.numero}
@@ -473,7 +473,7 @@ export default function ConvocatoriaDetalle() {
                                             color: aprobado ? '#065f46' : '#991b1b',
                                           }}
                                         >
-                                          {mod.calificacion}
+                                          {calif10(mod.calificacion)}
                                         </span>
                                       ) : (
                                         <span

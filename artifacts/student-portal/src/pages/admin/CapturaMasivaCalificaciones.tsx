@@ -61,7 +61,8 @@ export default function CapturaMasivaCalificaciones() {
         setInscripciones(r.inscripciones);
         const initial: Record<number, EntradaCalif> = {};
         for (const ins of r.inscripciones) {
-          initial[ins.id] = { calificacion: ins.calificacion !== null ? String(ins.calificacion) : '', noPresento: false };
+          // El input es escala SEP (0–10); internamente se guarda en 0–100.
+          initial[ins.id] = { calificacion: ins.calificacion !== null ? String(ins.calificacion / 10) : '', noPresento: false };
         }
         setEntradas(initial);
       })
@@ -82,9 +83,10 @@ export default function CapturaMasivaCalificaciones() {
         if (entrada.noPresento) return { inscripcionId, noPresento: true };
         const val = entrada.calificacion.trim();
         if (!val) return null;
-        const n = parseInt(val);
-        if (isNaN(n) || n < 0 || n > 100) return null;
-        return { inscripcionId, calificacion: n };
+        const n = parseFloat(val);
+        if (isNaN(n) || n < 0 || n > 10) return null;
+        // Escala SEP (0–10) → interno (0–100).
+        return { inscripcionId, calificacion: Math.round(n * 10) };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
 
@@ -128,7 +130,7 @@ export default function CapturaMasivaCalificaciones() {
   }
 
   const totalCapturadas = Object.values(entradas).filter(
-    (e) => e.noPresento || (e.calificacion.trim() !== '' && !isNaN(parseInt(e.calificacion)))
+    (e) => e.noPresento || (e.calificacion.trim() !== '' && !isNaN(parseFloat(e.calificacion)))
   ).length;
 
   // Opciones de filtro derivadas de las inscripciones cargadas.
@@ -320,7 +322,7 @@ export default function CapturaMasivaCalificaciones() {
                   <div>Módulo</div>
                   <div>Fecha examen</div>
                   <div>Sede</div>
-                  <div>Calificación (0–100)</div>
+                  <div>Calificación (0–10)</div>
                 </div>
 
                 {inscripcionesFiltradas.length === 0 ? (
@@ -329,9 +331,9 @@ export default function CapturaMasivaCalificaciones() {
                   </div>
                 ) : inscripcionesFiltradas.map((ins) => {
                   const entrada = entradas[ins.id] ?? { calificacion: '', noPresento: false };
-                  const califNum = parseInt(entrada.calificacion);
-                  const esValida = !isNaN(califNum) && califNum >= 0 && califNum <= 100;
-                  const esAprobado = esValida && califNum >= 60;
+                  const califNum = parseFloat(entrada.calificacion);
+                  const esValida = !isNaN(califNum) && califNum >= 0 && califNum <= 10;
+                  const esAprobado = esValida && califNum >= 6;
 
                   return (
                     <div
@@ -367,7 +369,8 @@ export default function CapturaMasivaCalificaciones() {
                         <input
                           type="number"
                           min={0}
-                          max={100}
+                          max={10}
+                          step={0.1}
                           placeholder="—"
                           value={entrada.calificacion}
                           disabled={entrada.noPresento}

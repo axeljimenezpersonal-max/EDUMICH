@@ -49,6 +49,7 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
       moduloId: calificaciones.moduloId,
       etapaClave: calificaciones.etapaClave,
       calificacion: calificaciones.calificacion,
+      aciertos: calificaciones.aciertos,
       aprobado: calificaciones.aprobado,
       intento: calificaciones.intento,
       fechaExamen: calificaciones.fechaExamen,
@@ -95,12 +96,12 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
   // aparece automáticamente cuando el admin la captura (ligada por folio/examen).
   const pagadosRows = await db.execute<{
     inscripcion_id: number; folio: string; modulo_numero: number; modulo_nombre: string;
-    calificacion: number | null; aprobado: boolean | null; fecha_examen: string | null; estado: string;
+    calificacion: number | null; aciertos: number | null; aprobado: boolean | null; fecha_examen: string | null; estado: string;
     examen_etapa: string | null;
   }>(sql`
     SELECT ei.id AS inscripcion_id, ei.folio, ei.estado,
            m.numero AS modulo_numero, m.nombre AS modulo_nombre,
-           c.calificacion, c.aprobado, c.fecha_examen::text AS fecha_examen,
+           c.calificacion, c.aciertos, c.aprobado, c.fecha_examen::text AS fecha_examen,
            ce.examen_sabado::text AS examen_etapa
     FROM examenes_inscripciones ei
     JOIN modulos m ON m.id = ei.modulo_id
@@ -109,7 +110,7 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     LEFT JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
     LEFT JOIN calificaciones c ON c.inscripcion_examen_id = ei.id
     WHERE ei.estudiante_id = ${estudianteId} AND ei.estado <> 'cancelado'
-    GROUP BY ei.id, ei.folio, ei.estado, m.numero, m.nombre, c.calificacion, c.aprobado, c.fecha_examen, ce.examen_sabado
+    GROUP BY ei.id, ei.folio, ei.estado, m.numero, m.nombre, c.calificacion, c.aciertos, c.aprobado, c.fecha_examen, ce.examen_sabado
     ORDER BY m.numero
   `);
   const hoyStr = new Date().toISOString().slice(0, 10);
@@ -119,6 +120,7 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     moduloNumero: Number(r.modulo_numero),
     moduloNombre: r.modulo_nombre,
     calificacion: r.calificacion,
+    aciertos: r.aciertos,
     aprobado: r.aprobado,
     fechaExamen: r.fecha_examen,
     capturada: r.calificacion != null,

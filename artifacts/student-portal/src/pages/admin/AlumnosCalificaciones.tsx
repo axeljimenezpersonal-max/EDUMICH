@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, ChevronRight, AlertCircle, Check } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api, type CalificacionesResponse } from '../../lib/api';
+import { api, calif10, type CalificacionesResponse } from '../../lib/api';
 
 interface AlumnoItem {
   userId: number;
@@ -62,7 +62,8 @@ export default function AlumnosCalificaciones() {
       await api.post(`/admin/estudiantes/${selected.userId}/calificaciones`, {
         moduloId: Number(form.moduloId),
         etapaClave: form.etapaClave,
-        calificacion: Number(form.calificacion),
+        // El input es escala SEP (0–10); internamente se guarda en 0–100.
+        calificacion: Math.round(Number(form.calificacion) * 10),
         fechaExamen: form.fechaExamen,
         notas: form.notas || undefined,
       });
@@ -169,7 +170,7 @@ export default function AlumnosCalificaciones() {
                   {/* Summary */}
                   <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex gap-8 text-sm">
                     <div><span className="text-stone-500">Aprobados:</span> <strong>{califs.resumen.totalAprobados}/21</strong></div>
-                    <div><span className="text-stone-500">Promedio:</span> <strong>{califs.resumen.promedioGlobal}</strong></div>
+                    <div><span className="text-stone-500">Promedio:</span> <strong>{calif10(califs.resumen.promedioGlobal)}</strong></div>
                     <div><span className="text-stone-500">Exámenes:</span> <strong>{califs.resumen.examenesPresentados}</strong></div>
                     <div><span className="text-stone-500">Avance:</span> <strong>{califs.resumen.porcentajeAvance}%</strong></div>
                   </div>
@@ -195,7 +196,8 @@ export default function AlumnosCalificaciones() {
                           </div>
                         </div>
                         <div style={{ fontFamily: "'Poppins', sans-serif" }} className={`text-2xl font-bold ${row.aprobado ? 'text-emerald-600' : 'text-red-600'}`}>
-                          {row.calificacion}
+                          {calif10(row.calificacion)}
+                          {row.aciertos != null && <span className="block text-[10px] font-normal text-stone-400 text-right">{row.aciertos} aciertos</span>}
                         </div>
                         <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wide ${row.aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                           {row.aprobado ? 'Aprobado' : 'No aprobado'}
@@ -243,9 +245,9 @@ export default function AlumnosCalificaciones() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-stone-600 mb-1 uppercase tracking-widest">Calificación * (0-100)</label>
+                      <label className="block text-xs font-semibold text-stone-600 mb-1 uppercase tracking-widest">Calificación * (0–10)</label>
                       <input
-                        type="number" min="0" max="100" required
+                        type="number" min="0" max="10" step="0.1" required
                         value={form.calificacion}
                         onChange={(e) => setForm((f) => ({ ...f, calificacion: e.target.value }))}
                         className="w-full border border-stone-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"

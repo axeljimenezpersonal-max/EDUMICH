@@ -2372,20 +2372,21 @@ router.get('/calificaciones/tabla', async (req, res) => {
       inscripcion_id: number; estudiante_id: number; alumno: string | null; curp: string | null;
       municipio: string | null; etapa_id: number; etapa_clave: string; etapa_anio: number;
       modulo_numero: number; modulo_nombre: string; folio: string; estado: string;
-      calificacion: number | null; sede: string | null;
+      calificacion: number | null; aciertos: number | null; sede: string | null;
     };
     const result = await db.execute<Row>(sql`
       SELECT
         ei.id AS inscripcion_id, ei.estudiante_id, es.nombre_completo AS alumno, es.curp,
         mu.nombre AS municipio, ce.id AS etapa_id, ce.clave AS etapa_clave, ce.anio AS etapa_anio,
         m.numero AS modulo_numero, m.nombre AS modulo_nombre, ei.folio, ei.estado,
-        ei.calificacion, s.nombre AS sede
+        ei.calificacion, c.aciertos, s.nombre AS sede
       FROM examenes_inscripciones ei
       JOIN estudiantes es ON es.user_id = ei.estudiante_id
       LEFT JOIN municipios mu ON mu.id = es.municipio_id
       JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
       JOIN modulos m ON m.id = ei.modulo_id
       LEFT JOIN sedes s ON s.id = ei.sede_id
+      LEFT JOIN calificaciones c ON c.inscripcion_examen_id = ei.id
       WHERE (${EXAMEN_PAGADO_SQL}
         OR ei.calificacion IS NOT NULL
         OR ei.estado IN ('aprobado', 'reprobado', 'no_presento'))
@@ -2406,6 +2407,7 @@ router.get('/calificaciones/tabla', async (req, res) => {
         folio: r.folio,
         estadoExamen: r.estado,
         calificacion: r.calificacion,
+        aciertos: r.aciertos,
         sede: r.sede,
       })),
     });

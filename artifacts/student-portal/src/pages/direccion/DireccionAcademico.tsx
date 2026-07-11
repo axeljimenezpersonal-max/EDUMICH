@@ -8,7 +8,7 @@ import { Loader2, AlertTriangle } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
 } from 'recharts';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
 
 const GUINDA = '#6B1530';
@@ -60,7 +60,7 @@ export default function DireccionAcademico() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <TarjetaKPI etiqueta="Promedio global" valor={data.resumen.promedioGlobal || '—'} sub="calificación promedio DGB" acento={GUINDA} />
+        <TarjetaKPI etiqueta="Promedio global" valor={data.resumen.promedioGlobal ? calif10(data.resumen.promedioGlobal) : '—'} sub="calificación promedio DGB (0–10)" acento={GUINDA} />
         <TarjetaKPI etiqueta="Exámenes capturados" valor={data.resumen.examenesTotales.toLocaleString('es-MX')} sub="histórico" />
         <TarjetaKPI etiqueta="Tasa de aprobación" valor={`${data.resumen.tasaAprobacion}%`} sub="de exámenes presentados" acento="#166534" />
         <TarjetaKPI etiqueta="Alumnos en riesgo" valor={data.riesgo.total} sub={`${data.riesgo.criticos} críticos (180+ días sin actividad)`} acento="#b45309" />
@@ -130,7 +130,7 @@ export default function DireccionAcademico() {
                   <td className="py-2 pr-3 text-center">{m.nivel ?? '—'}</td>
                   <td className="py-2 pr-3 text-right">{m.presentados}</td>
                   <td className="py-2 pr-3 text-right">{m.aprobados}</td>
-                  <td className="py-2 pr-3 text-right">{m.promedio || '—'}</td>
+                  <td className="py-2 pr-3 text-right">{m.promedio ? calif10(m.promedio) : '—'}</td>
                   <td className="py-2">
                     <div className="flex items-center gap-2">
                       <div className="flex-1 h-[6px] rounded-full" style={{ background: '#f7f2ed' }}>

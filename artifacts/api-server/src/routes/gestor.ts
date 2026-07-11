@@ -946,6 +946,7 @@ router.get('/calificaciones', async (req, res) => {
         folio: examenesInscripciones.folio,
         estadoExamen: examenesInscripciones.estado,
         calificacion: examenesInscripciones.calificacion,
+        aciertos: sql<number | null>`(SELECT c.aciertos FROM calificaciones c WHERE c.inscripcion_examen_id = ${examenesInscripciones.id} LIMIT 1)`,
         paseValidadoEn: examenesInscripciones.paseValidadoEn,
       })
       .from(examenesInscripciones)

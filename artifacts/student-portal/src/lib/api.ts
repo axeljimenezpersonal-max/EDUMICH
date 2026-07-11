@@ -642,11 +642,23 @@ export interface AnuncioAdmin {
 }
 
 // ── Calificaciones ────────────────────────────────────────────────────────
+/**
+ * La calificación se guarda internamente en escala 0–100, pero la SEP (y su
+ * Relación oficial) la reportan en 0–10 (6 = aprobado). Mostramos SIEMPRE en
+ * 0–10 para que coincida exactamente con el PDF de la SEP. 90→9, 75→7.5.
+ */
+export function calif10(c: number | null | undefined): string {
+  if (c === null || c === undefined) return '—';
+  const v = c / 10;
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
 export interface CalifRow {
   id: number;
   moduloId: number;
   etapaClave: string;
   calificacion: number;
+  aciertos: number | null;
   aprobado: boolean;
   intento: number;
   fechaExamen: string;
@@ -665,6 +677,7 @@ export interface CalificacionExamen {
   moduloNumero: number;
   moduloNombre: string;
   calificacion: number | null;
+  aciertos: number | null;
   aprobado: boolean | null;
   fechaExamen: string | null;
   capturada: boolean;

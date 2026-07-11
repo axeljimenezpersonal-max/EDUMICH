@@ -21,6 +21,13 @@ const LINEA = rgb(0.85, 0.83, 0.80);
 const A4 = { w: 595.28, h: 841.89 };
 const M = 44;
 
+/** Interno 0–100 → escala SEP 0–10 (6 = aprobado). 90→9, 75→7.5. */
+function calif10(c: number | null | undefined): string {
+  if (c === null || c === undefined) return '—';
+  const v = c / 10;
+  return Number.isInteger(v) ? String(v) : v.toFixed(1);
+}
+
 function fmtFecha(d: Date | string | null | undefined): string {
   if (!d) return '—';
   const dt = typeof d === 'string' ? new Date(d + (String(d).length === 10 ? 'T12:00:00' : '')) : d;
@@ -72,6 +79,7 @@ export async function generarHistorialPdf(
       moduloId: calificaciones.moduloId,
       etapaClave: calificaciones.etapaClave,
       calificacion: calificaciones.calificacion,
+      aciertos: calificaciones.aciertos,
       aprobado: calificaciones.aprobado,
       intento: calificaciones.intento,
       fechaExamen: calificaciones.fechaExamen,
@@ -136,7 +144,7 @@ export async function generarHistorialPdf(
   ctx.y -= 22;
   const kpis: [string, string, ReturnType<typeof rgb>][] = [
     [`${totalAprobados}/21`, 'Módulos aprobados', GUINDA],
-    [`${promedio}`, 'Promedio global', VERDE],
+    [calif10(promedio), 'Promedio global', VERDE],
     [`${avance}%`, 'Avance', GUINDA],
     [`${rows.length}`, 'Exámenes presentados', GRIS],
     [`${reprobados}`, 'No aprobados', ROJO],
@@ -172,13 +180,14 @@ export async function generarHistorialPdf(
   ctx.y -= 6;
 
   const cols = [
-    { t: 'MÓD', x: M, w: 38 },
-    { t: 'MÓDULO', x: M + 40, w: 210 },
-    { t: 'ETAPA', x: M + 255, w: 55 },
-    { t: 'INT.', x: M + 312, w: 30 },
-    { t: 'FECHA', x: M + 345, w: 90 },
-    { t: 'CALIF', x: M + 440, w: 40 },
-    { t: 'ESTADO', x: M + 482, w: 60 },
+    { t: 'MÓD', x: M, w: 34 },
+    { t: 'MÓDULO', x: M + 36, w: 180 },
+    { t: 'ETAPA', x: M + 220, w: 44 },
+    { t: 'INT.', x: M + 266, w: 20 },
+    { t: 'FECHA', x: M + 290, w: 74 },
+    { t: 'CALIF', x: M + 368, w: 28 },
+    { t: 'ACIER.', x: M + 400, w: 40 },
+    { t: 'ESTADO', x: M + 444, w: 60 },
   ];
   const drawHeader = () => {
     ctx.y -= 16;
@@ -198,14 +207,15 @@ export async function generarHistorialPdf(
       nuevaPagina(ctx);
       drawHeader();
     }
-    const nombre = (r.moduloNombre ?? '').length > 42 ? (r.moduloNombre ?? '').slice(0, 41) + '…' : r.moduloNombre ?? '';
+    const nombre = (r.moduloNombre ?? '').length > 36 ? (r.moduloNombre ?? '').slice(0, 35) + '…' : r.moduloNombre ?? '';
     ctx.page.drawText(winAnsiSafe(`M${r.moduloNumero ?? '?'}`), { x: cols[0].x + 2, y: ctx.y, size: 8, font: bold, color: NEGRO });
     ctx.page.drawText(winAnsiSafe(nombre), { x: cols[1].x + 2, y: ctx.y, size: 8, font: reg, color: NEGRO });
     ctx.page.drawText(winAnsiSafe(r.etapaClave ?? '—'), { x: cols[2].x + 2, y: ctx.y, size: 8, font: reg, color: GRIS });
     ctx.page.drawText(winAnsiSafe(`${r.intento}º`), { x: cols[3].x + 2, y: ctx.y, size: 8, font: reg, color: GRIS });
     ctx.page.drawText(winAnsiSafe(fmtFecha(r.fechaExamen)), { x: cols[4].x + 2, y: ctx.y, size: 8, font: reg, color: NEGRO });
-    ctx.page.drawText(winAnsiSafe(String(r.calificacion)), { x: cols[5].x + 2, y: ctx.y, size: 9, font: bold, color: r.aprobado ? VERDE : ROJO });
-    ctx.page.drawText(winAnsiSafe(r.aprobado ? 'Aprobado' : 'No aprob.'), { x: cols[6].x + 2, y: ctx.y, size: 7.5, font: bold, color: r.aprobado ? VERDE : ROJO });
+    ctx.page.drawText(winAnsiSafe(calif10(r.calificacion)), { x: cols[5].x + 2, y: ctx.y, size: 9, font: bold, color: r.aprobado ? VERDE : ROJO });
+    ctx.page.drawText(winAnsiSafe(r.aciertos != null ? String(r.aciertos) : '—'), { x: cols[6].x + 2, y: ctx.y, size: 8, font: reg, color: GRIS });
+    ctx.page.drawText(winAnsiSafe(r.aprobado ? 'Aprobado' : 'No aprob.'), { x: cols[7].x + 2, y: ctx.y, size: 7.5, font: bold, color: r.aprobado ? VERDE : ROJO });
     ctx.y -= 3;
     ctx.page.drawLine({ start: { x: M, y: ctx.y }, end: { x: A4.w - M, y: ctx.y }, thickness: 0.5, color: LINEA });
     ctx.y -= 11;

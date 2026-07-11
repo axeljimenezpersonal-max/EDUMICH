@@ -15,7 +15,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 import type { PaseExamenData } from '../../lib/api';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -186,7 +186,7 @@ export default function PaseExamen() {
             )}
             {pase.calificacion !== null && (
               <p className="text-xs mt-0.5 opacity-80">
-                Calificación: {pase.calificacion}
+                Calificación: {calif10(pase.calificacion)}
               </p>
             )}
           </div>

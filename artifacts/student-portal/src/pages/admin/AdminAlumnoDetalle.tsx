@@ -8,7 +8,7 @@ import {
   CalendarClock, ExternalLink,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { CedulaEditor } from '../../components/CedulaEditor';
@@ -622,7 +622,7 @@ function ExamenRow({ examen }: { examen: Examen }) {
           color: examen.calificacion === null ? '#6b635e' : aprobado ? '#2d7d46' : '#b91c1c',
         }}
       >
-        {examen.calificacion !== null ? examen.calificacion : '—'}
+        {examen.calificacion !== null ? calif10(examen.calificacion) : '—'}
       </div>
       <div className="flex-1 min-w-0">
         <div className="text-sm font-semibold" style={{ color: '#2a2a2a' }}>

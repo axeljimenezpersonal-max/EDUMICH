@@ -6,7 +6,7 @@ import {
   AlertTriangle, X, Calendar, Gauge, Clock,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -841,7 +841,7 @@ export default function GestorDetalle() {
           </span>
           {gestor.calificacionPromedio != null && (
             <span className="text-[11px]" style={{ color: '#6b635e' }}>
-              Promedio calificaciones: <strong>{gestor.calificacionPromedio}</strong>
+              Promedio calificaciones: <strong>{calif10(gestor.calificacionPromedio)}</strong>
             </span>
           )}
         </div>

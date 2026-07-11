@@ -17,7 +17,7 @@ import {
   ClipboardList, FileCheck2,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
-import { api } from '../../lib/api';
+import { api, calif10 } from '../../lib/api';
 
 // Calificación mínima aprobatoria de exámenes oficiales (la que aplica la
 // captura del admin: >= 60 aprueba).
@@ -41,6 +41,7 @@ interface CalifRow {
   folio: string;
   estadoExamen: string;
   calificacion: number | null;
+  aciertos: number | null;
 }
 
 interface EvalRow {
@@ -266,10 +267,10 @@ function ExamenesView() {
 
   function exportar() {
     descargarCSV(
-      ['Alumno', 'CURP', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Estado'],
+      ['Alumno', 'CURP', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Aciertos', 'Estado'],
       ordenadas.map((r) => [
         r.alumno ?? '', r.curp ?? '', convLabel(r), r.moduloNumero, r.moduloNombre,
-        r.folio, r.calificacion ?? '', ESTADO_META[estadoDe(r)].label,
+        r.folio, r.calificacion == null ? '' : r.calificacion / 10, r.aciertos ?? '', ESTADO_META[estadoDe(r)].label,
       ]),
       'examenes_oficiales'
     );
@@ -287,7 +288,7 @@ function ExamenesView() {
         <Kpi label="Aprobados" value={stats.aprobados} tone="green" />
         <Kpi label="No aprobados" value={stats.reprobados} tone="red" />
         <Kpi label="Sin calificar" value={stats.sinCalificar} tone="amber" />
-        <Kpi label="Promedio" value={stats.promedio ?? '—'} tone="guinda" />
+        <Kpi label="Promedio" value={stats.promedio != null ? calif10(stats.promedio) : '—'} tone="guinda" />
         <Kpi label="% aprobación" value={stats.tasa === null ? '—' : `${stats.tasa}%`} tone="guinda" />
       </div>
 
@@ -630,6 +631,7 @@ function Tabla({
             {groupBy !== 'convocatoria' && <Th k="convocatoria">Convocatoria</Th>}
             {groupBy !== 'modulo' && <Th k="modulo">Módulo</Th>}
             <Th k="calificacion" className="text-center">Calif.</Th>
+            <th className="px-3 py-2.5 text-center font-semibold">Aciertos</th>
             <th className="px-3 py-2.5 text-left font-semibold">Estado</th>
           </tr>
         </thead>
@@ -664,9 +666,12 @@ function Tabla({
                       className="inline-block min-w-[2.25rem] rounded-md px-2 py-0.5 font-mono text-sm font-bold"
                       style={{ background: meta.bg, color: meta.color }}
                     >
-                      {r.calificacion}
+                      {calif10(r.calificacion)}
                     </span>
                   )}
+                </td>
+                <td className="px-3 py-2 text-center font-mono text-sm text-stone-600">
+                  {r.aciertos ?? <span className="text-stone-300">—</span>}
                 </td>
                 <td className="px-3 py-2">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: meta.color }}>
