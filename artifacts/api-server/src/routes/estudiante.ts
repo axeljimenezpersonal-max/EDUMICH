@@ -320,6 +320,7 @@ router.get('/dashboard', async (req, res) => {
       id: examenesInscripciones.id,
       folio: examenesInscripciones.folio,
       estado: examenesInscripciones.estado,
+      etapaId: examenesInscripciones.etapaId,
       moduloNumero: modulos.numero,
       moduloNombre: modulos.nombre,
       dia: convocatoriasModulosHorarios.dia,
@@ -328,6 +329,8 @@ router.get('/dashboard', async (req, res) => {
       etapaExamenSabado: convocatoriasEtapas.examenSabado,
       etapaExamenDomingo: convocatoriasEtapas.examenDomingo,
       etapaClave: convocatoriasEtapas.clave,
+      etapaSolicitudInicio: convocatoriasEtapas.solicitudInicio,
+      etapaSolicitudFin: convocatoriasEtapas.solicitudFin,
     })
     .from(examenesInscripciones)
     .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
@@ -354,6 +357,31 @@ router.get('/dashboard', async (req, res) => {
     JOIN examenes_inscripciones ei ON ei.id = pei.examen_inscripcion_id
     WHERE ei.estudiante_id = ${userId} AND pe.estado = 'pagado'`);
   const examenesPagados = new Set(pagadosExRes.rows.map((r) => Number(r.examen_inscripcion_id)));
+
+  // Etapa activa del alumno (para las DOS fechas + cuenta regresiva inteligente):
+  // se toma la etapa de sus exámenes vigentes; incluye ventana de solicitud/pago
+  // y presentación, más cuántos exámenes ya están pagados.
+  const examsVigentes = examenesInscritos.filter((e) => e.estado !== 'cancelado');
+  let etapaActiva: null | {
+    clave: string; solicitudInicio: string | null; solicitudFin: string | null;
+    examenSabado: string | null; examenDomingo: string | null;
+    totalExamenes: number; pagados: number; todosPagados: boolean;
+  } = null;
+  if (examsVigentes.length) {
+    const e0 = examsVigentes[0];
+    const dela = examsVigentes.filter((e) => e.etapaId === e0.etapaId);
+    const pagados = dela.filter((e) => examenesPagados.has(e.id)).length;
+    etapaActiva = {
+      clave: e0.etapaClave,
+      solicitudInicio: e0.etapaSolicitudInicio ? String(e0.etapaSolicitudInicio) : null,
+      solicitudFin: e0.etapaSolicitudFin ? String(e0.etapaSolicitudFin) : null,
+      examenSabado: e0.etapaExamenSabado ? String(e0.etapaExamenSabado) : null,
+      examenDomingo: e0.etapaExamenDomingo ? String(e0.etapaExamenDomingo) : null,
+      totalExamenes: dela.length,
+      pagados,
+      todosPagados: pagados === dela.length,
+    };
+  }
 
   res.json({
     estudiante: {
@@ -388,6 +416,7 @@ router.get('/dashboard', async (req, res) => {
           fechaExamen: insc.fechaExamen,
         }
       : null,
+    etapaActiva,
     kpis: {
       modulosAprobados,
       modulosTotales: 22,

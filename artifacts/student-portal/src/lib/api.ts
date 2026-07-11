@@ -228,6 +228,16 @@ export interface DashboardEstudiante {
     fechaCierre: string | null;
     fechaExamen: string | null;
   } | null;
+  etapaActiva: {
+    clave: string;
+    solicitudInicio: string | null;
+    solicitudFin: string | null;
+    examenSabado: string | null;
+    examenDomingo: string | null;
+    totalExamenes: number;
+    pagados: number;
+    todosPagados: boolean;
+  } | null;
   credencial?: {
     emitida: boolean;
     fotoEstado: 'aprobado' | 'pendiente_revision' | 'rechazado' | null;

@@ -556,28 +556,77 @@ export default function EstudianteDashboard() {
           );
         })()}
 
-        {/* ── 7. Convocatoria + cuenta regresiva ── */}
-        {data.inscripcionActiva && (
+        {/* ── 7. Etapa activa: DOS fechas + cuenta regresiva inteligente ── */}
+        {data.etapaActiva ? (() => {
+          const ea = data.etapaActiva!;
+          const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+          const parse = (s: string | null) => (s ? new Date(s + 'T00:00:00') : null);
+          const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+          const dias = (d: Date | null) => (d ? Math.ceil((d.getTime() - hoy.getTime()) / 86400000) : null);
+          const dd = (d: Date) => d.getDate();
+          const rango = (a: string | null, b: string | null) => {
+            const da = parse(a), db2 = parse(b);
+            if (!da || !db2) return '—';
+            return da.getMonth() === db2.getMonth()
+              ? `${dd(da)}–${dd(db2)} ${MESES[db2.getMonth()]}`
+              : `${dd(da)} ${MESES[da.getMonth()]} – ${dd(db2)} ${MESES[db2.getMonth()]}`;
+          };
+          const sf = parse(ea.solicitudFin);
+          const ex = parse(ea.examenSabado);
+          // Antes de pagar (dentro de ventana) → cuenta al cierre de pago; ya pagado → al examen.
+          const enVentanaPago = !ea.todosPagados && sf !== null && (dias(sf) ?? -1) >= 0;
+          const targetDias = enVentanaPago ? dias(sf) : dias(ex);
+          const cdLabel = enVentanaPago ? (targetDias === 1 ? 'día para pagar' : 'días para pagar') : (targetDias === 1 ? 'día para tu examen' : 'días para tu examen');
+          const urgente = enVentanaPago; // pagar apremia más
+          return (
+            <div className="bg-[var(--color-guinda-700)] text-white rounded-xl p-5 shadow-[0_10px_28px_-14px_rgba(74,14,32,0.5)]">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-2">Etapa {ea.clave}</div>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      <CalendarClock size={16} className="shrink-0 text-white/70" />
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wide text-white/60">Solicitud y pago</div>
+                        <div className="text-sm font-semibold">{rango(ea.solicitudInicio, ea.solicitudFin)}</div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <CalendarCheck size={16} className="shrink-0 text-white/70" />
+                      <div>
+                        <div className="text-[11px] uppercase tracking-wide text-white/60">Presentación del examen</div>
+                        <div className="text-sm font-semibold">{rango(ea.examenSabado, ea.examenDomingo)}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {targetDias !== null && targetDias >= 0 && (
+                  <div className={`text-center shrink-0 rounded-xl px-5 py-3 ${urgente ? 'bg-white/15' : 'bg-white/8'}`}>
+                    <div className="font-serif text-4xl font-bold leading-none">{targetDias}</div>
+                    <div className="text-[11px] text-white/80 mt-1 max-w-[110px]">{cdLabel}</div>
+                    {enVentanaPago && sf && (
+                      <div className="text-[10px] text-white/60 mt-1">cierra {dd(sf)} {MESES[sf.getMonth()]}</div>
+                    )}
+                  </div>
+                )}
+              </div>
+              {enVentanaPago && ea.pagados < ea.totalExamenes && (
+                <Link href="/estudiante/pagos" className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/25 transition-colors">
+                  <Upload size={13} /> Pagar mis exámenes ({ea.totalExamenes - ea.pagados} por pagar) <ChevronRight size={13} />
+                </Link>
+              )}
+            </div>
+          );
+        })() : data.inscripcionActiva && diasExamen !== null && (
           <div className="bg-[var(--color-guinda-700)] text-white rounded-xl p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 shadow-[0_10px_28px_-14px_rgba(74,14,32,0.5)]">
             <div>
               <div className="text-xs opacity-80 mb-1">Convocatoria activa</div>
-              <div className="font-serif text-lg font-bold">
-                {data.inscripcionActiva.convocatoriaNombre}
-              </div>
-              {data.inscripcionActiva.fechaCierre && (
-                <div className="text-xs opacity-75 mt-1">
-                  Cierre de inscripciones: {data.inscripcionActiva.fechaCierre}
-                </div>
-              )}
+              <div className="font-serif text-lg font-bold">{data.inscripcionActiva.convocatoriaNombre}</div>
             </div>
-            {diasExamen !== null && (
-              <div className="text-center sm:text-right shrink-0">
-                <div className="font-serif text-4xl font-bold">{diasExamen}</div>
-                <div className="text-xs opacity-80">
-                  {diasExamen === 1 ? 'día para tu examen' : 'días para tu examen'}
-                </div>
-              </div>
-            )}
+            <div className="text-center sm:text-right shrink-0">
+              <div className="font-serif text-4xl font-bold">{diasExamen}</div>
+              <div className="text-xs opacity-80">{diasExamen === 1 ? 'día para tu examen' : 'días para tu examen'}</div>
+            </div>
           </div>
         )}
 
