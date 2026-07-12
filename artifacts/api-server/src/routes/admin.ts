@@ -3737,7 +3737,8 @@ router.get('/convocatorias', async (req, res) => {
       .select()
       .from(convocatoriasEtapas)
       .where(eq(convocatoriasEtapas.anio, año))
-      .orderBy(convocatoriasEtapas.solicitudInicio);
+      // Más reciente arriba, más antigua abajo (para no bajar a ver la etapa vigente).
+      .orderBy(desc(convocatoriasEtapas.solicitudInicio));
 
     const etapasConInscritos = await Promise.all(
       etapas.map(async (etapa) => {
