@@ -285,7 +285,7 @@ export default function ModuloDetalle() {
       <Link href="/estudiante/modulos">
         <span className="inline-flex items-center gap-1.5 text-sm text-stone-500 hover:text-[var(--color-guinda-700)] mb-5 cursor-pointer transition-colors">
           <ArrowLeft size={15} />
-          Volver a mis módulos
+          Volver a mis pruebas
         </span>
       </Link>
 

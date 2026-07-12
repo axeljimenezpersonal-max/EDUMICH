@@ -228,8 +228,8 @@ export const TOUR_MODULOS: TourStep[] = [
   {
     id: 'mod-intro',
     icon: 'BookOpen',
-    title: 'Tu Plan Modular',
-    body: 'Es el mapa de tu preparatoria: los 21 módulos que debes acreditar para egresar, organizados por niveles, y tu avance en cada uno.',
+    title: 'Tus pruebas de práctica',
+    body: 'Son prácticas tipo mini-examen (una por cada módulo del Plan 22) para que llegues preparado a tu examen oficial. No son tus calificaciones: solo sirven para practicar y medir tu avance.',
   },
   {
     id: 'mod-progreso',
@@ -237,22 +237,22 @@ export const TOUR_MODULOS: TourStep[] = [
     placement: 'bottom',
     icon: 'BarChart3',
     title: 'Tu progreso global',
-    body: 'Aquí ves tu avance general: módulos aprobados, cuántos tienes con examen inscrito, evaluaciones hechas y tu promedio.',
+    body: 'Aquí ves tu avance general: módulos aprobados en el examen oficial, cuántos tienes con examen inscrito, pruebas hechas y tu promedio.',
   },
   {
     id: 'mod-bloqueo',
     anchor: 'mod-bloqueo',
     placement: 'bottom',
     icon: 'Lock',
-    title: 'Cómo desbloquear tus módulos',
-    body: 'El material de estudio se activa cuando tienes un pago verificado de tus derechos de examen. En cuanto se confirme tu pago, los módulos se desbloquean para estudiar y practicar.',
+    title: 'Cómo desbloquear tus pruebas',
+    body: 'Las prácticas se activan cuando tienes un pago verificado de tus derechos de examen. En cuanto se confirme tu pago, las pruebas se desbloquean para estudiar y practicar.',
   },
   {
     id: 'mod-fin',
     anchor: 'btn-seccion-tutorial',
     placement: 'left',
     icon: 'RefreshCw',
-    title: '¡Eso es tu Plan Modular!',
+    title: '¡Esas son tus pruebas!',
     body: 'Aquí estudias y practicas antes de cada examen. Repite este tutorial con el botón cuando quieras.',
   },
 ];

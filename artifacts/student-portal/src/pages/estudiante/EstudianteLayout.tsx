@@ -14,7 +14,7 @@ const NAV = [
   { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
   { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
   { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
-  { to: '/estudiante/modulos', label: 'Módulos', icon: BookOpen, tour: 'nav-modulos' },
+  { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
   { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
 ];

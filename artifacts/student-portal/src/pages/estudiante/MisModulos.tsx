@@ -172,12 +172,12 @@ export default function MisModulos() {
       {/* Header */}
       <div className="mb-6">
         <div className="text-xs font-semibold uppercase tracking-widest text-[var(--color-guinda-700)] mb-1">
-          MIS MÓDULOS
+          MIS PRUEBAS
         </div>
-        <h1 data-tour="mod-titulo" className="font-serif text-2xl font-bold text-stone-900">Plan Modular</h1>
+        <h1 data-tour="mod-titulo" className="font-serif text-2xl font-bold text-stone-900">Pruebas de práctica</h1>
         {data && (
           <p className="text-stone-500 text-sm mt-1">
-            {data.resumen.totalModulos} módulos · 4 niveles de avance
+            {data.resumen.totalModulos} pruebas · una por módulo del Plan 22
           </p>
         )}
       </div>
@@ -188,16 +188,16 @@ export default function MisModulos() {
           <BookOpen size={18} className="text-[var(--color-guinda-700)]" />
         </div>
         <div className="text-sm text-stone-600 leading-relaxed">
-          <span className="font-bold text-stone-800">¿Qué son los módulos?</span> Son{' '}
+          <span className="font-bold text-stone-800">¿Qué son las pruebas?</span> Son{' '}
           <strong>prácticas tipo mini-examen</strong> que la Secretaría prepara con base en los
           exámenes reales de cada módulo, para que llegues preparado a tu examen oficial. Aquí
-          ejercitas los temas y mides tu avance. <strong>No sustituyen el examen oficial</strong>: cada
-          examen real es distinto — esto es para practicar.
+          ejercitas los temas y mides tu avance. <strong>No son tus calificaciones ni sustituyen el
+          examen oficial</strong>: cada examen real es distinto — esto es solo para practicar.
         </div>
       </div>
 
       {loading && (
-        <div className="text-center text-stone-400 py-16 text-sm">Cargando módulos...</div>
+        <div className="text-center text-stone-400 py-16 text-sm">Cargando pruebas...</div>
       )}
 
       {data && (
@@ -210,14 +210,14 @@ export default function MisModulos() {
               </div>
               <div>
                 <p className="font-semibold text-amber-900 text-sm mb-1">
-                  Tu plan modular está pendiente de activación
+                  Tus pruebas están pendientes de activación
                 </p>
                 <p className="text-amber-700 text-xs leading-relaxed">
-                  Para acceder a tus módulos de estudio necesitas tener un{' '}
+                  Para acceder a tus pruebas de práctica necesitas tener un{' '}
                   <strong>pago verificado</strong> de tus derechos de examen. Puedes
                   pagarlo tú desde la sección <strong>Pagos</strong> o hacerlo a través de
-                  tu gestor; una vez verificado, se desbloquearán automáticamente los{' '}
-                  <strong>módulos que inscribiste</strong> a examen.
+                  tu gestor; una vez verificado, se desbloquearán automáticamente las{' '}
+                  <strong>pruebas de los módulos que inscribiste</strong> a examen.
                 </p>
               </div>
             </div>
@@ -268,7 +268,7 @@ export default function MisModulos() {
             <div className="flex flex-wrap gap-3 mb-6 text-xs text-stone-600">
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-3 rounded-full bg-emerald-200 border border-emerald-400" />
-                Examen pagado · módulo disponible
+                Examen pagado · prueba disponible
               </span>
               <span className="flex items-center gap-1.5">
                 <span className="inline-block w-3 h-3 rounded-full bg-amber-200 border border-amber-400" />
@@ -276,7 +276,7 @@ export default function MisModulos() {
               </span>
               <span className="flex items-center gap-1.5">
                 <CheckCircle2 size={12} className="text-green-600" />
-                Módulo aprobado
+                Módulo aprobado (examen oficial)
               </span>
             </div>
           )}
@@ -307,7 +307,7 @@ export default function MisModulos() {
 
           {sinNivel.length > 0 && (
             <section className="mb-8">
-              <h2 data-tour="mod-lista" className="font-serif text-base font-bold text-stone-900 mb-3">Módulos</h2>
+              <h2 data-tour="mod-lista" className="font-serif text-base font-bold text-stone-900 mb-3">Otras pruebas</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {sinNivel.map((m) =>
                   m.pagado
@@ -323,20 +323,20 @@ export default function MisModulos() {
             <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center">
               <BookOpen size={32} className="mx-auto mb-3 text-stone-300" />
               <div className="text-sm font-semibold text-stone-600">
-                No hay módulos disponibles
+                No hay pruebas disponibles
               </div>
             </div>
           )}
         </>
       )}
       <div className="mt-6">
-        <AyudaMensajes contexto="tus módulos" />
+        <AyudaMensajes contexto="tus pruebas" />
       </div>
       <SectionTour
         steps={TOUR_MODULOS}
         storageKey="edumich_sec_modulos_v1"
         gateKey={GATE_ESTUDIANTE}
-        buttonLabel="Tutorial de Módulos"
+        buttonLabel="Tutorial de Pruebas"
       />
     </EstudianteLayout>
   );
