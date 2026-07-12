@@ -461,26 +461,11 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
 
   const hayFiltros = q !== '' || fEtapa !== 'all';
 
-  function exportar() {
-    const headers = ['Alumno', 'CURP', 'Matrícula', 'Municipio', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Sede', 'Calificación', 'Aciertos', 'Estado'];
-    const cuerpo = filtradas.map((r) =>
-      [
-        r.alumno ?? '', r.curp ?? '', r.matricula ?? '', r.municipio ?? '', `${r.etapaClave} · ${r.etapaAnio}`,
-        r.moduloNumero, r.moduloNombre, r.folio, r.sede ?? '',
-        r.calificacion == null ? '' : r.calificacion / 10, r.aciertos ?? '',
-        ESTADO_META[estadoDe(r)].label,
-      ].map(csvCell).join(',')
-    );
-    const csv = '﻿' + [headers.join(','), ...cuerpo].join('\r\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'calificaciones.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  // Descarga la Relación de Calificaciones y Aciertos (PDF oficial) de la
+  // convocatoria elegida (o todas).
+  function descargarPdf() {
+    const qs = fEtapa !== 'all' ? `?etapaId=${fEtapa}` : '';
+    window.open(`/api/admin/calificaciones/pdf${qs}`, '_blank');
   }
 
   return (
@@ -523,12 +508,13 @@ function TablaGeneral({ rows }: { rows: Row[] | null }) {
             </button>
           )}
           <button
-            onClick={exportar}
+            onClick={descargarPdf}
             disabled={filtradas.length === 0}
             className="inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
             style={{ background: 'var(--color-guinda-700)' }}
+            title="Descarga la Relación de Calificaciones y Aciertos (PDF oficial)"
           >
-            <Download size={14} /> Exportar ({filtradas.length})
+            <Download size={14} /> Descargar PDF
           </button>
         </div>
       </div>

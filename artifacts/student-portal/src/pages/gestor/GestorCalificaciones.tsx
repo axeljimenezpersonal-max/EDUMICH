@@ -205,15 +205,11 @@ function ExamenesView() {
   function limpiarFiltros() { setQ(''); setFEtapa('all'); }
   const hayFiltros = q !== '' || fEtapa !== 'all';
 
-  function exportar() {
-    descargarCSV(
-      ['Alumno', 'CURP', 'Matrícula', 'Convocatoria', 'No. módulo', 'Módulo', 'Folio', 'Calificación', 'Aciertos', 'Estado'],
-      filtradas.map((r) => [
-        r.alumno ?? '', r.curp ?? '', r.matricula ?? '', convLabel(r), r.moduloNumero, r.moduloNombre,
-        r.folio, r.calificacion == null ? '' : r.calificacion / 10, r.aciertos ?? '', ESTADO_META[estadoDe(r)].label,
-      ]),
-      'examenes_oficiales'
-    );
+  // Descarga la Relación de Calificaciones y Aciertos (PDF oficial), respetando
+  // la convocatoria elegida (o todas).
+  function descargarPdf() {
+    const qs = fEtapa !== 'all' ? `?etapaId=${fEtapa}` : '';
+    window.open(`/api/gestor/calificaciones/pdf${qs}`, '_blank');
   }
 
   return (
@@ -254,13 +250,14 @@ function ExamenesView() {
             </button>
           )}
           <button
-            onClick={exportar}
+            onClick={descargarPdf}
             disabled={filtradas.length === 0}
             className="ml-auto inline-flex items-center gap-2 rounded-lg px-3.5 py-2 text-xs font-semibold text-white shadow-sm transition-opacity disabled:opacity-40"
             style={{ background: 'var(--color-guinda-700)' }}
+            title="Descarga la Relación de Calificaciones y Aciertos (PDF oficial)"
           >
             <Download size={14} />
-            Descargar Excel {filtradas.length > 0 && `(${filtradas.length})`}
+            Descargar PDF
           </button>
         </div>
       </div>

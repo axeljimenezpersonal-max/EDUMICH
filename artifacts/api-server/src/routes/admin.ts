@@ -9,6 +9,7 @@ import { and, eq, ne, sql, desc, gte, count, countDistinct, isNull, inArray, isN
 import crypto from 'node:crypto';
 import { guardarSubida, archivoStream, archivoExiste, archivoEliminar, archivoBuffer } from '../services/storage';
 import { parsearRelacionCalificaciones } from '../services/relacionCalificacionesPdf';
+import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import multer from 'multer';
@@ -2583,6 +2584,21 @@ router.get('/calificaciones/tabla', async (req, res) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });
+  }
+});
+
+// GET /admin/calificaciones/pdf?etapaId= — Relación de Calificaciones (PDF oficial)
+// de TODOS los alumnos, para una convocatoria o todas.
+router.get('/calificaciones/pdf', async (req, res) => {
+  try {
+    const etapaId = req.query.etapaId ? Number(req.query.etapaId) : null;
+    const { pdf, nombreArchivo } = await generarRelacionCalificacionesReporte({ etapaId: etapaId || null, gestorId: null });
+    const ascii = nombreArchivo.normalize('NFKD').replace(/[^\x20-\x7E]/g, '').replace(/"/g, '') || 'calificaciones.pdf';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(nombreArchivo)}`);
+    res.send(Buffer.from(pdf));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'No se pudo generar el PDF' });
   }
 });
 
