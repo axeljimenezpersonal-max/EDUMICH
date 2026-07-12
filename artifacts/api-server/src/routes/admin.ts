@@ -4463,6 +4463,28 @@ router.post('/calificaciones/relacion/aplicar', async (req, res) => {
         const moduloId = mod[0]?.id;
         if (!moduloId || f.estudianteId == null) continue;
 
+        // Ligar a la inscripción de examen del alumno para ese módulo. Se prefiere
+        // la etapa cuya CLAVE coincide con la del PDF; si no hay, la inscripción más
+        // reciente no cancelada. Al ligarla y escribir ei.calificacion, la calificación
+        // aparece en la TABLA/PIVOTE (admin y gestor), no solo en el historial.
+        const inscRows = await tx.execute<{ id: number }>(sql`
+          SELECT ei.id
+          FROM examenes_inscripciones ei
+          JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+          WHERE ei.estudiante_id = ${f.estudianteId}
+            AND ei.modulo_id = ${moduloId}
+            AND ei.estado <> 'cancelado'
+          ORDER BY (ce.clave = ${etapaClave}) DESC, ei.id DESC
+          LIMIT 1
+        `);
+        const inscripcionExamenId = inscRows.rows[0]?.id ?? null;
+        if (inscripcionExamenId != null) {
+          await tx
+            .update(examenesInscripciones)
+            .set({ calificacion: f.calificacion, estado: f.aprobado ? 'aprobado' : 'reprobado' })
+            .where(eq(examenesInscripciones.id, inscripcionExamenId));
+        }
+
         // upsert manual (no hay unique en calificaciones): borra la previa de esa etapa/módulo.
         await tx.delete(calificaciones).where(and(
           eq(calificaciones.estudianteId, f.estudianteId),
@@ -4472,6 +4494,7 @@ router.post('/calificaciones/relacion/aplicar', async (req, res) => {
         await tx.insert(calificaciones).values({
           estudianteId: f.estudianteId,
           moduloId,
+          inscripcionExamenId,
           etapaClave,
           calificacion: f.calificacion,
           aciertos: f.aciertos,
