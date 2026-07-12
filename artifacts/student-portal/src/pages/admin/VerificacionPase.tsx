@@ -64,7 +64,9 @@ export default function VerificacionPase() {
 
   const [state, setState] = useState<ScanState>({ tipo: 'idle' });
   const [camError, setCamError] = useState<string | null>(null);
-  const [modo, setModo] = useState<Modo>('pase');
+  // En esta primera versión el "Pase de examen" aún no está disponible, así que
+  // la credencial del alumno es el modo principal/activo por defecto.
+  const [modo, setModo] = useState<Modo>('credencial');
   const [, setLocation] = useLocation();
 
   // ── Cámara ────────────────────────────────────────────────────────────
@@ -197,7 +199,7 @@ export default function VerificacionPase() {
         </div>
         <h1 className="font-serif text-2xl font-bold text-stone-900">Verificación</h1>
         <p className="text-stone-500 text-sm mt-1">
-          Escanea el código QR del <strong>pase de examen</strong> o de la <strong>credencial digital</strong> del alumno.
+          Escanea el código QR de la <strong>credencial digital</strong> del alumno para abrir su expediente. <span className="text-stone-400">(La verificación de pase de examen llegará en una próxima versión.)</span>
         </p>
       </div>
 
@@ -207,19 +209,26 @@ export default function VerificacionPase() {
         {(state.tipo === 'idle') && (
           <div className="bg-white border border-stone-200 rounded-2xl p-1.5 flex gap-1.5">
             {([
-              { key: 'pase' as Modo, label: 'Pase de examen' },
-              { key: 'credencial' as Modo, label: 'Alumno (credencial)' },
+              { key: 'credencial' as Modo, label: 'Alumno (credencial)', disponible: true },
+              { key: 'pase' as Modo, label: 'Pase de examen', disponible: false },
             ]).map((m) => (
               <button
                 key={m.key}
-                onClick={() => setModo(m.key)}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors"
-                style={modo === m.key
+                onClick={() => m.disponible && setModo(m.key)}
+                disabled={!m.disponible}
+                title={m.disponible ? undefined : 'Disponible en una próxima versión'}
+                className={`relative flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-colors ${!m.disponible ? 'cursor-not-allowed' : ''}`}
+                style={modo === m.key && m.disponible
                   ? { background: 'var(--color-guinda-700)', color: 'white' }
-                  : { background: 'transparent', color: '#6b635e' }}
+                  : { background: 'transparent', color: m.disponible ? '#6b635e' : '#c4bcb4' }}
               >
                 {m.key === 'pase' ? <QrCode size={15} /> : <IdCard size={15} />}
                 {m.label}
+                {!m.disponible && (
+                  <span className="ml-1 rounded-full bg-stone-100 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-stone-400">
+                    Próximamente
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -468,10 +477,10 @@ export default function VerificacionPase() {
         {state.tipo === 'idle' && !camError && (
           <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 text-xs text-stone-500 space-y-1.5">
             <div className="font-semibold text-stone-700 mb-2">Instrucciones para el operador</div>
-            <div>1. Pide al alumno que abra su pase de examen en el portal.</div>
-            <div>2. Presiona "Abrir cámara" y apunta al código QR que muestra el alumno.</div>
-            <div>3. El sistema verificará la firma digital del pase automáticamente.</div>
-            <div>4. Si el pase es válido, aparecerá el nombre y módulo del alumno y quedará registrado.</div>
+            <div>1. Pide al alumno que abra su credencial digital en el portal.</div>
+            <div>2. Presiona "Abrir cámara" y apunta al código QR de la credencial.</div>
+            <div>3. El sistema verificará la credencial automáticamente.</div>
+            <div>4. Si es válida, se abrirá el expediente del alumno en administración.</div>
           </div>
         )}
       </div>
