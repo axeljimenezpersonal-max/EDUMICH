@@ -22,22 +22,23 @@ router.get('/calendario', async (_req, res) => {
   const dias = (s: string) => Math.ceil((new Date(s + 'T00:00:00').getTime() - new Date(hoy + 'T00:00:00').getTime()) / 86400000);
   const eventos: Array<{
     tipo: 'ventana_abierta' | 'ventana_proxima' | 'examen';
-    clave: string; fecha: string; fechaFin?: string; dias: number; urgencia: 'alta' | 'media' | 'baja';
+    clave: string; fecha: string; fechaInicio?: string; fechaFin?: string; dias: number; urgencia: 'alta' | 'media' | 'baja';
   }> = [];
 
-  // Ventana de solicitud ABIERTA hoy → si no hay, la PRÓXIMA en abrir.
-  const [abierta] = await db.execute<{ clave: string; sf: string }>(sql`
-    SELECT clave, solicitud_fin::text sf FROM convocatorias_etapas
+  // Ventana de inscripción/pago ABIERTA hoy → si no hay, la PRÓXIMA en abrir.
+  const [abierta] = await db.execute<{ clave: string; si: string; sf: string }>(sql`
+    SELECT clave, solicitud_inicio::text si, solicitud_fin::text sf FROM convocatorias_etapas
     WHERE solicitud_inicio <= ${hoy} AND solicitud_fin >= ${hoy}
     ORDER BY solicitud_fin ASC LIMIT 1`).then((r) => r.rows);
   if (abierta) {
     const d = dias(abierta.sf);
-    eventos.push({ tipo: 'ventana_abierta', clave: abierta.clave, fecha: abierta.sf, dias: d, urgencia: d <= 3 ? 'alta' : 'media' });
+    // fecha = cierre (cuenta regresiva); fechaInicio = apertura (para el rango).
+    eventos.push({ tipo: 'ventana_abierta', clave: abierta.clave, fecha: abierta.sf, fechaInicio: abierta.si, dias: d, urgencia: d <= 3 ? 'alta' : 'media' });
   } else {
-    const [prox] = await db.execute<{ clave: string; si: string }>(sql`
-      SELECT clave, solicitud_inicio::text si FROM convocatorias_etapas
+    const [prox] = await db.execute<{ clave: string; si: string; sf: string }>(sql`
+      SELECT clave, solicitud_inicio::text si, solicitud_fin::text sf FROM convocatorias_etapas
       WHERE solicitud_inicio > ${hoy} ORDER BY solicitud_inicio ASC LIMIT 1`).then((r) => r.rows);
-    if (prox) eventos.push({ tipo: 'ventana_proxima', clave: prox.clave, fecha: prox.si, dias: dias(prox.si), urgencia: 'baja' });
+    if (prox) eventos.push({ tipo: 'ventana_proxima', clave: prox.clave, fecha: prox.si, fechaFin: prox.sf, dias: dias(prox.si), urgencia: 'baja' });
   }
 
   // Próximo examen (dentro de los próximos 14 días).
