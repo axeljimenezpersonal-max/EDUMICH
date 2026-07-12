@@ -76,6 +76,7 @@ import { nombreArchivoUtf8 } from '../utils/archivo';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
+import { verifyUrlCredencial } from '../utils/credencialQr';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 
 // ── Multer para expediente ────────────────────────────────────────────────
@@ -2389,7 +2390,7 @@ router.get('/mi-identificacion', async (req, res) => {
   const vigenciaDate = emisionDate ? new Date(emisionDate.getTime()) : null;
   if (vigenciaDate) vigenciaDate.setMonth(vigenciaDate.getMonth() + VIGENCIA_CREDENCIAL_MESES);
 
-  const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
+  const verifyUrl = verifyUrlCredencial(est.licenciaDigital ?? '');
 
   // ¿Tiene foto aprobada?
   const [fotoDoc] = await db
@@ -2521,7 +2522,7 @@ router.get('/mi-identificacion/descargar', async (req, res) => {
   const sede = municipio?.nombre ?? '—';
 
   // QR → URL de verificación
-  const verifyUrl = `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`;
+  const verifyUrl = verifyUrlCredencial(est.licenciaDigital ?? '');
   const qrDataUrl = await QRCode.toDataURL(verifyUrl, { width: 220, margin: 1 });
   const qrBase64 = qrDataUrl.replace(/^data:image\/png;base64,/, '');
   const qrBytes = Buffer.from(qrBase64, 'base64');

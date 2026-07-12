@@ -65,6 +65,7 @@ import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
+import { parseCredencialQr } from '../utils/credencialQr';
 
 const router = Router();
 
@@ -76,9 +77,16 @@ router.use(authRequired, requireRol('admin'));
 router.post('/credencial/validar', async (req, res) => {
   const raw = String(req.body?.qr ?? '').trim();
   if (!raw) { res.status(400).json({ error: 'QR vacío' }); return; }
-  // El QR trae la URL .../c/<folio>; también aceptamos el folio pelón.
-  const m = raw.match(/\/c\/([A-Za-z0-9_-]+)/);
-  const folio = (m ? m[1] : raw).trim();
+  // Extrae el folio y verifica la FIRMA (HMAC) del QR. La firma es lo que hace
+  // al QR infalsificable: sin QR_SECRET no se puede producir un token válido.
+  const { folio, firmaValida } = parseCredencialQr(raw);
+
+  const registrar = (resultado: string, estudianteId: number | null) => {
+    db.execute(sql`
+      INSERT INTO credenciales_verificaciones (estudiante_id, folio, firma_valida, resultado, verificado_por)
+      VALUES (${estudianteId}, ${folio}, ${firmaValida}, ${resultado}, ${req.user!.userId})
+    `).catch(() => {});
+  };
 
   const [est] = await db
     .select({
@@ -91,12 +99,18 @@ router.post('/credencial/validar', async (req, res) => {
     .from(estudiantes)
     .where(eq(estudiantes.licenciaDigital, folio));
 
-  if (!est) { res.status(404).json({ error: 'Credencial no encontrada o no válida', folio }); return; }
+  if (!est) {
+    registrar('no_encontrada', null);
+    res.status(404).json({ error: 'Credencial no encontrada o no válida', folio, firmaValida });
+    return;
+  }
 
   const emitida = est.emitida ? new Date(est.emitida) : null;
   const vence = emitida ? new Date(emitida) : null;
   if (vence) vence.setMonth(vence.getMonth() + VIGENCIA_CREDENCIAL_MESES);
   const vencida = vence ? vence.getTime() < Date.now() : false;
+
+  registrar(!firmaValida ? 'sin_firma' : vencida ? 'vencida' : 'ok', est.userId);
 
   res.json({
     ok: true,
@@ -107,6 +121,7 @@ router.post('/credencial/validar', async (req, res) => {
     folio,
     vencida,
     vigenteHasta: vence ? vence.toISOString() : null,
+    firmaValida,
   });
 });
 

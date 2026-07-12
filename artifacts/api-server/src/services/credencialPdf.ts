@@ -21,6 +21,7 @@ import {
 } from '@workspace/db/schema';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
+import { verifyUrlCredencial } from '../utils/credencialQr';
 
 const GUINDA = rgb(0.42, 0.09, 0.19);
 const GUINDA_D = rgb(0.30, 0.05, 0.13);
@@ -114,7 +115,7 @@ async function reunirDatosCredencial(
       vigencia: vigenciaDate ? fmtDate(vigenciaDate) : null,
       vencida: vigenciaDate ? vigenciaDate.getTime() < Date.now() : false,
       convocatorias,
-      verifyUrl: `https://verifica.edumich.michoacan.gob.mx/c/${est.licenciaDigital}`,
+      verifyUrl: verifyUrlCredencial(est.licenciaDigital ?? ''),
       tieneFoto: fotoPath !== null,
     },
     fotoPath,

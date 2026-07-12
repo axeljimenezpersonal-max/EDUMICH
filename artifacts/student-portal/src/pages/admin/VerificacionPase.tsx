@@ -43,6 +43,7 @@ interface ValidarCredencialResult {
   curp: string | null;
   folio: string;
   vencida: boolean;
+  firmaValida: boolean;
 }
 
 type Modo = 'pase' | 'credencial';
@@ -435,6 +436,20 @@ export default function VerificacionPase() {
                   {state.data.matricula && <div className="font-mono text-sm text-stone-500">Matrícula: {state.data.matricula}</div>}
                   {state.data.curp && <div className="font-mono text-xs text-stone-400">{state.data.curp}</div>}
                 </div>
+              </div>
+
+              {/* Firma digital del QR: auténtica (verde) vs sin firma (ámbar) */}
+              <div
+                className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold ${
+                  state.data.firmaValida
+                    ? 'border-green-200 bg-green-50 text-green-800'
+                    : 'border-amber-200 bg-amber-50 text-amber-800'
+                }`}
+              >
+                <ShieldCheck size={15} className="shrink-0" />
+                {state.data.firmaValida
+                  ? 'Firma digital auténtica — este QR fue emitido por EDUMICH.'
+                  : 'QR sin firma verificable. Revisa que sea la credencial oficial vigente del alumno.'}
               </div>
             </div>
 
