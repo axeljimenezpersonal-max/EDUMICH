@@ -1421,8 +1421,8 @@ export default function AdminAlumnoDetalle() {
         </div>
       </div>
 
-      {/* ── FOLIO PRE-REGISTRO ──────────────────────────────────── */}
-      {alumno.folioPreregistro && (() => {
+      {/* ── FOLIO PRE-REGISTRO (solo en la pestaña Documentos) ──────────── */}
+      {activeTab === 'docs' && alumno.folioPreregistro && (() => {
         const vig = vigenciaInfo(alumno.preregistroVigenteHasta);
         return (
           <div style={{ background: '#fff', border: '1px solid #eadfd7', borderRadius: 12, padding: '16px 24px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
