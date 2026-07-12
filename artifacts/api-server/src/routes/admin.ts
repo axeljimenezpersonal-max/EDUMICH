@@ -4320,6 +4320,24 @@ interface FilaRelacion {
   gestorId: number | null;
   calificacionPrevia: number | null; // 0-100 ya registrada en esa etapa/módulo
   estado: 'nueva' | 'reemplazo' | 'sin_matricula' | 'sin_modulo';
+  // La matrícula cruzó pero el NOMBRE del PDF no coincide con el del alumno en
+  // la plataforma → posible matrícula mal asignada. Candado de seguridad.
+  nombreCoincide: boolean;
+}
+
+/**
+ * Llave de comparación de nombres tolerante: quita acentos, mayúsculas, ordena
+ * las palabras. Así "AGUILAR DIEGO CARMEN" (SEP) == "Carmen Aguilar Diego"
+ * (plataforma), pero un nombre realmente distinto se detecta.
+ */
+function nombreKey(s: string | null | undefined): string {
+  return (s ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // sin acentos
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s]/g, ' ')
+    .split(/\s+/).filter(Boolean)
+    .sort()
+    .join(' ');
 }
 
 /** Parsea el PDF (desde una ref de storage) y resuelve cada renglón contra la BD. */
@@ -4361,6 +4379,8 @@ async function construirFilasRelacion(ref: string): Promise<{ cabecera: any; fil
   const filas: FilaRelacion[] = [];
   for (const a of parsed.alumnos) {
     const est = estByMat.get(norm(a.matricula));
+    // ¿La matrícula cruzó pero el nombre no coincide? (posible matrícula mal asignada)
+    const nombreCoincide = est ? nombreKey(a.nombre) === nombreKey(est.nombreCompleto) : true;
     for (const c of a.calificaciones) {
       const mod = modByNum.get(c.modulo) ?? null;
       const cal100 = califA100(c.calificacion);
@@ -4383,6 +4403,7 @@ async function construirFilasRelacion(ref: string): Promise<{ cabecera: any; fil
         gestorId: est?.gestorId ?? null,
         calificacionPrevia: est && mod ? (previas.get(previaKey(est.userId, mod.id)) ?? null) : null,
         estado,
+        nombreCoincide,
       });
     }
   }
@@ -4407,6 +4428,8 @@ router.post('/calificaciones/relacion/analizar', uploadRelacion.single('pdf'), a
       sinMatricula: filas.filter((f) => f.estado === 'sin_matricula').length,
       sinModulo: filas.filter((f) => f.estado === 'sin_modulo').length,
       alumnos: new Set(filas.map((f) => f.matricula)).size,
+      // Alumnos cuya matrícula cruzó pero el nombre del PDF NO coincide.
+      nombreDistinto: new Set(filas.filter((f) => f.estudianteId != null && !f.nombreCoincide).map((f) => f.matricula)).size,
     };
     res.json({ loteRef: ref, cabecera, resumen, filas });
   } catch (e) {

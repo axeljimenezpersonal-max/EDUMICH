@@ -125,11 +125,12 @@ interface FilaRelacion {
   gestorId: number | null;
   calificacionPrevia: number | null;
   estado: 'nueva' | 'reemplazo' | 'sin_matricula' | 'sin_modulo';
+  nombreCoincide: boolean;
 }
 interface AnalisisRelacion {
   loteRef: string;
   cabecera: { oficina: string | null; sede: string | null; etapa: string | null; fechaAplicacion: string | null; fecha: string | null; fechaExamenISO: string | null };
-  resumen: { total: number; nuevas: number; reemplazos: number; sinMatricula: number; sinModulo: number; alumnos: number };
+  resumen: { total: number; nuevas: number; reemplazos: number; sinMatricula: number; sinModulo: number; alumnos: number; nombreDistinto: number };
   filas: FilaRelacion[];
 }
 interface ResultadoRelacion { ok: boolean; aplicadas: number; alumnosNotificados: number; gestoresNotificados: number; etapaClave: string }
@@ -284,6 +285,15 @@ function SubidaRelacionPdf({ onAplicado }: { onAplicado: () => void }) {
             </p>
           )}
 
+          {analisis.resumen.nombreDistinto > 0 && (
+            <p className="mb-3 flex items-start gap-1.5 rounded-lg border-2 border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-600" />
+              <span>
+                <strong>Revisa con cuidado:</strong> {analisis.resumen.nombreDistinto} alumno(s) cruzaron por matrícula pero el <strong>nombre del PDF NO coincide</strong> con el registrado en la plataforma (marcados en ámbar abajo). Puede ser una <strong>matrícula mal asignada</strong> — verifica antes de aplicar, o desmárcalos para no calificar a la persona equivocada.
+              </span>
+            </p>
+          )}
+
           {/* Tabla de previa */}
           <div className="max-h-[420px] overflow-auto rounded-lg border border-stone-200">
             <table className="w-full text-sm">
@@ -303,17 +313,31 @@ function SubidaRelacionPdf({ onAplicado }: { onAplicado: () => void }) {
                   const meta = REL_ESTADO[f.estado];
                   const aplicable = f.estudianteId != null && (f.estado === 'nueva' || (f.estado === 'reemplazo' && reemplazar));
                   const incluida = aplicable && !excluidas.has(keyFila(f));
+                  // Cruzó por matrícula pero el nombre no coincide → alerta.
+                  const nombreAlerta = f.estudianteId != null && !f.nombreCoincide;
                   return (
-                    <tr key={keyFila(f)} className={`border-t border-stone-100 ${!aplicable ? 'opacity-60' : ''}`}>
+                    <tr key={keyFila(f)} className={`border-t border-stone-100 ${!aplicable ? 'opacity-60' : ''} ${nombreAlerta ? 'bg-amber-50' : ''}`}>
                       <td className="px-3 py-2">
                         <input type="checkbox" disabled={!aplicable} checked={incluida}
                           onChange={() => toggleFila(f)} className="h-4 w-4 accent-[var(--color-guinda-700)]" />
                       </td>
                       <td className="px-3 py-2 font-mono text-xs text-stone-700">{f.matricula}</td>
                       <td className="px-3 py-2">
-                        <div className="text-stone-800">{f.alumnoSistema ?? f.nombrePdf}</div>
-                        {f.alumnoSistema && f.alumnoSistema.toUpperCase() !== f.nombrePdf.toUpperCase() && (
-                          <div className="text-[11px] text-stone-400">PDF: {f.nombrePdf}</div>
+                        {nombreAlerta ? (
+                          <>
+                            <div className="flex items-center gap-1 font-semibold text-amber-700">
+                              <AlertTriangle size={12} className="shrink-0" /> Nombre no coincide
+                            </div>
+                            <div className="text-[11px] text-stone-600">Plataforma: <strong>{f.alumnoSistema}</strong></div>
+                            <div className="text-[11px] text-stone-600">PDF (SEP): <strong>{f.nombrePdf}</strong></div>
+                          </>
+                        ) : (
+                          <>
+                            <div className="text-stone-800">{f.alumnoSistema ?? f.nombrePdf}</div>
+                            {f.alumnoSistema && f.alumnoSistema.toUpperCase() !== f.nombrePdf.toUpperCase() && (
+                              <div className="text-[11px] text-stone-400">PDF: {f.nombrePdf}</div>
+                            )}
+                          </>
                         )}
                       </td>
                       <td className="px-3 py-2 text-stone-700">M{f.modulo}{f.moduloNombre ? ` · ${f.moduloNombre}` : ''}</td>
