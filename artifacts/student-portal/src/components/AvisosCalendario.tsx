@@ -74,34 +74,34 @@ function BannerVentanaAbierta({ e }: { e: EventoCalendario }) {
       className="overflow-hidden rounded-2xl border-2 shadow-sm"
       style={{ borderColor: borde, background: `linear-gradient(135deg, ${urgente ? '#fff1f2' : '#fffbeb'} 0%, #ffffff 70%)` }}
     >
-      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
-            {urgente ? <AlertTriangle size={14} /> : <CalendarClock size={14} />}
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
+            {urgente ? <AlertTriangle size={13} /> : <CalendarClock size={13} />}
             Inscripción y pago abiertos
           </div>
-          <div className="mt-1 font-serif text-2xl font-bold uppercase tracking-tight text-stone-900 sm:text-3xl">
+          <div className="mt-1 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
             Etapa {e.clave}
           </div>
-          <p className="mt-2 max-w-xl text-sm text-stone-600 sm:text-[15px]">
+          <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
             La ventana para <strong className="text-stone-800">inscribir y pagar tu examen</strong> está abierta.
           </p>
           {e.fechaInicio && (
             <div
-              className="mt-3 inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-2 text-sm font-bold"
+              className="mt-2.5 inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
               style={{ borderColor: borde, color: acento }}
             >
-              <CalendarClock size={15} />
+              <CalendarClock size={14} />
               {rangoLargo(e.fechaInicio, e.fecha)}
             </div>
           )}
         </div>
         <div
-          className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-5 py-3 text-center"
+          className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-4 py-2.5 text-center"
           style={{ background: urgente ? '#fee2e2' : '#fef3c7' }}
         >
-          <div className="text-4xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
-          <div className="mt-1 whitespace-pre-line text-[10px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
+          <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
+          <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
             {e.dias <= 1 ? (e.dias === 0 ? 'cierra hoy' : 'cierra mañana') : 'días para\nel cierre'}
           </div>
         </div>
@@ -120,31 +120,31 @@ function BannerExamen({ e }: { e: EventoCalendario }) {
       className="overflow-hidden rounded-2xl border-2 shadow-sm"
       style={{ borderColor: borde, background: `linear-gradient(135deg, ${urgente ? '#fff1f2' : '#fffbeb'} 0%, #ffffff 70%)` }}
     >
-      <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
-            <CalendarCheck size={14} /> Examen próximo
+          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
+            <CalendarCheck size={13} /> Examen próximo
           </div>
-          <div className="mt-1 font-serif text-2xl font-bold uppercase tracking-tight text-stone-900 sm:text-3xl">
+          <div className="mt-1 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
             Etapa {e.clave}
           </div>
-          <p className="mt-2 max-w-xl text-sm text-stone-600 sm:text-[15px]">
+          <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
             Presentación del <strong className="text-stone-800">examen oficial</strong>.
           </p>
           <div
-            className="mt-3 inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-2 text-sm font-bold"
+            className="mt-2.5 inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
             style={{ borderColor: borde, color: acento }}
           >
-            <CalendarCheck size={15} />
+            <CalendarCheck size={14} />
             {e.fechaFin ? rangoCorto(e.fecha, e.fechaFin) : fmtLargo(e.fecha)}
           </div>
         </div>
         <div
-          className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-5 py-3 text-center"
+          className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-4 py-2.5 text-center"
           style={{ background: urgente ? '#fee2e2' : '#fef3c7' }}
         >
-          <div className="text-4xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
-          <div className="mt-1 whitespace-pre-line text-[10px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
+          <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
+          <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
             {e.dias <= 1 ? (e.dias === 0 ? 'es hoy' : 'es mañana') : 'días\nrestantes'}
           </div>
         </div>
