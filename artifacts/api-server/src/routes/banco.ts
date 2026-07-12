@@ -23,8 +23,8 @@ const PREGUNTAS_POR_QUIZ = 20;
 // from the response so the client cannot peek in DevTools.
 router.get('/modulo/:num/quiz', async (req, res) => {
   const moduloNum = Number(req.params.num);
-  if (!moduloNum || moduloNum < 1 || moduloNum > 21) {
-    res.status(400).json({ error: 'Módulo inválido (1–21)' });
+  if (!moduloNum || moduloNum < 1 || moduloNum > 22) {
+    res.status(400).json({ error: 'Módulo inválido (1–22)' });
     return;
   }
 
@@ -69,8 +69,8 @@ const verificarSchema = z.object({
 
 router.post('/modulo/:num/quiz/verificar', async (req, res) => {
   const moduloNum = Number(req.params.num);
-  if (!moduloNum || moduloNum < 1 || moduloNum > 21) {
-    res.status(400).json({ error: 'Módulo inválido (1–21)' });
+  if (!moduloNum || moduloNum < 1 || moduloNum > 22) {
+    res.status(400).json({ error: 'Módulo inválido (1–22)' });
     return;
   }
 
@@ -237,8 +237,8 @@ router.get('/modulo/:num/stats', async (req, res) => {
   }
 
   const moduloNum = Number(req.params.num);
-  if (!moduloNum || moduloNum < 1 || moduloNum > 21) {
-    res.status(400).json({ error: 'Módulo inválido (1–21)' });
+  if (!moduloNum || moduloNum < 1 || moduloNum > 22) {
+    res.status(400).json({ error: 'Módulo inválido (1–22)' });
     return;
   }
 
