@@ -117,14 +117,19 @@ export async function generarHistorialPdf(
   const ctx: Ctx = { doc, page: doc.addPage([A4.w, A4.h]), bold, reg, y: 0 };
 
   // ── Encabezado institucional ──
-  ctx.page.drawRectangle({ x: 0, y: A4.h - 92, width: A4.w, height: 92, color: GUINDA });
-  ctx.page.drawRectangle({ x: 0, y: A4.h - 96, width: A4.w, height: 4, color: GUINDA_D });
-  ctx.y = A4.h - 40;
-  text(ctx, 'PREPARATORIA ABIERTA — MICHOACÁN', M, 9, { font: bold, color: rgb(1, 1, 1) });
-  ctx.y = A4.h - 62;
+  ctx.page.drawRectangle({ x: 0, y: A4.h - 96, width: A4.w, height: 96, color: GUINDA });
+  ctx.page.drawRectangle({ x: 0, y: A4.h - 100, width: A4.w, height: 4, color: GUINDA_D });
+  ctx.y = A4.h - 32;
+  text(ctx, 'PREPARATORIA ABIERTA · MICHOACÁN', M, 9, { font: bold, color: rgb(1, 1, 1) });
+  ctx.y = A4.h - 44;
+  text(ctx, 'IEMSyS · Instituto de Educación Media Superior y Superior del Estado de Michoacán', M, 6.5, { color: CREMA });
+  ctx.y = A4.h - 66;
   text(ctx, 'Historial Académico del Estudiante', M, 18, { font: bold, color: rgb(1, 1, 1) });
-  ctx.y = A4.h - 80;
-  text(ctx, 'Documento informativo · Plan Modular (21 módulos)', M, 9, { color: CREMA });
+  ctx.y = A4.h - 84;
+  text(ctx, 'Calificaciones oficiales de examen (DGB) · Plan 22 Modular', M, 8.5, { color: CREMA });
+  // Fecha de generación (arriba a la derecha)
+  const genTxt = `Generado: ${new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' })}`;
+  ctx.page.drawText(winAnsiSafe(genTxt), { x: A4.w - M - reg.widthOfTextAtSize(genTxt, 7.5), y: A4.h - 32, size: 7.5, font: reg, color: CREMA });
 
   // ── Datos del alumno ──
   ctx.y = A4.h - 120;
@@ -177,7 +182,9 @@ export async function generarHistorialPdf(
 
   // ── Tabla de exámenes ──
   text(ctx, 'Historial de exámenes presentados', M, 11, { font: bold, color: GUINDA });
-  ctx.y -= 6;
+  ctx.y -= 11;
+  text(ctx, 'Calificaciones oficiales de examen DGB (escala 0–10, se aprueba con 6). No incluye las pruebas de práctica de la plataforma.', M, 7, { color: GRIS });
+  ctx.y -= 5;
 
   const cols = [
     { t: 'MÓD', x: M, w: 34 },
