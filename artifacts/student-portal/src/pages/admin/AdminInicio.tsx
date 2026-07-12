@@ -240,7 +240,7 @@ export default function AdminInicio() {
                 label="Egresados este año"
                 delta={`+${data?.kpisGenerales.egresados.deltaMes ?? 0}`}
                 deltaUp
-                sub={<><strong style={{ color: '#2a2a2a' }}>21/21</strong> módulos aprobados</>}
+                sub={<><strong style={{ color: '#2a2a2a' }}>22/22</strong> módulos aprobados</>}
               />
             </div>
           </div>

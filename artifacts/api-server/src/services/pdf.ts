@@ -674,7 +674,7 @@ export async function generarFichaRegistro(data: RegistroOficialData): Promise<B
   y -= 30;
 
   row(page, bold, regular, 'Coordinación', 'Michoacán', col1, y, colW);
-  row(page, bold, regular, 'Plan de estudios', 'Modular — 21 módulos', col2, y, colW);
+  row(page, bold, regular, 'Plan de estudios', 'Modular — 22 módulos', col2, y, colW);
   y -= 30;
 
   drawLine(page, MARGIN, y + 8, PAGE_W - MARGIN, y + 8);

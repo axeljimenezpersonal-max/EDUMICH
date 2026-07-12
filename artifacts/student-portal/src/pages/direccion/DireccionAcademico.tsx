@@ -1,6 +1,6 @@
 /**
  * Académico — tasas de aprobación por módulo, distribución de avance
- * hacia los 21 módulos y alumnos en riesgo (agregado).
+ * hacia los 22 módulos y alumnos en riesgo (agregado).
  */
 
 import { useEffect, useState } from 'react';
@@ -55,7 +55,7 @@ export default function DireccionAcademico() {
           Indicadores académicos
         </h1>
         <p className="text-[13px]" style={{ color: '#6b635e' }}>
-          Desempeño en exámenes DGB y avance del plan modular (21 módulos)
+          Desempeño en exámenes DGB y avance del plan modular (22 módulos)
         </p>
       </div>
 

@@ -137,7 +137,7 @@ const escenas: Escena[] = [
     tag: 'Vista · Alumno',
     caption: (
       <>
-        En <b>Mis módulos</b> ve los 21 módulos del Plan 22: cuáles ya acreditó, cuáles están en
+        En <b>Mis pruebas</b> ve los 22 módulos del Plan 22: cuáles ya acreditó, cuáles están en
         curso y cuáles le faltan.
       </>
     ),

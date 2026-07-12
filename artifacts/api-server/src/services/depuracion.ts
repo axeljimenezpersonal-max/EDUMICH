@@ -59,15 +59,15 @@ export async function evaluarProteccion(
     motivos.push('Tiene matrícula DGB oficial');
   }
 
-  // 2. Egresado (21+ módulos aprobados)
+  // 2. Egresado (22 módulos aprobados)
   const rawCal = await db.execute<{ total: string }>(sql`
     SELECT count(DISTINCT modulo_id)::text AS total
     FROM calificaciones
     WHERE estudiante_id = ${estudianteId} AND aprobado = true
   `);
   const calResult = rawCal.rows[0];
-  if (Number(calResult?.total ?? 0) >= 21) {
-    motivos.push('Es egresado (21 módulos aprobados)');
+  if (Number(calResult?.total ?? 0) >= 22) {
+    motivos.push('Es egresado (22 módulos aprobados)');
   }
 
   // 3. Pago verificado

@@ -169,7 +169,7 @@ export default function AlumnosCalificaciones() {
                 <div className="space-y-3">
                   {/* Summary */}
                   <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex gap-8 text-sm">
-                    <div><span className="text-stone-500">Aprobados:</span> <strong>{califs.resumen.totalAprobados}/21</strong></div>
+                    <div><span className="text-stone-500">Aprobados:</span> <strong>{califs.resumen.totalAprobados}/22</strong></div>
                     <div><span className="text-stone-500">Promedio:</span> <strong>{calif10(califs.resumen.promedioGlobal)}</strong></div>
                     <div><span className="text-stone-500">Exámenes:</span> <strong>{califs.resumen.examenesPresentados}</strong></div>
                     <div><span className="text-stone-500">Avance:</span> <strong>{califs.resumen.porcentajeAvance}%</strong></div>

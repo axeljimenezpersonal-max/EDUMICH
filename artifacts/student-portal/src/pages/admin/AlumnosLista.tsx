@@ -417,7 +417,7 @@ export default function AlumnosLista() {
           <StatCard label="Total alumnos" value={resumen.totalAlumnos} />
           <StatCard label="Expediente completo" value={resumen.expedienteCompleto} sub={`${resumen.totalAlumnos > 0 ? Math.round(resumen.expedienteCompleto / resumen.totalAlumnos * 100) : 0}% del total`} />
           <StatCard label="Pendientes" value={resumen.pendientes} sub="Con docs por completar" />
-          <StatCard label="Egresados" value={resumen.egresados} sub="21 módulos aprobados" />
+          <StatCard label="Egresados" value={resumen.egresados} sub="22 módulos aprobados" />
         </div>
       )}
 

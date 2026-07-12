@@ -36,7 +36,7 @@ const router = Router();
 router.use(authRequired, requireRol('direccion'));
 
 const DOCS_OBLIGATORIOS = `('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')`;
-const TOTAL_MODULOS = 21;
+const TOTAL_MODULOS = 22;
 
 function num(v: unknown): number {
   return Number(v ?? 0);
@@ -239,8 +239,8 @@ router.get('/academico', async (_req, res) => {
                WHEN aprobados BETWEEN 1 AND 5 THEN '1–5 módulos'
                WHEN aprobados BETWEEN 6 AND 10 THEN '6–10 módulos'
                WHEN aprobados BETWEEN 11 AND 15 THEN '11–15 módulos'
-               WHEN aprobados BETWEEN 16 AND 20 THEN '16–20 módulos'
-               ELSE 'Egresado (21)'
+               WHEN aprobados BETWEEN 16 AND 21 THEN '16–21 módulos'
+               ELSE 'Egresado (22)'
              END AS rango,
              min(aprobados) AS orden,
              count(*) AS alumnos

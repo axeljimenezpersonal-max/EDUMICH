@@ -148,7 +148,7 @@ export async function generarHistorialPdf(
   ctx.page.drawLine({ start: { x: M, y: ctx.y }, end: { x: A4.w - M, y: ctx.y }, thickness: 1, color: LINEA });
   ctx.y -= 22;
   const kpis: [string, string, ReturnType<typeof rgb>][] = [
-    [`${totalAprobados}/21`, 'Módulos aprobados', GUINDA],
+    [`${totalAprobados}/22`, 'Módulos aprobados', GUINDA],
     [calif10(promedio), 'Promedio global', VERDE],
     [`${avance}%`, 'Avance', GUINDA],
     [`${rows.length}`, 'Exámenes presentados', GRIS],
@@ -165,8 +165,8 @@ export async function generarHistorialPdf(
   // ── Análisis por nivel ──
   text(ctx, 'Avance por nivel', M, 11, { font: bold, color: GUINDA });
   ctx.y -= 16;
-  // metas por nivel del plan modular: N1=4, N2=6, N3=6, N4=5 (total 21)
-  const metaNivel: Record<number, number> = { 1: 4, 2: 6, 3: 6, 4: 5 };
+  // metas por nivel del plan modular: N1=6, N2=2, N3=5, N4=9 (total 22, según la base)
+  const metaNivel: Record<number, number> = { 1: 6, 2: 2, 3: 5, 4: 9 };
   [1, 2, 3, 4].forEach((n) => {
     const meta = metaNivel[n];
     const got = porNivel[n] ?? 0;

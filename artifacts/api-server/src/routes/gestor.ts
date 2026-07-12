@@ -1626,7 +1626,7 @@ router.get('/alumnos/:id/ficha-registro', async (req, res) => {
 });
 
 // ─── GET /gestor/alumnos/:id/plan-modular ────────────────────────────────────
-// Devuelve los 21 módulos con flag `enPlan` indicando cuáles están asignados
+// Devuelve los 22 módulos con flag `enPlan` indicando cuáles están asignados
 // a la inscripción más reciente del alumno.
 router.get('/alumnos/:id/plan-modular', async (req, res) => {
   const gestorId = req.user!.userId;

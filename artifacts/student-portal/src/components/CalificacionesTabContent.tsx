@@ -3,7 +3,8 @@ import { Lock, GraduationCap, Grid3x3, List, Download, Award, ClipboardCheck, Cl
 import { api, calif10, type CalificacionesResponse, type CalifRow, type CalificacionExamen } from '../lib/api';
 
 // Metas del Plan Modular por nivel (total 21)
-const META_NIVEL: Record<number, number> = { 1: 4, 2: 6, 3: 6, 4: 5 };
+// Total 22 módulos del Plan 22, repartidos por nivel según la base (fuente de verdad).
+const META_NIVEL: Record<number, number> = { 1: 6, 2: 2, 3: 5, 4: 9 };
 
 interface Props {
   estudianteId: number;
@@ -191,7 +192,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
             >
               {resumen.totalAprobados} módulos aprobados
             </div>
-            <div className="text-xs opacity-80 mt-1">de 21 del Plan Modular</div>
+            <div className="text-xs opacity-80 mt-1">de 22 del Plan Modular</div>
           </div>
           <div className="h-14 w-px bg-white/20" />
           <div className="text-center">
@@ -348,16 +349,16 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
               ))}
             </div>
           )}
-          {modulosAprobados.length > 0 && 21 - modulosAprobados.length > 0 && (
+          {modulosAprobados.length > 0 && 22 - modulosAprobados.length > 0 && (
             <div className="mt-4 border-2 border-dashed border-stone-200 rounded-xl p-6 text-center">
               <div className="w-12 h-12 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] rounded-full flex items-center justify-center mx-auto mb-3">
                 <GraduationCap size={22} />
               </div>
               <div className="font-bold text-stone-900 mb-1" style={{ fontFamily: "'Poppins', sans-serif" }}>
-                Faltan {21 - modulosAprobados.length} módulos por aprobar
+                Faltan {22 - modulosAprobados.length} módulos por aprobar
               </div>
               <p className="text-xs text-stone-500">
-                Para terminar el bachillerato se necesitan acreditar los 21 módulos del Plan Modular.
+                Para terminar el bachillerato se necesitan acreditar los 22 módulos del Plan Modular.
               </p>
             </div>
           )}

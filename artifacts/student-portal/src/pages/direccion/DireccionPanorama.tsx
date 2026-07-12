@@ -84,7 +84,7 @@ export default function DireccionPanorama() {
           sub={`${data.kpis.gestoresActivos.municipiosCubiertos} municipios cubiertos`}
         />
         <TarjetaKPI etiqueta="Accesos hoy" valor={data.kpis.accesosHoy} sub="usuarios con login hoy" />
-        <TarjetaKPI etiqueta="Egresados" valor={data.kpis.egresados} sub="21 módulos aprobados" acento="#166534" />
+        <TarjetaKPI etiqueta="Egresados" valor={data.kpis.egresados} sub="22 módulos aprobados" acento="#166534" />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6 mb-6">

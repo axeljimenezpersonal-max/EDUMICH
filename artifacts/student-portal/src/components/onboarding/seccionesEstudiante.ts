@@ -39,7 +39,7 @@ export const TOUR_INICIO: TourStep[] = [
     placement: 'top',
     icon: 'BarChart3',
     title: 'Tus números clave',
-    body: 'Cuatro indicadores de tu avance: módulos aprobados de los 21 que necesitas, documentos aprobados, documentos que faltan por subir, y avisos sin leer.',
+    body: 'Cuatro indicadores de tu avance: módulos aprobados de los 22 que necesitas, documentos aprobados, documentos que faltan por subir, y avisos sin leer.',
   },
   {
     id: 'ini-avisos',
@@ -203,7 +203,7 @@ export const TOUR_CALIFICACIONES: TourStep[] = [
     id: 'calif-intro',
     icon: 'GraduationCap',
     title: 'Tu historial académico',
-    body: 'Aquí llevas la cuenta de tu avance: módulos aprobados de los 21, tu promedio y tus resultados de examen.',
+    body: 'Aquí llevas la cuenta de tu avance: módulos aprobados de los 22, tu promedio y tus resultados de examen.',
   },
   {
     id: 'calif-contenido',

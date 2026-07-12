@@ -1592,7 +1592,7 @@ export const outbox = pgTable('outbox', {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
-// Banco de preguntas — 21 módulos, exámenes aleatorios de 20 preguntas
+// Banco de preguntas — 22 módulos, exámenes aleatorios de 20 preguntas
 // ─────────────────────────────────────────────────────────────────────────
 
 export const dificultadEnum = pgEnum('dificultad', ['facil', 'media', 'alta']);

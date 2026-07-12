@@ -670,7 +670,7 @@ router.get('/gestores', async (req, res) => {
           (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id AND (
             SELECT count(*) FROM estudiantes_modulos_progreso emp
             WHERE emp.estudiante_id = e.user_id AND emp.estado = 'aprobado'
-          ) >= 21)::int AS egresados,
+          ) >= 22)::int AS egresados,
           CASE WHEN g.estado = 'inactivo' THEN
             (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id)::int
           ELSE NULL END AS sin_reasignar,
@@ -1249,7 +1249,7 @@ router.get('/dashboard', async (req, res) => {
           FROM estudiantes_modulos_progreso
           WHERE estado = 'aprobado'
           GROUP BY estudiante_id
-          HAVING count(*) >= 21
+          HAVING count(*) >= 22
         ) x
       `);
       egresadosTotal = Number((egresadosResult.rows[0] as { total: string | number })?.total ?? 0);
@@ -1264,7 +1264,7 @@ router.get('/dashboard', async (req, res) => {
           WHERE estado = 'aprobado'
             AND created_at >= NOW() - INTERVAL '30 days'
           GROUP BY estudiante_id
-          HAVING count(*) >= 21
+          HAVING count(*) >= 22
         ) x
       `);
       egresadosDelta = Number((egresadosDeltaResult.rows[0] as { total: string | number })?.total ?? 0);
@@ -2018,7 +2018,7 @@ router.get('/alumnos', async (req, res) => {
           count(*) FILTER (WHERE (
             SELECT count(*) FROM estudiantes_modulos_progreso emp
             WHERE emp.estudiante_id = e.user_id AND emp.estado = 'aprobado'
-          ) >= 21)::text AS egresados
+          ) >= 22)::text AS egresados
         FROM estudiantes e
       `),
     ]);
@@ -2666,7 +2666,7 @@ router.get('/gestores/:gestorId', async (req, res) => {
         (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id AND (
           SELECT count(*) FROM estudiantes_modulos_progreso emp
           WHERE emp.estudiante_id = e.user_id AND emp.estado = 'aprobado'
-        ) >= 21)::int AS egresados,
+        ) >= 22)::int AS egresados,
         CASE WHEN g.estado = 'inactivo' THEN
           (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id)::int
         ELSE NULL END AS sin_reasignar,

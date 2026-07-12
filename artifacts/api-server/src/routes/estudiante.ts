@@ -590,7 +590,7 @@ router.post('/cambiar-password', async (req, res) => {
 });
 
 // ─── GET /estudiante/modulos ──────────────────────────────────────────────
-// Devuelve los 21 módulos del Plan Modular con el progreso del alumno.
+// Devuelve los 22 módulos del Plan Modular con el progreso del alumno.
 // GATING: el plan sólo se desbloquea cuando el alumno tiene al menos
 // un pago verificado (pagos.estado = 'verificado').
 // Los módulos con examen inscrito en examenesInscripciones se marcan
@@ -639,7 +639,7 @@ router.get('/modulos', async (req, res) => {
   const totalInscritos = examenes.length;
   const aprobadosInscritos = examenes.filter((e) => e.estado === 'aprobado').length;
 
-  // 3. Los 21 módulos + progreso del alumno
+  // 3. Los 22 módulos + progreso del alumno
   const rows = await db
     .select({
       id: modulos.id,

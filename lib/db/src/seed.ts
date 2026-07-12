@@ -407,7 +407,7 @@ async function main() {
       {
         titulo: 'Nuevo material de estudio disponible',
         contenido:
-          'Ya está disponible el material de apoyo para los 21 módulos del Plan Modular. ' +
+          'Ya está disponible el material de apoyo para los 22 módulos del Plan Modular. ' +
           'Ingresa a la sección "Mis módulos" para acceder a las guías de estudio, ' +
           'resúmenes temáticos y ejercicios de práctica de cada unidad. ' +
           'El material está organizado por nivel y módulo para facilitar tu preparación.',
@@ -1277,7 +1277,7 @@ async function main() {
   // GRUPO B — Morelia (gestor: González)
   // ─────────────────────────────────────────────────────────────────────────
 
-  // ALUMNO 4: Patricia Velázquez Núñez — egresada (21 módulos)
+  // ALUMNO 4: Patricia Velázquez Núñez — egresada (22 módulos)
   const patriciaId = await demoUser('p.velazquez@correo.com', 'estudiante', false);
   await db.insert(estudiantes).values({
     userId: patriciaId, nombreCompleto: 'Patricia Velázquez Núñez',
@@ -1303,11 +1303,11 @@ async function main() {
   for (const [fecha, detalle] of patriciaPagos) {
     await demoPago(patriciaId, '850.00', 'verificado', fecha, `Derecho examen ${detalle}`);
   }
-  // 21 módulos con calificaciones históricas
-  const patriciaScores = [85,87,90,88,86,84,89,91,87,85,88,92,83,86,89,85,87,90,88,84,87];
-  const etapasHistPat = ['2404-A','2404-A','2404-A','2404-A','2407-B','2407-B','2407-B','2407-B','2407-B','2501-A','2501-A','2501-A','2501-A','2504-A','2504-A','2504-A','2504-A','2506-B','2506-B','2506-B','2506-B'];
-  const fechasHistPat = ['2024-05-10','2024-05-10','2024-05-10','2024-05-10','2024-09-13','2024-09-13','2024-09-14','2024-09-14','2024-09-14','2025-01-11','2025-01-11','2025-01-11','2025-01-12','2025-05-10','2025-05-10','2025-05-10','2025-05-11','2025-09-13','2025-09-13','2025-09-13','2025-09-14'];
-  for (let i = 0; i < 21; i++) {
+  // 22 módulos con calificaciones históricas (egresada del Plan 22 completo)
+  const patriciaScores = [85,87,90,88,86,84,89,91,87,85,88,92,83,86,89,85,87,90,88,84,87,86];
+  const etapasHistPat = ['2404-A','2404-A','2404-A','2404-A','2407-B','2407-B','2407-B','2407-B','2407-B','2501-A','2501-A','2501-A','2501-A','2504-A','2504-A','2504-A','2504-A','2506-B','2506-B','2506-B','2506-B','2506-B'];
+  const fechasHistPat = ['2024-05-10','2024-05-10','2024-05-10','2024-05-10','2024-09-13','2024-09-13','2024-09-14','2024-09-14','2024-09-14','2025-01-11','2025-01-11','2025-01-11','2025-01-12','2025-05-10','2025-05-10','2025-05-10','2025-05-11','2025-09-13','2025-09-13','2025-09-13','2025-09-14','2025-09-14'];
+  for (let i = 0; i < 22; i++) {
     await demoCalif(patriciaId, i + 1, etapasHistPat[i], patriciaScores[i], fechasHistPat[i]);
   }
 
@@ -2062,7 +2062,7 @@ async function main() {
   console.log('  Alumna ⭐:   ana.lopez@correo.com / demo1234       (caso estrella)');
   console.log('  Alumno:      j.ramirez.b@correo.com / demo1234     (en revisión)');
   console.log('  Alumna:      elena.cisneros@correo.com / demo1234  (incompleta)');
-  console.log('  Alumna:      p.velazquez@correo.com / demo1234     (21 módulos)');
+  console.log('  Alumna:      p.velazquez@correo.com / demo1234     (22 módulos)');
   console.log('  Alumno:      diego.ramirez@correo.com / demo1234   (inscrito activo)');
   console.log('  Alumna 🔑:   sofia.mendoza@correo.com / demo1234   (primer login)');
   console.log('  Alumno:      r.vargas@correo.com / demo1234        (doc rechazado)');
