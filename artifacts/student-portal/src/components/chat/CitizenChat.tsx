@@ -10,8 +10,13 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { ShieldCheck, Send, Lock, Info } from 'lucide-react';
+import { ShieldCheck, Send, Lock, Info, Headset, Clock, Mail } from 'lucide-react';
 import { api } from '../../lib/api';
+
+// Datos de atención (placeholder de soporte — cambiar por el correo oficial real
+// antes de producción; el horario es el de oficina L-V 9:00–17:00).
+const HORARIO_ATENCION = 'Lunes a viernes, 9:00 a 17:00 h';
+const CORREO_SOPORTE = 'soporte@edumich.michoacan.gob.mx';
 
 interface Mensaje {
   id: number;
@@ -170,14 +175,34 @@ export function CitizenChat() {
   // ── Chat ────────────────────────────────────────────────────────────
   return (
     <div className="mx-auto flex max-w-2xl flex-col" style={{ height: 'calc(100vh - 220px)', minHeight: 420 }}>
-      <div className="mb-3 flex items-center justify-between">
-        <div>
-          <h1 className="font-serif text-2xl font-bold text-stone-900">Chat con la Secretaría</h1>
-          <p className="text-xs text-stone-500">Normalmente responden en horario de oficina.</p>
+      {/* Encabezado tipo "contacto": estás escribiéndole a una persona de la Secretaría */}
+      <div className="mb-3 flex items-center gap-3 rounded-2xl border border-stone-200 bg-white px-4 py-3 shadow-sm">
+        <div className="relative shrink-0">
+          <div
+            className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-sm"
+            style={{ background: 'linear-gradient(135deg, var(--color-guinda-700), var(--color-guinda-500))' }}
+          >
+            <Headset size={22} />
+          </div>
+          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="font-serif text-lg font-bold leading-tight text-stone-900">Atención a estudiantes</div>
+          <div className="text-[11px] text-stone-500">Personal de la Secretaría · Preparatoria Abierta</div>
+          <div className="mt-1 inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+            <Clock size={11} /> {HORARIO_ATENCION}
+          </div>
         </div>
       </div>
 
-      {/* Aviso persistente */}
+      {/* Correo de soporte + aviso legal */}
+      <a
+        href={`mailto:${CORREO_SOPORTE}`}
+        className="mb-2 inline-flex items-center gap-1.5 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-[11px] text-sky-800 transition-colors hover:bg-sky-100"
+      >
+        <Mail size={12} className="flex-shrink-0" />
+        ¿Tienes un problema? Escríbenos a <span className="font-semibold">{CORREO_SOPORTE}</span>
+      </a>
       <div className="mb-2 flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-800">
         <Lock size={12} className="flex-shrink-0" />
         Esta conversación queda registrada por motivos legales y de privacidad de datos.
@@ -195,8 +220,16 @@ export function CitizenChat() {
             {mensajes.map((m) => {
               const mio = !m.esSecretaria;
               return (
-                <div key={m.id} className={`flex ${mio ? 'justify-end' : 'justify-start'}`}>
-                  <div className="max-w-[80%]">
+                <div key={m.id} className={`flex items-end gap-2 ${mio ? 'justify-end' : 'justify-start'}`}>
+                  {!mio && (
+                    <div
+                      className="mb-4 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white shadow-sm"
+                      style={{ background: 'linear-gradient(135deg, var(--color-guinda-700), var(--color-guinda-500))' }}
+                    >
+                      <Headset size={13} />
+                    </div>
+                  )}
+                  <div className="max-w-[78%]">
                     {!mio && (
                       <div className="mb-0.5 ml-1 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-guinda-700)]">
                         Secretaría
@@ -206,7 +239,7 @@ export function CitizenChat() {
                       className="rounded-2xl px-3.5 py-2 text-sm shadow-sm"
                       style={
                         mio
-                          ? { background: 'var(--color-guinda-700)', color: '#fff', borderBottomRightRadius: 4 }
+                          ? { background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: '#fff', borderBottomRightRadius: 4 }
                           : { background: '#fff', color: '#292524', border: '1px solid #eaddd0', borderBottomLeftRadius: 4 }
                       }
                     >
@@ -236,13 +269,13 @@ export function CitizenChat() {
           }}
           rows={1}
           placeholder="Escribe tu mensaje a la Secretaría…"
-          className="max-h-32 flex-1 resize-none rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
+          className="max-h-32 flex-1 resize-none rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm focus:border-blue-400 focus:outline-none focus:ring-1 focus:ring-blue-200"
         />
         <button
           onClick={enviar}
           disabled={!texto.trim() || enviando}
           className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-opacity disabled:opacity-40"
-          style={{ background: 'var(--color-guinda-700)' }}
+          style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)' }}
           aria-label="Enviar"
         >
           <Send size={17} />
