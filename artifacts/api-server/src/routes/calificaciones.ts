@@ -128,11 +128,47 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     enProceso: r.calificacion == null && !!r.examen_etapa && String(r.examen_etapa) < hoyStr,
   }));
 
+  // ── EVALUACIONES DE PRÁCTICA (quizzes de la plataforma) ──────────────────
+  // OJO: son DISTINTAS de las calificaciones oficiales. Aquí SOLO cuentan las
+  // pruebas que el alumno realmente hizo (intentos_quiz > 0); las filas de
+  // progreso creadas por aprobación oficial (0 intentos) NO son pruebas.
+  const practicaRows = await db.execute<{
+    modulo_numero: number; modulo_nombre: string; estado: string;
+    intentos_quiz: number; mejor_calificacion: number | null;
+    ultima_calificacion: number | null; ultima_actividad: string | null; temas_debiles: unknown;
+  }>(sql`
+    SELECT m.numero AS modulo_numero, m.nombre AS modulo_nombre, emp.estado,
+           emp.intentos_quiz, emp.mejor_calificacion, emp.ultima_calificacion,
+           emp.ultima_actividad::text AS ultima_actividad, emp.temas_debiles
+    FROM estudiantes_modulos_progreso emp
+    JOIN modulos m ON m.id = emp.modulo_id
+    WHERE emp.estudiante_id = ${estudianteId} AND emp.intentos_quiz > 0
+    ORDER BY m.numero
+  `);
+  const evaluacionesPractica = practicaRows.rows.map((r) => ({
+    moduloNumero: Number(r.modulo_numero),
+    moduloNombre: r.modulo_nombre,
+    estado: r.estado,
+    intentos: Number(r.intentos_quiz ?? 0),
+    mejorCalificacion: r.mejor_calificacion,
+    ultimaCalificacion: r.ultima_calificacion,
+    ultimaActividad: r.ultima_actividad,
+    // temas_debiles es jsonb (array de strings); lo servimos como texto legible.
+    temasDebiles: Array.isArray(r.temas_debiles)
+      ? (r.temas_debiles as string[]).join(', ')
+      : typeof r.temas_debiles === 'string' ? r.temas_debiles : null,
+    // Una prueba se considera "aprobada" con ≥60 (misma escala interna 0–100).
+    aprobada: r.mejor_calificacion != null && r.mejor_calificacion >= 60,
+  }));
+  const pruebasAprobadas = evaluacionesPractica.filter((e) => e.aprobada).length;
+
   res.json({
     calificacionesExamen,
     modulosAprobados,
     historial: rows,
     resumen: { totalAprobados, promedioGlobal, examenesPresentados, porcentajeAvance },
+    evaluacionesPractica,
+    resumenPractica: { pruebasRealizadas: evaluacionesPractica.length, pruebasAprobadas },
     pdfOficial: {
       disponible: !!estPdf?.p,
       subidoEn: estPdf?.en ?? null,

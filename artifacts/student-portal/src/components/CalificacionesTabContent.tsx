@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Lock, GraduationCap, Grid3x3, List, Download, Award, ClipboardCheck, Clock } from 'lucide-react';
+import { Lock, GraduationCap, Grid3x3, List, Download, Award, ClipboardCheck, Clock, Target, RotateCcw } from 'lucide-react';
 import { api, calif10, type CalificacionesResponse, type CalifRow, type CalificacionExamen } from '../lib/api';
 
 // Metas del Plan Modular por nivel (total 21)
@@ -45,6 +45,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
 
   const { modulosAprobados, historial, resumen } = data;
   const calificacionesExamen: CalificacionExamen[] = data.calificacionesExamen ?? [];
+  const evaluacionesPractica = data.evaluacionesPractica ?? [];
 
   const MES_LABELS = [
     'ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN',
@@ -104,7 +105,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
       <div className="flex border-b-2 border-stone-200 mb-4 gap-0.5">
         {(['calificaciones', 'evaluaciones'] as Vista[]).map((v) => {
           const active = vista === v;
-          const cnt = v === 'calificaciones' ? calificacionesExamen.length : modulosAprobados.length;
+          const cnt = v === 'calificaciones' ? calificacionesExamen.length : evaluacionesPractica.length;
           return (
             <button
               key={v}
@@ -172,11 +173,11 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
         </div>
       )}
 
-      {/* ── VISTA: Evaluaciones (módulos del Plan Modular) ── */}
-      {vista === 'evaluaciones' && (<>
+      {/* ── (sigue en CALIFICACIONES) Avance oficial: resumen + niveles + aprobados + historial ── */}
+      {vista === 'calificaciones' && (<>
       {/* Summary card — green gradient */}
       <div
-        className="rounded-xl p-5 mb-4 text-white"
+        className="rounded-xl p-5 mb-4 mt-6 text-white"
         style={{ background: 'linear-gradient(135deg, #2d7d46 0%, #1d5128 100%)' }}
       >
         <div className="grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center">
@@ -428,6 +429,78 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
         </>
       )}
       </>)}
+
+      {/* ── VISTA: Evaluaciones = PRUEBAS DE PRÁCTICA (quizzes; NO son las calificaciones oficiales) ── */}
+      {vista === 'evaluaciones' && (
+        <div>
+          <p className="text-xs text-stone-500 mb-4">
+            <strong className="text-stone-700">Pruebas de práctica</strong> que el alumno resuelve en la plataforma para prepararse.
+            No son calificaciones oficiales — sirven para ver en qué módulos va bien y dónde reforzar.
+          </p>
+          {evaluacionesPractica.length === 0 ? (
+            <EmptyState icon={<ClipboardCheck size={22} />} title="Aún no ha hecho pruebas de práctica"
+              desc="Cuando el alumno resuelva quizzes de práctica en sus módulos, aquí verás sus intentos, su mejor resultado y los temas donde necesita reforzar." />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                <MiniStat label="Pruebas realizadas" value={data.resumenPractica?.pruebasRealizadas ?? evaluacionesPractica.length} />
+                <MiniStat label="Pruebas aprobadas" value={data.resumenPractica?.pruebasAprobadas ?? 0} tone="green" />
+                <MiniStat label="Intentos totales" value={evaluacionesPractica.reduce((s, e) => s + e.intentos, 0)} />
+              </div>
+              <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+                <table className="w-full text-sm">
+                  <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
+                    <tr>
+                      <th className="px-4 py-2.5 font-semibold">Módulo</th>
+                      <th className="px-4 py-2.5 font-semibold text-center">Intentos</th>
+                      <th className="px-4 py-2.5 font-semibold text-center">Mejor</th>
+                      <th className="px-4 py-2.5 font-semibold">Temas a reforzar</th>
+                      <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {evaluacionesPractica.map((e) => (
+                      <tr key={e.moduloNumero} className="border-b border-stone-100 last:border-0">
+                        <td className="px-4 py-2.5 text-stone-800">
+                          <span className="inline-block bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] font-bold text-[11px] px-2 py-0.5 rounded mr-1.5">M{e.moduloNumero}</span>
+                          {e.moduloNombre}
+                        </td>
+                        <td className="px-4 py-2.5 text-center font-mono text-stone-600">
+                          <span className="inline-flex items-center gap-1"><RotateCcw size={11} className="text-stone-400" /> {e.intentos}</span>
+                        </td>
+                        <td className="px-4 py-2.5 text-center">
+                          {e.mejorCalificacion != null
+                            ? <span className={`font-bold ${e.aprobada ? 'text-emerald-700' : 'text-amber-600'}`}>{calif10(e.mejorCalificacion)}<span className="text-[10px] font-normal text-stone-400">/10</span></span>
+                            : <span className="text-stone-300">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-xs text-stone-500">
+                          {e.temasDebiles
+                            ? <span className="inline-flex items-center gap-1"><Target size={11} className="text-amber-500 shrink-0" /> {e.temasDebiles}</span>
+                            : <span className="text-stone-300">—</span>}
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          {e.aprobada
+                            ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aprobada</span>
+                            : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">En práctica</span>}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, tone = 'neutral' }: { label: string; value: number | string; tone?: 'neutral' | 'green' }) {
+  return (
+    <div className="rounded-xl border border-stone-200 bg-white px-4 py-3">
+      <div className="text-2xl font-bold leading-none" style={{ fontFamily: "'Poppins', sans-serif", color: tone === 'green' ? '#2d7d46' : 'var(--color-guinda-700)' }}>{value}</div>
+      <div className="mt-1 text-[11px] text-stone-500">{label}</div>
     </div>
   );
 }

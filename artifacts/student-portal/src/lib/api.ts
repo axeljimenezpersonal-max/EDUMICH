@@ -684,6 +684,20 @@ export interface CalificacionExamen {
   enProceso: boolean;
 }
 
+// Prueba de práctica (quiz de módulo en la plataforma) — DISTINTA de la
+// calificación oficial. Sirve para ver dónde reforzar (temas débiles).
+export interface EvaluacionPractica {
+  moduloNumero: number;
+  moduloNombre: string;
+  estado: string;
+  intentos: number;
+  mejorCalificacion: number | null;
+  ultimaCalificacion: number | null;
+  ultimaActividad: string | null;
+  temasDebiles: string | null;
+  aprobada: boolean;
+}
+
 export interface CalificacionesResponse {
   calificacionesExamen?: CalificacionExamen[];
   modulosAprobados: CalifRow[];
@@ -694,6 +708,8 @@ export interface CalificacionesResponse {
     examenesPresentados: number;
     porcentajeAvance: number;
   };
+  evaluacionesPractica?: EvaluacionPractica[];
+  resumenPractica?: { pruebasRealizadas: number; pruebasAprobadas: number };
   pdfOficial?: { disponible: boolean; subidoEn: string | null };
 }
 
