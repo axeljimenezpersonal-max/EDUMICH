@@ -20,6 +20,8 @@ import {
   Loader2,
   IdCard,
   ExternalLink,
+  ScanLine,
+  ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
@@ -203,7 +205,7 @@ export default function VerificacionPase() {
         </p>
       </div>
 
-      <div className="max-w-lg mx-auto space-y-5">
+      <div className="max-w-2xl mx-auto space-y-5">
 
         {/* ── Selector de modo ─────────────────────────────────────────────── */}
         {(state.tipo === 'idle') && (
@@ -236,28 +238,36 @@ export default function VerificacionPase() {
 
         {/* ── Estado: IDLE ────────────────────────────────────────────────── */}
         {state.tipo === 'idle' && !camError && (
-          <div className="bg-white border border-stone-200 rounded-2xl p-10 text-center">
+          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
-              style={{ background: 'var(--color-guinda-700)' }}
+              className="relative px-8 py-10 text-center text-white"
+              style={{ background: 'linear-gradient(150deg, var(--color-guinda-700), var(--color-guinda-800) 90%)' }}
             >
-              {modo === 'credencial' ? <IdCard size={28} className="text-white" /> : <QrCode size={28} className="text-white" />}
+              {/* trama sutil de puntos */}
+              <div className="pointer-events-none absolute inset-0 opacity-[0.07]" style={{ backgroundImage: 'radial-gradient(#fff 1px, transparent 1px)', backgroundSize: '14px 14px' }} />
+              <div className="relative">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/25">
+                  <ScanLine size={30} className="text-white" />
+                </div>
+                <h2 className="font-serif text-2xl font-bold tracking-tight">
+                  {modo === 'credencial' ? 'Escanear credencial del alumno' : 'Escanear pase de examen'}
+                </h2>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-white/80">
+                  {modo === 'credencial'
+                    ? 'Pide al alumno que muestre el QR de su credencial digital. Al escanearlo, se abre su expediente al instante.'
+                    : 'Pide al alumno que muestre el QR de su pase provisional para verificar y registrar su asistencia.'}
+                </p>
+                <button
+                  onClick={iniciarCamara}
+                  className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-7 py-3 text-sm font-bold text-[var(--color-guinda-800)] shadow-md transition-transform hover:scale-[1.02] active:scale-95"
+                >
+                  <Camera size={17} /> Abrir cámara
+                </button>
+                <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] font-medium text-white/70">
+                  <ShieldCheck size={13} /> Verificación con firma digital · procesada en el dispositivo
+                </div>
+              </div>
             </div>
-            <h2 className="font-serif text-lg font-bold text-stone-900 mb-2">
-              {modo === 'credencial' ? 'Escanear credencial del alumno' : 'Escanear pase de examen'}
-            </h2>
-            <p className="text-sm text-stone-500 mb-6">
-              {modo === 'credencial'
-                ? 'Pide al alumno que muestre el QR de su credencial digital. Al escanearlo, abrirás su expediente en administración.'
-                : 'Pide al alumno que muestre el código QR de su pase provisional. Apunta la cámara al código para verificar y registrar su asistencia.'}
-            </p>
-            <button
-              onClick={iniciarCamara}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] transition-colors"
-            >
-              <Camera size={16} />
-              Abrir cámara
-            </button>
           </div>
         )}
 
@@ -473,14 +483,29 @@ export default function VerificacionPase() {
           </div>
         )}
 
-        {/* ── Instrucciones ─────────────────────────────────────────────────── */}
+        {/* ── ¿Cómo funciona? (3 pasos) ─────────────────────────────────────── */}
         {state.tipo === 'idle' && !camError && (
-          <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 text-xs text-stone-500 space-y-1.5">
-            <div className="font-semibold text-stone-700 mb-2">Instrucciones para el operador</div>
-            <div>1. Pide al alumno que abra su credencial digital en el portal.</div>
-            <div>2. Presiona "Abrir cámara" y apunta al código QR de la credencial.</div>
-            <div>3. El sistema verificará la credencial automáticamente.</div>
-            <div>4. Si es válida, se abrirá el expediente del alumno en administración.</div>
+          <div className="rounded-2xl border border-stone-200 bg-white p-5">
+            <div className="mb-4 flex items-center gap-2">
+              <ScanLine size={16} className="text-[var(--color-guinda-700)]" />
+              <h3 className="font-serif text-base font-bold text-stone-900">¿Cómo funciona?</h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {([
+                { n: 1, Icon: IdCard, t: 'El alumno abre su credencial', d: 'Desde su portal muestra el QR de su credencial digital.' },
+                { n: 2, Icon: Camera, t: 'Apunta la cámara al QR', d: 'Presiona “Abrir cámara” y encuadra el código.' },
+                { n: 3, Icon: User, t: 'Se abre su expediente', d: 'La credencial se verifica y saltas directo a su ficha.' },
+              ]).map((s) => (
+                <div key={s.n} className="relative rounded-xl border border-stone-100 bg-stone-50/60 p-4">
+                  <div className="mb-2 flex items-center gap-2">
+                    <span className="flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: 'var(--color-guinda-700)' }}>{s.n}</span>
+                    <s.Icon size={15} className="text-[var(--color-guinda-700)]" />
+                  </div>
+                  <div className="text-sm font-semibold text-stone-800">{s.t}</div>
+                  <div className="mt-0.5 text-xs text-stone-500">{s.d}</div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
