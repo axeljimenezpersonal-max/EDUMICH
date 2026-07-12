@@ -8,7 +8,7 @@
 
 import { useEffect, useState } from 'react';
 import {
-  Pencil, AlertCircle, Award, Calendar, ClipboardList, Download, FileText, Lock,
+  Pencil, AlertCircle, Award, Calendar, ClipboardList, Download, FileText, Lock, Eye, EyeOff,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
@@ -243,6 +243,7 @@ function MatriculaCard({ data }: { data: ExpedienteResponse }) {
 export default function MiExpediente() {
   const [data, setData] = useState<ExpedienteResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [mostrarCedula, setMostrarCedula] = useState(false);
 
   async function reload() {
     try {
@@ -381,21 +382,34 @@ export default function MiExpediente() {
                     </div>
                   </div>
                 </div>
-                <a
-                  href="/api/estudiante/cedula/pdf"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0 inline-flex items-center gap-1.5 bg-[var(--color-guinda-700)] text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors no-underline"
-                >
-                  <Download size={14} /> Descargar PDF
-                </a>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setMostrarCedula((v) => !v)}
+                    aria-expanded={mostrarCedula}
+                    className="inline-flex items-center gap-1.5 border border-stone-300 text-stone-700 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-stone-50 transition-colors"
+                  >
+                    {mostrarCedula ? <EyeOff size={15} /> : <Eye size={15} />}
+                    {mostrarCedula ? 'Ocultar' : 'Ver'}
+                  </button>
+                  <a
+                    href="/api/estudiante/cedula/pdf"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 bg-[var(--color-guinda-700)] text-white font-semibold text-sm px-4 py-2 rounded-lg hover:bg-[var(--color-guinda-800)] transition-colors no-underline"
+                  >
+                    <Download size={14} /> Descargar PDF
+                  </a>
+                </div>
               </div>
-              <iframe
-                title="Vista previa de la cédula"
-                src="/api/estudiante/cedula/pdf#toolbar=0&view=FitH"
-                className="w-full bg-stone-100"
-                style={{ height: 360 }}
-              />
+              {mostrarCedula && (
+                <iframe
+                  title="Vista previa de la cédula"
+                  src="/api/estudiante/cedula/pdf#toolbar=0&view=FitH"
+                  className="w-full bg-stone-100"
+                  style={{ height: 360 }}
+                />
+              )}
             </div>
           </section>
 
