@@ -80,7 +80,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
     <div>
       {/* Encabezado con descarga del historial */}
       <div className="flex items-center justify-between gap-3 mb-4">
-        <h2 className="font-serif text-base font-bold text-stone-900">Calificaciones y evaluaciones</h2>
+        <h2 className="font-serif text-base font-bold text-stone-900">Calificaciones y pruebas</h2>
         <a
           href={`/api/calificaciones/estudiantes/${estudianteId}/pdf`}
           download=""
@@ -116,7 +116,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
               style={{ fontFamily: "'Poppins', sans-serif" }}
             >
               {v === 'calificaciones' ? <Award size={15} /> : <ClipboardCheck size={15} />}
-              {v === 'calificaciones' ? 'Calificaciones' : 'Evaluaciones'}
+              {v === 'calificaciones' ? 'Calificaciones' : 'Pruebas'}
               <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${active ? 'bg-[var(--color-guinda-100)] text-[var(--color-guinda-700)]' : 'bg-[var(--color-crema-200)] text-stone-700'}`}>{cnt}</span>
             </button>
           );

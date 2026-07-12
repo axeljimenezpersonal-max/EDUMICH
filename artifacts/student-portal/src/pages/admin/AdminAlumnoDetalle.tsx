@@ -1055,7 +1055,7 @@ export default function AdminAlumnoDetalle() {
     { key: 'cedula',  label: 'Cédula',       icon: ClipboardList },
     { key: 'modulos', label: 'Módulos inscritos', icon: CalendarClock, count: examenes.length },
     { key: 'pagos',   label: 'Pagos',        icon: CreditCard,   count: pagosData.length },
-    { key: 'examenes', label: 'Evaluaciones', icon: GraduationCap, count: examenes.length },
+    { key: 'examenes', label: 'Calificaciones', icon: GraduationCap, count: examenes.length },
     { key: 'credencial', label: 'Credencial digital', icon: BadgeCheck },
   ];
 
