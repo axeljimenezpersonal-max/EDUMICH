@@ -34,6 +34,7 @@ export interface RelacionPdf {
     etapa: string | null;     // "2401-B"
     fechaAplicacion: string | null; // texto tal cual
     fecha: string | null;     // "2024-FEB-06"
+    numeroComunicado: string | null; // "2401B1601" (lo emite la SEP)
     fechaExamenISO: string | null;  // fecha derivada YYYY-MM-DD para almacenar
   };
   alumnos: AlumnoPdf[];
@@ -78,7 +79,15 @@ function derivarFechaISO(fechaAplicacion: string | null, fecha: string | null): 
 function valorTrasEtiqueta(tokens: Token[], etiqueta: RegExp): string | null {
   const base = tokens.find((t) => etiqueta.test(t.t));
   if (!base) return null;
-  // Tokens de la MISMA línea (misma Y aprox) a la derecha de la etiqueta,
+  // Caso A: pdfjs a veces pega "ETIQUETA: valor" en un mismo token → extrae lo
+  // que va tras los dos puntos.
+  const idxColon = base.t.indexOf(':');
+  if (idxColon >= 0) {
+    const after = base.t.slice(idxColon + 1).trim();
+    if (after) return after.length > 40 ? after.slice(0, 40).trim() : after;
+  }
+  // Caso B: la etiqueta y el valor van en tokens separados. Tomamos los de la
+  // MISMA línea (misma Y aprox) a la derecha de la etiqueta,
   // ordenados por X. pdfjs no garantiza orden de lectura, así que filtramos por
   // coordenada, no por posición en el arreglo. Cortamos al llegar a la siguiente
   // etiqueta (cualquier token con ':' o palabra de encabezado conocida).
@@ -107,7 +116,7 @@ export async function parsearRelacionCalificaciones(buffer: Buffer | Uint8Array)
   let filasConProblema = 0;
   let totalCalificaciones = 0;
   const cabecera: RelacionPdf['cabecera'] = {
-    oficina: null, sede: null, etapa: null, fechaAplicacion: null, fecha: null, fechaExamenISO: null,
+    oficina: null, sede: null, etapa: null, fechaAplicacion: null, fecha: null, numeroComunicado: null, fechaExamenISO: null,
   };
 
   for (let p = 1; p <= doc.numPages; p++) {
@@ -123,6 +132,7 @@ export async function parsearRelacionCalificaciones(buffer: Buffer | Uint8Array)
       cabecera.sede = valorTrasEtiqueta(tokens, /^SEDE/i);
       cabecera.etapa = valorTrasEtiqueta(tokens, /^ETAPA/i);
       cabecera.fechaAplicacion = valorTrasEtiqueta(tokens, /APLICACI[ÓO]N/i);
+      cabecera.numeroComunicado = valorTrasEtiqueta(tokens, /COMUNICADO/i);
       const fechaTok = tokens.find((t) => /FECHA:/i.test(t.t) || /^\d{4}-[A-ZÑ]{3}-\d{1,2}/i.test(t.t));
       if (fechaTok) cabecera.fecha = fechaTok.t.replace(/^FECHA:\s*/i, '').trim();
     }

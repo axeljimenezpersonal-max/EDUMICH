@@ -7,10 +7,11 @@
  * escala 0–10 (interno 0–100 ÷10) y la "A" son los aciertos. Se genera para una
  * convocatoria (o TODAS), y opcionalmente sólo para los alumnos de un gestor.
  */
-import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage, PDFImage } from 'pdf-lib';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
 import { winAnsiSafe } from '../utils/pdfText';
+import { LOGO_PREPA_ABIERTA, LOGO_PREPA_FACIL, LOGO_IEMSYS } from '../assets/relacionLogos';
 
 const GUINDA = rgb(0.42, 0.08, 0.19);
 const GUINDA_D = rgb(0.30, 0.05, 0.14);
@@ -79,6 +80,27 @@ export async function generarRelacionCalificacionesReporte(opts: {
     a.mods.push({ modulo: Number(r.modulo_numero), calif: r.calificacion, aciertos: r.aciertos, estado: r.estado });
   }
 
+  // Cabeceras OFICIALES guardadas al analizar el PDF de la SEP (relacion_cabeceras).
+  // Solo estos datos son legítimos: OFICINA, FECHA DE APLICACIÓN, Nº DE COMUNICADO y
+  // FECHA los EMITE la SEP. Si no hay relación cargada para una etapa, se dejan en
+  // blanco ("—"); NUNCA se inventan.
+  type Cabecera = { oficina: string | null; sede: string | null; fechaAplicacion: string | null; numeroComunicado: string | null; fechaDoc: string | null };
+  const cabeceras = new Map<string, Cabecera>();
+  try {
+    const cab = await db.execute<{ etapa_clave: string; oficina: string | null; sede: string | null; fecha_aplicacion: string | null; numero_comunicado: string | null; fecha_doc: string | null }>(sql`
+      SELECT etapa_clave, oficina, sede, fecha_aplicacion, numero_comunicado, fecha_doc FROM relacion_cabeceras
+    `);
+    for (const r of cab.rows) {
+      cabeceras.set(String(r.etapa_clave).toUpperCase().replace(/[^A-Z0-9]/g, ''), {
+        oficina: r.oficina, sede: r.sede, fechaAplicacion: r.fecha_aplicacion,
+        numeroComunicado: r.numero_comunicado, fechaDoc: r.fecha_doc,
+      });
+    }
+  } catch { /* tabla ausente en entornos viejos: seguimos sin cabecera */ }
+  const cabeceraDe = (clave: string): Cabecera =>
+    cabeceras.get(String(clave).toUpperCase().replace(/[^A-Z0-9]/g, '')) ??
+    { oficina: null, sede: null, fechaAplicacion: null, numeroComunicado: null, fechaDoc: null };
+
   const pdf = await PDFDocument.create();
   const reg = await pdf.embedFont(StandardFonts.Helvetica);
   const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -87,22 +109,78 @@ export async function generarRelacionCalificacionesReporte(opts: {
     p.drawText(S(s), { x, y, size, font, color });
   const tableRight = LAND.w - M;
 
+  // Logos oficiales (extraídos del PDF de la SEP). Si alguno falla, se omite.
+  const embedLogo = async (b64: string): Promise<PDFImage | null> => {
+    try { return await pdf.embedPng(Buffer.from(b64, 'base64')); } catch { return null; }
+  };
+  const [logoAbierta, logoFacil, logoIemsys] = await Promise.all([
+    embedLogo(LOGO_PREPA_ABIERTA), embedLogo(LOGO_PREPA_FACIL), embedLogo(LOGO_IEMSYS),
+  ]);
+
   let page = pdf.addPage([LAND.w, LAND.h]);
+  let pageNum = 0;
   const hoy = new Date().toLocaleDateString('es-MX', { day: '2-digit', month: 'long', year: 'numeric' });
 
+  // Encabezado institucional (por página): franja + 3 logos + título centrado en
+  // tres líneas, tal como el documento oficial.
   function bannerInstitucional(p: PDFPage): number {
-    const y = LAND.h - M;
+    pageNum++;
+    const top = LAND.h - M;
     p.drawRectangle({ x: 0, y: LAND.h - 6, width: LAND.w, height: 6, color: GUINDA });
-    // Marca (izquierda) + fecha (derecha), en su propia línea.
-    text(p, 'PREPARATORIA ABIERTA', M, y - 6, 13, bold, GUINDA);
-    text(p, ' · MICHOACÁN', M + bold.widthOfTextAtSize(S('PREPARATORIA ABIERTA'), 13), y - 6, 10, bold, GRIS);
-    text(p, `Generado: ${hoy}`, tableRight - reg.widthOfTextAtSize(`Generado: ${hoy}`, 7.5), y - 6, 7.5, reg, GRIS);
-    // Títulos centrados, DEBAJO de la marca (sin encimarse).
-    const inst = 'INSTITUTO DE EDUCACIÓN MEDIA SUPERIOR Y SUPERIOR DEL ESTADO DE MICHOACÁN';
-    text(p, inst, LAND.w / 2 - reg.widthOfTextAtSize(S(inst), 8) / 2, y - 22, 8, reg, GRIS);
-    const rel = 'RELACIÓN DE CALIFICACIONES Y ACIERTOS';
-    text(p, rel, LAND.w / 2 - bold.widthOfTextAtSize(S(rel), 12) / 2, y - 36, 12, bold, GUINDA_D);
-    return y - 50;
+
+    // Logos: Prepa Abierta (izq), Prepa Fácil (der), IEMSyS (extremo der).
+    const logoH = 34;
+    const drawLogo = (img: PDFImage | null, x: number, alignRight = false) => {
+      if (!img) return;
+      const w = (img.width / img.height) * logoH;
+      p.drawImage(img, { x: alignRight ? x - w : x, y: top - logoH, width: w, height: logoH });
+    };
+    drawLogo(logoAbierta, M);
+    drawLogo(logoIemsys, tableRight, true);
+    if (logoFacil) {
+      const w = (logoFacil.width / logoFacil.height) * logoH;
+      drawLogo(logoFacil, tableRight - w - 90, false);
+    }
+
+    // Título centrado, tres líneas.
+    const t1 = 'PREPARATORIA ABIERTA';
+    text(p, t1, LAND.w / 2 - bold.widthOfTextAtSize(S(t1), 13) / 2, top - 10, 13, bold, GUINDA);
+    const t2 = 'RELACIÓN DE CALIFICACIONES Y ACIERTOS';
+    text(p, t2, LAND.w / 2 - bold.widthOfTextAtSize(S(t2), 11) / 2, top - 24, 11, bold, GUINDA_D);
+    const t3 = 'NUEVO PLAN DE ESTUDIOS (NUPLES)';
+    text(p, t3, LAND.w / 2 - reg.widthOfTextAtSize(S(t3), 8) / 2, top - 35, 8, reg, GRIS);
+    text(p, `Generado: ${hoy}`, tableRight - reg.widthOfTextAtSize(`Generado: ${hoy}`, 7) / 1, LAND.h - M - logoH - 4, 7, reg, GRIS);
+
+    return top - 46;
+  }
+
+  // Bloque de metadatos a dos columnas de una convocatoria, calcado del oficial:
+  //   OFICINA / ETAPA / SEDE      HOJA / FECHA DE APLICACIÓN / Nº DE COMUNICADO / FECHA
+  function bloqueMetadatos(p: PDFPage, y: number, conv: Conv): number {
+    const cab = cabeceraDe(conv.clave);
+    const sede = cab.sede || (conv.sede ? conv.sede.toUpperCase() : null);
+    const dash = (v: string | null | undefined) => (v && String(v).trim() ? String(v).trim() : '—');
+    const h = 50;
+    p.drawRectangle({ x: M, y: y - h, width: tableRight - M, height: h, color: CREMA, borderColor: LINEA, borderWidth: 0.7 });
+    const colDivX = M + (tableRight - M) * 0.52;
+    p.drawLine({ start: { x: colDivX, y: y - h + 5 }, end: { x: colDivX, y: y - 5 }, thickness: 0.5, color: LINEA });
+
+    const linea = (etq: string, val: string, x: number, yy: number, xVal: number) => {
+      text(p, etq, x, yy, 7.5, bold, GRIS);
+      text(p, val, xVal, yy, 8, reg, NEGRO);
+    };
+    // Columna izquierda (3 renglones, centrados verticalmente)
+    const lx = M + 8, lv = M + 82;
+    linea('OFICINA:', dash(cab.oficina), lx, y - 16, lv);
+    linea('ETAPA:', dash(conv.clave), lx, y - 30, lv);
+    linea('SEDE:', dash(sede), lx, y - 44, lv);
+    // Columna derecha (4 renglones)
+    const rx = colDivX + 10, rv = colDivX + 132;
+    linea('HOJA:', String(pageNum), rx, y - 13, rv);
+    linea('FECHA DE APLICACIÓN:', dash(cab.fechaAplicacion), rx, y - 25, rv);
+    linea('NÚMERO DE COMUNICADO:', dash(cab.numeroComunicado), rx, y - 37, rv);
+    linea('FECHA:', dash(cab.fechaDoc), rx, y - 45, rv);
+    return y - h - 6;
   }
 
   // Cabecera de la tabla para una convocatoria (columnas dinámicas por maxMods).
@@ -143,14 +221,10 @@ export async function generarRelacionCalificacionesReporte(opts: {
     const maxMods = alumnos.reduce((mx, a) => Math.max(mx, a.mods.length), 1);
     const cols = columnas(maxMods);
 
-    // Bloque de convocatoria
-    if (y < M + 90) { page = pdf.addPage([LAND.w, LAND.h]); y = bannerInstitucional(page); }
-    y -= 6;
-    text(page, `ETAPA: ${conv.clave}`, M, y - 8, 9, bold, GUINDA_D);
-    text(page, `AÑO: ${conv.anio}`, M + 150, y - 8, 8.5, reg, NEGRO);
-    if (conv.sede) text(page, `SEDE: ${conv.sede.toUpperCase()}`, M + 250, y - 8, 8.5, reg, NEGRO);
-    text(page, `ALUMNOS: ${alumnos.length}`, tableRight - 90, y - 8, 8.5, reg, GRIS);
-    y -= 18;
+    // Bloque de convocatoria (metadatos oficiales a dos columnas).
+    if (y < M + 130) { page = pdf.addPage([LAND.w, LAND.h]); y = bannerInstitucional(page); }
+    y -= 4;
+    y = bloqueMetadatos(page, y, conv);
 
     y = cabeceraTabla(page, y, cols);
 

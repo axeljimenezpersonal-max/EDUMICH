@@ -4568,6 +4568,19 @@ router.post('/calificaciones/relacion/aplicar', async (req, res) => {
     const fechaExamen = cabecera.fechaExamenISO ?? new Date().toISOString().slice(0, 10);
     const excluidas = new Set((excluir ?? []).map((e) => `${e.matricula}:${e.modulo}`));
 
+    // Guarda el ENCABEZADO OFICIAL de la SEP (oficina, sede, comunicado, fechas)
+    // para reproducirlo tal cual en los reportes descargables. Es dato REAL del
+    // documento de la SEP, no inventado por la plataforma.
+    if (cabecera.etapa) {
+      await db.execute(sql`
+        INSERT INTO relacion_cabeceras (etapa_clave, oficina, sede, fecha_aplicacion, numero_comunicado, fecha_doc, actualizado_en)
+        VALUES (${etapaClave}, ${cabecera.oficina}, ${cabecera.sede}, ${cabecera.fechaAplicacion}, ${cabecera.numeroComunicado}, ${cabecera.fecha}, now())
+        ON CONFLICT (etapa_clave) DO UPDATE SET
+          oficina = EXCLUDED.oficina, sede = EXCLUDED.sede, fecha_aplicacion = EXCLUDED.fecha_aplicacion,
+          numero_comunicado = EXCLUDED.numero_comunicado, fecha_doc = EXCLUDED.fecha_doc, actualizado_en = now()
+      `).catch(() => {});
+    }
+
     // Resolver sede por nombre (opcional).
     let sedeId: number | null = null;
     if (cabecera.sede) {
