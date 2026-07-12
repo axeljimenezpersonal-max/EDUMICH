@@ -3653,6 +3653,82 @@ router.get('/gestores-disponibles', async (req, res) => {
 });
 
 // ─── GET /admin/convocatorias ─────────────────────────────────────────────────
+// POST /admin/convocatorias/precargar — carga masiva de etapas (calendario del
+// ciclo). Solo admin. Crea las etapas nuevas (omite las que ya existen por clave)
+// y opcionalmente clona los horarios de una etapa plantilla para que la
+// inscripción funcione desde el día 1.
+const etapaInputSchema = z.object({
+  clave: z.string().trim().min(2).max(20),
+  etapa: z.string().trim().min(1).max(10),
+  fase: z.string().trim().min(1).max(2),
+  solicitudInicio: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  solicitudFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  examenSabado: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  examenDomingo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  anio: z.number().int().min(2020).max(2100),
+});
+const precargarSchema = z.object({
+  etapas: z.array(etapaInputSchema).min(1).max(60),
+  copiarHorariosDe: z.number().int().positive().nullable().optional(),
+});
+
+router.post('/convocatorias/precargar', async (req, res) => {
+  const parse = precargarSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Datos inválidos', detalle: parse.error.issues.slice(0, 3) }); return; }
+  const { etapas, copiarHorariosDe } = parse.data;
+  try {
+    const claves = etapas.map((e) => e.clave);
+    const existentes = new Set(
+      (await db.select({ clave: convocatoriasEtapas.clave }).from(convocatoriasEtapas).where(inArray(convocatoriasEtapas.clave, claves))).map((r) => r.clave)
+    );
+
+    let plantilla: { moduloId: number; dia: string; hora: string }[] = [];
+    if (copiarHorariosDe) {
+      plantilla = await db
+        .select({ moduloId: convocatoriasModulosHorarios.moduloId, dia: convocatoriasModulosHorarios.dia, hora: convocatoriasModulosHorarios.hora })
+        .from(convocatoriasModulosHorarios)
+        .where(eq(convocatoriasModulosHorarios.etapaId, copiarHorariosDe));
+    }
+
+    const creadas: string[] = [];
+    const omitidas: string[] = [];
+    const errores: { clave: string; motivo: string }[] = [];
+    const vistas = new Set<string>();
+
+    for (const e of etapas) {
+      if (vistas.has(e.clave) || existentes.has(e.clave)) { omitidas.push(e.clave); continue; }
+      if (!(e.solicitudInicio <= e.solicitudFin && e.solicitudFin <= e.examenSabado && e.examenSabado <= e.examenDomingo)) {
+        errores.push({ clave: e.clave, motivo: 'Fechas fuera de orden (inicio ≤ fin ≤ sábado ≤ domingo)' });
+        continue;
+      }
+      vistas.add(e.clave);
+      const [nueva] = await db.insert(convocatoriasEtapas).values({
+        clave: e.clave, etapa: e.etapa, fase: e.fase,
+        solicitudInicio: e.solicitudInicio, solicitudFin: e.solicitudFin,
+        examenSabado: e.examenSabado, examenDomingo: e.examenDomingo,
+        anio: e.anio, estado: 'programada',
+      }).returning({ id: convocatoriasEtapas.id });
+      if (plantilla.length && nueva) {
+        await db.insert(convocatoriasModulosHorarios).values(
+          plantilla.map((h) => ({ etapaId: nueva.id, moduloId: h.moduloId, dia: h.dia, hora: h.hora }))
+        );
+      }
+      creadas.push(e.clave);
+    }
+
+    if (creadas.length) {
+      await tryAuditLog({
+        userId: req.user!.userId, accion: 'precargar_convocatorias', entidad: 'convocatorias_etapas',
+        detalle: `Precargó ${creadas.length} etapa(s) del calendario`, metadata: { creadas, copiarHorariosDe: copiarHorariosDe ?? null }, req,
+      });
+    }
+
+    res.json({ ok: true, creadas, omitidas, errores, horariosPorEtapa: plantilla.length });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error al precargar etapas' });
+  }
+});
+
 router.get('/convocatorias', async (req, res) => {
   try {
     const año = req.query['año'] ? parseInt(req.query['año'] as string, 10) : new Date().getFullYear();
