@@ -3,6 +3,7 @@ import { Link } from 'wouter';
 import { ChevronRight, Lock, BookOpen, CreditCard, CheckCircle2, CalendarCheck } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
+import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { TOUR_MODULOS, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api, type MisModulosResponse, type ModuloListItem, type ProgresoEstado } from '../../lib/api';
 
@@ -328,6 +329,9 @@ export default function MisModulos() {
           )}
         </>
       )}
+      <div className="mt-6">
+        <AyudaMensajes contexto="tus módulos" />
+      </div>
       <SectionTour
         steps={TOUR_MODULOS}
         storageKey="edumich_sec_modulos_v1"

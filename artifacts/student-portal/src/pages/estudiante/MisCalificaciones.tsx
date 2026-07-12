@@ -11,6 +11,7 @@ import { EstudianteLayout } from './EstudianteLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_CALIFICACIONES, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
+import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { api, type MeResponse } from '../../lib/api';
 
 export default function MisCalificaciones() {
@@ -42,6 +43,10 @@ export default function MisCalificaciones() {
           <CalificacionesTabContent estudianteId={meId} readOnly={true} />
         </div>
       )}
+
+      <div className="mt-6">
+        <AyudaMensajes contexto="tus calificaciones" />
+      </div>
 
       <SectionTour
         steps={TOUR_CALIFICACIONES}

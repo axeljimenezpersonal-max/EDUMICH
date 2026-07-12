@@ -5,6 +5,7 @@ import { QRCodeSVG as QRCodeReact } from 'qrcode.react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { CredencialPreview } from '../../components/CredencialPreview';
 import { SectionTour } from '../../components/onboarding/SectionTour';
+import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { TOUR_IDENTIFICACION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
 
@@ -531,6 +532,10 @@ export default function MiIdentificacion() {
             Esta credencial es un documento oficial emitido por el IEMSyS. El código QR en el reverso
             puede ser verificado en el portal oficial por cualquier institución educativa.
           </span>
+        </div>
+
+        <div className="mt-6">
+          <AyudaMensajes contexto="tu credencial" />
         </div>
       </div>
       <SectionTour
