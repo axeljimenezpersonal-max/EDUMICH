@@ -105,7 +105,7 @@ g.get('/materiales', async (req, res) => {
 const materialSchema = z.object({
   titulo: z.string().trim().min(1).max(200),
   descripcion: z.string().trim().max(2000).optional().or(z.literal('')),
-  tipo: z.enum(['enlace', 'texto']),
+  tipo: z.enum(['enlace', 'texto', 'video']),
   url: z.string().trim().max(1000).optional().or(z.literal('')),
   contenido: z.string().trim().max(10000).optional().or(z.literal('')),
 });
