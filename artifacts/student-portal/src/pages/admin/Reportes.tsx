@@ -3,7 +3,7 @@ import {
   BarChart2, Users, FileText, DollarSign, GraduationCap,
   UserCheck, Calendar, Inbox, TrendingUp, Download, RefreshCw,
   Clock, Trash2, ToggleLeft, ToggleRight, Plus, X,
-  UserPlus, CheckCircle2, Award, Send, Loader2,
+  UserPlus, CheckCircle2, Award, Send, Loader2, AlertTriangle, Trophy,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -227,11 +227,13 @@ function PanelIndicadores() {
         ))}
       </div>
 
+      <SeccionLabel texto="Conversión" />
       {/* Embudo de conversión */}
       <Panel titulo="Embudo de conversión" icon={TrendingUp} sub={`De la inscripción al aprobado — % que sobrevive cada paso${data ? ` · ${data.solicitudesRecibidas} solicitudes recibidas` : ''}`} className="mb-4">
         {data && data.embudo.some((s) => s.n > 0) ? <Embudo pasos={data.embudo} /> : <Vacio />}
       </Panel>
 
+      <SeccionLabel texto="Desempeño académico" />
       {/* Aprobación por módulo + avance hacia egreso */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
         <div className="lg:col-span-2">
@@ -239,23 +241,36 @@ function PanelIndicadores() {
             {data && data.aprobacionPorModulo.length > 0 ? <AprobModulo data={data.aprobacionPorModulo} /> : <Vacio />}
           </Panel>
         </div>
-        <Panel titulo="Avance hacia egreso" icon={Award} sub="Alumnos por módulos aprobados">
+        <Panel titulo="Avance hacia egreso" icon={Award} sub="Cuántos alumnos van en cada tramo de módulos aprobados (de 22)">
           {data && data.avanceEgreso.some((d) => d.n > 0) ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={data.avanceEgreso} margin={{ top: 8, right: 8, left: -22, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke={LINEA} vertical={false} />
-                <XAxis dataKey="rango" tick={{ fontSize: 9, fill: SLATE_400 }} angle={-30} textAnchor="end" height={44} interval={0} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: SLATE_400 }} allowDecimals={false} axisLine={false} tickLine={false} />
-                <Tooltip contentStyle={tooltipCls} formatter={(v: number) => [v, 'Alumnos']} />
-                <Bar dataKey="n" radius={[5, 5, 0, 0]}>
-                  {data.avanceEgreso.map((d) => <Cell key={d.rango} fill={d.rango === 'Egresados' ? TEAL : 'url(#gradIndigo)'} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <>
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={data.avanceEgreso} margin={{ top: 8, right: 8, left: -22, bottom: 4 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke={LINEA} vertical={false} />
+                  <XAxis dataKey="rango" tick={{ fontSize: 9, fill: SLATE_400 }} angle={-30} textAnchor="end" height={44} interval={0} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: SLATE_400 }} allowDecimals={false} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={tooltipCls} formatter={(v: number) => [v, 'Alumnos']} />
+                  <Bar dataKey="n" radius={[5, 5, 0, 0]}>
+                    {data.avanceEgreso.map((d) => <Cell key={d.rango} fill={d.rango === 'Egresados' ? TEAL : 'url(#gradIndigo)'} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+              {(() => {
+                const tot = data.avanceEgreso.reduce((s, d) => s + d.n, 0);
+                const egr = data.avanceEgreso.find((d) => d.rango === 'Egresados')?.n ?? 0;
+                const sinIniciar = data.avanceEgreso.find((d) => d.rango === 'Sin iniciar')?.n ?? 0;
+                return (
+                  <div className="text-[11px] mt-1 leading-relaxed" style={{ color: SLATE_500 }}>
+                    <b style={{ color: SLATE_900 }}>{tot}</b> alumnos en total · <b style={{ color: TEAL }}>{egr}</b> ya egresaron (22 módulos) · <b style={{ color: SLATE_900 }}>{sinIniciar}</b> aún sin iniciar.
+                  </div>
+                );
+              })()}
+            </>
           ) : <Vacio />}
         </Panel>
       </div>
 
+      <SeccionLabel texto="Operación por centro" />
       {/* Ranking de centros + estado de pagos */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -284,6 +299,32 @@ function PanelIndicadores() {
 const selCls = 'text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white min-w-[110px] focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400';
 const tooltipCls = { fontSize: 12, borderRadius: 10, border: `1px solid ${LINEA}`, boxShadow: '0 4px 12px rgba(15,23,42,.08)' } as const;
 
+// Color por porcentaje: rojo (crítico) → ámbar (en riesgo) → teal (bien).
+function tono(pct: number, warn = 50, good = 70): string {
+  return pct >= good ? TEAL : pct >= warn ? AMBAR : ROSA;
+}
+
+function SeccionLabel({ texto }: { texto: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-2 mt-1">
+      <span className="h-4 w-1 rounded-full" style={{ background: INDIGO }} />
+      <span className="text-[11px] font-bold uppercase tracking-widest" style={{ color: INDIGO }}>{texto}</span>
+    </div>
+  );
+}
+
+function Leyenda({ items }: { items: { color: string; label: string }[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-3">
+      {items.map((it) => (
+        <span key={it.label} className="flex items-center gap-1.5 text-[11px]" style={{ color: SLATE_500 }}>
+          <span className="w-2.5 h-2.5 rounded-full" style={{ background: it.color }} /> {it.label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function Filtro({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -309,90 +350,141 @@ function Panel({ titulo, sub, icon: Icon, className, children }: { titulo: strin
 // Embudo de conversión: barras horizontales decrecientes con % de conversión.
 function Embudo({ pasos }: { pasos: { paso: string; n: number }[] }) {
   const base = Math.max(1, pasos[0]?.n ?? 1);
+  // Detecta el paso donde más gente se cae (la fuga a atender).
+  let peor = { paso: '', caida: 0 };
+  for (let i = 1; i < pasos.length; i++) {
+    const prev = pasos[i - 1].n;
+    const c = prev > 0 ? Math.round(((prev - pasos[i].n) / prev) * 100) : 0;
+    if (c > peor.caida) peor = { paso: pasos[i].paso, caida: c };
+  }
   return (
-    <div className="space-y-2.5 pt-1">
-      {pasos.map((p, i) => {
-        const pctBase = Math.round((p.n / base) * 100);      // % de los inscritos (la base)
-        const prev = i > 0 ? pasos[i - 1].n : p.n;
-        const caida = prev > 0 ? Math.round(((prev - p.n) / prev) * 100) : 0; // % que se cayó vs el paso previo
-        return (
-          <div key={p.paso} className="flex items-center gap-3">
-            <div className="w-32 sm:w-40 shrink-0 text-right text-xs font-medium" style={{ color: SLATE_500 }}>{p.paso}</div>
-            <div className="flex-1 h-9 rounded-lg overflow-hidden" style={{ background: '#f1f5f9' }}>
-              <div className="h-full flex items-center px-3 rounded-lg" style={{ width: `${Math.max(6, pctBase)}%`, background: 'linear-gradient(90deg, #4338ca, #6366f1)', minWidth: 46 }}>
-                <span className="text-sm font-bold text-white">{p.n}</span>
+    <div>
+      {/* Encabezado de columnas */}
+      <div className="flex items-center gap-3 pb-2 text-[10px] font-semibold uppercase tracking-wide" style={{ color: SLATE_400 }}>
+        <div className="w-28 sm:w-40 shrink-0 text-right">Paso</div>
+        <div className="flex-1">Alumnos que llegan</div>
+        <div className="w-12 shrink-0 text-right">% del total</div>
+        <div className="w-24 shrink-0">Fuga vs. anterior</div>
+      </div>
+      <div className="space-y-2.5">
+        {pasos.map((p, i) => {
+          const pctBase = Math.round((p.n / base) * 100);
+          const prev = i > 0 ? pasos[i - 1].n : p.n;
+          const caida = prev > 0 ? Math.round(((prev - p.n) / prev) * 100) : 0;
+          return (
+            <div key={p.paso} className="flex items-center gap-3">
+              <div className="w-28 sm:w-40 shrink-0 text-right text-xs font-medium" style={{ color: SLATE_500 }}>{p.paso}</div>
+              <div className="flex-1 h-9 rounded-lg overflow-hidden" style={{ background: '#f1f5f9' }}>
+                <div className="h-full flex items-center px-3 rounded-lg" style={{ width: `${Math.max(6, pctBase)}%`, background: 'linear-gradient(90deg, #4338ca, #6366f1)', minWidth: 46 }}>
+                  <span className="text-sm font-bold text-white">{p.n}</span>
+                </div>
+              </div>
+              <div className="w-12 shrink-0 text-xs font-bold text-right" style={{ color: SLATE_900 }}>{pctBase}%</div>
+              <div className="w-24 shrink-0 text-[11px] font-semibold" style={{ color: i === 0 || caida <= 0 ? SLATE_400 : caida >= 50 ? ROSA : AMBAR }}>
+                {i === 0 ? '— base —' : caida > 0 ? `▼ ${caida}% se pierde` : 'sin pérdida'}
               </div>
             </div>
-            <div className="w-12 shrink-0 text-xs font-bold text-right" style={{ color: SLATE_900 }}>{pctBase}%</div>
-            <div className="w-20 shrink-0 text-[11px] font-semibold" style={{ color: i === 0 || caida <= 0 ? SLATE_400 : caida >= 50 ? ROSA : AMBAR }}>
-              {i === 0 ? 'base' : caida > 0 ? `−${caida}% cae` : 'sin caída'}
-            </div>
-          </div>
-        );
-      })}
-      <div className="text-[10px] pt-1" style={{ color: SLATE_400 }}>Barra y % = proporción sobre los inscritos (base). "Cae" = cuántos se pierden respecto al paso anterior.</div>
+          );
+        })}
+      </div>
+      {peor.caida > 0 && (
+        <div className="mt-3 flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: '#fff1f2', color: ROSA }}>
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span><b>Mayor fuga en “{peor.paso}”:</b> se pierde el {peor.caida}% de los que venían del paso anterior. Es donde conviene actuar.</span>
+        </div>
+      )}
     </div>
   );
 }
 
 // Aprobación por módulo: barras horizontales, color según la tasa.
 function AprobModulo({ data }: { data: { numero: number; nombre: string; evaluados: number; aprobados: number; tasa: number }[] }) {
-  const color = (t: number) => (t >= 70 ? TEAL : t >= 50 ? AMBAR : ROSA);
   return (
-    <div className="space-y-2 pt-1">
-      {data.slice(0, 10).map((m) => (
-        <div key={m.numero} className="flex items-center gap-3">
-          <div className="w-6 shrink-0 text-xs font-bold text-center rounded" style={{ color: INDIGO, background: '#eef2ff' }}>{m.numero}</div>
-          <div className="w-36 shrink-0 text-xs truncate" style={{ color: SLATE_500 }} title={m.nombre}>{m.nombre}</div>
-          <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ background: '#f1f5f9' }}>
-            <div className="h-full rounded-md" style={{ width: `${Math.max(3, m.tasa)}%`, background: color(m.tasa) }} />
+    <div>
+      <Leyenda items={[
+        { color: ROSA, label: 'Crítico (<50%)' },
+        { color: AMBAR, label: 'En riesgo (50–69%)' },
+        { color: TEAL, label: 'Bien (≥70%)' },
+      ]} />
+      <div className="flex items-center gap-3 pb-1.5 text-[10px] font-semibold uppercase tracking-wide" style={{ color: SLATE_400 }}>
+        <div className="w-6 shrink-0" />
+        <div className="w-36 shrink-0">Módulo</div>
+        <div className="flex-1">% que aprueba</div>
+        <div className="w-24 shrink-0 text-right">Aprob./eval.</div>
+      </div>
+      <div className="space-y-2">
+        {data.slice(0, 10).map((m) => (
+          <div key={m.numero} className="flex items-center gap-3">
+            <div className="w-6 shrink-0 text-xs font-bold text-center rounded" style={{ color: INDIGO, background: '#eef2ff' }}>{m.numero}</div>
+            <div className="w-36 shrink-0 text-xs truncate" style={{ color: SLATE_500 }} title={m.nombre}>{m.nombre}</div>
+            <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ background: '#f1f5f9' }}>
+              <div className="h-full rounded-md" style={{ width: `${Math.max(3, m.tasa)}%`, background: tono(m.tasa) }} />
+            </div>
+            <div className="w-24 shrink-0 text-right text-xs font-bold" style={{ color: tono(m.tasa) }}>
+              {m.tasa}% <span className="font-normal" style={{ color: SLATE_400 }}>({m.aprobados}/{m.evaluados})</span>
+            </div>
           </div>
-          <div className="w-24 shrink-0 text-right text-xs font-bold" style={{ color: color(m.tasa) }}>
-            {m.tasa}% <span className="font-normal" style={{ color: SLATE_400 }}>({m.aprobados}/{m.evaluados})</span>
-          </div>
-        </div>
-      ))}
+        ))}
+      </div>
+      <div className="text-[10px] pt-2" style={{ color: SLATE_400 }}>Ordenado de menor a mayor aprobación: los de arriba son donde más conviene reforzar.</div>
     </div>
   );
 }
 
 // Ranking de centros: tabla con mini-barras de porcentaje.
 function RankingCentros({ data }: { data: { gestor: string; municipio: string; alumnos: number; pctExpediente: number; pctPagado: number; pctAprobacion: number }[] }) {
-  const Barra = ({ pct, color }: { pct: number; color: string }) => (
+  // Ordena por aprobación (el ranking); a igualdad, por más alumnos.
+  const orden = [...data].sort((a, b) => b.pctAprobacion - a.pctAprobacion || b.alumnos - a.alumnos);
+  const Celda = ({ pct }: { pct: number }) => (
     <div className="flex items-center gap-1.5">
-      <div className="w-12 h-1.5 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
-        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      <div className="w-14 h-1.5 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: tono(pct) }} />
       </div>
-      <span className="text-[11px] font-semibold tabular-nums" style={{ color: SLATE_500 }}>{pct}%</span>
+      <span className="text-[11px] font-bold tabular-nums w-8" style={{ color: tono(pct) }}>{pct}%</span>
     </div>
   );
+  const medalla = ['#EAB308', '#94A3B8', '#B45309']; // oro, plata, bronce
   return (
-    <div className="overflow-auto">
-      <table className="w-full text-xs">
-        <thead>
-          <tr style={{ color: SLATE_400 }}>
-            <th className="text-left font-semibold pb-2">Centro / gestor</th>
-            <th className="text-center font-semibold pb-2">Alumnos</th>
-            <th className="text-left font-semibold pb-2">Expediente</th>
-            <th className="text-left font-semibold pb-2">Pagado</th>
-            <th className="text-left font-semibold pb-2">Aprobación</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.map((c, i) => (
-            <tr key={i} className="border-t" style={{ borderColor: LINEA }}>
-              <td className="py-2.5 pr-2">
-                <div className="font-semibold" style={{ color: SLATE_900 }}>{c.gestor}</div>
-                <div style={{ color: SLATE_400 }}>{c.municipio}</div>
-              </td>
-              <td className="py-2.5 text-center font-bold" style={{ color: INDIGO }}>{c.alumnos}</td>
-              <td className="py-2.5"><Barra pct={c.pctExpediente} color={INDIGO} /></td>
-              <td className="py-2.5"><Barra pct={c.pctPagado} color={TEAL} /></td>
-              <td className="py-2.5"><Barra pct={c.pctAprobacion} color={c.pctAprobacion >= 60 ? TEAL : AMBAR} /></td>
+    <div>
+      <Leyenda items={[
+        { color: ROSA, label: '<50% bajo' },
+        { color: AMBAR, label: '50–69% medio' },
+        { color: TEAL, label: '≥70% alto' },
+      ]} />
+      <div className="overflow-auto">
+        <table className="w-full text-xs">
+          <thead>
+            <tr style={{ color: SLATE_400 }}>
+              <th className="text-left font-semibold pb-2 pl-1">#</th>
+              <th className="text-left font-semibold pb-2">Centro / gestor</th>
+              <th className="text-center font-semibold pb-2" title="Alumnos a cargo del gestor">Alumnos</th>
+              <th className="text-left font-semibold pb-2" title="% de alumnos con los 5 documentos aprobados">Expediente</th>
+              <th className="text-left font-semibold pb-2" title="% de alumnos con examen pagado">Pagado</th>
+              <th className="text-left font-semibold pb-2" title="% de exámenes aprobados">Aprobación</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {orden.map((c, i) => (
+              <tr key={i} className="border-t" style={{ borderColor: LINEA }}>
+                <td className="py-2.5 pl-1">
+                  {i < 3
+                    ? <Trophy size={14} style={{ color: medalla[i] }} />
+                    : <span className="text-[11px] font-bold" style={{ color: SLATE_400 }}>{i + 1}</span>}
+                </td>
+                <td className="py-2.5 pr-2">
+                  <div className="font-semibold" style={{ color: SLATE_900 }}>{c.gestor}</div>
+                  <div style={{ color: SLATE_400 }}>{c.municipio}</div>
+                </td>
+                <td className="py-2.5 text-center font-bold" style={{ color: INDIGO }}>{c.alumnos}</td>
+                <td className="py-2.5"><Celda pct={c.pctExpediente} /></td>
+                <td className="py-2.5"><Celda pct={c.pctPagado} /></td>
+                <td className="py-2.5"><Celda pct={c.pctAprobacion} /></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="text-[10px] pt-2" style={{ color: SLATE_400 }}>Ordenado por % de aprobación. Verde = va bien, rojo = necesita apoyo.</div>
     </div>
   );
 }
