@@ -30,6 +30,8 @@ import PaseExamen from './pages/estudiante/PaseExamen';
 import MiIdentificacion from './pages/estudiante/MiIdentificacion';
 import EstudianteMensajes from './pages/estudiante/Mensajes';
 import GestorMensajes from './pages/gestor/GestorMensajes';
+import GestorAula from './pages/gestor/GestorAula';
+import AlumnoAula from './pages/estudiante/AlumnoAula';
 import AutoRegistroEmail from './pages/publico/AutoRegistroEmail';
 import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
@@ -88,6 +90,7 @@ export default function App() {
       <Route path="/gestor/pagos" component={GestorPagos} />
       <Route path="/gestor/calificaciones" component={GestorCalificaciones} />
       <Route path="/gestor/mensajes" component={GestorMensajes} />
+      <Route path="/gestor/aula" component={GestorAula} />
       <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
 
       {/* Rutas del estudiante */}
@@ -101,6 +104,7 @@ export default function App() {
       <Route path="/estudiante/expediente" component={MiExpediente} />
       <Route path="/estudiante/pagos" component={MisPagos} />
       <Route path="/estudiante/calificaciones" component={MisCalificaciones} />
+      <Route path="/estudiante/aula" component={AlumnoAula} />
       {/* La cédula ya no se edita por el alumno: vive como consulta en el expediente */}
       <Route path="/estudiante/cedula"><Redirect to="/estudiante/expediente" /></Route>
       <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />

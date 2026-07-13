@@ -221,6 +221,9 @@ export const gestores = pgTable('gestores', {
   centroAsesoria: varchar('centro_asesoria', { length: 200 }),
   claveCentro: varchar('clave_centro', { length: 20 }),
   rfcCentro: varchar('rfc_centro', { length: 20 }),
+  // "Aula virtual" (LMS-lite): módulo de pago que Synapsis activa por gestor.
+  // Los módulos/pruebas del alumno son un derecho aparte y NO dependen de esto.
+  aulaHabilitada: boolean('aula_habilitada').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   titulo: varchar('titulo', { length: 80 }).notNull().default('Gestor Municipal'),
   capacidadMaxima: integer('capacidad_maxima').notNull().default(50),
@@ -1628,4 +1631,60 @@ export const bancoPreguntas_relations = relations(bancoPreguntas, ({ one }) => (
     fields: [bancoPreguntas.moduloId],
     references: [modulos.id],
   }),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AULA VIRTUAL (LMS-lite del gestor) — Tareas, Materiales y Anuncios de aula.
+// Solo para gestores con `aulaHabilitada`. Aparte de los módulos/pruebas
+// (derecho del alumno). El "propietario" del aula es el gestor (gestorUserId).
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const aulaTareas = pgTable('aula_tareas', {
+  id: serial('id').primaryKey(),
+  gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  titulo: varchar('titulo', { length: 200 }).notNull(),
+  instrucciones: text('instrucciones'),
+  fechaEntrega: timestamp('fecha_entrega'),
+  publicada: boolean('publicada').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ({
+  gestorIdx: index('aula_tareas_gestor_idx').on(t.gestorUserId),
+}));
+
+export const aulaEntregas = pgTable('aula_entregas', {
+  id: serial('id').primaryKey(),
+  tareaId: integer('tarea_id').notNull().references(() => aulaTareas.id, { onDelete: 'cascade' }),
+  estudianteId: integer('estudiante_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  estado: varchar('estado', { length: 20 }).notNull().default('entregada'), // entregada | revisada
+  comentario: text('comentario'),
+  calificacion: numeric('calificacion', { precision: 5, scale: 2 }),
+  entregadaEn: timestamp('entregada_en').notNull().defaultNow(),
+  revisadaEn: timestamp('revisada_en'),
+}, (t) => ({
+  unicaPorAlumno: uniqueIndex('aula_entregas_tarea_alumno_uq').on(t.tareaId, t.estudianteId),
+  tareaIdx: index('aula_entregas_tarea_idx').on(t.tareaId),
+}));
+
+export const aulaMateriales = pgTable('aula_materiales', {
+  id: serial('id').primaryKey(),
+  gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  titulo: varchar('titulo', { length: 200 }).notNull(),
+  descripcion: text('descripcion'),
+  tipo: varchar('tipo', { length: 20 }).notNull().default('enlace'), // enlace | texto
+  url: varchar('url', { length: 1000 }),
+  contenido: text('contenido'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  gestorIdx: index('aula_materiales_gestor_idx').on(t.gestorUserId),
+}));
+
+export const aulaAnuncios = pgTable('aula_anuncios', {
+  id: serial('id').primaryKey(),
+  gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  titulo: varchar('titulo', { length: 200 }).notNull(),
+  cuerpo: text('cuerpo').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  gestorIdx: index('aula_anuncios_gestor_idx').on(t.gestorUserId),
 }));

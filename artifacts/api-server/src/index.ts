@@ -34,6 +34,7 @@ import depuracionRoutes from './routes/depuracion';
 import bancoRoutes from './routes/banco';
 import firmaRoutes from './routes/firma';
 import chatRoutes, { adminChatRouter } from './routes/chat';
+import aulaRoutes from './routes/aula';
 import devRoutes from './routes/dev';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
@@ -119,6 +120,7 @@ app.use('/api/banco', bancoRoutes);
 app.use('/api/firma', firmaRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin/chat', adminChatRouter);
+app.use('/api/aula', aulaRoutes);
 // Rutas de mantenimiento/dev: NUNCA se montan en producción (defensa en
 // profundidad, además del propio gate interno por NODE_ENV).
 if (process.env.NODE_ENV !== 'production') {

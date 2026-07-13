@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard, GraduationCap } from 'lucide-react';
+import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard, GraduationCap, School } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
@@ -18,11 +18,18 @@ const NAV = [
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
   { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
 ];
+const NAV_AULA = { to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' };
 
 export function EstudianteLayout({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [aula, setAula] = useState(false);
+  const navItems = aula ? [...NAV.slice(0, 6), NAV_AULA, ...NAV.slice(6)] : NAV;
+
+  useEffect(() => {
+    api.get<{ habilitada: boolean }>('/aula/estado').then((r) => setAula(!!r.habilitada)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api
@@ -64,7 +71,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
               <div className="font-serif text-sm">Estudiante</div>
             </div>
             <ul>
-              {NAV.map((item) => {
+              {navItems.map((item) => {
                 const active =
                   item.to === '/estudiante'
                     ? location === '/estudiante'
@@ -105,7 +112,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
       >
         {/* 9 secciones: en móvil la barra se desliza horizontalmente */}
         <div className="flex items-stretch overflow-x-auto scrollbar-none">
-          {NAV.map((item) => {
+          {navItems.map((item) => {
             const active =
               item.to === '/estudiante'
                 ? location === '/estudiante'

@@ -6,7 +6,7 @@
 
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
@@ -20,11 +20,17 @@ const NAV = [
   { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones', tour: 'nav-calificaciones' },
   { to: '/gestor/mensajes', icon: MessageSquare, label: 'Mensajes', tour: 'nav-mensajes' },
 ];
+const NAV_AULA = { to: '/gestor/aula', icon: School, label: 'Aula virtual', tour: 'nav-aula' };
 
 export function GestorLayout({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [aula, setAula] = useState(false);
+
+  useEffect(() => {
+    api.get<{ habilitada: boolean }>('/aula/estado').then((r) => setAula(!!r.habilitada)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     api
@@ -61,7 +67,7 @@ export function GestorLayout({ children }: { children: ReactNode }) {
               <div className="font-serif text-sm">Gestor Municipal</div>
             </div>
             <ul>
-              {NAV.map((item) => {
+              {(aula ? [...NAV, NAV_AULA] : NAV).map((item) => {
                 const active =
                   item.to === '/gestor' ? location === '/gestor' : location.startsWith(item.to);
                 return (
