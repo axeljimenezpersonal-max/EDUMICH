@@ -239,7 +239,7 @@ export function CitizenChat() {
                       className="rounded-2xl px-3.5 py-2 text-sm shadow-sm"
                       style={
                         mio
-                          ? { background: 'linear-gradient(135deg, #334155, #1e293b)', color: '#fff', borderBottomRightRadius: 4 }
+                          ? { background: 'var(--color-guinda-700)', color: '#fff', borderBottomRightRadius: 4 }
                           : { background: '#fff', color: '#292524', border: '1px solid #eaddd0', borderBottomLeftRadius: 4 }
                       }
                     >
@@ -269,13 +269,13 @@ export function CitizenChat() {
           }}
           rows={1}
           placeholder="Escribe tu mensaje a la Secretaría…"
-          className="max-h-32 flex-1 resize-none rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-200"
+          className="max-h-32 flex-1 resize-none rounded-xl border border-stone-200 px-3.5 py-2.5 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
         />
         <button
           onClick={enviar}
           disabled={!texto.trim() || enviando}
           className="inline-flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl text-white shadow-sm transition-opacity disabled:opacity-40"
-          style={{ background: 'linear-gradient(135deg, #334155, #1e293b)' }}
+          style={{ background: 'var(--color-guinda-700)' }}
           aria-label="Enviar"
         >
           <Send size={17} />
