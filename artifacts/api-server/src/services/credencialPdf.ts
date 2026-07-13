@@ -35,6 +35,25 @@ function txt(page: PDFPage, s: string, x: number, y: number, font: PDFFont, size
   page.drawText(s ?? '', { x, y, size, font, color });
 }
 
+/** Degradado horizontal (aproxima el header guinda del portal). */
+function gradientH(page: PDFPage, x: number, y: number, w: number, h: number, c1: ReturnType<typeof rgb>, c2: ReturnType<typeof rgb>, steps = 48) {
+  const sw = w / steps;
+  for (let i = 0; i < steps; i++) {
+    const t = i / (steps - 1);
+    const col = rgb(c1.red + (c2.red - c1.red) * t, c1.green + (c2.green - c1.green) * t, c1.blue + (c2.blue - c1.blue) * t);
+    page.drawRectangle({ x: x + sw * i, y, width: sw + 0.7, height: h, color: col });
+  }
+}
+
+/** Trunca con "…" si el texto excede maxW. */
+function clipTxt(s: string, font: PDFFont, size: number, maxW: number): string {
+  if (!s) return '—';
+  if (font.widthOfTextAtSize(s, size) <= maxW) return s;
+  let t = s;
+  while (t.length > 1 && font.widthOfTextAtSize(t + '…', size) > maxW) t = t.slice(0, -1);
+  return t + '…';
+}
+
 /**
  * Dibuja la imagen llenando TODO el recuadro (estilo object-fit: cover): escala
  * al lado mayor y recorta el sobrante con un clip, para que no queden franjas
@@ -145,6 +164,7 @@ export async function generarCredencialPdf(
   const page = doc.addPage([612, 792]);
   const bold = await doc.embedFont(StandardFonts.HelveticaBold);
   const reg = await doc.embedFont(StandardFonts.Helvetica);
+  const mono = await doc.embedFont(StandardFonts.CourierBold);
 
   const qrImg = await doc.embedPng(await QRCode.toBuffer(verifyUrl, { width: 220, margin: 0, color: { dark: '#2a1720', light: '#ffffff' } }));
   let foto: PDFImage | null = null;
@@ -155,71 +175,96 @@ export async function generarCredencialPdf(
     } catch { /* foto ilegible */ }
   }
 
-  const CW = 348, CH = 214, CX = (612 - CW) / 2;
+  // ── Paleta EXACTA del portal (CredencialPreview) ──
+  const G800 = rgb(0.36, 0.06, 0.15);       // guinda-800
+  const G600 = rgb(0.55, 0.13, 0.24);       // guinda-600
+  const GOLD = rgb(0.722, 0.592, 0.353);    // #b8975a
+  const BG_F = rgb(0.984, 0.969, 0.961);    // #fbf7f5
+  const BORDER = rgb(0.906, 0.863, 0.827);  // #e7dcd3
+  const LABEL = rgb(0.66, 0.60, 0.56);      // #a89a8e
+  const VALUE = rgb(0.165, 0.137, 0.125);   // #2a2320
+  const SUB = rgb(0.93, 0.87, 0.89);
+  const guinda700 = rgb(0.47, 0.10, 0.20);
 
-  // Sin título de hoja: solo el carnet (frente + reverso).
+  const CW = 480, CX = (612 - CW) / 2;      // tarjeta ancha, centrada
+  const HEAD = 46;                          // alto del header
+  const CHF = 190, CHR = 205;               // alto frente / reverso
+  const frontY = 792 - 56 - CHF;            // deja margen superior
+  const backY = frontY - 26 - CHR;
 
-  // ═══ FRENTE ═══
-  const fY = 500;
-  page.drawRectangle({ x: CX, y: fY, width: CW, height: CH, color: CREMA, borderColor: rgb(0.85, 0.80, 0.74), borderWidth: 1 });
-  // Banda superior guinda
-  page.drawRectangle({ x: CX, y: fY + CH - 40, width: CW, height: 40, color: GUINDA });
-  page.drawRectangle({ x: CX, y: fY + CH - 43, width: CW, height: 3, color: DORADO });
-  txt(page, 'CREDENCIAL DEL ESTUDIANTE', CX + 16, fY + CH - 24, bold, 11, BLANCO);
-  txt(page, 'Preparatoria Abierta Michoacán', CX + 16, fY + CH - 35, reg, 7, rgb(0.95, 0.88, 0.9));
+  // etiqueta+valor (label arriba, valor abajo)
+  const field = (label: string, value: string, x: number, y: number, vSize = 13, isMono = false, maxW = 220) => {
+    txt(page, label.toUpperCase(), x, y, bold, 7.5, LABEL);
+    const f = isMono ? mono : bold;
+    txt(page, clipTxt(value || '—', f, vSize, maxW), x, y - 14, f, vSize, VALUE);
+  };
 
-  // Foto
-  const foX = CX + 16, foY = fY + 22, foW = 78, foH = 96;
-  page.drawRectangle({ x: foX - 2, y: foY - 2, width: foW + 4, height: foH + 4, color: rgb(1, 1, 1), borderColor: DORADO, borderWidth: 1.5 });
+  // ═══════════ FRENTE ═══════════
+  page.drawRectangle({ x: CX, y: frontY, width: CW, height: CHF, color: BG_F, borderColor: BORDER, borderWidth: 1 });
+  gradientH(page, CX, frontY + CHF - HEAD, CW, HEAD, G800, G600);
+  page.drawRectangle({ x: CX, y: frontY + CHF - HEAD - 3, width: CW, height: 3, color: GOLD });
+  txt(page, 'CREDENCIAL DEL ESTUDIANTE', CX + 18, frontY + CHF - 26, bold, 13, BLANCO);
+  txt(page, 'Preparatoria Abierta Michoacán · IEMSyS', CX + 18, frontY + CHF - 40, reg, 9, SUB);
+
+  const bodyBot = frontY;
+  const bodyTop = frontY + CHF - HEAD - 3;
+  // Foto (centrada verticalmente en el cuerpo)
+  const foW = 92, foH = 112;
+  const foX = CX + 18, foY = bodyBot + (bodyTop - bodyBot - foH) / 2;
+  page.drawRectangle({ x: foX - 2, y: foY - 2, width: foW + 4, height: foH + 4, color: BLANCO, borderColor: GOLD, borderWidth: 2 });
   if (foto) coverImg(page, foto, foX, foY, foW, foH);
   else {
-    page.drawRectangle({ x: foX, y: foY, width: foW, height: foH, color: rgb(0.93, 0.90, 0.86) });
-    txt(page, 'SIN FOTO', foX + 16, foY + foH / 2, reg, 7, PIEDRA_500);
+    page.drawRectangle({ x: foX, y: foY, width: foW, height: foH, color: rgb(0.937, 0.906, 0.871) });
+    txt(page, 'SIN FOTO', foX + 22, foY + foH / 2 - 3, reg, 8, LABEL);
   }
 
-  // Datos a la derecha de la foto
-  const dX = foX + foW + 16;
-  const campo = (label: string, valor: string, y: number, mono = false) => {
-    txt(page, label, dX, y, bold, 6.5, PIEDRA_500);
-    txt(page, valor || '—', dX, y - 12, mono ? bold : bold, mono ? 11 : 12, PIEDRA_900);
-  };
-  campo('NOMBRE', data.nombre, fY + CH - 62);
-  campo('MATRÍCULA OFICIAL DGB', data.matricula ?? 'Sin asignar', fY + CH - 100, true);
-  campo('FOLIO DE CREDENCIAL', data.folio, fY + CH - 138, true);
+  // QR a la derecha
+  const qrS = 92, qrX = CX + CW - 18 - qrS, qrY = bodyBot + (bodyTop - bodyBot - qrS) / 2 + 4;
+  page.drawRectangle({ x: qrX - 6, y: qrY - 6, width: qrS + 12, height: qrS + 12, color: BLANCO, borderColor: BORDER, borderWidth: 1 });
+  page.drawImage(qrImg, { x: qrX, y: qrY, width: qrS, height: qrS });
+  const vTxt = 'Verificable';
+  txt(page, vTxt, qrX + (qrS - bold.widthOfTextAtSize(vTxt, 8)) / 2, qrY - 16, bold, 8, guinda700);
 
-  // QR frente
-  const qrS = 52;
-  page.drawImage(qrImg, { x: CX + CW - qrS - 14, y: fY + 14, width: qrS, height: qrS });
-  txt(page, 'Verifica', CX + CW - qrS - 14, fY + 6, reg, 6, PIEDRA_500);
+  // Datos entre la foto y el QR
+  const dX = foX + foW + 18;
+  const dMaxW = qrX - 12 - dX;
+  const dCenter = bodyBot + (bodyTop - bodyBot) / 2;
+  field('Nombre', data.nombre, dX, dCenter + 44, 13, false, dMaxW);
+  field('Matrícula oficial DGB', data.matricula ?? 'Sin asignar', dX, dCenter + 2, 12, true, dMaxW);
+  field('Folio de credencial', data.folio, dX, dCenter - 40, 12, true, dMaxW);
 
-  // ═══ REVERSO ═══
-  const bY = 240;
-  page.drawRectangle({ x: CX, y: bY, width: CW, height: CH, color: rgb(1, 1, 1), borderColor: rgb(0.85, 0.80, 0.74), borderWidth: 1 });
-  page.drawRectangle({ x: CX, y: bY + CH - 30, width: CW, height: 30, color: GUINDA_D });
-  txt(page, 'DATOS DE LA CREDENCIAL', CX + 16, bY + CH - 20, bold, 9, BLANCO);
+  // ═══════════ REVERSO ═══════════
+  page.drawRectangle({ x: CX, y: backY, width: CW, height: CHR, color: BLANCO, borderColor: BORDER, borderWidth: 1 });
+  page.drawRectangle({ x: CX, y: backY + CHR - 40, width: CW, height: 40, color: G800 });
+  txt(page, 'DATOS DE LA CREDENCIAL', CX + 18, backY + CHR - 26, bold, 12, BLANCO);
 
-  const rowY = (i: number) => bY + CH - 48 - i * 26;
-  const dato = (label: string, valor: string, i: number, col = 0) => {
-    const x = col === 0 ? CX + 16 : CX + CW / 2 + 6;
-    txt(page, label, x, rowY(i), bold, 6, PIEDRA_500);
-    txt(page, valor || '—', x, rowY(i) - 11, reg, 9, PIEDRA_900);
-  };
-  dato('CURP', curp, 0, 0);
-  dato('CENTRO DE SERVICIOS', data.sede || '—', 0, 1);
-  dato('PLAN', data.plan, 1, 0);
-  dato('ESTADO', vencida ? 'VENCIDA' : 'VIGENTE', 1, 1);
-  dato('EMISIÓN', emision ?? '—', 2, 0);
-  dato('VIGENTE HASTA', vigencia ?? '—', 2, 1);
+  const colL = CX + 18, colR = CX + CW / 2 + 8;
+  const colW = CW / 2 - 30;
+  const r0 = backY + CHR - 68;
+  const rowGap = 34;
+  field('CURP', curp, colL, r0, 11, true, colW);
+  field('Centro de servicios', data.sede || '—', colR, r0, 11, false, colW);
+  field('Plan', data.plan, colL, r0 - rowGap, 11, false, colW);
+  // Estado (píldora)
+  txt(page, 'ESTADO', colR, r0 - rowGap, bold, 7.5, LABEL);
+  const estText = vencida ? 'VENCIDA' : 'VIGENTE';
+  const estBg = vencida ? rgb(0.996, 0.886, 0.886) : rgb(0.82, 0.98, 0.878);
+  const estFg = vencida ? rgb(0.725, 0.11, 0.11) : rgb(0.086, 0.396, 0.204);
+  const ew = bold.widthOfTextAtSize(estText, 9) + 14;
+  page.drawRectangle({ x: colR, y: r0 - rowGap - 15, width: ew, height: 15, color: estBg });
+  txt(page, estText, colR + 7, r0 - rowGap - 11, bold, 9, estFg);
+  field('Emisión', emision ?? '—', colL, r0 - 2 * rowGap, 11, false, colW);
+  field('Vigente hasta', vigencia ?? '—', colR, r0 - 2 * rowGap, 11, false, colW);
 
-  // Convocatorias inscritas
-  const cvY = rowY(3) + 2;
-  txt(page, 'CONVOCATORIAS INSCRITAS', CX + 16, cvY, bold, 6, PIEDRA_500);
+  // Convocatorias inscritas (ancho completo)
+  const cvY = r0 - 3 * rowGap + 4;
+  txt(page, 'CONVOCATORIAS INSCRITAS', colL, cvY, bold, 7.5, LABEL);
   const listado = convocatorias.length ? convocatorias.join('   ·   ') : 'Sin inscripciones registradas';
-  txt(page, listado.length > 78 ? listado.slice(0, 75) + '…' : listado, CX + 16, cvY - 12, reg, 8.5, PIEDRA_900);
+  txt(page, clipTxt(listado, reg, 11, CW - 36), colL, cvY - 14, reg, 11, VALUE);
 
   // Pie
-  page.drawRectangle({ x: CX, y: bY, width: CW, height: 18, color: rgb(0.96, 0.94, 0.90) });
-  txt(page, `Folio ${data.folio}  ·  verifica.edumich.michoacan.gob.mx`, CX + 12, bY + 6, reg, 6.5, PIEDRA_500);
+  page.drawRectangle({ x: CX, y: backY, width: CW, height: 22, color: rgb(0.968, 0.949, 0.929) });
+  txt(page, `Folio ${data.folio}  ·  verifica.edumich.michoacan.gob.mx`, CX + 14, backY + 8, reg, 8, LABEL);
 
   const pdf = await doc.save();
   return { pdf, folio: data.folio, matricula: data.matricula };
