@@ -4,14 +4,15 @@
  * Solo visible si el aula del gestor está habilitada.
  */
 import { useEffect, useState } from 'react';
-import { GestorLayout } from './GestorLayout';
+import { AulaShell } from '../../components/AulaShell';
+import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Megaphone, Plus, Trash2, Users, Link2, FileText,
-  Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight, Inbox,
+  Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight, Inbox, MessageCircle,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
-type Sec = 'resumen' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
+type Sec = 'resumen' | 'foro' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
 
 interface Tarea { id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null; createdAt: string; entregas: number }
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; createdAt: string }
@@ -36,16 +37,17 @@ export default function GestorAula() {
   const cargarResumen = () => api.get<Resumen>('/aula/gestor/resumen').then(setResumen).catch(() => {});
   useEffect(() => { cargarResumen(); }, []);
 
-  const NAV: { k: Sec; label: string; icon: typeof LayoutDashboard; n?: number }[] = [
-    { k: 'resumen', label: 'Resumen', icon: LayoutDashboard },
-    { k: 'anuncios', label: 'Anuncios', icon: Megaphone, n: resumen?.anuncios },
-    { k: 'tareas', label: 'Tareas', icon: ClipboardList, n: resumen?.tareas },
-    { k: 'materiales', label: 'Materiales', icon: BookOpen, n: resumen?.materiales },
-    { k: 'videos', label: 'Videos', icon: Video },
+  const NAV = [
+    { k: 'resumen' as Sec, label: 'Resumen', icon: LayoutDashboard },
+    { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle },
+    { k: 'anuncios' as Sec, label: 'Anuncios', icon: Megaphone, n: resumen?.anuncios },
+    { k: 'tareas' as Sec, label: 'Tareas', icon: ClipboardList, n: resumen?.tareas },
+    { k: 'materiales' as Sec, label: 'Materiales', icon: BookOpen, n: resumen?.materiales },
+    { k: 'videos' as Sec, label: 'Videos', icon: Video },
   ];
 
   return (
-    <GestorLayout>
+    <AulaShell rol="gestor" volverHref="/gestor" sec={sec} setSec={setSec} nav={NAV}>
       {/* Banner tipo curso */}
       <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]"
         style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
@@ -76,41 +78,13 @@ export default function GestorAula() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[208px_1fr] gap-5">
-        {/* Mini-panel del aula */}
-        <nav className="md:sticky md:top-[114px] self-start">
-          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3" style={{ background: G, color: '#fff' }}>
-              <div className="text-[10px] tracking-widest opacity-80">PANEL</div>
-              <div className="font-serif text-sm">Aula virtual</div>
-            </div>
-            <ul className="py-1">
-              {NAV.map((it) => {
-                const on = sec === it.k;
-                return (
-                  <li key={it.k}>
-                    <button onClick={() => setSec(it.k)}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${on ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-700 hover:bg-stone-50'}`}>
-                      <it.icon size={16} /> <span className="flex-1 text-left">{it.label}</span>
-                      {typeof it.n === 'number' && it.n > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: on ? G : '#eee', color: on ? '#fff' : '#78716c' }}>{it.n}</span>}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </nav>
-
-        {/* Contenido */}
-        <div className="min-w-0">
-          {sec === 'resumen' && <ResumenSec resumen={resumen} ir={setSec} />}
-          {sec === 'anuncios' && <AnunciosTab onChange={cargarResumen} />}
-          {sec === 'tareas' && <TareasTab onChange={cargarResumen} />}
-          {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
-          {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}
-        </div>
-      </div>
-    </GestorLayout>
+      {sec === 'resumen' && <ResumenSec resumen={resumen} ir={setSec} />}
+      {sec === 'foro' && <ForoAula />}
+      {sec === 'anuncios' && <AnunciosTab onChange={cargarResumen} />}
+      {sec === 'tareas' && <TareasTab onChange={cargarResumen} />}
+      {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
+      {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}
+    </AulaShell>
   );
 }
 

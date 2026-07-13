@@ -10,7 +10,7 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaAnuncios } from '@workspace/db/schema';
+import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaAnuncios, aulaForo } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 
 const router = Router();
@@ -183,6 +183,44 @@ router.post('/tareas/:id/entregar', requireRol('estudiante'), async (req, res) =
   await db.insert(aulaEntregas).values({ tareaId: id, estudianteId: uid, estado: 'entregada', comentario })
     .onConflictDoUpdate({ target: [aulaEntregas.tareaId, aulaEntregas.estudianteId], set: { comentario, estado: 'entregada', entregadaEn: new Date() } });
   res.json({ ok: true });
+});
+
+// ═══════════════════════════ FORO (gestor + alumnos del aula) ═══════════════════════════
+// Resuelve de qué aula (gestor) participa el usuario actual.
+async function aulaDelUsuario(userId: number, rol: string): Promise<number | null> {
+  if (rol === 'gestor') return (await aulaHabilitadaGestor(userId)) ? userId : null;
+  if (rol === 'estudiante') {
+    const [e] = await db.select({ gestorId: estudiantes.gestorId }).from(estudiantes).where(eq(estudiantes.userId, userId));
+    if (e?.gestorId && (await aulaHabilitadaGestor(e.gestorId))) return e.gestorId;
+  }
+  return null;
+}
+
+router.get('/foro', async (req, res) => {
+  const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
+  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  const mensajes = await db.execute<{ id: number; autor_user_id: number; autor: string; autor_rol: string; cuerpo: string; created_at: string }>(sql`
+    SELECT f.id, f.autor_user_id, f.autor_rol, f.cuerpo, f.created_at::text,
+           COALESCE(g.nombre_completo, es.nombre_completo, 'Usuario') AS autor
+    FROM aula_foro f
+    LEFT JOIN gestores g ON g.user_id = f.autor_user_id
+    LEFT JOIN estudiantes es ON es.user_id = f.autor_user_id
+    WHERE f.gestor_user_id = ${gid}
+    ORDER BY f.created_at ASC`).then(r => r.rows);
+  res.json({
+    yo: req.user!.userId,
+    mensajes: mensajes.map(m => ({ id: m.id, autorId: m.autor_user_id, autor: m.autor, esGestor: m.autor_rol === 'gestor', cuerpo: m.cuerpo, createdAt: m.created_at })),
+  });
+});
+
+const foroSchema = z.object({ cuerpo: z.string().trim().min(1).max(3000) });
+router.post('/foro', async (req, res) => {
+  const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
+  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  const p = foroSchema.safeParse(req.body);
+  if (!p.success) { res.status(400).json({ error: 'Escribe un mensaje' }); return; }
+  const [m] = await db.insert(aulaForo).values({ gestorUserId: gid, autorUserId: req.user!.userId, autorRol: req.user!.rol, cuerpo: p.data.cuerpo }).returning();
+  res.json({ mensaje: m });
 });
 
 export default router;

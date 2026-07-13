@@ -1688,3 +1688,14 @@ export const aulaAnuncios = pgTable('aula_anuncios', {
 }, (t) => ({
   gestorIdx: index('aula_anuncios_gestor_idx').on(t.gestorUserId),
 }));
+
+export const aulaForo = pgTable('aula_foro', {
+  id: serial('id').primaryKey(),
+  gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  autorUserId: integer('autor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  autorRol: varchar('autor_rol', { length: 20 }).notNull(),
+  cuerpo: text('cuerpo').notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  gestorIdx: index('aula_foro_gestor_idx').on(t.gestorUserId),
+}));

@@ -4,14 +4,15 @@
  * Es aparte de sus módulos/pruebas oficiales.
  */
 import { useEffect, useState } from 'react';
-import { EstudianteLayout } from './EstudianteLayout';
+import { AulaShell } from '../../components/AulaShell';
+import { ForoAula } from '../../components/ForoAula';
 import {
   School, Megaphone, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
-  Video, PlayCircle, LayoutDashboard, ChevronRight, Inbox,
+  Video, PlayCircle, LayoutDashboard, ChevronRight, Inbox, MessageCircle,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
-type Sec = 'resumen' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
+type Sec = 'resumen' | 'foro' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
 interface Tarea { id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null; createdAt: string; miEstado: string | null; miComentario: string | null }
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null }
 interface Anuncio { id: number; titulo: string; cuerpo: string; createdAt: string }
@@ -28,29 +29,29 @@ export default function AlumnoAula() {
   const cargar = () => api.get<MiAula>('/aula/mi-aula').then(setD).catch(() => setD({ habilitada: false, tareas: [], materiales: [], anuncios: [] }));
   useEffect(() => { cargar(); }, []);
 
-  if (!d) return <EstudianteLayout><div className="h-52 rounded-xl animate-pulse bg-stone-100" /></EstudianteLayout>;
-  if (!d.habilitada) return (
-    <EstudianteLayout>
-      <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
-        <School size={30} className="mx-auto mb-2 text-stone-300" />
-        <div className="text-sm text-stone-400">Tu centro de asesoría no tiene aula virtual activa.</div>
-      </div>
-    </EstudianteLayout>
-  );
-
-  const pendientes = d.tareas.filter((t) => !t.miEstado).length;
-  const videos = d.materiales.filter((m) => m.tipo === 'video');
-  const materiales = d.materiales.filter((m) => m.tipo !== 'video');
-  const NAV: { k: Sec; label: string; icon: typeof LayoutDashboard; n?: number }[] = [
-    { k: 'resumen', label: 'Resumen', icon: LayoutDashboard },
-    { k: 'anuncios', label: 'Anuncios', icon: Megaphone, n: d.anuncios.length },
-    { k: 'tareas', label: 'Tareas', icon: ClipboardList, n: pendientes },
-    { k: 'materiales', label: 'Materiales', icon: BookOpen, n: materiales.length },
-    { k: 'videos', label: 'Videos', icon: Video, n: videos.length },
+  const pendientes = d ? d.tareas.filter((t) => !t.miEstado).length : 0;
+  const videos = d ? d.materiales.filter((m) => m.tipo === 'video') : [];
+  const materiales = d ? d.materiales.filter((m) => m.tipo !== 'video') : [];
+  const NAV = [
+    { k: 'resumen' as Sec, label: 'Resumen', icon: LayoutDashboard },
+    { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle },
+    { k: 'anuncios' as Sec, label: 'Anuncios', icon: Megaphone, n: d?.anuncios.length },
+    { k: 'tareas' as Sec, label: 'Tareas', icon: ClipboardList, n: pendientes },
+    { k: 'materiales' as Sec, label: 'Materiales', icon: BookOpen, n: materiales.length },
+    { k: 'videos' as Sec, label: 'Videos', icon: Video, n: videos.length },
   ];
 
   return (
-    <EstudianteLayout>
+    <AulaShell rol="estudiante" volverHref="/estudiante" sec={sec} setSec={setSec} nav={NAV}>
+      {!d ? (
+        <div className="h-52 rounded-xl animate-pulse bg-stone-100" />
+      ) : !d.habilitada ? (
+        <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
+          <School size={30} className="mx-auto mb-2 text-stone-300" />
+          <div className="text-sm text-stone-400">Tu centro de asesoría no tiene aula virtual activa.</div>
+        </div>
+      ) : (
+      <>
       {/* Banner */}
       <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]" style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
         <div className="relative px-6 py-6 text-white">
@@ -70,33 +71,9 @@ export default function AlumnoAula() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[208px_1fr] gap-5">
-        {/* Mini-panel */}
-        <nav className="md:sticky md:top-[114px] self-start">
-          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-            <div className="px-4 py-3" style={{ background: G, color: '#fff' }}>
-              <div className="text-[10px] tracking-widest opacity-80">AULA</div>
-              <div className="font-serif text-sm">Mi aula virtual</div>
-            </div>
-            <ul className="py-1">
-              {NAV.map((it) => {
-                const on = sec === it.k;
-                return (
-                  <li key={it.k}>
-                    <button onClick={() => setSec(it.k)} className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${on ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-700 hover:bg-stone-50'}`}>
-                      <it.icon size={16} /> <span className="flex-1 text-left">{it.label}</span>
-                      {typeof it.n === 'number' && it.n > 0 && <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: on ? G : '#eee', color: on ? '#fff' : '#78716c' }}>{it.n}</span>}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        </nav>
-
-        {/* Contenido */}
-        <div className="min-w-0">
+      <div className="min-w-0">
           {sec === 'resumen' && <ResumenSec d={d} pendientes={pendientes} videos={videos.length} materiales={materiales.length} ir={setSec} />}
+          {sec === 'foro' && <ForoAula />}
           {sec === 'anuncios' && (d.anuncios.length === 0 ? <Vacio icon={Megaphone} texto="No hay anuncios." /> : (
             <div className="space-y-2.5">{d.anuncios.map((a) => (
               <div key={a.id} className="bg-white border border-stone-200 rounded-xl p-4"><div className="font-semibold text-stone-900">{a.titulo}</div><div className="text-sm text-stone-600 mt-0.5 whitespace-pre-wrap">{a.cuerpo}</div><div className="text-[11px] text-stone-400 mt-1">{fechaHora(a.createdAt)}</div></div>
@@ -124,9 +101,10 @@ export default function AlumnoAula() {
               </div>
             ); })}</div>
           ))}
-        </div>
       </div>
-    </EstudianteLayout>
+      </>
+      )}
+    </AulaShell>
   );
 }
 
