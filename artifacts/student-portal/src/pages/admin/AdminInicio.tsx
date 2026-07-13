@@ -7,7 +7,6 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminLayout } from './AdminLayout';
-import { AvisosCalendario } from '../../components/AvisosCalendario';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -179,9 +178,6 @@ export default function AdminInicio() {
               <p className="text-sm" style={{ opacity: 0.9 }}>No hay convocatoria activa en este momento.</p>
             </div>
           )}
-
-          {/* Fechas del calendario oficial (ventana de solicitud/pago, examen) */}
-          <div className="mb-6"><AvisosCalendario /></div>
 
           {/* KPIs generales — Vista general del sistema */}
           <div className="mb-8">
