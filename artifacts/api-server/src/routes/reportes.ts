@@ -492,7 +492,123 @@ router.get('/dashboard', async (req, res) => {
     const nEval = Number(aprob.rows[0]?.evaluados ?? 0);
     const tasaAprobacion = nEval > 0 ? Math.round((nAprob / nEval) * 1000) / 10 : 0;
 
+    // ── Analítica avanzada: embudo, aprobación por módulo, centros, egreso ──
+    const DOCS = `('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')`;
+    const [
+      solicitudesAnio, expCompleto, pagaron, presentaron, aprobaron,
+      porModulo, centros, egreso,
+    ] = await Promise.all([
+      db.execute<{ n: string }>(sql.raw(`SELECT COUNT(*) AS n FROM solicitudes_cuenta WHERE EXTRACT(YEAR FROM created_at) = ${anio}`)),
+      db.execute<{ n: string }>(sql.raw(`
+        SELECT COUNT(DISTINCT ei.estudiante_id) AS n
+        FROM examenes_inscripciones ei JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        WHERE ce.anio = ${anio} ${fEI} AND ei.estado <> 'cancelado'
+          AND ei.estudiante_id IN (
+            SELECT estudiante_id FROM expediente_documentos
+            WHERE estado = 'aprobado' AND tipo IN ${DOCS}
+            GROUP BY estudiante_id HAVING COUNT(DISTINCT tipo) >= 5)`)),
+      db.execute<{ n: string }>(sql.raw(`
+        SELECT COUNT(DISTINCT pe.estudiante_id) AS n
+        FROM pagos_examen pe JOIN convocatorias_etapas ce ON ce.id = pe.etapa_id
+        WHERE ce.anio = ${anio} ${fPE} AND pe.estado = 'pagado'`)),
+      db.execute<{ n: string }>(sql.raw(`
+        SELECT COUNT(DISTINCT ei.estudiante_id) AS n
+        FROM examenes_inscripciones ei JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        WHERE ce.anio = ${anio} ${fEI} AND ei.estado IN ('aprobado','reprobado')`)),
+      db.execute<{ n: string }>(sql.raw(`
+        SELECT COUNT(DISTINCT ei.estudiante_id) AS n
+        FROM examenes_inscripciones ei JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        WHERE ce.anio = ${anio} ${fEI} AND ei.estado = 'aprobado'`)),
+      db.execute<{ numero: number; nombre: string; aprob: string; evaluados: string }>(sql.raw(`
+        SELECT m.numero, m.nombre,
+               COUNT(*) FILTER (WHERE ei.estado = 'aprobado') AS aprob,
+               COUNT(*) FILTER (WHERE ei.estado IN ('aprobado','reprobado')) AS evaluados
+        FROM examenes_inscripciones ei
+        JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        JOIN modulos m ON m.id = ei.modulo_id
+        WHERE ce.anio = ${anio} ${fEI}
+        GROUP BY m.numero, m.nombre
+        HAVING COUNT(*) FILTER (WHERE ei.estado IN ('aprobado','reprobado')) > 0
+        ORDER BY (COUNT(*) FILTER (WHERE ei.estado = 'aprobado')::float
+                  / NULLIF(COUNT(*) FILTER (WHERE ei.estado IN ('aprobado','reprobado')), 0)) ASC`)),
+      db.execute<{ gestor: string; municipio: string; alumnos: string; exp_completos: string; pagados: string; aprob: string; evaluados: string }>(sql.raw(`
+        WITH exp AS (
+          SELECT estudiante_id FROM expediente_documentos
+          WHERE estado = 'aprobado' AND tipo IN ${DOCS}
+          GROUP BY estudiante_id HAVING COUNT(DISTINCT tipo) >= 5),
+        pag AS (SELECT DISTINCT estudiante_id FROM pagos_examen WHERE estado = 'pagado'),
+        apr AS (
+          SELECT e2.gestor_id,
+                 COUNT(*) FILTER (WHERE ei.estado = 'aprobado') aprob,
+                 COUNT(*) FILTER (WHERE ei.estado IN ('aprobado','reprobado')) evaluados
+          FROM examenes_inscripciones ei JOIN estudiantes e2 ON e2.user_id = ei.estudiante_id
+          GROUP BY e2.gestor_id)
+        SELECT g.nombre_completo AS gestor, mu.nombre AS municipio,
+               COUNT(DISTINCT e.user_id) AS alumnos,
+               COUNT(DISTINCT e.user_id) FILTER (WHERE ex.estudiante_id IS NOT NULL) AS exp_completos,
+               COUNT(DISTINCT e.user_id) FILTER (WHERE pg.estudiante_id IS NOT NULL) AS pagados,
+               COALESCE(MAX(apr.aprob), 0) AS aprob,
+               COALESCE(MAX(apr.evaluados), 0) AS evaluados
+        FROM gestores g
+        LEFT JOIN municipios mu ON mu.id = g.municipio_id
+        LEFT JOIN estudiantes e ON e.gestor_id = g.user_id
+        LEFT JOIN exp ex ON ex.estudiante_id = e.user_id
+        LEFT JOIN pag pg ON pg.estudiante_id = e.user_id
+        LEFT JOIN apr ON apr.gestor_id = g.user_id
+        GROUP BY g.user_id, g.nombre_completo, mu.nombre
+        HAVING COUNT(DISTINCT e.user_id) > 0
+        ORDER BY alumnos DESC LIMIT 15`)),
+      db.execute<{ b0: string; b1: string; b2: string; b3: string; b4: string; b5: string }>(sql.raw(`
+        WITH ap AS (
+          SELECT estudiante_id, COUNT(*) n FROM estudiantes_modulos_progreso
+          WHERE estado = 'aprobado' GROUP BY estudiante_id)
+        SELECT COUNT(*) FILTER (WHERE COALESCE(ap.n,0) = 0) b0,
+               COUNT(*) FILTER (WHERE ap.n BETWEEN 1 AND 5) b1,
+               COUNT(*) FILTER (WHERE ap.n BETWEEN 6 AND 10) b2,
+               COUNT(*) FILTER (WHERE ap.n BETWEEN 11 AND 15) b3,
+               COUNT(*) FILTER (WHERE ap.n BETWEEN 16 AND 21) b4,
+               COUNT(*) FILTER (WHERE ap.n >= 22) b5
+        FROM estudiantes e LEFT JOIN ap ON ap.estudiante_id = e.user_id`)),
+    ]);
+
+    const nInscritos = Number(inscritos.rows[0]?.n ?? 0);
+    // Embudo de la COHORTE de examen (mismo grupo): cada paso es subconjunto del
+    // anterior, así el % siempre decrece. La captación (solicitudes) va aparte.
+    const embudo = [
+      { paso: 'Inscritos a examen', n: nInscritos },
+      { paso: 'Expediente completo', n: Number(expCompleto.rows[0]?.n ?? 0) },
+      { paso: 'Pagaron', n: Number(pagaron.rows[0]?.n ?? 0) },
+      { paso: 'Presentaron', n: Number(presentaron.rows[0]?.n ?? 0) },
+      { paso: 'Aprobaron', n: Number(aprobaron.rows[0]?.n ?? 0) },
+    ];
+    const solicitudesRecibidas = Number(solicitudesAnio.rows[0]?.n ?? 0);
+    const eg = egreso.rows[0];
+    const avanceEgreso = [
+      { rango: 'Sin iniciar', n: Number(eg?.b0 ?? 0) },
+      { rango: '1–5', n: Number(eg?.b1 ?? 0) },
+      { rango: '6–10', n: Number(eg?.b2 ?? 0) },
+      { rango: '11–15', n: Number(eg?.b3 ?? 0) },
+      { rango: '16–21', n: Number(eg?.b4 ?? 0) },
+      { rango: 'Egresados', n: Number(eg?.b5 ?? 0) },
+    ];
+
     res.json({
+      aprobacionPorModulo: porModulo.rows.map((r) => {
+        const ev = Number(r.evaluados); const ap = Number(r.aprob);
+        return { numero: r.numero, nombre: r.nombre, evaluados: ev, aprobados: ap, tasa: ev > 0 ? Math.round((ap / ev) * 1000) / 10 : 0 };
+      }),
+      rankingCentros: centros.rows.map((r) => {
+        const al = Number(r.alumnos); const ev = Number(r.evaluados); const ap = Number(r.aprob);
+        return {
+          gestor: r.gestor, municipio: r.municipio ?? '—', alumnos: al,
+          pctExpediente: al > 0 ? Math.round((Number(r.exp_completos) / al) * 100) : 0,
+          pctPagado: al > 0 ? Math.round((Number(r.pagados) / al) * 100) : 0,
+          pctAprobacion: ev > 0 ? Math.round((ap / ev) * 100) : 0,
+        };
+      }),
+      embudo,
+      solicitudesRecibidas,
+      avanceEgreso,
       anio,
       etapaId,
       kpis: {

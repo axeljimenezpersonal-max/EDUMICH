@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  PieChart, Pie, Legend, CartesianGrid,
+  PieChart, Pie, CartesianGrid,
 } from 'recharts';
 import { AdminLayout } from './AdminLayout';
 
@@ -56,6 +56,11 @@ interface Dashboard {
   pagosPorEstado: { estado: string; total: number }[];
   aprobacionPorEtapa: { etapa: string; aprobados: number; reprobados: number }[];
   solicitudesPorEstado: { estado: string; total: number }[];
+  aprobacionPorModulo: { numero: number; nombre: string; evaluados: number; aprobados: number; tasa: number }[];
+  rankingCentros: { gestor: string; municipio: string; alumnos: number; pctExpediente: number; pctPagado: number; pctAprobacion: number }[];
+  embudo: { paso: string; n: number }[];
+  solicitudesRecibidas: number;
+  avanceEgreso: { rango: string; n: number }[];
   etapas: { id: number; clave: string; anio: number }[];
   aniosDisponibles: number[];
 }
@@ -76,23 +81,28 @@ const REPORTES: { tipo: ReporteTipo; label: string; desc: string; icon: React.Co
 ];
 
 const GUINDA = '#6B1530';
-const GUINDA_L = '#9D174D';
-const DORADO = '#BF9000';
-const VERDE = '#047857';
-const ROJO = '#B91C1C';
+// Paleta "índigo tech" para el panel de indicadores (moderno, sobrio).
+const INDIGO = '#4338CA';
+const INDIGO_L = '#6366F1';
+const TEAL = '#0D9488';
+const TEAL_L = '#2DD4BF';
 const AMBAR = '#D97706';
-const GRIS = '#78716C';
-const AZUL = '#1D4ED8';
+const AMBAR_L = '#FBBF24';
+const ROSA = '#E11D48';
+const SLATE_900 = '#0F172A';
+const SLATE_500 = '#64748B';
+const SLATE_400 = '#94A3B8';
+const LINEA = '#EEF2F7';
 const FRECUENCIAS = ['diaria', 'semanal', 'quincenal', 'mensual'];
 
 // Color semántico por estado (pagos / solicitudes).
 function colorEstado(estado: string): string {
   const e = estado.toLowerCase();
-  if (e.includes('pagad') || e.includes('aprobad') || e.includes('verificad')) return VERDE;
-  if (e.includes('cancel') || e.includes('rechaz')) return ROJO;
+  if (e.includes('pagad') || e.includes('aprobad') || e.includes('verificad')) return TEAL;
+  if (e.includes('cancel') || e.includes('rechaz')) return ROSA;
   if (e.includes('pendiente') || e.includes('emision') || e.includes('emisión')) return AMBAR;
-  if (e.includes('revision') || e.includes('revisión') || e.includes('emitid')) return AZUL;
-  return GRIS;
+  if (e.includes('revision') || e.includes('revisión') || e.includes('emitid')) return INDIGO;
+  return SLATE_400;
 }
 function humaniza(s: string): string {
   const t = s.replace(/_/g, ' ');
@@ -172,138 +182,225 @@ function PanelIndicadores() {
 
   const k = data?.kpis;
   const kpiCards = [
-    { label: 'Inscritos a examen', valor: k?.inscritos ?? 0, icon: UserPlus, color: GUINDA },
-    { label: 'Exámenes pagados', valor: k?.examenesPagados ?? 0, sub: k ? pesos(k.montoPagado) : '', icon: DollarSign, color: VERDE },
-    { label: 'Aprobación', valor: `${k?.tasaAprobacion ?? 0}%`, icon: CheckCircle2, color: DORADO },
-    { label: 'Egresados', valor: k?.egresados ?? 0, sub: '22 módulos', icon: Award, color: GUINDA_L },
-    { label: 'Solicitudes pendientes', valor: k?.solicitudesPendientes ?? 0, icon: Inbox, color: AMBAR },
-    { label: 'Gestores activos', valor: k?.gestoresActivos ?? 0, icon: UserCheck, color: AZUL },
+    { label: 'Inscritos a examen', valor: k?.inscritos ?? 0, icon: UserPlus, color: INDIGO },
+    { label: 'Exámenes pagados', valor: k?.examenesPagados ?? 0, sub: k ? pesos(k.montoPagado) : '', icon: DollarSign, color: TEAL },
+    { label: 'Aprobación', valor: `${k?.tasaAprobacion ?? 0}%`, icon: CheckCircle2, color: AMBAR },
+    { label: 'Egresados', valor: k?.egresados ?? 0, sub: 'de 22 módulos', icon: Award, color: INDIGO_L },
+    { label: 'Solicitudes pendientes', valor: k?.solicitudesPendientes ?? 0, icon: Inbox, color: ROSA },
+    { label: 'Gestores activos', valor: k?.gestoresActivos ?? 0, icon: UserCheck, color: TEAL },
   ];
 
   return (
     <div>
+      {/* Degradados para las gráficas */}
+      <svg width="0" height="0" style={{ position: 'absolute' }}>
+        <defs>
+          <linearGradient id="gradIndigo" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor={INDIGO_L} /><stop offset="100%" stopColor={INDIGO} /></linearGradient>
+        </defs>
+      </svg>
+
       {/* Filtro global */}
-      <div className="flex flex-wrap items-end gap-3 mb-4">
-        <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wide text-stone-500 mb-1">Año</label>
-          <select value={anio} onChange={(e) => { setAnio(Number(e.target.value)); setEtapaId(''); }}
-            className="text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white min-w-[110px] focus:border-[var(--color-guinda-500)] focus:outline-none">
-            {(data?.aniosDisponibles?.length ? data.aniosDisponibles : [anio]).map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+      <div className="flex flex-wrap items-end gap-3 mb-5">
+        <Filtro label="Año">
+          <select value={anio} onChange={(e) => { setAnio(Number(e.target.value)); setEtapaId(''); }} className={selCls}>
+            {(data?.aniosDisponibles?.length ? data.aniosDisponibles : [anio]).map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
-        </div>
-        <div>
-          <label className="block text-[11px] font-semibold uppercase tracking-wide text-stone-500 mb-1">Etapa</label>
-          <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)}
-            className="text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white min-w-[180px] focus:border-[var(--color-guinda-500)] focus:outline-none">
+        </Filtro>
+        <Filtro label="Etapa">
+          <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)} className={`${selCls} min-w-[180px]`}>
             <option value="">Todas las etapas</option>
             {data?.etapas.map((et) => <option key={et.id} value={et.id}>Etapa {et.clave}</option>)}
           </select>
-        </div>
-        {loading && <div className="flex items-center gap-1.5 text-xs text-stone-400 pb-2"><Loader2 size={13} className="animate-spin" /> Actualizando…</div>}
+        </Filtro>
+        {loading && <div className="flex items-center gap-1.5 text-xs pb-2" style={{ color: SLATE_400 }}><Loader2 size={13} className="animate-spin" /> Actualizando…</div>}
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
         {kpiCards.map((c) => (
-          <div key={c.label} className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-2">
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: `${c.color}14`, color: c.color }}>
-                <c.icon size={15} />
-              </div>
-            </div>
-            <div className="text-2xl font-bold leading-none" style={{ color: c.color }}>{c.valor}</div>
-            <div className="text-[11px] text-stone-500 mt-1 leading-tight">{c.label}</div>
-            {c.sub && <div className="text-[10px] text-stone-400 mt-0.5">{c.sub}</div>}
+          <div key={c.label} className="rounded-2xl border bg-white p-4" style={{ borderColor: LINEA, boxShadow: '0 1px 3px rgba(15,23,42,.05)' }}>
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center mb-3" style={{ background: `${c.color}14`, color: c.color }}><c.icon size={15} /></div>
+            <div className="text-2xl font-extrabold leading-none" style={{ color: SLATE_900 }}>{c.valor}</div>
+            <div className="text-[11px] font-medium mt-1.5 leading-tight" style={{ color: SLATE_500 }}>{c.label}</div>
+            {c.sub && <div className="text-[10px] mt-0.5" style={{ color: SLATE_400 }}>{c.sub}</div>}
           </div>
         ))}
       </div>
 
-      {/* Gráficas 2×2 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <ChartCard titulo="Inscritos por etapa" icon={Calendar}>
-          {data && data.inscritosPorEtapa.some((d) => d.inscritos > 0) ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.inscritosPorEtapa} margin={{ top: 6, right: 8, left: -18, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece6" vertical={false} />
-                <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: '#78716c' }} angle={-35} textAnchor="end" height={48} interval={0} />
-                <YAxis tick={{ fontSize: 10, fill: '#78716c' }} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Bar dataKey="inscritos" name="Inscritos" fill={GUINDA} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <Vacio />}
-        </ChartCard>
+      {/* Embudo de conversión */}
+      <Panel titulo="Embudo de conversión" icon={TrendingUp} sub={`De la inscripción al aprobado — % que sobrevive cada paso${data ? ` · ${data.solicitudesRecibidas} solicitudes recibidas` : ''}`} className="mb-4">
+        {data && data.embudo.some((s) => s.n > 0) ? <Embudo pasos={data.embudo} /> : <Vacio />}
+      </Panel>
 
-        <ChartCard titulo="Estado de pagos" icon={DollarSign}>
-          {data && data.pagosPorEstado.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={data.pagosPorEstado} dataKey="total" nameKey="estado" cx="50%" cy="50%"
-                  innerRadius={48} outerRadius={80} paddingAngle={2}
-                  label={(e: { estado: string; total: number }) => `${humaniza(e.estado)} (${e.total})`}
-                  labelLine={false} fontSize={11}>
-                  {data.pagosPorEstado.map((d) => <Cell key={d.estado} fill={colorEstado(d.estado)} />)}
-                </Pie>
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v: number, n: string) => [v, humaniza(n)]} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <Vacio />}
-        </ChartCard>
-
-        <ChartCard titulo="Aprobación por etapa" icon={CheckCircle2}>
-          {data && data.aprobacionPorEtapa.some((d) => d.aprobados + d.reprobados > 0) ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.aprobacionPorEtapa} margin={{ top: 6, right: 8, left: -18, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece6" vertical={false} />
-                <XAxis dataKey="etapa" tick={{ fontSize: 10, fill: '#78716c' }} angle={-35} textAnchor="end" height={48} interval={0} />
-                <YAxis tick={{ fontSize: 10, fill: '#78716c' }} allowDecimals={false} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                <Bar dataKey="aprobados" name="Aprobados" stackId="a" fill={VERDE} radius={[0, 0, 0, 0]} />
-                <Bar dataKey="reprobados" name="No aprobados" stackId="a" fill={ROJO} radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <Vacio />}
-        </ChartCard>
-
-        <ChartCard titulo="Solicitudes de cuenta" icon={Inbox}>
-          {data && data.solicitudesPorEstado.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={data.solicitudesPorEstado} layout="vertical" margin={{ top: 6, right: 16, left: 20, bottom: 4 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0ece6" horizontal={false} />
-                <XAxis type="number" tick={{ fontSize: 10, fill: '#78716c' }} allowDecimals={false} />
-                <YAxis type="category" dataKey="estado" tick={{ fontSize: 10, fill: '#78716c' }} tickFormatter={humaniza} width={80} />
-                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} formatter={(v: number) => [v, 'Solicitudes']} />
-                <Bar dataKey="total" name="Solicitudes" radius={[0, 4, 4, 0]}>
-                  {data.solicitudesPorEstado.map((d) => <Cell key={d.estado} fill={colorEstado(d.estado)} />)}
+      {/* Aprobación por módulo + avance hacia egreso */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-4">
+        <div className="lg:col-span-2">
+          <Panel titulo="Aprobación por módulo" icon={GraduationCap} sub="Ordenado del más reprobado al más aprobado — dónde reforzar">
+            {data && data.aprobacionPorModulo.length > 0 ? <AprobModulo data={data.aprobacionPorModulo} /> : <Vacio />}
+          </Panel>
+        </div>
+        <Panel titulo="Avance hacia egreso" icon={Award} sub="Alumnos por módulos aprobados">
+          {data && data.avanceEgreso.some((d) => d.n > 0) ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <BarChart data={data.avanceEgreso} margin={{ top: 8, right: 8, left: -22, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={LINEA} vertical={false} />
+                <XAxis dataKey="rango" tick={{ fontSize: 9, fill: SLATE_400 }} angle={-30} textAnchor="end" height={44} interval={0} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: SLATE_400 }} allowDecimals={false} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipCls} formatter={(v: number) => [v, 'Alumnos']} />
+                <Bar dataKey="n" radius={[5, 5, 0, 0]}>
+                  {data.avanceEgreso.map((d) => <Cell key={d.rango} fill={d.rango === 'Egresados' ? TEAL : 'url(#gradIndigo)'} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
           ) : <Vacio />}
-        </ChartCard>
+        </Panel>
+      </div>
+
+      {/* Ranking de centros + estado de pagos */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Panel titulo="Ranking de centros" icon={UserCheck} sub="Efectividad por gestor: % expediente completo, % pagado y % aprobación">
+            {data && data.rankingCentros.length > 0 ? <RankingCentros data={data.rankingCentros} /> : <Vacio />}
+          </Panel>
+        </div>
+        <Panel titulo="Estado de pagos" icon={DollarSign} sub="Exámenes por estado de pago">
+          {data && data.pagosPorEstado.length > 0 ? (
+            <ResponsiveContainer width="100%" height={240}>
+              <PieChart>
+                <Pie data={data.pagosPorEstado} dataKey="total" nameKey="estado" cx="50%" cy="50%" innerRadius={52} outerRadius={82} paddingAngle={3} cornerRadius={5}
+                  label={(e: { estado: string; total: number }) => `${humaniza(e.estado)} (${e.total})`} labelLine={false} fontSize={11}>
+                  {data.pagosPorEstado.map((d) => <Cell key={d.estado} fill={colorEstado(d.estado)} />)}
+                </Pie>
+                <Tooltip contentStyle={tooltipCls} formatter={(v: number, n: string) => [v, humaniza(n)]} />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : <Vacio />}
+        </Panel>
       </div>
     </div>
   );
 }
 
-function ChartCard({ titulo, icon: Icon, children }: { titulo: string; icon: React.FC<{ size?: number; className?: string }>; children: React.ReactNode }) {
+const selCls = 'text-sm border border-slate-300 rounded-lg px-3 py-2 bg-white min-w-[110px] focus:outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-400';
+const tooltipCls = { fontSize: 12, borderRadius: 10, border: `1px solid ${LINEA}`, boxShadow: '0 4px 12px rgba(15,23,42,.08)' } as const;
+
+function Filtro({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <Icon size={14} className="text-stone-400" />
-        <span className="text-xs font-semibold uppercase tracking-wide text-stone-500">{titulo}</span>
-      </div>
+    <div>
+      <label className="block text-[11px] font-semibold uppercase tracking-wide mb-1" style={{ color: SLATE_500 }}>{label}</label>
       {children}
+    </div>
+  );
+}
+
+function Panel({ titulo, sub, icon: Icon, className, children }: { titulo: string; sub?: string; icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }>; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={`rounded-2xl border bg-white p-5 ${className ?? ''}`} style={{ borderColor: LINEA, boxShadow: '0 1px 3px rgba(15,23,42,.05)' }}>
+      <div className="flex items-center gap-2 mb-1">
+        <Icon size={15} style={{ color: INDIGO }} />
+        <span className="text-sm font-bold" style={{ color: SLATE_900 }}>{titulo}</span>
+      </div>
+      {sub && <div className="text-[11px] mb-3" style={{ color: SLATE_400 }}>{sub}</div>}
+      {children}
+    </div>
+  );
+}
+
+// Embudo de conversión: barras horizontales decrecientes con % de conversión.
+function Embudo({ pasos }: { pasos: { paso: string; n: number }[] }) {
+  const base = Math.max(1, pasos[0]?.n ?? 1);
+  return (
+    <div className="space-y-2.5 pt-1">
+      {pasos.map((p, i) => {
+        const pctBase = Math.round((p.n / base) * 100);      // % de los inscritos (la base)
+        const prev = i > 0 ? pasos[i - 1].n : p.n;
+        const caida = prev > 0 ? Math.round(((prev - p.n) / prev) * 100) : 0; // % que se cayó vs el paso previo
+        return (
+          <div key={p.paso} className="flex items-center gap-3">
+            <div className="w-32 sm:w-40 shrink-0 text-right text-xs font-medium" style={{ color: SLATE_500 }}>{p.paso}</div>
+            <div className="flex-1 h-9 rounded-lg overflow-hidden" style={{ background: '#f1f5f9' }}>
+              <div className="h-full flex items-center px-3 rounded-lg" style={{ width: `${Math.max(6, pctBase)}%`, background: 'linear-gradient(90deg, #4338ca, #6366f1)', minWidth: 46 }}>
+                <span className="text-sm font-bold text-white">{p.n}</span>
+              </div>
+            </div>
+            <div className="w-12 shrink-0 text-xs font-bold text-right" style={{ color: SLATE_900 }}>{pctBase}%</div>
+            <div className="w-20 shrink-0 text-[11px] font-semibold" style={{ color: i === 0 || caida <= 0 ? SLATE_400 : caida >= 50 ? ROSA : AMBAR }}>
+              {i === 0 ? 'base' : caida > 0 ? `−${caida}% cae` : 'sin caída'}
+            </div>
+          </div>
+        );
+      })}
+      <div className="text-[10px] pt-1" style={{ color: SLATE_400 }}>Barra y % = proporción sobre los inscritos (base). "Cae" = cuántos se pierden respecto al paso anterior.</div>
+    </div>
+  );
+}
+
+// Aprobación por módulo: barras horizontales, color según la tasa.
+function AprobModulo({ data }: { data: { numero: number; nombre: string; evaluados: number; aprobados: number; tasa: number }[] }) {
+  const color = (t: number) => (t >= 70 ? TEAL : t >= 50 ? AMBAR : ROSA);
+  return (
+    <div className="space-y-2 pt-1">
+      {data.slice(0, 10).map((m) => (
+        <div key={m.numero} className="flex items-center gap-3">
+          <div className="w-6 shrink-0 text-xs font-bold text-center rounded" style={{ color: INDIGO, background: '#eef2ff' }}>{m.numero}</div>
+          <div className="w-36 shrink-0 text-xs truncate" style={{ color: SLATE_500 }} title={m.nombre}>{m.nombre}</div>
+          <div className="flex-1 h-6 rounded-md overflow-hidden" style={{ background: '#f1f5f9' }}>
+            <div className="h-full rounded-md" style={{ width: `${Math.max(3, m.tasa)}%`, background: color(m.tasa) }} />
+          </div>
+          <div className="w-24 shrink-0 text-right text-xs font-bold" style={{ color: color(m.tasa) }}>
+            {m.tasa}% <span className="font-normal" style={{ color: SLATE_400 }}>({m.aprobados}/{m.evaluados})</span>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Ranking de centros: tabla con mini-barras de porcentaje.
+function RankingCentros({ data }: { data: { gestor: string; municipio: string; alumnos: number; pctExpediente: number; pctPagado: number; pctAprobacion: number }[] }) {
+  const Barra = ({ pct, color }: { pct: number; color: string }) => (
+    <div className="flex items-center gap-1.5">
+      <div className="w-12 h-1.5 rounded-full overflow-hidden" style={{ background: '#f1f5f9' }}>
+        <div className="h-full rounded-full" style={{ width: `${pct}%`, background: color }} />
+      </div>
+      <span className="text-[11px] font-semibold tabular-nums" style={{ color: SLATE_500 }}>{pct}%</span>
+    </div>
+  );
+  return (
+    <div className="overflow-auto">
+      <table className="w-full text-xs">
+        <thead>
+          <tr style={{ color: SLATE_400 }}>
+            <th className="text-left font-semibold pb-2">Centro / gestor</th>
+            <th className="text-center font-semibold pb-2">Alumnos</th>
+            <th className="text-left font-semibold pb-2">Expediente</th>
+            <th className="text-left font-semibold pb-2">Pagado</th>
+            <th className="text-left font-semibold pb-2">Aprobación</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((c, i) => (
+            <tr key={i} className="border-t" style={{ borderColor: LINEA }}>
+              <td className="py-2.5 pr-2">
+                <div className="font-semibold" style={{ color: SLATE_900 }}>{c.gestor}</div>
+                <div style={{ color: SLATE_400 }}>{c.municipio}</div>
+              </td>
+              <td className="py-2.5 text-center font-bold" style={{ color: INDIGO }}>{c.alumnos}</td>
+              <td className="py-2.5"><Barra pct={c.pctExpediente} color={INDIGO} /></td>
+              <td className="py-2.5"><Barra pct={c.pctPagado} color={TEAL} /></td>
+              <td className="py-2.5"><Barra pct={c.pctAprobacion} color={c.pctAprobacion >= 60 ? TEAL : AMBAR} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
 function Vacio() {
   return (
-    <div className="flex h-[220px] flex-col items-center justify-center text-center text-sm text-stone-400">
-      <BarChart2 size={26} className="mb-2 opacity-40" />
+    <div className="flex h-[200px] flex-col items-center justify-center text-center text-sm" style={{ color: SLATE_400 }}>
+      <BarChart2 size={24} className="mb-2 opacity-40" />
       Sin datos para este periodo
     </div>
   );
