@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { AvisosCalendario } from '../../components/AvisosCalendario';
+import { CalendarioOficial } from '../../components/CalendarioOficial';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_INICIO, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api, type DashboardEstudiante, type Aviso, type ContactosResponse, type ExamenInscritoDashboard } from '../../lib/api';
@@ -242,6 +243,9 @@ export default function EstudianteDashboard() {
 
         {/* ── Fechas del calendario oficial (ventana de solicitud/pago, examen) ── */}
         <AvisosCalendario ocultarExamen />
+
+        {/* ── Calendario oficial completo (colapsable) ── */}
+        <CalendarioOficial />
 
         {/* ── 2. ANUNCIOS institucionales ── */}
         {visibleAnuncios.map(a => {

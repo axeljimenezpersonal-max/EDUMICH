@@ -53,6 +53,45 @@ router.get('/calendario', async (_req, res) => {
   res.json({ eventos });
 });
 
+// ─── GET /anuncios/calendario-etapas ──────────────────────────────────────
+// Calendario COMPLETO: todas las etapas con su ventana de inscripción/pago y
+// sus días de examen. Para el calendario visual del alumno/gestor. `estado`
+// se recalcula en vivo (finalizada/activa/proxima) por si el guardado quedó
+// atrás.
+router.get('/calendario-etapas', async (_req, res) => {
+  const hoy = new Date().toISOString().slice(0, 10);
+  const rows = await db.execute<{
+    clave: string; etapa: string; fase: string; anio: number;
+    solicitud_inicio: string | null; solicitud_fin: string | null;
+    examen_sabado: string | null; examen_domingo: string | null;
+  }>(sql`
+    SELECT clave, etapa, fase, anio,
+           solicitud_inicio::date::text AS solicitud_inicio,
+           solicitud_fin::date::text AS solicitud_fin,
+           examen_sabado::date::text AS examen_sabado,
+           examen_domingo::date::text AS examen_domingo
+    FROM convocatorias_etapas
+    ORDER BY solicitud_inicio ASC NULLS LAST, examen_sabado ASC NULLS LAST
+  `).then((r) => r.rows);
+
+  const etapas = rows.map((r) => {
+    const finExamen = r.examen_domingo ?? r.examen_sabado;
+    let estado: 'finalizada' | 'inscripcion' | 'proxima' | 'espera_examen';
+    if (finExamen && finExamen < hoy) estado = 'finalizada';
+    else if (r.solicitud_inicio && r.solicitud_fin && r.solicitud_inicio <= hoy && r.solicitud_fin >= hoy) estado = 'inscripcion';
+    else if (r.solicitud_inicio && r.solicitud_inicio > hoy) estado = 'proxima';
+    else estado = 'espera_examen'; // ventana cerrada, examen pendiente
+    return {
+      clave: r.clave, etapa: r.etapa, fase: r.fase, anio: r.anio,
+      solicitudInicio: r.solicitud_inicio, solicitudFin: r.solicitud_fin,
+      examenSabado: r.examen_sabado, examenDomingo: r.examen_domingo,
+      estado,
+    };
+  });
+
+  res.json({ etapas, hoy });
+});
+
 router.get('/mios', async (req, res) => {
   const { userId, rol } = req.user!;
 
