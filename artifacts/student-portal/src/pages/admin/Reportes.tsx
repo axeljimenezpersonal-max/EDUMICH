@@ -544,6 +544,12 @@ function CentroDescargas() {
 
   const descargar = useCallback(async () => {
     if (!selected) return;
+    // Relación en PDF = documento oficial IEMSyS (requiere convocatoria y centro).
+    if (selected === 'relacion' && formato === 'pdf') {
+      if (!filtros.etapaId || !filtros.gestorId) { alert('Para el PDF oficial elige una convocatoria y un centro.'); return; }
+      window.open(`/api/admin/relacion-examenes/pdf?etapaId=${filtros.etapaId}&gestorId=${filtros.gestorId}`, '_blank');
+      return;
+    }
     setLoadingDescarga(true);
     try {
       const res = await fetch('/api/admin/reportes/generar', {
@@ -631,22 +637,19 @@ function CentroDescargas() {
               : 'Elige la convocatoria y el centro; luego previsualiza o descarga.'}
           </div>
 
-          {esRelacion ? (
-            <RelacionExamenesForm etapas={etapas} gestores={gestores} setGestores={setGestores} />
-          ) : (
           <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 items-end">
             <Campo label="Convocatoria">
               <select className={selCls + ' w-full'}
                 value={filtros.etapaId} onChange={(e) => setFiltros((f) => ({ ...f, etapaId: e.target.value }))}>
-                <option value="">Todas las convocatorias</option>
+                <option value="">{esRelacion ? 'Elige la convocatoria…' : 'Todas las convocatorias'}</option>
                 {etapas.map((et) => <option key={et.id} value={et.id}>Etapa {et.clave} · {et.anio}</option>)}
               </select>
             </Campo>
             <Campo label="Centro de asesoría (gestor)">
               <select className={selCls + ' w-full'}
                 value={filtros.gestorId} onChange={(e) => setFiltros((f) => ({ ...f, gestorId: e.target.value }))}>
-                <option value="">Todos los centros</option>
+                <option value="">{esRelacion ? 'Elige el centro…' : 'Todos los centros'}</option>
                 {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}</option>)}
               </select>
             </Campo>
@@ -670,6 +673,15 @@ function CentroDescargas() {
               </button>
             </div>
           </div>
+
+          {esRelacion && (
+            <>
+              {filtros.gestorId && <EditorCentro gestorId={filtros.gestorId} gestores={gestores} setGestores={setGestores} />}
+              <div className="text-[11px] mb-4 flex items-center gap-1.5" style={{ color: SLATE_400 }}>
+                <FileText size={12} /> En <b>PDF</b> obtienes el documento oficial IEMSyS; en <b>Excel</b>, la tabla de datos. La vista previa muestra los alumnos incluidos.
+              </div>
+            </>
+          )}
 
           {preview && (
             <div>
@@ -705,7 +717,6 @@ function CentroDescargas() {
             </div>
           )}
           </>
-          )}
         </div>
       )}
 
@@ -848,12 +859,11 @@ function limpiaFiltros(f: Filtros): Record<string, string> {
 }
 
 // ─────────────────────────────────────────────────────────────
-// Relación de exámenes solicitados (documento oficial IEMSyS)
+// Editor de datos del centro (para la Relación oficial): se guardan en el gestor
+// y se autollenan en el documento. Aparece al elegir un centro en la Relación.
 // ─────────────────────────────────────────────────────────────
 
-function RelacionExamenesForm({ etapas, gestores, setGestores }: { etapas: EtapaOpt[]; gestores: GestorOpt[]; setGestores: React.Dispatch<React.SetStateAction<GestorOpt[]>> }) {
-  const [etapaId, setEtapaId] = useState('');
-  const [gestorId, setGestorId] = useState('');
+function EditorCentro({ gestorId, gestores, setGestores }: { gestorId: string; gestores: GestorOpt[]; setGestores: React.Dispatch<React.SetStateAction<GestorOpt[]>> }) {
   const [centro, setCentro] = useState({ centroAsesoria: '', claveCentro: '', rfcCentro: '' });
   const [guardando, setGuardando] = useState(false);
   const [ok, setOk] = useState(false);
@@ -864,7 +874,6 @@ function RelacionExamenesForm({ etapas, gestores, setGestores }: { etapas: Etapa
   }, [gestorId]); // eslint-disable-line
 
   async function guardarCentro() {
-    if (!gestorId) return;
     setGuardando(true); setOk(false);
     try {
       await fetch(`/api/admin/gestores/${gestorId}`, { method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(centro) });
@@ -873,47 +882,20 @@ function RelacionExamenesForm({ etapas, gestores, setGestores }: { etapas: Etapa
     } finally { setGuardando(false); }
   }
 
-  const puede = etapaId && gestorId;
-
   return (
-    <div>
-      <div className="grid md:grid-cols-2 gap-3 mb-4">
-        <Campo label="Convocatoria">
-          <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)} className={selCls + ' w-full'}>
-            <option value="">Elige la convocatoria…</option>
-            {etapas.map((et) => <option key={et.id} value={et.id}>Etapa {et.clave} · {et.anio}</option>)}
-          </select>
-        </Campo>
-        <Campo label="Centro de asesoría (gestor)">
-          <select value={gestorId} onChange={(e) => setGestorId(e.target.value)} className={selCls + ' w-full'}>
-            <option value="">Elige el centro…</option>
-            {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}{g.municipioNombre ? ` · ${g.municipioNombre}` : ''}</option>)}
-          </select>
-        </Campo>
+    <div className="rounded-xl border p-3 mb-4" style={{ borderColor: LINEA, background: '#f8fafc' }}>
+      <div className="text-xs font-semibold mb-2" style={{ color: SLATE_500 }}>Datos del centro (se guardan en el gestor y se autollenan en el documento)</div>
+      <div className="grid md:grid-cols-3 gap-2">
+        <input value={centro.centroAsesoria} onChange={(e) => setCentro((c) => ({ ...c, centroAsesoria: e.target.value }))} placeholder="Nombre del centro (ej. Instituto IDEA)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
+        <input value={centro.claveCentro} onChange={(e) => setCentro((c) => ({ ...c, claveCentro: e.target.value }))} placeholder="Clave (ej. 010)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
+        <input value={centro.rfcCentro} onChange={(e) => setCentro((c) => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
       </div>
-
-      {gestorSel && (
-        <div className="rounded-xl border p-3 mb-4" style={{ borderColor: LINEA, background: '#f8fafc' }}>
-          <div className="text-xs font-semibold mb-2" style={{ color: SLATE_500 }}>Datos del centro (se guardan en el gestor y se autollenan en el documento)</div>
-          <div className="grid md:grid-cols-3 gap-2">
-            <input value={centro.centroAsesoria} onChange={(e) => setCentro((c) => ({ ...c, centroAsesoria: e.target.value }))} placeholder="Nombre del centro (ej. Instituto IDEA)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
-            <input value={centro.claveCentro} onChange={(e) => setCentro((c) => ({ ...c, claveCentro: e.target.value }))} placeholder="Clave (ej. 010)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
-            <input value={centro.rfcCentro} onChange={(e) => setCentro((c) => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
-          </div>
-          <div className="flex items-center gap-2 mt-2">
-            <button onClick={guardarCentro} disabled={guardando} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-50">
-              {guardando ? 'Guardando…' : 'Guardar datos del centro'}
-            </button>
-            {ok && <span className="text-xs text-green-600 font-semibold">Guardado ✓</span>}
-          </div>
-        </div>
-      )}
-
-      <button disabled={!puede} onClick={() => window.open(`/api/admin/relacion-examenes/pdf?etapaId=${etapaId}&gestorId=${gestorId}`, '_blank')}
-        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: INDIGO }}>
-        <Download size={15} /> Generar documento (PDF)
-      </button>
-      {!puede && <div className="text-[11px] mt-2" style={{ color: SLATE_400 }}>Elige convocatoria y centro para generar el documento oficial.</div>}
+      <div className="flex items-center gap-2 mt-2">
+        <button onClick={guardarCentro} disabled={guardando} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-50">
+          {guardando ? 'Guardando…' : 'Guardar datos del centro'}
+        </button>
+        {ok && <span className="text-xs text-green-600 font-semibold">Guardado ✓</span>}
+      </div>
     </div>
   );
 }

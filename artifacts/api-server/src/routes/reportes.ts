@@ -58,57 +58,58 @@ function sqlFechaFiltro(col: string, inicio?: string, fin?: string): string {
   return parts.length ? 'AND ' + parts.join(' AND ') : '';
 }
 
+// Inscripciones a examen por CONVOCATORIA (un renglón por alumno·convocatoria):
+// módulos inscritos, si ya pagó, importe, presentados. Filtrable por convocatoria
+// (etapaId) y centro (gestorId). Usa los datos REALES del sistema de exámenes.
 async function datosInscripciones(f: FiltrosReporte) {
-  const fechaFiltro = sqlFechaFiltro('i.created_at', f.fechaInicio, f.fechaFin);
-  const municipioFiltro = f.municipioId ? `AND e.municipio_id = ${Number(f.municipioId)}` : '';
-  const gestorFiltro = f.gestorId ? `AND e.gestor_id = ${Number(f.gestorId)}` : '';
+  const etapaFiltro = f.etapaId ? `AND ei.etapa_id = ${Number(f.etapaId)}` : '';
+  const gestorFiltro = f.gestorId ? `AND es.gestor_id = ${Number(f.gestorId)}` : '';
+  const municipioFiltro = f.municipioId ? `AND es.municipio_id = ${Number(f.municipioId)}` : '';
 
   const rows = await db.execute<{
-    alumno: string; curp: string; municipio: string; gestor: string;
-    estado: string; convocatoria: string; fecha: string;
+    alumno: string; curp: string; convocatoria: string;
+    modulos: string; modulos_lista: string; presentados: string;
+    pagado: boolean; importe: string; gestor: string; municipio: string;
   }>(sql.raw(`
-    SELECT e.nombre_completo AS alumno, e.curp, m.nombre AS municipio,
-           g.nombre_completo AS gestor, i.estado, c.nombre AS convocatoria,
-           i.created_at::date::text AS fecha
-    FROM inscripciones i
-    JOIN estudiantes e ON e.user_id = i.estudiante_id
-    LEFT JOIN municipios m ON m.id = e.municipio_id
-    LEFT JOIN gestores g ON g.user_id = e.gestor_id
-    LEFT JOIN convocatorias c ON c.id = i.convocatoria_id
-    WHERE 1=1 ${fechaFiltro} ${municipioFiltro} ${gestorFiltro}
-    ORDER BY i.created_at DESC
-    LIMIT 2000
+    SELECT es.nombre_completo AS alumno, es.curp,
+           ('Etapa ' || ce.clave || ' · ' || ce.anio) AS convocatoria,
+           COUNT(DISTINCT ei.modulo_id)::text AS modulos,
+           array_to_string(array_agg(DISTINCT m.numero ORDER BY m.numero), ', ') AS modulos_lista,
+           (COUNT(DISTINCT ei.modulo_id) FILTER (WHERE ei.estado IN ('aprobado','reprobado')))::text AS presentados,
+           EXISTS (SELECT 1 FROM pagos_examen pe WHERE pe.estudiante_id = es.user_id AND pe.etapa_id = ce.id AND pe.estado = 'pagado') AS pagado,
+           (SELECT COALESCE(SUM(pe.monto_total), 0) FROM pagos_examen pe WHERE pe.estudiante_id = es.user_id AND pe.etapa_id = ce.id AND pe.estado = 'pagado')::text AS importe,
+           COALESCE(g.nombre_completo, '—') AS gestor,
+           COALESCE(mu.nombre, '—') AS municipio
+    FROM examenes_inscripciones ei
+    JOIN estudiantes es ON es.user_id = ei.estudiante_id
+    JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+    JOIN modulos m ON m.id = ei.modulo_id
+    LEFT JOIN municipios mu ON mu.id = es.municipio_id
+    LEFT JOIN gestores g ON g.user_id = es.gestor_id
+    WHERE ei.estado <> 'cancelado' ${etapaFiltro} ${gestorFiltro} ${municipioFiltro}
+    GROUP BY es.user_id, es.nombre_completo, es.curp, ce.id, ce.clave, ce.anio, g.nombre_completo, mu.nombre
+    ORDER BY ce.clave DESC, es.nombre_completo
+    LIMIT 3000
   `));
 
-  const filas = rows.rows.map((r) => [r.alumno, r.curp, r.municipio, r.gestor, r.estado, r.convocatoria, r.fecha]);
+  const filas = rows.rows.map((r) => [
+    r.alumno, r.curp, r.convocatoria, Number(r.modulos), r.modulos_lista ?? '—',
+    r.presentados, r.pagado ? 'Sí' : 'No', `$${Number(r.importe).toFixed(2)}`, r.gestor, r.municipio,
+  ]);
 
-  const estadosRes = await db.execute<{ estado: string; total: string }>(sql.raw(`
-    SELECT i.estado, COUNT(*) AS total
-    FROM inscripciones i
-    JOIN estudiantes e ON e.user_id = i.estudiante_id
-    WHERE 1=1 ${municipioFiltro} ${gestorFiltro}
-    GROUP BY i.estado ORDER BY total DESC
-  `));
-
-  const totalRes = await db.execute<{ total: string }>(sql.raw(`
-    SELECT COUNT(*) AS total FROM inscripciones i
-    JOIN estudiantes e ON e.user_id = i.estudiante_id
-    WHERE 1=1 ${municipioFiltro} ${gestorFiltro}
-  `));
-
-  const total = Number(totalRes.rows[0]?.total ?? 0);
+  const total = rows.rows.length;
+  const pagados = rows.rows.filter((r) => r.pagado).length;
+  const monto = rows.rows.reduce((s, r) => s + Number(r.importe), 0);
   const kpis = [
-    { label: 'Total inscripciones', valor: total },
-    ...estadosRes.rows.slice(0, 5).map((r) => ({
-      label: r.estado.replace(/_/g, ' '),
-      valor: Number(r.total),
-      unidad: 'alumnos',
-    })),
+    { label: 'Alumnos inscritos', valor: total },
+    { label: 'Ya pagaron', valor: pagados },
+    { label: 'Por pagar', valor: total - pagados },
+    { label: 'Importe pagado', valor: `$${monto.toLocaleString('es-MX', { minimumFractionDigits: 2 })}`, unidad: 'MXN' },
   ];
 
   return {
     kpis,
-    columnas: ['Alumno', 'CURP', 'Municipio', 'Gestor', 'Estado', 'Convocatoria', 'Fecha'],
+    columnas: ['Alumno', 'CURP', 'Convocatoria', 'Módulos', 'Detalle módulos', 'Presentados', 'Pagado', 'Importe', 'Gestor', 'Municipio'],
     filas,
   };
 }
@@ -408,6 +409,8 @@ const DATA_FN: Record<string, (f: FiltrosReporte) => Promise<{ kpis: ReporteData
   convocatorias: datosConvocatorias,
   solicitudes: datosSolicitudes,
   ejecutivo: datosEjecutivo,
+  // La Relación (previa/Excel) usa la misma base de inscripciones por convocatoria.
+  relacion: datosInscripciones,
 };
 
 const NOMBRES: Record<string, string> = {
@@ -419,6 +422,7 @@ const NOMBRES: Record<string, string> = {
   convocatorias: 'Reporte de Convocatorias',
   solicitudes: 'Reporte de Solicitudes de Cuenta',
   ejecutivo: 'Reporte Ejecutivo',
+  relacion: 'Relación de exámenes solicitados',
 };
 
 // ─────────────────────────────────────────────────────────────
