@@ -25,6 +25,7 @@ interface FiltrosReporte {
   fechaFin?: string;
   municipioId?: string;
   gestorId?: string;
+  etapaId?: string;
   estado?: string;
 }
 
@@ -36,6 +37,7 @@ const filtrosSchema = z
     fechaFin: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
     municipioId: z.string().regex(/^\d+$/).optional(),
     gestorId: z.string().regex(/^\d+$/).optional(),
+    etapaId: z.string().regex(/^\d+$/).optional(),
     estado: z.string().max(50).optional(),
   })
   .strip();
@@ -272,6 +274,9 @@ async function datosProductividadGestores(f: FiltrosReporte) {
 }
 
 async function datosConvocatorias(f: FiltrosReporte) {
+  const etapaFiltro = f.etapaId ? `AND ei.etapa_id = ${Number(f.etapaId)}` : '';
+  const gestorFiltro = f.gestorId ? `AND e.gestor_id = ${Number(f.gestorId)}` : '';
+
   const rows = await db.execute<{
     alumno: string; etapa: string; modulo: string; sede: string;
     estado: string; calificacion: string;
@@ -285,6 +290,7 @@ async function datosConvocatorias(f: FiltrosReporte) {
     JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
     JOIN modulos m ON m.id = ei.modulo_id
     JOIN sedes s ON s.id = ei.sede_id
+    WHERE 1=1 ${etapaFiltro} ${gestorFiltro}
     ORDER BY ei.created_at DESC
     LIMIT 2000
   `));
@@ -292,7 +298,9 @@ async function datosConvocatorias(f: FiltrosReporte) {
   const etapasRes = await db.execute<{ etapa: string; total: string }>(sql.raw(`
     SELECT ce.clave AS etapa, COUNT(*) AS total
     FROM examenes_inscripciones ei
+    JOIN estudiantes e ON e.user_id = ei.estudiante_id
     JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+    WHERE 1=1 ${etapaFiltro} ${gestorFiltro}
     GROUP BY ce.clave ORDER BY total DESC
   `));
 
@@ -412,6 +420,103 @@ const NOMBRES: Record<string, string> = {
   solicitudes: 'Reporte de Solicitudes de Cuenta',
   ejecutivo: 'Reporte Ejecutivo',
 };
+
+// ─────────────────────────────────────────────────────────────
+// GET /api/admin/reportes/dashboard?anio=&etapaId=
+// Panel de indicadores EN VIVO (KPIs + series para gráficas). Todo se recalcula
+// por año (obligatorio) y opcionalmente por etapa. Sin búsqueda: carga al entrar.
+// ─────────────────────────────────────────────────────────────
+router.get('/dashboard', async (req, res) => {
+  try {
+    const anioRaw = parseInt(String(req.query['anio'] ?? ''), 10);
+    const anio = Number.isFinite(anioRaw) ? anioRaw : new Date().getFullYear();
+    const etapaRaw = parseInt(String(req.query['etapaId'] ?? ''), 10);
+    const etapaId = Number.isFinite(etapaRaw) ? etapaRaw : null;
+    const fEI = etapaId ? `AND ei.etapa_id = ${etapaId}` : '';
+    const fPE = etapaId ? `AND pe.etapa_id = ${etapaId}` : '';
+
+    const [
+      inscritos, pagados, aprob, egresados, solicitudesPend, gestoresAct,
+      inscritosPorEtapa, pagosPorEstado, aprobacionPorEtapa, solicitudesPorEstado,
+      etapas, anios,
+    ] = await Promise.all([
+      db.execute<{ n: string }>(sql.raw(`
+        SELECT COUNT(DISTINCT ei.estudiante_id) AS n
+        FROM examenes_inscripciones ei JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        WHERE ce.anio = ${anio} ${fEI} AND ei.estado <> 'cancelado'`)),
+      db.execute<{ n: string; monto: string }>(sql.raw(`
+        SELECT COUNT(*) AS n, COALESCE(SUM(pe.monto_total), 0)::text AS monto
+        FROM pagos_examen pe JOIN convocatorias_etapas ce ON ce.id = pe.etapa_id
+        WHERE ce.anio = ${anio} ${fPE} AND pe.estado = 'pagado'`)),
+      db.execute<{ aprobados: string; evaluados: string }>(sql.raw(`
+        SELECT COUNT(*) FILTER (WHERE ei.estado = 'aprobado') AS aprobados,
+               COUNT(*) FILTER (WHERE ei.estado IN ('aprobado','reprobado')) AS evaluados
+        FROM examenes_inscripciones ei JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        WHERE ce.anio = ${anio} ${fEI}`)),
+      db.execute<{ n: string }>(sql.raw(`
+        SELECT COUNT(*) AS n FROM (
+          SELECT estudiante_id FROM estudiantes_modulos_progreso
+          WHERE estado = 'aprobado' GROUP BY estudiante_id HAVING COUNT(*) >= 22
+        ) x`)),
+      db.execute<{ n: string }>(sql.raw(`SELECT COUNT(*) AS n FROM solicitudes_cuenta WHERE estado = 'pendiente'`)),
+      db.execute<{ n: string }>(sql.raw(`SELECT COUNT(*) AS n FROM gestores WHERE estado = 'activo'`)),
+      db.execute<{ etapa: string; n: string }>(sql.raw(`
+        SELECT ce.clave AS etapa, COUNT(DISTINCT ei.estudiante_id) AS n
+        FROM convocatorias_etapas ce
+        LEFT JOIN examenes_inscripciones ei ON ei.etapa_id = ce.id AND ei.estado <> 'cancelado'
+        WHERE ce.anio = ${anio}
+        GROUP BY ce.clave ORDER BY ce.clave`)),
+      db.execute<{ estado: string; n: string }>(sql.raw(`
+        SELECT pe.estado, COUNT(*) AS n
+        FROM pagos_examen pe JOIN convocatorias_etapas ce ON ce.id = pe.etapa_id
+        WHERE ce.anio = ${anio} ${fPE}
+        GROUP BY pe.estado ORDER BY n DESC`)),
+      db.execute<{ etapa: string; aprobados: string; reprobados: string }>(sql.raw(`
+        SELECT ce.clave AS etapa,
+               COUNT(*) FILTER (WHERE ei.estado = 'aprobado') AS aprobados,
+               COUNT(*) FILTER (WHERE ei.estado = 'reprobado') AS reprobados
+        FROM convocatorias_etapas ce
+        LEFT JOIN examenes_inscripciones ei ON ei.etapa_id = ce.id
+        WHERE ce.anio = ${anio}
+        GROUP BY ce.clave ORDER BY ce.clave`)),
+      db.execute<{ estado: string; n: string }>(sql.raw(`
+        SELECT estado, COUNT(*) AS n FROM solicitudes_cuenta
+        WHERE EXTRACT(YEAR FROM created_at) = ${anio}
+        GROUP BY estado ORDER BY n DESC`)),
+      db.execute<{ id: number; clave: string; anio: number }>(sql.raw(`
+        SELECT id, clave, anio FROM convocatorias_etapas WHERE anio = ${anio} ORDER BY solicitud_inicio DESC`)),
+      db.execute<{ anio: number }>(sql.raw(`SELECT DISTINCT anio FROM convocatorias_etapas ORDER BY anio DESC`)),
+    ]);
+
+    const nAprob = Number(aprob.rows[0]?.aprobados ?? 0);
+    const nEval = Number(aprob.rows[0]?.evaluados ?? 0);
+    const tasaAprobacion = nEval > 0 ? Math.round((nAprob / nEval) * 1000) / 10 : 0;
+
+    res.json({
+      anio,
+      etapaId,
+      kpis: {
+        inscritos: Number(inscritos.rows[0]?.n ?? 0),
+        examenesPagados: Number(pagados.rows[0]?.n ?? 0),
+        montoPagado: Number(pagados.rows[0]?.monto ?? 0),
+        tasaAprobacion,
+        egresados: Number(egresados.rows[0]?.n ?? 0),
+        solicitudesPendientes: Number(solicitudesPend.rows[0]?.n ?? 0),
+        gestoresActivos: Number(gestoresAct.rows[0]?.n ?? 0),
+      },
+      inscritosPorEtapa: inscritosPorEtapa.rows.map((r) => ({ etapa: r.etapa, inscritos: Number(r.n) })),
+      pagosPorEstado: pagosPorEstado.rows.map((r) => ({ estado: r.estado, total: Number(r.n) })),
+      aprobacionPorEtapa: aprobacionPorEtapa.rows.map((r) => ({
+        etapa: r.etapa, aprobados: Number(r.aprobados), reprobados: Number(r.reprobados),
+      })),
+      solicitudesPorEstado: solicitudesPorEstado.rows.map((r) => ({ estado: r.estado, total: Number(r.n) })),
+      etapas: etapas.rows.map((r) => ({ id: r.id, clave: r.clave, anio: r.anio })),
+      aniosDisponibles: anios.rows.map((r) => r.anio),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error interno' });
+  }
+});
 
 // ─────────────────────────────────────────────────────────────
 // POST /api/admin/reportes/preview
