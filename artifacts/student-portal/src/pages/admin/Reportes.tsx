@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import {
   BarChart2, Users, FileText, DollarSign, GraduationCap,
-  UserCheck, Calendar, Inbox, TrendingUp, Download, RefreshCw,
+  UserCheck, Inbox, TrendingUp, Download, RefreshCw,
   Clock, Trash2, ToggleLeft, ToggleRight, Plus, X,
   UserPlus, CheckCircle2, Award, Send, Loader2, AlertTriangle, Trophy,
 } from 'lucide-react';
@@ -17,7 +17,7 @@ import { AdminLayout } from './AdminLayout';
 
 type ReporteTipo =
   | 'inscripciones' | 'expedientes' | 'financiero' | 'academico'
-  | 'productividad_gestores' | 'convocatorias' | 'solicitudes' | 'ejecutivo';
+  | 'productividad_gestores' | 'relacion' | 'solicitudes' | 'ejecutivo';
 
 type Formato = 'excel' | 'pdf';
 
@@ -71,7 +71,7 @@ interface Dashboard {
 
 const REPORTES: { tipo: ReporteTipo; label: string; desc: string; icon: React.ComponentType<{ size?: number; className?: string; style?: React.CSSProperties }> }[] = [
   { tipo: 'inscripciones',        label: 'Inscripciones',          desc: 'Estado de inscripciones por convocatoria, municipio y gestor', icon: Users },
-  { tipo: 'convocatorias',        label: 'Exámenes por etapa',     desc: 'Inscritos a examen por etapa, módulo y sede',                  icon: Calendar },
+  { tipo: 'relacion',             label: 'Relación de exámenes',   desc: 'Documento oficial IEMSyS por centro y convocatoria (PDF)',      icon: FileText },
   { tipo: 'financiero',           label: 'Financiero',             desc: 'Pagos recibidos, verificados y pendientes con montos',         icon: DollarSign },
   { tipo: 'academico',            label: 'Académico',              desc: 'Calificaciones, tasas de aprobación y progreso modular',       icon: GraduationCap },
   { tipo: 'expedientes',          label: 'Expedientes',            desc: 'Revisión de documentos por alumno y estado de aprobación',     icon: FileText },
@@ -595,11 +595,10 @@ function CentroDescargas() {
 
   const sel = REPORTES.find((r) => r.tipo === selected);
 
+  const esRelacion = selected === 'relacion';
+
   return (
     <div>
-      {/* Documento oficial */}
-      <RelacionExamenesCard etapas={etapas} gestores={gestores} setGestores={setGestores} />
-
       {/* Catálogo */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {REPORTES.map(({ tipo, label, desc, icon: Icon }) => {
@@ -624,9 +623,18 @@ function CentroDescargas() {
           <div className="flex items-center gap-2 mb-1">
             {sel && <sel.icon size={16} style={{ color: INDIGO }} />}
             <span className="font-bold text-sm" style={{ color: SLATE_900 }}>{sel?.label}</span>
+            {esRelacion && <span className="ml-1 text-[10px] font-semibold uppercase tracking-widest px-2 py-0.5 rounded-full" style={{ background: '#eef2ff', color: INDIGO }}>Oficial IEMSyS</span>}
           </div>
-          <div className="text-[11px] mb-4" style={{ color: SLATE_400 }}>Elige la convocatoria y el centro; luego previsualiza o descarga.</div>
+          <div className="text-[11px] mb-4" style={{ color: SLATE_400 }}>
+            {esRelacion
+              ? 'Documento oficial por centro y convocatoria, con la lista de alumnos, sus módulos, CURP e importe. Se autollena con los datos del sistema.'
+              : 'Elige la convocatoria y el centro; luego previsualiza o descarga.'}
+          </div>
 
+          {esRelacion ? (
+            <RelacionExamenesForm etapas={etapas} gestores={gestores} setGestores={setGestores} />
+          ) : (
+          <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 items-end">
             <Campo label="Convocatoria">
               <select className={selCls + ' w-full'}
@@ -695,6 +703,8 @@ function CentroDescargas() {
                 </table>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
       )}
@@ -785,7 +795,7 @@ function CentroDescargas() {
               </Campo>
               <Campo label="Tipo de reporte">
                 <select className="w-full text-sm border rounded-lg px-3 py-2" value={formProg.tipo} onChange={(e) => setFormProg((f) => ({ ...f, tipo: e.target.value as ReporteTipo }))}>
-                  {REPORTES.map((r) => <option key={r.tipo} value={r.tipo}>{r.label}</option>)}
+                  {REPORTES.filter((r) => r.tipo !== 'relacion').map((r) => <option key={r.tipo} value={r.tipo}>{r.label}</option>)}
                 </select>
               </Campo>
               <div className="grid grid-cols-2 gap-3">
@@ -841,7 +851,7 @@ function limpiaFiltros(f: Filtros): Record<string, string> {
 // Relación de exámenes solicitados (documento oficial IEMSyS)
 // ─────────────────────────────────────────────────────────────
 
-function RelacionExamenesCard({ etapas, gestores, setGestores }: { etapas: EtapaOpt[]; gestores: GestorOpt[]; setGestores: React.Dispatch<React.SetStateAction<GestorOpt[]>> }) {
+function RelacionExamenesForm({ etapas, gestores, setGestores }: { etapas: EtapaOpt[]; gestores: GestorOpt[]; setGestores: React.Dispatch<React.SetStateAction<GestorOpt[]>> }) {
   const [etapaId, setEtapaId] = useState('');
   const [gestorId, setGestorId] = useState('');
   const [centro, setCentro] = useState({ centroAsesoria: '', claveCentro: '', rfcCentro: '' });
@@ -866,58 +876,44 @@ function RelacionExamenesCard({ etapas, gestores, setGestores }: { etapas: Etapa
   const puede = etapaId && gestorId;
 
   return (
-    <div className="rounded-2xl border mb-6 overflow-hidden" style={{ borderColor: LINEA, boxShadow: '0 1px 3px rgba(15,23,42,.05)' }}>
-      <div className="px-5 py-4 flex items-center gap-3 border-b" style={{ borderColor: LINEA, background: '#f8fafc' }}>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: INDIGO, color: 'white' }}>
-          <FileText size={17} />
-        </div>
-        <div>
-          <div className="font-bold text-sm" style={{ color: SLATE_900 }}>Relación de exámenes solicitados</div>
-          <div className="text-[11px]" style={{ color: SLATE_400 }}>Documento oficial IEMSyS · por centro y convocatoria</div>
-        </div>
-        <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full" style={{ background: '#eef2ff', color: INDIGO }}>Oficial</span>
+    <div>
+      <div className="grid md:grid-cols-2 gap-3 mb-4">
+        <Campo label="Convocatoria">
+          <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)} className={selCls + ' w-full'}>
+            <option value="">Elige la convocatoria…</option>
+            {etapas.map((et) => <option key={et.id} value={et.id}>Etapa {et.clave} · {et.anio}</option>)}
+          </select>
+        </Campo>
+        <Campo label="Centro de asesoría (gestor)">
+          <select value={gestorId} onChange={(e) => setGestorId(e.target.value)} className={selCls + ' w-full'}>
+            <option value="">Elige el centro…</option>
+            {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}{g.municipioNombre ? ` · ${g.municipioNombre}` : ''}</option>)}
+          </select>
+        </Campo>
       </div>
-      <div className="p-5 bg-white">
-        <p className="text-sm mb-4 max-w-3xl" style={{ color: SLATE_500 }}>
-          Genera el documento oficial por centro de asesoría (gestor) y convocatoria, con la lista de alumnos, sus módulos, CURP e importe. Se autollena con los datos del sistema.
-        </p>
-        <div className="grid md:grid-cols-2 gap-3 mb-4">
-          <Campo label="Etapa y fase">
-            <select value={etapaId} onChange={(e) => setEtapaId(e.target.value)} className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white">
-              <option value="">Elige la etapa…</option>
-              {etapas.map((et) => <option key={et.id} value={et.id}>{et.etapa} {et.fase} · {et.anio}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Centro de asesoría (gestor)">
-            <select value={gestorId} onChange={(e) => setGestorId(e.target.value)} className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 bg-white">
-              <option value="">Elige el gestor…</option>
-              {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}{g.municipioNombre ? ` · ${g.municipioNombre}` : ''}</option>)}
-            </select>
-          </Campo>
-        </div>
 
-        {gestorSel && (
-          <div className="rounded-lg border border-stone-200 bg-stone-50 p-3 mb-4">
-            <div className="text-xs font-semibold text-stone-600 mb-2">Datos del centro (se guardan en el gestor y se autollenan en el documento)</div>
-            <div className="grid md:grid-cols-3 gap-2">
-              <input value={centro.centroAsesoria} onChange={(e) => setCentro((c) => ({ ...c, centroAsesoria: e.target.value }))} placeholder="Nombre del centro (ej. Instituto IDEA)" className="text-sm border border-stone-300 rounded-lg px-3 py-2" />
-              <input value={centro.claveCentro} onChange={(e) => setCentro((c) => ({ ...c, claveCentro: e.target.value }))} placeholder="Clave (ej. 010)" className="text-sm border border-stone-300 rounded-lg px-3 py-2" />
-              <input value={centro.rfcCentro} onChange={(e) => setCentro((c) => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro" className="text-sm border border-stone-300 rounded-lg px-3 py-2" />
-            </div>
-            <div className="flex items-center gap-2 mt-2">
-              <button onClick={guardarCentro} disabled={guardando} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 hover:bg-white disabled:opacity-50">
-                {guardando ? 'Guardando…' : 'Guardar datos del centro'}
-              </button>
-              {ok && <span className="text-xs text-green-600 font-semibold">Guardado ✓</span>}
-            </div>
+      {gestorSel && (
+        <div className="rounded-xl border p-3 mb-4" style={{ borderColor: LINEA, background: '#f8fafc' }}>
+          <div className="text-xs font-semibold mb-2" style={{ color: SLATE_500 }}>Datos del centro (se guardan en el gestor y se autollenan en el documento)</div>
+          <div className="grid md:grid-cols-3 gap-2">
+            <input value={centro.centroAsesoria} onChange={(e) => setCentro((c) => ({ ...c, centroAsesoria: e.target.value }))} placeholder="Nombre del centro (ej. Instituto IDEA)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
+            <input value={centro.claveCentro} onChange={(e) => setCentro((c) => ({ ...c, claveCentro: e.target.value }))} placeholder="Clave (ej. 010)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
+            <input value={centro.rfcCentro} onChange={(e) => setCentro((c) => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
           </div>
-        )}
+          <div className="flex items-center gap-2 mt-2">
+            <button onClick={guardarCentro} disabled={guardando} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-50">
+              {guardando ? 'Guardando…' : 'Guardar datos del centro'}
+            </button>
+            {ok && <span className="text-xs text-green-600 font-semibold">Guardado ✓</span>}
+          </div>
+        </div>
+      )}
 
-        <button disabled={!puede} onClick={() => window.open(`/api/admin/relacion-examenes/pdf?etapaId=${etapaId}&gestorId=${gestorId}`, '_blank')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: INDIGO }}>
-          <Download size={15} /> Generar documento (PDF)
-        </button>
-      </div>
+      <button disabled={!puede} onClick={() => window.open(`/api/admin/relacion-examenes/pdf?etapaId=${etapaId}&gestorId=${gestorId}`, '_blank')}
+        className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: INDIGO }}>
+        <Download size={15} /> Generar documento (PDF)
+      </button>
+      {!puede && <div className="text-[11px] mt-2" style={{ color: SLATE_400 }}>Elige convocatoria y centro para generar el documento oficial.</div>}
     </div>
   );
 }
