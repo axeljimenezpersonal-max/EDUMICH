@@ -108,6 +108,8 @@ export default function AdminChat() {
       setTexto('');
       setTimeout(() => finRef.current?.scrollIntoView({ behavior: 'smooth' }), 40);
       cargarConvs();
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'No se pudo enviar el mensaje');
     } finally {
       setEnviando(false);
     }

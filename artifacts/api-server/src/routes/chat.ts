@@ -29,6 +29,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
+import { tieneLenguajeOfensivo, MENSAJE_MODERACION } from '../utils/moderacion';
 
 const cuerpoSchema = z.object({ cuerpo: z.string().trim().min(1, 'Escribe un mensaje').max(4000) });
 
@@ -108,6 +109,7 @@ router.post('/mensajes', async (req, res) => {
   const parse = cuerpoSchema.safeParse(req.body);
   if (!parse.success) { res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Mensaje inválido' }); return; }
   const cuerpo = parse.data.cuerpo;
+  if (tieneLenguajeOfensivo(cuerpo)) { res.status(400).json({ error: MENSAJE_MODERACION }); return; }
 
   const conv = await obtenerOCrearConversacion(userId, pr);
   const [msg] = await db
@@ -279,6 +281,7 @@ adminChatRouter.post('/conversaciones/:id/mensajes', async (req, res) => {
   const parse = cuerpoSchema.safeParse(req.body);
   if (!parse.success) { res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Mensaje inválido' }); return; }
   const cuerpo = parse.data.cuerpo;
+  if (tieneLenguajeOfensivo(cuerpo)) { res.status(400).json({ error: MENSAJE_MODERACION }); return; }
 
   const [conv] = await db.select().from(chatConversaciones).where(eq(chatConversaciones.id, id));
   if (!conv) { res.status(404).json({ error: 'Conversación no encontrada' }); return; }
