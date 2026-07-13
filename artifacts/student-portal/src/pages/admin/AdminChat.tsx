@@ -46,6 +46,7 @@ export default function AdminChat() {
   const search = useSearch();
   const [convs, setConvs] = useState<Conv[]>([]);
   const [q, setQ] = useState('');
+  const [rolFiltro, setRolFiltro] = useState<'todos' | 'estudiante' | 'gestor'>('todos');
   const [selId, setSelId] = useState<number | null>(null);
   const [sel, setSel] = useState<{ nombre: string; rol: string } | null>(null);
   const [mensajes, setMensajes] = useState<Mensaje[]>([]);
@@ -115,6 +116,10 @@ export default function AdminChat() {
     }
   }
 
+  const convsFiltradas = convs.filter((c) =>
+    rolFiltro === 'todos' ? true : rolFiltro === 'gestor' ? c.participanteRol === 'gestor' : c.participanteRol !== 'gestor',
+  );
+
   return (
     <AdminLayout>
       <div className="mb-4">
@@ -139,7 +144,7 @@ export default function AdminChat() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[340px_1fr]" style={{ minHeight: 'calc(100vh - 260px)' }}>
         {/* Bandeja */}
         <div className={`overflow-hidden rounded-xl border border-stone-200 bg-white ${selId != null ? 'hidden md:block' : ''}`}>
-          <div className="border-b border-stone-100 p-2.5">
+          <div className="border-b border-stone-100 p-2.5 space-y-2.5">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input
@@ -149,12 +154,34 @@ export default function AdminChat() {
                 className="w-full rounded-lg border border-stone-200 py-2 pl-9 pr-3 text-sm focus:border-[var(--color-guinda-500)] focus:outline-none"
               />
             </div>
+            {/* Filtro por rol (tipo segmentado) */}
+            <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
+              {([
+                { k: 'todos', label: 'Todos', n: convs.length },
+                { k: 'estudiante', label: 'Alumnos', n: convs.filter((c) => c.participanteRol !== 'gestor').length },
+                { k: 'gestor', label: 'Gestores', n: convs.filter((c) => c.participanteRol === 'gestor').length },
+              ] as const).map((seg) => {
+                const on = rolFiltro === seg.k;
+                return (
+                  <button
+                    key={seg.k}
+                    onClick={() => setRolFiltro(seg.k)}
+                    className={`flex-1 rounded-md px-2 py-1.5 text-xs font-semibold transition-colors ${on ? 'bg-white shadow-sm text-[var(--color-guinda-700)]' : 'text-stone-500 hover:text-stone-700'}`}
+                  >
+                    {seg.label}
+                    <span className={`ml-1 rounded-full px-1.5 py-0.5 text-[10px] ${on ? 'bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]' : 'bg-stone-200 text-stone-500'}`}>{seg.n}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="max-h-[calc(100vh-330px)] overflow-y-auto">
-            {convs.length === 0 ? (
-              <div className="p-8 text-center text-sm text-stone-400">Sin conversaciones todavía.</div>
+            {convsFiltradas.length === 0 ? (
+              <div className="p-8 text-center text-sm text-stone-400">
+                {convs.length === 0 ? 'Sin conversaciones todavía.' : `Sin conversaciones de ${rolFiltro === 'gestor' ? 'gestores' : 'alumnos'}.`}
+              </div>
             ) : (
-              convs.map((c) => (
+              convsFiltradas.map((c) => (
                 <button
                   key={c.id}
                   onClick={() => setSelId(c.id)}
