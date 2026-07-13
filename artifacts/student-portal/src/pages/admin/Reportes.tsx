@@ -80,7 +80,6 @@ const REPORTES: { tipo: ReporteTipo; label: string; desc: string; icon: React.Co
   { tipo: 'ejecutivo',            label: 'Ejecutivo',              desc: 'Consolidado con todos los KPI institucionales',                icon: TrendingUp },
 ];
 
-const GUINDA = '#6B1530';
 // Paleta "índigo tech" para el panel de indicadores (moderno, sobrio).
 const INDIGO = '#4338CA';
 const INDIGO_L = '#6366F1';
@@ -136,7 +135,7 @@ export default function Reportes() {
       <div style={{ fontFamily: "'Poppins', sans-serif" }}>
         <div className="flex items-start justify-between mb-6 gap-3 flex-wrap">
           <div>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-widest font-semibold mb-1" style={{ color: GUINDA }}>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest font-semibold mb-1" style={{ color: INDIGO }}>
               <BarChart2 size={13} /> Reportes
             </div>
             <h1 className="font-serif text-3xl font-bold text-stone-900">Panel de indicadores</h1>
@@ -595,8 +594,6 @@ function CentroDescargas() {
   };
 
   const sel = REPORTES.find((r) => r.tipo === selected);
-  // Los filtros de etapa/centro solo aplican al reporte de exámenes por etapa.
-  const usaEtapaCentro = selected === 'convocatorias';
 
   return (
     <div>
@@ -609,13 +606,13 @@ function CentroDescargas() {
           const on = selected === tipo;
           return (
             <button key={tipo} onClick={() => { setSelected(on ? null : tipo); setPreview(null); }}
-              className="text-left p-4 rounded-xl border transition-all"
-              style={{ background: on ? '#fdf6fa' : 'white', borderColor: on ? GUINDA : '#eadfd7', borderWidth: on ? 2 : 1, boxShadow: on ? `0 0 0 3px ${GUINDA}18` : undefined }}>
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center mb-2.5" style={{ background: on ? GUINDA : '#f5f0ea', color: on ? 'white' : GUINDA }}>
+              className="text-left p-4 rounded-2xl border transition-all hover:-translate-y-0.5"
+              style={{ background: on ? '#eef2ff' : 'white', borderColor: on ? INDIGO : LINEA, borderWidth: on ? 2 : 1, boxShadow: on ? `0 0 0 3px ${INDIGO}1a` : '0 1px 3px rgba(15,23,42,.05)' }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5" style={{ background: on ? INDIGO : '#f1f5f9', color: on ? 'white' : INDIGO }}>
                 <Icon size={16} />
               </div>
-              <div className="text-sm font-semibold" style={{ color: on ? GUINDA : '#2a2a2a' }}>{label}</div>
-              <div className="text-xs mt-0.5" style={{ color: '#6b635e', lineHeight: 1.4 }}>{desc}</div>
+              <div className="text-sm font-semibold" style={{ color: on ? INDIGO : SLATE_900 }}>{label}</div>
+              <div className="text-xs mt-0.5" style={{ color: SLATE_500, lineHeight: 1.4 }}>{desc}</div>
             </button>
           );
         })}
@@ -623,59 +620,44 @@ function CentroDescargas() {
 
       {/* Panel de filtros + generar */}
       {selected && (
-        <div className="bg-white rounded-xl border border-stone-200 p-5 mb-6">
-          <div className="flex items-center gap-2 mb-4">
-            {sel && <sel.icon size={16} style={{ color: GUINDA }} />}
-            <span className="font-semibold text-sm" style={{ color: GUINDA }}>{sel?.label}</span>
+        <div className="rounded-2xl border bg-white p-5 mb-6" style={{ borderColor: LINEA, boxShadow: '0 1px 3px rgba(15,23,42,.05)' }}>
+          <div className="flex items-center gap-2 mb-1">
+            {sel && <sel.icon size={16} style={{ color: INDIGO }} />}
+            <span className="font-bold text-sm" style={{ color: SLATE_900 }}>{sel?.label}</span>
           </div>
+          <div className="text-[11px] mb-4" style={{ color: SLATE_400 }}>Elige la convocatoria y el centro; luego previsualiza o descarga.</div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 mb-4">
-            {usaEtapaCentro && (
-              <>
-                <Campo label="Etapa">
-                  <select className="w-full text-sm border border-stone-300 rounded-lg px-2 py-1.5 bg-white"
-                    value={filtros.etapaId} onChange={(e) => setFiltros((f) => ({ ...f, etapaId: e.target.value }))}>
-                    <option value="">Todas</option>
-                    {etapas.map((et) => <option key={et.id} value={et.id}>Etapa {et.clave}</option>)}
-                  </select>
-                </Campo>
-                <Campo label="Centro (gestor)">
-                  <select className="w-full text-sm border border-stone-300 rounded-lg px-2 py-1.5 bg-white"
-                    value={filtros.gestorId} onChange={(e) => setFiltros((f) => ({ ...f, gestorId: e.target.value }))}>
-                    <option value="">Todos</option>
-                    {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}</option>)}
-                  </select>
-                </Campo>
-              </>
-            )}
-            <Campo label="Fecha inicio">
-              <input type="date" className="w-full text-sm border border-stone-300 rounded-lg px-2 py-1.5"
-                value={filtros.fechaInicio} onChange={(e) => setFiltros((f) => ({ ...f, fechaInicio: e.target.value }))} />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 items-end">
+            <Campo label="Convocatoria">
+              <select className={selCls + ' w-full'}
+                value={filtros.etapaId} onChange={(e) => setFiltros((f) => ({ ...f, etapaId: e.target.value }))}>
+                <option value="">Todas las convocatorias</option>
+                {etapas.map((et) => <option key={et.id} value={et.id}>Etapa {et.clave} · {et.anio}</option>)}
+              </select>
             </Campo>
-            <Campo label="Fecha fin">
-              <input type="date" className="w-full text-sm border border-stone-300 rounded-lg px-2 py-1.5"
-                value={filtros.fechaFin} onChange={(e) => setFiltros((f) => ({ ...f, fechaFin: e.target.value }))} />
-            </Campo>
-            <Campo label="Municipio ID">
-              <input type="number" placeholder="Todos" className="w-full text-sm border border-stone-300 rounded-lg px-2 py-1.5"
-                value={filtros.municipioId} onChange={(e) => setFiltros((f) => ({ ...f, municipioId: e.target.value }))} />
+            <Campo label="Centro de asesoría (gestor)">
+              <select className={selCls + ' w-full'}
+                value={filtros.gestorId} onChange={(e) => setFiltros((f) => ({ ...f, gestorId: e.target.value }))}>
+                <option value="">Todos los centros</option>
+                {gestores.map((g) => <option key={g.id} value={g.id}>{g.nombreCompleto}</option>)}
+              </select>
             </Campo>
             <Campo label="Formato">
-              <select className="w-full text-sm border border-stone-300 rounded-lg px-2 py-1.5"
+              <select className={selCls + ' w-full'}
                 value={formato} onChange={(e) => setFormato(e.target.value as Formato)}>
                 <option value="excel">Excel (.xlsx)</option>
                 <option value="pdf">PDF</option>
               </select>
             </Campo>
-            <div className="flex items-end gap-2">
+            <div className="flex gap-2">
               <button onClick={cargarPreview} disabled={loadingPreview}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg border"
-                style={{ borderColor: '#ddd0c5', background: 'white', color: '#443e39' }}>
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg border transition-colors hover:bg-slate-50"
+                style={{ borderColor: '#cbd5e1', background: 'white', color: SLATE_900 }}>
                 {loadingPreview ? <RefreshCw size={13} className="animate-spin" /> : <BarChart2 size={13} />} Previa
               </button>
               <button onClick={descargar} disabled={loadingDescarga}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-sm font-semibold rounded-lg text-white"
-                style={{ background: GUINDA }}>
+                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg text-white"
+                style={{ background: INDIGO }}>
                 {loadingDescarga ? <RefreshCw size={13} className="animate-spin" /> : <Download size={13} />} Descargar
               </button>
             </div>
@@ -685,19 +667,19 @@ function CentroDescargas() {
             <div>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
                 {preview.kpis.slice(0, 4).map((kpi, i) => (
-                  <div key={i} className="rounded-lg p-3" style={{ background: '#fdf6fa', borderLeft: `3px solid ${GUINDA}` }}>
-                    <div className="text-lg font-bold" style={{ color: GUINDA }}>{kpi.valor}{kpi.unidad ? ` ${kpi.unidad}` : ''}</div>
-                    <div className="text-xs text-stone-500 mt-0.5">{kpi.label}</div>
+                  <div key={i} className="rounded-xl p-3" style={{ background: '#f8fafc', borderLeft: `3px solid ${INDIGO}` }}>
+                    <div className="text-lg font-bold" style={{ color: SLATE_900 }}>{kpi.valor}{kpi.unidad ? ` ${kpi.unidad}` : ''}</div>
+                    <div className="text-xs mt-0.5" style={{ color: SLATE_500 }}>{kpi.label}</div>
                   </div>
                 ))}
               </div>
-              <div className="text-xs font-semibold text-stone-500 mb-1.5">
+              <div className="text-xs font-semibold mb-1.5" style={{ color: SLATE_500 }}>
                 Primeros registros — Total: {preview.totalRegistros.toLocaleString('es-MX')}
               </div>
-              <div className="overflow-auto rounded-lg border border-stone-200" style={{ maxHeight: 300 }}>
+              <div className="overflow-auto rounded-xl border" style={{ maxHeight: 300, borderColor: LINEA }}>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr style={{ background: GUINDA }}>
+                    <tr style={{ background: INDIGO }}>
                       {preview.columnas.map((col) => <th key={col} className="px-3 py-2 text-left font-semibold text-white whitespace-nowrap">{col}</th>)}
                     </tr>
                   </thead>
@@ -728,14 +710,14 @@ function CentroDescargas() {
           <RefreshCw size={14} /> Programados
         </button>
         <button onClick={() => setShowModalProgramar(true)}
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg text-white" style={{ background: GUINDA }}>
+          className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg text-white" style={{ background: INDIGO }}>
           <Plus size={14} /> Programar reporte
         </button>
       </div>
 
       {showHistorial && (
         <div className="bg-white rounded-xl border border-stone-200 p-5 mb-6">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: GUINDA }}>Historial de reportes generados</h2>
+          <h2 className="text-sm font-semibold mb-3" style={{ color: INDIGO }}>Historial de reportes generados</h2>
           {historial.length === 0 ? <p className="text-sm text-stone-400 text-center py-6">Aún no se ha generado ningún reporte.</p> : (
             <div className="overflow-auto">
               <table className="w-full text-xs">
@@ -762,8 +744,8 @@ function CentroDescargas() {
       {showProgramados && (
         <div className="bg-white rounded-xl border border-stone-200 p-5 mb-6">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold" style={{ color: GUINDA }}>Reportes programados</h2>
-            <button onClick={() => setShowModalProgramar(true)} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white" style={{ background: GUINDA }}><Plus size={12} /> Nuevo</button>
+            <h2 className="text-sm font-semibold" style={{ color: INDIGO }}>Reportes programados</h2>
+            <button onClick={() => setShowModalProgramar(true)} className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-lg text-white" style={{ background: INDIGO }}><Plus size={12} /> Nuevo</button>
           </div>
           {programados.length === 0 ? <p className="text-sm text-stone-400 text-center py-6">No hay reportes programados.</p> : (
             <div className="overflow-auto">
@@ -794,7 +776,7 @@ function CentroDescargas() {
           onClick={(e) => { if (e.target === e.currentTarget) setShowModalProgramar(false); }}>
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-base font-bold" style={{ color: GUINDA }}>Programar reporte automático</h3>
+              <h3 className="text-base font-bold" style={{ color: INDIGO }}>Programar reporte automático</h3>
               <button onClick={() => setShowModalProgramar(false)}><X size={16} /></button>
             </div>
             <div className="space-y-3">
@@ -824,7 +806,7 @@ function CentroDescargas() {
             </div>
             <div className="flex gap-2 mt-5">
               <button className="flex-1 py-2 text-sm font-medium rounded-lg border" style={{ borderColor: '#ddd0c5', color: '#443e39' }} onClick={() => setShowModalProgramar(false)}>Cancelar</button>
-              <button className="flex-1 py-2 text-sm font-semibold rounded-lg text-white flex items-center justify-center gap-1.5" style={{ background: GUINDA }}
+              <button className="flex-1 py-2 text-sm font-semibold rounded-lg text-white flex items-center justify-center gap-1.5" style={{ background: INDIGO }}
                 onClick={guardarProgramado} disabled={savingProg || !formProg.nombre || !formProg.emailDestino}>
                 {savingProg ? <RefreshCw size={13} className="animate-spin" /> : <Send size={13} />} Guardar
               </button>
@@ -884,15 +866,20 @@ function RelacionExamenesCard({ etapas, gestores, setGestores }: { etapas: Etapa
   const puede = etapaId && gestorId;
 
   return (
-    <div className="rounded-xl border mb-6 overflow-hidden" style={{ borderColor: '#e8c4d4' }}>
-      <div className="px-5 py-3 flex items-center gap-2" style={{ background: 'linear-gradient(135deg,#6b1530,#4a0e20)' }}>
-        <FileText size={16} className="text-white" />
-        <div className="text-white font-semibold text-sm">Relación de exámenes solicitados</div>
-        <span className="ml-auto text-[10px] uppercase tracking-widest text-white/70">Documento oficial IEMSyS</span>
+    <div className="rounded-2xl border mb-6 overflow-hidden" style={{ borderColor: LINEA, boxShadow: '0 1px 3px rgba(15,23,42,.05)' }}>
+      <div className="px-5 py-4 flex items-center gap-3 border-b" style={{ borderColor: LINEA, background: '#f8fafc' }}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: INDIGO, color: 'white' }}>
+          <FileText size={17} />
+        </div>
+        <div>
+          <div className="font-bold text-sm" style={{ color: SLATE_900 }}>Relación de exámenes solicitados</div>
+          <div className="text-[11px]" style={{ color: SLATE_400 }}>Documento oficial IEMSyS · por centro y convocatoria</div>
+        </div>
+        <span className="ml-auto text-[10px] font-semibold uppercase tracking-widest px-2 py-1 rounded-full" style={{ background: '#eef2ff', color: INDIGO }}>Oficial</span>
       </div>
       <div className="p-5 bg-white">
-        <p className="text-sm text-stone-500 mb-4 max-w-3xl">
-          Genera el documento oficial por centro de asesoría (gestor) y etapa, con la lista de alumnos, sus módulos, CURP e importe. Se autollena con los datos del sistema.
+        <p className="text-sm mb-4 max-w-3xl" style={{ color: SLATE_500 }}>
+          Genera el documento oficial por centro de asesoría (gestor) y convocatoria, con la lista de alumnos, sus módulos, CURP e importe. Se autollena con los datos del sistema.
         </p>
         <div className="grid md:grid-cols-2 gap-3 mb-4">
           <Campo label="Etapa y fase">
@@ -927,7 +914,7 @@ function RelacionExamenesCard({ etapas, gestores, setGestores }: { etapas: Etapa
         )}
 
         <button disabled={!puede} onClick={() => window.open(`/api/admin/relacion-examenes/pdf?etapaId=${etapaId}&gestorId=${gestorId}`, '_blank')}
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: GUINDA }}>
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: INDIGO }}>
           <Download size={15} /> Generar documento (PDF)
         </button>
       </div>
