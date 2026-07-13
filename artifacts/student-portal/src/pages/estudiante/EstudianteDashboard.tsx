@@ -241,7 +241,7 @@ export default function EstudianteDashboard() {
         </div>
 
         {/* ── Fechas del calendario oficial (ventana de solicitud/pago, examen) ── */}
-        <AvisosCalendario />
+        <AvisosCalendario ocultarExamen />
 
         {/* ── 2. ANUNCIOS institucionales ── */}
         {visibleAnuncios.map(a => {
@@ -582,43 +582,63 @@ export default function EstudianteDashboard() {
           const targetDias = enVentanaPago ? dias(sf) : dias(ex);
           const cdLabel = enVentanaPago ? (targetDias === 1 ? 'día para pagar' : 'días para pagar') : (targetDias === 1 ? 'día para tu examen' : 'días para tu examen');
           const urgente = enVentanaPago; // pagar apremia más
+          const porPagar = ea.totalExamenes - ea.pagados;
           return (
             <div className="bg-[var(--color-guinda-700)] text-white rounded-xl p-5 shadow-[0_10px_28px_-14px_rgba(74,14,32,0.5)]">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              {/* Encabezado: título claro + estado de pago */}
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div className="text-[10px] font-bold uppercase tracking-widest text-white/70">Tu próximo examen</div>
+                {ea.todosPagados ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-white/15">
+                    <CheckCircle2 size={12} /> Examen pagado
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: 'rgba(251,191,36,0.22)', color: '#fde68a' }}>
+                    <AlertTriangle size={12} /> Falta pagar {porPagar}
+                  </span>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="text-[10px] font-bold uppercase tracking-widest text-white/60 mb-2">Etapa {ea.clave}</div>
-                  <div className="space-y-2">
+                  <div className="font-serif text-2xl font-bold uppercase leading-tight">Convocatoria {ea.clave}</div>
+                  <div className="mt-3 space-y-2">
                     <div className="flex items-center gap-2.5">
-                      <CalendarClock size={16} className="shrink-0 text-white/70" />
+                      <CalendarCheck size={18} className="shrink-0 text-white/80" />
                       <div>
-                        <div className="text-[11px] uppercase tracking-wide text-white/60">Solicitud y pago</div>
-                        <div className="text-sm font-semibold">{rango(ea.solicitudInicio, ea.solicitudFin)}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/60">Presentación del examen</div>
+                        <div className="text-base font-bold">{rango(ea.examenSabado, ea.examenDomingo)}</div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2.5">
-                      <CalendarCheck size={16} className="shrink-0 text-white/70" />
+                      <CalendarClock size={15} className="shrink-0 text-white/60" />
                       <div>
-                        <div className="text-[11px] uppercase tracking-wide text-white/60">Presentación del examen</div>
-                        <div className="text-sm font-semibold">{rango(ea.examenSabado, ea.examenDomingo)}</div>
+                        <div className="text-[10px] uppercase tracking-wide text-white/60">Solicitud y pago</div>
+                        <div className="text-sm font-semibold text-white/90">{rango(ea.solicitudInicio, ea.solicitudFin)}</div>
                       </div>
                     </div>
                   </div>
                 </div>
                 {targetDias !== null && targetDias >= 0 && (
-                  <div className={`text-center shrink-0 rounded-xl px-5 py-3 ${urgente ? 'bg-white/15' : 'bg-white/8'}`}>
-                    <div className="font-serif text-4xl font-bold leading-none">{targetDias}</div>
-                    <div className="text-[11px] text-white/80 mt-1 max-w-[110px]">{cdLabel}</div>
+                  <div className="text-center shrink-0 rounded-2xl px-6 py-3.5 bg-white/12">
+                    <div className="font-serif text-5xl font-bold leading-none">{targetDias}</div>
+                    <div className="text-[11px] text-white/80 mt-1.5 max-w-[120px]">{cdLabel}</div>
                     {enVentanaPago && sf && (
                       <div className="text-[10px] text-white/60 mt-1">cierra {dd(sf)} {MESES[sf.getMonth()]}</div>
                     )}
                   </div>
                 )}
               </div>
-              {enVentanaPago && ea.pagados < ea.totalExamenes && (
+
+              {enVentanaPago && porPagar > 0 ? (
                 <Link href="/estudiante/pagos" className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3.5 py-2 text-xs font-semibold text-white hover:bg-white/25 transition-colors">
-                  <Upload size={13} /> Pagar mis exámenes ({ea.totalExamenes - ea.pagados} por pagar) <ChevronRight size={13} />
+                  <Upload size={13} /> Pagar mis exámenes ({porPagar} por pagar) <ChevronRight size={13} />
                 </Link>
-              )}
+              ) : ea.todosPagados ? (
+                <div className="mt-4 flex items-center gap-1.5 text-xs text-white/75">
+                  <CheckCircle2 size={13} className="shrink-0" /> Ya está pagado. Solo preséntate el día del examen con tu credencial.
+                </div>
+              ) : null}
             </div>
           );
         })() : data.inscripcionActiva && diasExamen !== null && (

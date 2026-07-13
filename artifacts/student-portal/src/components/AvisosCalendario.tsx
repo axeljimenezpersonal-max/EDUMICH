@@ -40,7 +40,13 @@ function enDias(dias: number): string { return dias <= 0 ? 'hoy' : dias === 1 ? 
 
 const POPPINS = "'Poppins', sans-serif";
 
-export function AvisosCalendario() {
+/**
+ * `ocultarExamen`: en el inicio del ALUMNO no mostramos el banner GENÉRICO de
+ * "examen próximo" del calendario (puede ser de otra etapa donde el alumno no
+ * está inscrito y confunde). El alumno tiene su tarjeta personal "Tu próximo
+ * examen". El gestor sí ve el calendario completo.
+ */
+export function AvisosCalendario({ ocultarExamen = false }: { ocultarExamen?: boolean } = {}) {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
 
   useEffect(() => {
@@ -51,11 +57,12 @@ export function AvisosCalendario() {
     return () => { alive = false; };
   }, []);
 
-  if (eventos.length === 0) return null;
+  const visibles = ocultarExamen ? eventos.filter((e) => e.tipo !== 'examen') : eventos;
+  if (visibles.length === 0) return null;
 
   return (
     <div className="space-y-3">
-      {eventos.map((e, i) => {
+      {visibles.map((e, i) => {
         if (e.tipo === 'ventana_abierta') return <BannerVentanaAbierta key={i} e={e} />;
         if (e.tipo === 'examen') return <BannerExamen key={i} e={e} />;
         return <BannerVentanaProxima key={i} e={e} />;
