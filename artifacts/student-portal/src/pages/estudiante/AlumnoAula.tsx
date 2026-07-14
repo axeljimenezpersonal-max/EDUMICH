@@ -1,11 +1,13 @@
 /**
- * Aula virtual del alumno (estilo Canvas): banner + mini-panel con secciones
- * (Foro · Anuncios · Tareas · Materiales · Videos). Solo si su gestor tiene aula.
- * Es aparte de sus módulos/pruebas oficiales. Las tareas se abren en una vista
- * de detalle donde el alumno entrega con comentario y archivo.
+ * Aula virtual del alumno (estilo Canvas), integrada DENTRO de su portal: la
+ * sub-navegación (Mi aula · Foro · Tareas · Materiales · Videos) vive en el
+ * sidebar principal vía ?sec=. Solo si su gestor tiene aula. Es aparte de sus
+ * módulos/pruebas oficiales. Las tareas se abren en una vista de detalle donde
+ * el alumno entrega con comentario y archivo.
  */
 import { useEffect, useRef, useState } from 'react';
-import { AulaShell } from '../../components/AulaShell';
+import { useLocation, useSearch } from 'wouter';
+import { EstudianteLayout } from './EstudianteLayout';
 import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
@@ -37,29 +39,29 @@ const G = 'var(--color-guinda-700)';
 function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; }
 function fechaHora(s: string) { return new Date(s).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }); }
 
+const SECS: Sec[] = ['resumen', 'foro', 'tareas', 'materiales', 'videos'];
+
 export default function AlumnoAula() {
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const secParam = new URLSearchParams(search).get('sec');
+  const sec: Sec = SECS.includes(secParam as Sec) ? (secParam as Sec) : 'resumen';
   const [d, setD] = useState<MiAula | null>(null);
-  const [sec, setSec] = useState<Sec>('resumen');
   const [tareaAbierta, setTareaAbierta] = useState<number | null>(null);
   const cargar = () => api.get<MiAula>('/aula/mi-aula').then(setD).catch(() => setD({ habilitada: false, tareas: [], materiales: [] }));
   useEffect(() => { cargar(); }, []);
+  // Al cambiar de sección (desde el sidebar) se cierra el detalle de tarea.
+  useEffect(() => { setTareaAbierta(null); }, [sec]);
 
   const pendientes = d ? d.tareas.filter((t) => !t.miEstado).length : 0;
   const videos = d ? d.materiales.filter((m) => m.tipo === 'video') : [];
   const materiales = d ? d.materiales.filter((m) => m.tipo !== 'video') : [];
-  const NAV = [
-    { k: 'resumen' as Sec, label: 'Resumen', icon: LayoutDashboard },
-    { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle },
-    { k: 'tareas' as Sec, label: 'Tareas', icon: ClipboardList, n: pendientes },
-    { k: 'materiales' as Sec, label: 'Materiales', icon: BookOpen, n: materiales.length },
-    { k: 'videos' as Sec, label: 'Videos', icon: Video, n: videos.length },
-  ];
 
-  const irSec: React.Dispatch<React.SetStateAction<Sec>> = (v) => { setTareaAbierta(null); setSec(v); };
+  const irSec = (s: Sec) => setLocation(s === 'resumen' ? '/estudiante/aula' : `/estudiante/aula?sec=${s}`);
   const tarea = tareaAbierta != null ? d?.tareas.find((t) => t.id === tareaAbierta) ?? null : null;
 
   return (
-    <AulaShell rol="estudiante" volverHref="/estudiante" sec={sec} setSec={irSec} nav={NAV}>
+    <EstudianteLayout>
       {!d ? (
         <div className="h-52 rounded-xl animate-pulse bg-stone-100" />
       ) : !d.habilitada ? (
@@ -120,7 +122,7 @@ export default function AlumnoAula() {
       </div>
       </>
       )}
-    </AulaShell>
+    </EstudianteLayout>
   );
 }
 

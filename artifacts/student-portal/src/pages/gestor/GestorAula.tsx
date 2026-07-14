@@ -1,10 +1,11 @@
 /**
- * Aula virtual del gestor (LMS-lite estilo Canvas). Panel propio con banner de
- * "curso" + sub-navegación (Resumen · Foro · Anuncios · Tareas · Materiales · Videos).
- * Solo visible si el aula del gestor está habilitada.
+ * Aula virtual del gestor (LMS-lite estilo Canvas), integrada DENTRO del panel
+ * del gestor: la sub-navegación (Tablero · Foro · Tareas · Materiales · Videos)
+ * vive en el sidebar principal vía ?sec=. Solo si el aula está habilitada.
  */
 import { useEffect, useRef, useState } from 'react';
-import { AulaShell } from '../../components/AulaShell';
+import { useLocation, useSearch } from 'wouter';
+import { GestorLayout } from './GestorLayout';
 import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Plus, Trash2, Users, Link2, FileText,
@@ -32,22 +33,20 @@ function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es
 function fechaHora(s: string) { return new Date(s).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }); }
 const inputCls = 'w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none';
 
+const SECS: Sec[] = ['resumen', 'foro', 'tareas', 'materiales', 'videos'];
+
 export default function GestorAula() {
-  const [sec, setSec] = useState<Sec>('resumen');
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const secParam = new URLSearchParams(search).get('sec');
+  const sec: Sec = SECS.includes(secParam as Sec) ? (secParam as Sec) : 'resumen';
+  const setSec = (s: Sec) => setLocation(s === 'resumen' ? '/gestor/aula' : `/gestor/aula?sec=${s}`);
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const cargarResumen = () => api.get<Resumen>('/aula/gestor/resumen').then(setResumen).catch(() => {});
   useEffect(() => { cargarResumen(); }, []);
 
-  const NAV = [
-    { k: 'resumen' as Sec, label: 'Resumen', icon: LayoutDashboard },
-    { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle, n: resumen?.foro },
-    { k: 'tareas' as Sec, label: 'Tareas', icon: ClipboardList, n: resumen?.tareas },
-    { k: 'materiales' as Sec, label: 'Materiales', icon: BookOpen, n: resumen?.materiales },
-    { k: 'videos' as Sec, label: 'Videos', icon: Video },
-  ];
-
   return (
-    <AulaShell rol="gestor" volverHref="/gestor" sec={sec} setSec={setSec} nav={NAV}>
+    <GestorLayout>
       {/* Banner tipo curso */}
       <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]"
         style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
@@ -83,7 +82,7 @@ export default function GestorAula() {
       {sec === 'tareas' && <TareasTab onChange={cargarResumen} />}
       {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
       {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}
-    </AulaShell>
+    </GestorLayout>
   );
 }
 

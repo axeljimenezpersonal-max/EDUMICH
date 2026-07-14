@@ -4,9 +4,12 @@
  * Ubicación destino: artifacts/student-portal/src/pages/gestor/GestorLayout.tsx
  */
 
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School } from 'lucide-react';
+import {
+  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School,
+  MessageCircle, ClipboardList, BookOpen, Video,
+} from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
@@ -20,13 +23,34 @@ const NAV = [
   { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones', tour: 'nav-calificaciones' },
   { to: '/gestor/mensajes', icon: MessageSquare, label: 'Mensajes', tour: 'nav-mensajes' },
 ];
-const NAV_AULA = { to: '/gestor/aula', icon: School, label: 'Aula virtual', tour: 'nav-aula' };
+// El aula vive DENTRO del panel del gestor: sección propia con sus apartados.
+const NAV_AULA_ITEMS = [
+  { to: '/gestor/aula', icon: School, label: 'Tablero', tour: 'nav-aula' },
+  { to: '/gestor/aula?sec=foro', icon: MessageCircle, label: 'Foro', tour: undefined },
+  { to: '/gestor/aula?sec=tareas', icon: ClipboardList, label: 'Tareas', tour: undefined },
+  { to: '/gestor/aula?sec=materiales', icon: BookOpen, label: 'Materiales', tour: undefined },
+  { to: '/gestor/aula?sec=videos', icon: Video, label: 'Videos', tour: undefined },
+];
 
 export function GestorLayout({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
+  const search = useSearch();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [aula, setAula] = useState(false);
+
+  // Activo considerando ?sec= (para los apartados del aula).
+  function esActivo(to: string): boolean {
+    const [path, q] = to.split('?');
+    if (path === '/gestor') return location === '/gestor';
+    if (!location.startsWith(path)) return false;
+    if (path === '/gestor/aula') {
+      const secItem = new URLSearchParams(q ?? '').get('sec') ?? 'resumen';
+      const secActual = new URLSearchParams(search).get('sec') ?? 'resumen';
+      return secItem === secActual;
+    }
+    return true;
+  }
 
   useEffect(() => {
     api.get<{ habilitada: boolean }>('/aula/estado').then((r) => setAula(!!r.habilitada)).catch(() => {});
@@ -66,28 +90,39 @@ export function GestorLayout({ children }: { children: ReactNode }) {
               <div className="text-[10px] tracking-widest opacity-80">PANEL</div>
               <div className="font-serif text-sm">Gestor Municipal</div>
             </div>
-            <ul>
-              {(aula ? [...NAV, NAV_AULA] : NAV).map((item) => {
-                const active =
-                  item.to === '/gestor' ? location === '/gestor' : location.startsWith(item.to);
-                return (
-                  <li key={item.to}>
-                    <Link
-                      href={item.to}
-                      data-tour={item.tour}
-                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
-                        active
-                          ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
-                          : 'border-transparent text-stone-700 hover:bg-stone-50'
-                      }`}
-                    >
-                      <item.icon size={16} />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            {([
+              { header: null, items: NAV },
+              ...(aula ? [{ header: 'Aula virtual', items: NAV_AULA_ITEMS }] : []),
+            ] as { header: string | null; items: typeof NAV }[]).map((grupo, gi) => (
+              <div key={gi}>
+                {grupo.header && (
+                  <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.15em] border-t border-stone-100" style={{ color: '#b39a56' }}>
+                    {grupo.header}
+                  </div>
+                )}
+                <ul className={grupo.header ? 'pb-1' : ''}>
+                  {grupo.items.map((item) => {
+                    const active = esActivo(item.to);
+                    return (
+                      <li key={item.to}>
+                        <Link
+                          href={item.to}
+                          data-tour={item.tour}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                            active
+                              ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
+                              : 'border-transparent text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <item.icon size={16} />
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
         </nav>
 

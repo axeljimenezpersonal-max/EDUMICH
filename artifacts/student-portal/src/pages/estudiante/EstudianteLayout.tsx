@@ -1,6 +1,9 @@
-import { Link, useLocation } from 'wouter';
+import { Link, useLocation, useSearch } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
-import { LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard, GraduationCap, School } from 'lucide-react';
+import {
+  LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard,
+  GraduationCap, School, MessageCircle, ClipboardList, Video,
+} from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
@@ -15,17 +18,53 @@ const NAV = [
   { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
   { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
   { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
+];
+// El aula vive DENTRO del portal del alumno: sección propia con sus apartados.
+const NAV_AULA_ITEMS = [
+  { to: '/estudiante/aula', label: 'Mi aula', icon: School, tour: 'nav-aula' },
+  { to: '/estudiante/aula?sec=foro', label: 'Foro', icon: MessageCircle, tour: undefined },
+  { to: '/estudiante/aula?sec=tareas', label: 'Tareas', icon: ClipboardList, tour: undefined },
+  { to: '/estudiante/aula?sec=materiales', label: 'Materiales', icon: BookOpen, tour: undefined },
+  { to: '/estudiante/aula?sec=videos', label: 'Videos', icon: Video, tour: undefined },
+];
+const NAV_HERRAMIENTAS = [
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
   { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
 ];
-const NAV_AULA = { to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' };
+
+function SeccionLabel({ children }: { children: ReactNode }) {
+  return (
+    <div className="px-4 pt-3 pb-1 text-[10px] font-bold uppercase tracking-[0.15em] border-t border-stone-100" style={{ color: '#b39a56' }}>
+      {children}
+    </div>
+  );
+}
 
 export function EstudianteLayout({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
+  const search = useSearch();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [aula, setAula] = useState(false);
-  const navItems = aula ? [...NAV.slice(0, 6), NAV_AULA, ...NAV.slice(6)] : NAV;
+  // Para la barra inferior móvil: plano, con una sola entrada de Aula.
+  const navItems = [
+    ...NAV,
+    ...(aula ? [{ to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' }] : []),
+    ...NAV_HERRAMIENTAS,
+  ];
+
+  // Activo considerando ?sec= (para los apartados del aula).
+  function esActivo(to: string): boolean {
+    const [path, q] = to.split('?');
+    if (path === '/estudiante') return location === '/estudiante';
+    if (!location.startsWith(path)) return false;
+    if (path === '/estudiante/aula') {
+      const secItem = new URLSearchParams(q ?? '').get('sec') ?? 'resumen';
+      const secActual = new URLSearchParams(search).get('sec') ?? 'resumen';
+      return secItem === secActual;
+    }
+    return true;
+  }
 
   useEffect(() => {
     api.get<{ habilitada: boolean }>('/aula/estado').then((r) => setAula(!!r.habilitada)).catch(() => {});
@@ -70,30 +109,36 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
               <div className="text-[10px] tracking-widest opacity-80">PORTAL</div>
               <div className="font-serif text-sm">Estudiante</div>
             </div>
-            <ul>
-              {navItems.map((item) => {
-                const active =
-                  item.to === '/estudiante'
-                    ? location === '/estudiante'
-                    : location.startsWith(item.to);
-                return (
-                  <li key={item.to}>
-                    <Link
-                      href={item.to}
-                      data-tour={item.tour}
-                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
-                        active
-                          ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
-                          : 'border-transparent text-stone-700 hover:bg-stone-50'
-                      }`}
-                    >
-                      <item.icon size={16} />
-                      {item.label}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
+            {([
+              { header: null, items: NAV },
+              ...(aula ? [{ header: 'Aula virtual', items: NAV_AULA_ITEMS }] : []),
+              { header: 'Herramientas', items: NAV_HERRAMIENTAS },
+            ] as { header: string | null; items: typeof NAV }[]).map((grupo, gi) => (
+              <div key={gi}>
+                {grupo.header && <SeccionLabel>{grupo.header}</SeccionLabel>}
+                <ul className={grupo.header ? 'pb-1' : ''}>
+                  {grupo.items.map((item) => {
+                    const active = esActivo(item.to);
+                    return (
+                      <li key={item.to}>
+                        <Link
+                          href={item.to}
+                          data-tour={item.tour}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                            active
+                              ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
+                              : 'border-transparent text-stone-700 hover:bg-stone-50'
+                          }`}
+                        >
+                          <item.icon size={16} />
+                          {item.label}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
           </div>
         </nav>
 
