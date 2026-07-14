@@ -3,7 +3,7 @@ import { useRoute, useLocation } from 'wouter';
 import {
   ChevronLeft, MapPin, Mail, Phone, Users, CheckCircle, GraduationCap,
   FileText, TrendingUp, Edit, KeyRound, UserX, UserCheck, ArrowUpRight,
-  AlertTriangle, X, Calendar, Gauge, Clock,
+  AlertTriangle, X, Calendar, Gauge, Clock, Send,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
@@ -527,6 +527,21 @@ export default function GestorDetalle() {
     }
   }
 
+  const [reenviando, setReenviando] = useState(false);
+  async function handleReenviarCredenciales() {
+    if (!gestor) return;
+    if (!confirm(`¿Reenviar las credenciales de acceso al correo ${gestor.email}? Se generará una nueva contraseña temporal.`)) return;
+    setReenviando(true);
+    try {
+      await api.post(`/admin/gestores/${gestor.id}/reset-password`, {});
+      showToast('Credenciales de acceso reenviadas al correo del gestor', true);
+    } catch {
+      showToast('Error al reenviar las credenciales', false);
+    } finally {
+      setReenviando(false);
+    }
+  }
+
   async function handleActivar() {
     if (!gestor) return;
     setActivating(true);
@@ -737,6 +752,14 @@ export default function GestorDetalle() {
               style={{ color: '#443e39' }}
             >
               <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
+            </button>
+            <button
+              onClick={handleReenviarCredenciales}
+              disabled={reenviando}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors disabled:opacity-50"
+              style={{ color: '#443e39' }}
+            >
+              <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
             </button>
             {inactivo ? (
               <button

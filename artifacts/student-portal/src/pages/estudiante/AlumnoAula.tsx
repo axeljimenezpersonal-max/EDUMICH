@@ -65,10 +65,7 @@ export default function AlumnoAula() {
       {!d ? (
         <div className="h-52 rounded-xl animate-pulse bg-stone-100" />
       ) : !d.habilitada ? (
-        <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
-          <School size={30} className="mx-auto mb-2 text-stone-300" />
-          <div className="text-sm text-stone-400">Tu centro de asesoría no tiene aula virtual activa.</div>
-        </div>
+        <AulaNoDisponible />
       ) : (
       <>
       {/* Banner */}
@@ -317,4 +314,27 @@ function MaterialAlumno({ m }: { m: Material }) {
 
 function Vacio({ icon: Icon, texto }: { icon: typeof Inbox; texto: string }) {
   return <div className="border-2 border-dashed border-stone-200 rounded-xl p-10 text-center"><Icon size={26} className="mx-auto mb-2 text-stone-300" /><div className="text-sm text-stone-400">{texto}</div></div>;
+}
+
+/** Pantalla cuando el centro del alumno aún no cuenta con Aula Virtual. */
+function AulaNoDisponible() {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-stone-200 bg-white">
+      <div className="px-6 py-10 sm:px-10 sm:py-14 text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: 'var(--color-crema-100)' }}>
+          <Lock size={28} style={{ color: G }} />
+        </div>
+        <div className="text-[11px] font-bold uppercase tracking-[0.2em]" style={{ color: '#b39a56' }}>Aula Virtual</div>
+        <h2 className="mt-1 font-serif text-2xl font-bold text-stone-900">Aún no disponible en tu centro</h2>
+        <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-stone-600">
+          El <b>Aula Virtual</b> es un espacio de clases en línea (foro, tareas, materiales y videos) que
+          ofrecen algunos centros de asesoría. Tu gestor todavía <b>no ha activado</b> este beneficio.
+        </p>
+        <p className="mx-auto mt-3 max-w-md text-xs text-stone-500">
+          Si te interesa, coméntalo con tu gestor o asesor de tu centro. Mientras tanto, puedes seguir
+          usando tu portal con normalidad: inscripción, pagos, calificaciones y pruebas.
+        </p>
+      </div>
+    </div>
+  );
 }

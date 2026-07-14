@@ -10,7 +10,7 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Plus, Trash2, Users, Link2, FileText,
   Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight,
-  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap,
+  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
@@ -42,8 +42,17 @@ export default function GestorAula() {
   const sec: Sec = SECS.includes(secParam as Sec) ? (secParam as Sec) : 'resumen';
   const setSec = (s: Sec) => setLocation(s === 'resumen' ? '/gestor/aula' : `/gestor/aula?sec=${s}`);
   const [resumen, setResumen] = useState<Resumen | null>(null);
+  const [habilitada, setHabilitada] = useState<boolean | null>(null);
   const cargarResumen = () => api.get<Resumen>('/aula/gestor/resumen').then(setResumen).catch(() => {});
-  useEffect(() => { cargarResumen(); }, []);
+  useEffect(() => {
+    api.get<{ habilitada: boolean }>('/aula/estado')
+      .then((r) => { setHabilitada(!!r.habilitada); if (r.habilitada) cargarResumen(); })
+      .catch(() => setHabilitada(false));
+  }, []);
+
+  if (habilitada === false) {
+    return <GestorLayout><AulaNoContratada /></GestorLayout>;
+  }
 
   return (
     <GestorLayout>
@@ -83,6 +92,52 @@ export default function GestorAula() {
       {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
       {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}
     </GestorLayout>
+  );
+}
+
+/** Pantalla cuando el centro (gestor) aún no tiene contratada el Aula Virtual. */
+function AulaNoContratada() {
+  const beneficios = [
+    { icon: MessageCircle, t: 'Foro del grupo', d: 'Chat con anuncios destacados y encuestas.' },
+    { icon: ClipboardList, t: 'Tareas', d: 'Asignaciones por módulo con entrega de archivos.' },
+    { icon: BookOpen, t: 'Materiales', d: 'Lecturas, PDFs y enlaces para tus alumnos.' },
+    { icon: Video, t: 'Videos', d: 'Clases y repasos incrustados.' },
+  ];
+  return (
+    <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden">
+      <div className="relative px-6 py-10 sm:px-10 text-center overflow-hidden" style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
+        <div className="absolute -right-8 -top-10 w-44 h-44 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="absolute left-10 -bottom-12 w-36 h-36 rounded-full" style={{ background: 'rgba(255,255,255,0.05)' }} />
+        <div className="relative">
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl" style={{ background: 'rgba(255,255,255,0.15)' }}>
+            <School size={30} className="text-white" />
+          </div>
+          <div className="text-[11px] font-bold uppercase tracking-[0.25em] text-white/70">Beneficio adicional</div>
+          <h1 className="mt-1 font-serif text-3xl font-bold text-white">Aula Virtual</h1>
+          <p className="mx-auto mt-2 max-w-lg text-sm text-white/85">
+            Convierte tu centro en un salón en línea tipo Canvas: imparte clase híbrida o remota con foro,
+            tareas, materiales y videos para tus alumnos.
+          </p>
+        </div>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-6">
+        {beneficios.map((b) => (
+          <div key={b.t} className="flex items-start gap-3 rounded-xl border border-stone-200 p-4">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--color-crema-100)]" style={{ color: G }}><b.icon size={17} /></div>
+            <div><div className="font-semibold text-stone-900">{b.t}</div><div className="text-xs text-stone-500">{b.d}</div></div>
+          </div>
+        ))}
+      </div>
+      <div className="border-t border-stone-100 px-6 py-5 text-center">
+        <div className="inline-flex flex-col items-center gap-1.5 rounded-xl px-5 py-4" style={{ background: 'var(--color-crema-50, #fdfaf5)' }}>
+          <Lock size={18} style={{ color: G }} />
+          <div className="text-sm font-bold text-stone-900">Tu centro aún no tiene activada esta función</div>
+          <div className="text-xs text-stone-600 max-w-sm">
+            Comunícate con la <b>Secretaría (IEMSyS)</b> para adquirir el Aula Virtual y activarla en tu centro de asesoría.
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 

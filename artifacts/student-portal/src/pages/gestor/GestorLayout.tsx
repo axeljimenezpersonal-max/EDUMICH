@@ -8,7 +8,7 @@ import { Link, useLocation, useSearch } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School,
-  MessageCircle, ClipboardList, BookOpen, Video, ChevronDown,
+  MessageCircle, ClipboardList, BookOpen, Video, ChevronDown, Lock,
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
@@ -110,40 +110,53 @@ export function GestorLayout({ children }: { children: ReactNode }) {
               })}
             </ul>
 
-            {/* Mi aula — botón que se despliega (mini-portal) */}
-            {aula && (
-              <div className="border-t border-stone-100">
-                <button
-                  data-tour="nav-aula"
-                  onClick={() => { setAulaOpen((o) => (onAula ? !o : true)); if (!onAula) setLocation('/gestor/aula'); }}
+            {/* Mi aula — botón desplegable. Si no está contratada, en gris con
+                candado (clic → pantalla para adquirir el beneficio). */}
+            <div className="border-t border-stone-100">
+              {aula ? (
+                <>
+                  <button
+                    data-tour="nav-aula"
+                    onClick={() => { setAulaOpen((o) => (onAula ? !o : true)); if (!onAula) setLocation('/gestor/aula'); }}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                      onAula && secActual === 'resumen'
+                        ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
+                        : 'border-transparent text-stone-700 hover:bg-stone-50'}`}
+                  >
+                    <School size={16} />
+                    <span className="flex-1 text-left font-semibold">Mi aula</span>
+                    <ChevronDown size={15} className={`transition-transform ${aulaOpen ? 'rotate-180' : ''}`} style={{ color: '#a8a29e' }} />
+                  </button>
+                  {aulaOpen && (
+                    <ul className="pb-1" style={{ background: '#fdfcfa' }}>
+                      {NAV_AULA_SUB.map((item) => {
+                        const active = esActivo(item.to);
+                        return (
+                          <li key={item.to}>
+                            <Link href={item.to}
+                              className={`flex items-center gap-3 py-2 pl-11 pr-4 text-[13px] transition-colors border-l-4 ${
+                                active ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-600 hover:bg-stone-50'}`}>
+                              <item.icon size={14} />
+                              {item.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </>
+              ) : (
+                <Link href="/gestor/aula" data-tour="nav-aula"
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
-                    onAula && secActual === 'resumen'
-                      ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
-                      : 'border-transparent text-stone-700 hover:bg-stone-50'}`}
-                >
+                    onAula ? 'bg-stone-50 border-stone-300' : 'border-transparent hover:bg-stone-50'}`}
+                  style={{ color: '#a8a29e' }}
+                  title="Aula Virtual no activada — contacta a la Secretaría">
                   <School size={16} />
                   <span className="flex-1 text-left font-semibold">Mi aula</span>
-                  <ChevronDown size={15} className={`transition-transform ${aulaOpen ? 'rotate-180' : ''}`} style={{ color: '#a8a29e' }} />
-                </button>
-                {aulaOpen && (
-                  <ul className="pb-1" style={{ background: '#fdfcfa' }}>
-                    {NAV_AULA_SUB.map((item) => {
-                      const active = esActivo(item.to);
-                      return (
-                        <li key={item.to}>
-                          <Link href={item.to}
-                            className={`flex items-center gap-3 py-2 pl-11 pr-4 text-[13px] transition-colors border-l-4 ${
-                              active ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-600 hover:bg-stone-50'}`}>
-                            <item.icon size={14} />
-                            {item.label}
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            )}
+                  <Lock size={13} />
+                </Link>
+              )}
+            </div>
           </div>
         </nav>
 
