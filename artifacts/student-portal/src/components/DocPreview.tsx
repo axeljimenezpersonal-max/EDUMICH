@@ -4,7 +4,8 @@
  * botón "Descargar". La URL debe aceptar `?inline=1` para servir el archivo
  * con Content-Disposition inline (vista previa) — sin el parámetro descarga.
  */
-import { FileText, Download, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+import { FileText, Download, ExternalLink, ImageOff } from 'lucide-react';
 
 const ES_IMAGEN = /\.(png|jpe?g|webp|gif)$/i;
 const ES_PDF = /\.pdf$/i;
@@ -13,13 +14,28 @@ export function DocPreview({ url, nombre }: { url: string; nombre: string }) {
   const inlineUrl = `${url}?inline=1`;
   const esImagen = ES_IMAGEN.test(nombre);
   const esPdf = ES_PDF.test(nombre);
+  // El almacenamiento del servidor puede ser efímero: si el archivo ya no
+  // existe (p. ej. se subió antes del último despliegue), avisamos con gracia.
+  const [roto, setRoto] = useState(false);
+
+  if (roto) {
+    return (
+      <div className="flex items-center gap-2.5 rounded-xl border border-dashed border-stone-300 bg-stone-50 px-3.5 py-3">
+        <ImageOff size={18} className="shrink-0 text-stone-400" />
+        <div className="min-w-0">
+          <div className="truncate text-xs font-semibold text-stone-600">{nombre}</div>
+          <div className="text-[11px] text-stone-400">Este archivo ya no está disponible. Pide a tu gestor que lo vuelva a subir.</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="overflow-hidden rounded-xl border border-stone-200 bg-white">
       {/* Vista previa (imagen o PDF); otros tipos solo muestran la barra */}
       {esImagen && (
         <a href={inlineUrl} target="_blank" rel="noreferrer" title="Ver en tamaño completo" className="block bg-stone-50">
-          <img src={inlineUrl} alt={nombre} loading="lazy" className="mx-auto max-h-80 w-auto object-contain" />
+          <img src={inlineUrl} alt={nombre} loading="lazy" className="mx-auto max-h-80 w-auto object-contain" onError={() => setRoto(true)} />
         </a>
       )}
       {esPdf && (
