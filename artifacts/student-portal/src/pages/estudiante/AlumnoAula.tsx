@@ -15,8 +15,9 @@ import {
   Lock, Clock, GraduationCap, MapPin,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import { parseDbDate, fechaCorta, fechaHoraCorta, vencioFecha } from '../../lib/fechas';
+import { parseDbDate, fechaCorta, fechaHoraCorta, vencioFecha, fechaVentana } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
+import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -268,10 +269,25 @@ function TareaItem({ t, abrir }: { t: Tarea; abrir: () => void }) {
           <div className="font-semibold text-stone-900 flex flex-wrap items-center gap-1.5">
             {t.titulo} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
+          {/* Fechas GRANDES y claras, con día de la semana */}
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {ventana === 'programada' && t.abreEn && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: '#fef3c7', color: '#92400e' }}>
+                <Lock size={12} /> Abre el {fechaVentana(t.abreEn, 'abre')}
+              </span>
+            )}
+            {t.cierraEn && ventana !== 'programada' && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={ventana === 'cerrada' ? { background: '#fee2e2', color: '#991b1b' } : { background: 'var(--color-crema-100)', color: 'var(--color-guinda-800)' }}>
+                <CalendarClock size={12} /> {ventana === 'cerrada' ? 'Cerró' : 'Cierra'} el {fechaVentana(t.cierraEn, 'cierra')}
+              </span>
+            )}
+            {!t.cierraEn && t.fechaEntrega && (
+              <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: 'var(--color-crema-100)', color: 'var(--color-guinda-800)' }}>
+                <CalendarClock size={12} /> Entrega: {fecha(t.fechaEntrega)}
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-stone-500">
-            {ventana === 'programada' && t.abreEn && <span className="inline-flex items-center gap-1 font-semibold" style={{ color: '#92400e' }}><Lock size={12} /> Abre el {fechaHora(t.abreEn)}</span>}
-            {ventana === 'abierta' && t.cierraEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Cierra: {fechaHora(t.cierraEn)}</span>}
-            {t.fechaEntrega && <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> Entrega: {fecha(t.fechaEntrega)}</span>}
             {t.archivoNombre && <span className="inline-flex items-center gap-1"><FileText size={12} /> Incluye documento</span>}
             {t.miArchivo && <span className="inline-flex items-center gap-1"><Paperclip size={12} /> {t.miArchivo}</span>}
           </div>
@@ -320,11 +336,23 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
           <div>
             <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Tarea</div>
             <h2 className="font-serif text-xl font-bold text-stone-900">{t.titulo}</h2>
-            <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-stone-500">
-              <span>Publicada: {fecha(t.createdAt)}</span>
-              {t.abreEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Abre: {fechaHora(t.abreEn)}</span>}
-              {t.cierraEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Cierra: {fechaHora(t.cierraEn)}</span>}
-              {t.fechaEntrega && <span className="inline-flex items-center gap-1 font-semibold" style={{ color: vencida ? '#b91c1c' : undefined }}><CalendarClock size={12} /> Entrega: {fecha(t.fechaEntrega)}</span>}
+            <div className="mt-1.5 flex flex-wrap gap-1.5">
+              {t.abreEn && ventana === 'programada' && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: '#fef3c7', color: '#92400e' }}>
+                  <Clock size={12} /> Abre el {fechaVentana(t.abreEn, 'abre')}
+                </span>
+              )}
+              {t.cierraEn && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={ventana === 'cerrada' ? { background: '#fee2e2', color: '#991b1b' } : { background: 'var(--color-crema-100)', color: 'var(--color-guinda-800)' }}>
+                  <CalendarClock size={12} /> {ventana === 'cerrada' ? 'Cerró' : 'Cierra'} el {fechaVentana(t.cierraEn, 'cierra')}
+                </span>
+              )}
+              {!t.cierraEn && t.fechaEntrega && (
+                <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: vencida ? '#fee2e2' : 'var(--color-crema-100)', color: vencida ? '#991b1b' : 'var(--color-guinda-800)' }}>
+                  <CalendarClock size={12} /> Entrega: {fecha(t.fechaEntrega)}
+                </span>
+              )}
+              <span className="inline-flex items-center gap-1 text-xs text-stone-400 px-1 py-1">Publicada: {fecha(t.createdAt)}</span>
             </div>
           </div>
           {entregada
@@ -334,7 +362,9 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
 
         <div className="px-5 py-4">
           <div className="text-xs font-bold uppercase tracking-wide text-stone-400 mb-1.5">Instrucciones</div>
-          <div className="text-sm text-stone-700 whitespace-pre-wrap">{t.instrucciones || 'Tu gestor no agregó instrucciones adicionales.'}</div>
+          {t.instrucciones
+            ? <TextoRico texto={t.instrucciones} className="text-sm text-stone-700 space-y-1" />
+            : <div className="text-sm text-stone-700">Tu gestor no agregó instrucciones adicionales.</div>}
           {t.archivoNombre && (
             <a href={`/api/aula/tareas/${t.id}/documento`} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-semibold text-stone-700 transition-colors hover:border-[var(--color-guinda-500)]">
               <FileText size={17} style={{ color: G }} />
@@ -350,8 +380,8 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
             <div className="mb-3 flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold" style={ventana === 'programada' ? { background: '#fffbeb', borderColor: '#fde68a', color: '#92400e' } : { background: '#fef2f2', borderColor: '#fecaca', color: '#991b1b' }}>
               <Lock size={14} className="shrink-0" />
               {ventana === 'programada'
-                ? <>Esta tarea abre el <b>{fechaHora(t.abreEn!)}</b>. Podrás entregar a partir de esa fecha.</>
-                : <>Esta tarea cerró el <b>{fechaHora(t.cierraEn!)}</b> y ya no acepta entregas.</>}
+                ? <>Esta tarea abre el <b>{fechaVentana(t.abreEn!, 'abre')}</b>. Podrás entregar a partir de esa fecha.</>
+                : <>Esta tarea cerró el <b>{fechaVentana(t.cierraEn!, 'cierra')}</b> y ya no acepta entregas.</>}
             </div>
           )}
           {entregada && t.miArchivo && !archivo && (
@@ -361,7 +391,7 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
           )}
           {puedeEntregar ? (
             <>
-              <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3} placeholder="Comentario para tu gestor (opcional)" className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none" />
+              <AreaConFormato value={comentario} onChange={setComentario} rows={3} placeholder="Comentario para tu gestor (opcional)" />
               <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
               {archivo ? (
                 <div className="mt-2 flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
@@ -414,7 +444,7 @@ function MaterialAlumno({ m }: { m: Material }) {
             <Download size={13} /> Descargar {m.archivoNombre}
           </a>
         )}
-        {m.tipo === 'texto' && m.contenido && <div className="text-sm text-stone-600 mt-1 whitespace-pre-wrap">{m.contenido}</div>}
+        {m.tipo === 'texto' && m.contenido && <TextoRico texto={m.contenido} className="text-sm text-stone-600 mt-1 space-y-0.5" />}
       </div>
     </div>
   );

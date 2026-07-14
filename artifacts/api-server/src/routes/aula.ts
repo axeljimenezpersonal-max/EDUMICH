@@ -64,6 +64,9 @@ function conArchivo(campo: string, up: multer.Multer = uploadAula) {
   return (req: Request, res: Response, next: NextFunction) => {
     up.single(campo)(req, res, (err: unknown) => {
       if (err) { res.status(400).json({ error: err instanceof Error ? err.message : 'Archivo inválido' }); return; }
+      // Multer decodifica originalname como latin1: los acentos y espacios
+      // especiales salen como mojibake ("â€¯"). Se re-decodifica a UTF-8.
+      if (req.file) req.file.originalname = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       next();
     });
   };
@@ -218,9 +221,9 @@ g.get('/tareas', async (req, res) => {
   // Filtro opcional por módulo de clase (mini-portal dentro del módulo).
   const moduloId = req.query.moduloId ? parseInt(String(req.query.moduloId), 10) : null;
   const moduloSnippet = moduloId != null ? sql`AND t.modulo_id = ${moduloId}` : sql``;
-  const rows = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_id: number | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; entregas: string }>(sql`
+  const rows = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_id: number | null; modulo_numero: number | null; modulo_nombre: string | null; publicada: boolean; created_at: string; entregas: string }>(sql`
     SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
-           t.archivo_nombre, t.modulo_id, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
+           t.archivo_nombre, t.modulo_id, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.publicada, t.created_at::text,
            (SELECT COUNT(*) FROM aula_entregas e WHERE e.tarea_id = t.id) AS entregas
     FROM aula_tareas t LEFT JOIN modulos m ON m.id = t.modulo_id
     WHERE t.gestor_user_id = ${gid} ${moduloSnippet} ORDER BY t.created_at DESC`).then(r => r.rows);
@@ -230,10 +233,21 @@ g.get('/tareas', async (req, res) => {
       id: r.id, titulo: r.titulo, instrucciones: r.instrucciones, fechaEntrega: r.fecha_entrega,
       abreEn: r.abre_en, cierraEn: r.cierra_en, archivoNombre: r.archivo_nombre,
       moduloId: r.modulo_id, moduloNumero: r.modulo_numero, moduloNombre: r.modulo_nombre,
-      createdAt: r.created_at, entregas: Number(r.entregas),
+      publicada: r.publicada, createdAt: r.created_at, entregas: Number(r.entregas),
     })),
     totalAlumnos: Number(al.n),
   });
+});
+
+// Ojito: ocultar/mostrar una tarea a los alumnos (precargar y destapar después).
+g.patch('/tareas/:id/publicar', async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  const [t] = await db.select({ publicada: aulaTareas.publicada }).from(aulaTareas)
+    .where(and(eq(aulaTareas.id, id), eq(aulaTareas.gestorUserId, req.user!.userId)));
+  if (!t) { res.status(404).json({ error: 'Tarea no encontrada' }); return; }
+  await db.update(aulaTareas).set({ publicada: !t.publicada, updatedAt: new Date() })
+    .where(eq(aulaTareas.id, id));
+  res.json({ ok: true, publicada: !t.publicada });
 });
 
 const fechaODia = z.string().trim().refine(s => s === '' || !Number.isNaN(new Date(s).getTime()), 'Fecha inválida');

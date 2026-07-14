@@ -63,3 +63,27 @@ export function diaLargo(s: string | null | undefined): string {
   if (!s) return '';
   return parseDbDate(s).toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', timeZone: TZ });
 }
+
+/** "miércoles 15 de julio de 2026" — fecha completa y clara, con día de la semana. */
+export function fechaLarga(s: string | null | undefined): string {
+  if (!s) return '';
+  const puro = parteFechaPura(s);
+  const d = puro ? new Date(`${puro}T12:00:00`) : parseDbDate(s);
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+  if (!puro) opts.timeZone = TZ;
+  return d.toLocaleDateString('es-MX', opts).replace(',', '');
+}
+
+function horaHHMM(s: string): string {
+  return parseDbDate(s).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: TZ });
+}
+/** ¿El timestamp cae al INICIO del día (00:00) en hora de MX? (ventanas "todo el día") */
+export function esInicioDeDia(s: string): boolean { return horaHHMM(s) === '00:00'; }
+/** ¿El timestamp cae al FINAL del día (23:58-23:59) en hora de MX? (cierres "todo el día") */
+export function esFinDeDia(s: string): boolean { const h = horaHHMM(s); return h === '23:59' || h === '23:58'; }
+
+/** Fecha visible para ventanas de tareas: día de la semana + hora solo si NO es todo-el-día. */
+export function fechaVentana(s: string, tipo: 'abre' | 'cierra'): string {
+  const soloDia = tipo === 'abre' ? esInicioDeDia(s) : esFinDeDia(s);
+  return soloDia ? fechaLarga(s) : `${fechaLarga(s)} · ${horaCorta(s)}`;
+}

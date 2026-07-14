@@ -12,16 +12,18 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Plus, Trash2, Users, Link2, FileText,
   Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight,
-  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock, ChevronLeft,
+  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock, ChevronLeft, Eye, EyeOff,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import { parseDbDate, fechaCorta, fechaHoraCorta } from '../../lib/fechas';
+import { parseDbDate, fechaCorta, fechaHoraCorta, fechaVentana } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
+import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
   abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
-  moduloId: number | null; moduloNumero: number | null; moduloNombre: string | null; createdAt: string; entregas: number;
+  moduloId: number | null; moduloNumero: number | null; moduloNombre: string | null;
+  publicada: boolean; createdAt: string; entregas: number;
 }
 interface ModuloGrupo { moduloId: number; numero: number; nombre: string; alumnos: number }
 interface ModulosGrupo { convocatoria: string | null; enCurso: ModuloGrupo[]; todos: { id: number; numero: number; nombre: string }[] }
@@ -337,7 +339,10 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
   const [totalAlumnos, setTotalAlumnos] = useState(0);
   const [grupo, setGrupo] = useState<ModulosGrupo | null>(null);
   const [form, setForm] = useState(false);
-  const [t, setT] = useState({ titulo: '', instrucciones: '', moduloId: '', fechaEntrega: '', abreEn: '', cierraEn: '' });
+  const [t, setT] = useState({ titulo: '', instrucciones: '', moduloId: '', abreEn: '', cierraEn: '' });
+  // Modo de fechas: "todo el día" (por defecto) usa solo fechas — abre a las
+  // 00:00 y cierra a las 23:59 del día elegido. Con hora usa datetime-local.
+  const [conHora, setConHora] = useState(false);
   const [documento, setDocumento] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
@@ -357,12 +362,16 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
       // Dentro de un módulo la tarea SIEMPRE pertenece a ese módulo.
       const mid = moduloId ? String(moduloId) : t.moduloId;
       if (mid) fd.append('moduloId', mid);
-      if (t.fechaEntrega) fd.append('fechaEntrega', t.fechaEntrega);
-      if (t.abreEn) fd.append('abreEn', new Date(t.abreEn).toISOString());
-      if (t.cierraEn) fd.append('cierraEn', new Date(t.cierraEn).toISOString());
+      // Todo-el-día: abre a las 00:00 y cierra a las 23:59 del día elegido.
+      if (t.abreEn) fd.append('abreEn', new Date(conHora ? t.abreEn : `${t.abreEn}T00:00:00`).toISOString());
+      if (t.cierraEn) {
+        fd.append('cierraEn', new Date(conHora ? t.cierraEn : `${t.cierraEn}T23:59:00`).toISOString());
+        // La fecha de entrega ES el día del cierre (campo derivado, ya sin input propio).
+        fd.append('fechaEntrega', t.cierraEn.slice(0, 10));
+      }
       if (documento) fd.append('documento', documento);
       await api.post('/aula/gestor/tareas', fd);
-      setT({ titulo: '', instrucciones: '', moduloId: '', fechaEntrega: '', abreEn: '', cierraEn: '' });
+      setT({ titulo: '', instrucciones: '', moduloId: '', abreEn: '', cierraEn: '' });
       setDocumento(null); if (docRef.current) docRef.current.value = '';
       setForm(false); cargar(); onChange();
     } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo publicar.'); }
@@ -370,6 +379,10 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
   }
   async function borrar(id: number) { if (!confirm('¿Eliminar esta tarea?')) return; await api.delete(`/aula/gestor/tareas/${id}`); cargar(); onChange(); }
   async function verEntregas(id: number) { if (entregasDe === id) { setEntregasDe(null); return; } const r = await api.get<{ entregas: Entrega[] }>(`/aula/gestor/tareas/${id}/entregas`); setEntregas(r.entregas); setEntregasDe(id); }
+  async function togglePublicada(id: number) {
+    await api.patch(`/aula/gestor/tareas/${id}/publicar`, {});
+    cargar();
+  }
 
   const lblCls = 'text-xs font-semibold text-stone-500 block mb-1';
 
@@ -407,7 +420,8 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
           </div>
           <div>
             <label className={lblCls}>Instrucciones * <span className="font-normal text-stone-400">(qué debe hacer y entregar el alumno)</span></label>
-            <textarea className={inputCls} rows={4} placeholder="Describe la actividad, criterios de evaluación y formato de entrega…" value={t.instrucciones} onChange={(e) => setT((s) => ({ ...s, instrucciones: e.target.value }))} />
+            <AreaConFormato value={t.instrucciones} onChange={(v) => setT((s) => ({ ...s, instrucciones: v }))} rows={4}
+              placeholder="Describe la actividad, criterios de evaluación y formato de entrega…" />
           </div>
           {!moduloId && (
           <div>
@@ -440,21 +454,27 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
               </button>
             )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className={lblCls}>Abre <span className="font-normal text-stone-400">(opcional)</span></label>
-              <input type="datetime-local" className={inputCls} value={t.abreEn} onChange={(e) => setT((s) => ({ ...s, abreEn: e.target.value }))} />
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className={lblCls + ' !mb-0'}>Disponibilidad <span className="font-normal text-stone-400">(opcional)</span></label>
+              <label className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-stone-500 cursor-pointer">
+                <input type="checkbox" checked={conHora} onChange={(e) => { setConHora(e.target.checked); setT((s) => ({ ...s, abreEn: '', cierraEn: '' })); }} className="accent-[var(--color-guinda-700)]" />
+                Especificar hora
+              </label>
             </div>
-            <div>
-              <label className={lblCls}>Cierra <span className="font-normal text-stone-400">(opcional)</span></label>
-              <input type="datetime-local" className={inputCls} value={t.cierraEn} onChange={(e) => setT((s) => ({ ...s, cierraEn: e.target.value }))} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={lblCls}>Abre {!conHora && <span className="font-normal text-stone-400">(desde las 12:00 a.m.)</span>}</label>
+                <input type={conHora ? 'datetime-local' : 'date'} className={inputCls} value={t.abreEn} onChange={(e) => setT((s) => ({ ...s, abreEn: e.target.value }))} />
+              </div>
+              <div>
+                <label className={lblCls}>Cierra — fecha límite de entrega {!conHora && <span className="font-normal text-stone-400">(hasta las 11:59 p.m.)</span>}</label>
+                <input type={conHora ? 'datetime-local' : 'date'} className={inputCls} value={t.cierraEn} onChange={(e) => setT((s) => ({ ...s, cierraEn: e.target.value }))} />
+              </div>
             </div>
-            <div>
-              <label className={lblCls}>Fecha de entrega <span className="font-normal text-stone-400">(opcional)</span></label>
-              <input type="date" className={inputCls} value={t.fechaEntrega} onChange={(e) => setT((s) => ({ ...s, fechaEntrega: e.target.value }))} />
-            </div>
+            <div className="text-[11px] text-stone-400 mt-1">El día del cierre es la fecha límite: hasta entonces pueden entregar los alumnos.</div>
           </div>
-          {t.abreEn && t.cierraEn && new Date(t.cierraEn) <= new Date(t.abreEn) && <div className="text-xs font-semibold text-red-600">El cierre debe ser después de la apertura.</div>}
+          {t.abreEn && t.cierraEn && new Date(conHora ? t.cierraEn : `${t.cierraEn}T23:59:00`) <= new Date(conHora ? t.abreEn : `${t.abreEn}T00:00:00`) && <div className="text-xs font-semibold text-red-600">El cierre debe ser después de la apertura.</div>}
           {err && <div className="text-xs font-semibold text-red-600">{err}</div>}
           <button onClick={crear} disabled={saving || !puedePublicar} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Publicar tarea</button>
         </div>
@@ -465,26 +485,41 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
             const pct = totalAlumnos > 0 ? Math.round((it.entregas / totalAlumnos) * 100) : 0;
             const estado = estadoVentana(it);
             return (
-            <div key={it.id} className="bg-white border border-stone-200 rounded-xl p-4">
+            <div key={it.id} className={`bg-white border rounded-xl p-4 ${it.publicada ? 'border-stone-200' : 'border-dashed border-stone-300 opacity-75'}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-stone-900">{it.titulo}</span>
                     {!moduloId && it.moduloNumero != null && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }} title={it.moduloNombre ?? ''}>M{it.moduloNumero}</span>}
-                    {estado === 'programada' && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fef3c7', color: '#92400e' }}><Clock size={9} /> Abre {fechaHora(it.abreEn!)}</span>}
+                    {!it.publicada && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#f5f5f4', color: '#78716c' }}><EyeOff size={9} /> Oculta para alumnos</span>}
                     {estado === 'cerrada' && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#991b1b' }}>Cerrada</span>}
                   </div>
                   {!moduloId && it.moduloNombre && <div className="text-[11px] text-stone-400 mt-0.5">Módulo {it.moduloNumero}: {it.moduloNombre}</div>}
-                  {it.instrucciones && <div className="text-sm text-stone-600 mt-0.5 whitespace-pre-wrap">{it.instrucciones}</div>}
+                  {it.instrucciones && <TextoRico texto={it.instrucciones} className="text-sm text-stone-600 mt-0.5 space-y-0.5" />}
                   {it.archivoNombre && (
                     <a href={`/api/aula/tareas/${it.id}/documento`} className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: G }}>
                       <FileText size={13} /> {it.archivoNombre}
                     </a>
                   )}
+                  {/* Fechas GRANDES y claras, con día de la semana */}
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {it.abreEn && estado === 'programada' && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: '#fef3c7', color: '#92400e' }}>
+                        <Clock size={12} /> Abre el {fechaVentana(it.abreEn, 'abre')}
+                      </span>
+                    )}
+                    {it.cierraEn && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={estado === 'cerrada' ? { background: '#fee2e2', color: '#991b1b' } : { background: 'var(--color-crema-100)', color: 'var(--color-guinda-800)' }}>
+                        <CalendarClock size={12} /> {estado === 'cerrada' ? 'Cerró' : 'Cierra'} el {fechaVentana(it.cierraEn, 'cierra')}
+                      </span>
+                    )}
+                    {!it.cierraEn && it.fechaEntrega && (
+                      <span className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold" style={{ background: 'var(--color-crema-100)', color: 'var(--color-guinda-800)' }}>
+                        <CalendarClock size={12} /> Entrega: {fecha(it.fechaEntrega)}
+                      </span>
+                    )}
+                  </div>
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-stone-500">
-                    {it.abreEn && estado !== 'programada' && <span className="inline-flex items-center gap-1"><Clock size={12} /> Abrió: {fechaHora(it.abreEn)}</span>}
-                    {it.cierraEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Cierra: {fechaHora(it.cierraEn)}</span>}
-                    {it.fechaEntrega && <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> Entrega: {fecha(it.fechaEntrega)}</span>}
                     <button onClick={() => verEntregas(it.id)} className="inline-flex items-center gap-1 font-semibold" style={{ color: G }}><Users size={12} /> {it.entregas}/{totalAlumnos} entregaron {entregasDe === it.id ? '▴' : '▾'}</button>
                   </div>
                   {/* Barra de progreso de entregas */}
@@ -495,7 +530,15 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
                     <span className="text-[10px] font-bold text-stone-400">{pct}%</span>
                   </div>
                 </div>
-                <button onClick={() => borrar(it.id)} className="shrink-0 text-stone-400 hover:text-red-500" aria-label="Eliminar tarea"><Trash2 size={15} /></button>
+                <div className="flex shrink-0 items-center gap-1">
+                  <button onClick={() => togglePublicada(it.id)}
+                    className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-[var(--color-guinda-700)]"
+                    title={it.publicada ? 'Ocultar a los alumnos (deja de verse en su aula)' : 'Mostrar a los alumnos'}
+                    aria-label={it.publicada ? 'Ocultar tarea' : 'Mostrar tarea'}>
+                    {it.publicada ? <Eye size={16} /> : <EyeOff size={16} />}
+                  </button>
+                  <button onClick={() => borrar(it.id)} className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-500" aria-label="Eliminar tarea"><Trash2 size={15} /></button>
+                </div>
               </div>
               {entregasDe === it.id && (
                 <div className="mt-3 border-t border-stone-100 pt-3">
@@ -598,7 +641,7 @@ function MaterialesTab({ modo, onChange, moduloId }: { modo: 'materiales' | 'vid
             </div>
           ) : (esVideo || m.tipo === 'enlace' || m.tipo === 'video')
             ? <input className={inputCls} placeholder={esVideo ? 'https://youtu.be/… (o cualquier enlace)' : 'https://… (video, PDF, drive, etc.)'} value={m.url} onChange={(e) => setM((s) => ({ ...s, url: e.target.value }))} />
-            : <textarea className={inputCls} rows={4} placeholder="Contenido / nota" value={m.contenido} onChange={(e) => setM((s) => ({ ...s, contenido: e.target.value }))} />}
+            : <AreaConFormato value={m.contenido} onChange={(v) => setM((s) => ({ ...s, contenido: v }))} rows={4} placeholder="Contenido / nota" />}
           {err && <div className="text-xs font-semibold text-red-600">{err}</div>}
           <button onClick={crear} disabled={saving || !puedePublicar} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Publicar</button>
         </div>
@@ -648,7 +691,7 @@ function MaterialCard({ it, onBorrar }: { it: Material; onBorrar?: () => void })
             <Download size={13} /> {it.archivoNombre}
           </a>
         )}
-        {it.tipo === 'texto' && it.contenido && <div className="text-sm text-stone-600 mt-1 whitespace-pre-wrap">{it.contenido}</div>}
+        {it.tipo === 'texto' && it.contenido && <TextoRico texto={it.contenido} className="text-sm text-stone-600 mt-1 space-y-0.5" />}
       </div>
       {onBorrar && <button onClick={onBorrar} className="shrink-0 text-stone-400 hover:text-red-500" aria-label="Eliminar material"><Trash2 size={15} /></button>}
     </div>
