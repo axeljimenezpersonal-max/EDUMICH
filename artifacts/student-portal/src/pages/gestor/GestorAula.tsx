@@ -224,7 +224,7 @@ function ResumenSec({ abrirModulo }: { abrirModulo: (id: number) => void }) {
                     </div>
                   </div>
                   <div className="p-4">
-                    <div className="font-serif text-base font-bold text-stone-900 leading-tight line-clamp-2 min-h-[2.6em]">{m.nombre}</div>
+                    <div className="font-serif text-base font-bold text-stone-900 leading-tight line-clamp-2 min-h-[2.6em]">M{m.numero} — {m.nombre}</div>
                     <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-stone-500">
                       <span className="inline-flex items-center gap-1"><ClipboardList size={12} /> {m.tareas}</span>
                       <span className="inline-flex items-center gap-1"><BookOpen size={12} /> {m.materiales}</span>
@@ -279,7 +279,7 @@ function ModuloDetalleGestor({ moduloId, volver }: { moduloId: number; volver: (
       <div className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
         <div className="absolute -right-6 -top-8 w-32 h-32 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
         <div className="relative px-6 py-5 text-white flex items-center justify-between gap-3">
-          <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {info.modulo.numero}</div><h1 className="font-serif text-2xl font-bold leading-tight">{info.modulo.nombre}</h1></div>
+          <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo de clase</div><h1 className="font-serif text-2xl font-bold leading-tight">M{info.modulo.numero} — {info.modulo.nombre}</h1></div>
           <span className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm text-white"><Users size={14} /> {info.totalAlumnos} alumno{info.totalAlumnos === 1 ? '' : 's'}</span>
         </div>
       </div>
