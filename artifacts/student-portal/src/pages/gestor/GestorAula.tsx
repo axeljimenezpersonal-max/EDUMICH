@@ -7,14 +7,14 @@ import { useEffect, useRef, useState } from 'react';
 import { AulaShell } from '../../components/AulaShell';
 import { ForoAula } from '../../components/ForoAula';
 import {
-  School, ClipboardList, BookOpen, Megaphone, Plus, Trash2, Users, Link2, FileText,
+  School, ClipboardList, BookOpen, Plus, Trash2, Users, Link2, FileText,
   Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight,
-  Inbox, MessageCircle, Pin, PinOff, ImagePlus, X, Clock, Download, Paperclip, GraduationCap,
+  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
-type Sec = 'resumen' | 'foro' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
+type Sec = 'resumen' | 'foro' | 'tareas' | 'materiales' | 'videos';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -24,9 +24,8 @@ interface Tarea {
 interface ModuloGrupo { moduloId: number; numero: number; nombre: string; alumnos: number }
 interface ModulosGrupo { convocatoria: string | null; enCurso: ModuloGrupo[]; todos: { id: number; numero: number; nombre: string }[] }
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null; createdAt: string }
-interface Anuncio { id: number; titulo: string; cuerpo: string; fijado: boolean; programadoPara: string | null; tieneImagen: boolean; createdAt: string }
 interface Entrega { id: number; alumno: string; estado: string; comentario: string | null; archivoNombre: string | null; entregada_en: string }
-interface Resumen { tareas: number; materiales: number; anuncios: number; alumnos: number }
+interface Resumen { tareas: number; materiales: number; foro: number; alumnos: number }
 
 const G = 'var(--color-guinda-700)';
 function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
@@ -41,8 +40,7 @@ export default function GestorAula() {
 
   const NAV = [
     { k: 'resumen' as Sec, label: 'Resumen', icon: LayoutDashboard },
-    { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle },
-    { k: 'anuncios' as Sec, label: 'Anuncios', icon: Megaphone, n: resumen?.anuncios },
+    { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle, n: resumen?.foro },
     { k: 'tareas' as Sec, label: 'Tareas', icon: ClipboardList, n: resumen?.tareas },
     { k: 'materiales' as Sec, label: 'Materiales', icon: BookOpen, n: resumen?.materiales },
     { k: 'videos' as Sec, label: 'Videos', icon: Video },
@@ -69,7 +67,7 @@ export default function GestorAula() {
                 { l: 'Alumnos', v: resumen.alumnos, icon: Users },
                 { l: 'Tareas', v: resumen.tareas, icon: ClipboardList },
                 { l: 'Materiales', v: resumen.materiales, icon: BookOpen },
-                { l: 'Anuncios', v: resumen.anuncios, icon: Megaphone },
+                { l: 'Mensajes', v: resumen.foro, icon: MessageCircle },
               ].map((c) => (
                 <div key={c.l} className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.13)' }}>
                   <c.icon size={14} className="text-white/80" /> <b>{c.v}</b> <span className="text-white/70">{c.l}</span>
@@ -82,7 +80,6 @@ export default function GestorAula() {
 
       {sec === 'resumen' && <ResumenSec resumen={resumen} ir={setSec} />}
       {sec === 'foro' && <ForoAula />}
-      {sec === 'anuncios' && <AnunciosTab onChange={cargarResumen} />}
       {sec === 'tareas' && <TareasTab onChange={cargarResumen} />}
       {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
       {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}
@@ -108,7 +105,7 @@ function BtnCrear({ label, on, toggle }: { label: string; on: boolean; toggle: (
 // ── Resumen ──
 function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => void }) {
   const cards: { k: Sec; label: string; desc: string; icon: typeof LayoutDashboard; n?: number }[] = [
-    { k: 'anuncios', label: 'Anuncios', desc: 'Con imagen, fijados y programados', icon: Megaphone, n: resumen?.anuncios },
+    { k: 'foro', label: 'Foro', desc: 'Mensajes, anuncios y encuestas del grupo', icon: MessageCircle, n: resumen?.foro },
     { k: 'tareas', label: 'Tareas', desc: 'Asignaciones con entrega de archivos', icon: ClipboardList, n: resumen?.tareas },
     { k: 'materiales', label: 'Materiales', desc: 'Lecturas, archivos, enlaces y notas', icon: BookOpen, n: resumen?.materiales },
     { k: 'videos', label: 'Videos', desc: 'Clases y repasos en video', icon: Video },
@@ -444,114 +441,3 @@ function MaterialCard({ it, onBorrar }: { it: Material; onBorrar?: () => void })
   );
 }
 
-// ── Anuncios ──
-function AnunciosTab({ onChange }: { onChange: () => void }) {
-  const [items, setItems] = useState<Anuncio[]>([]);
-  const [form, setForm] = useState(false);
-  const [a, setA] = useState({ titulo: '', cuerpo: '', fijado: false, programadoPara: '' });
-  const [imagen, setImagen] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [err, setErr] = useState('');
-  const imgRef = useRef<HTMLInputElement>(null);
-  const cargar = () => api.get<{ anuncios: Anuncio[] }>('/aula/gestor/anuncios').then((r) => setItems(r.anuncios)).catch(() => {});
-  useEffect(() => { cargar(); }, []);
-  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
-
-  function elegirImagen(f: File | null) {
-    if (previewUrl) { URL.revokeObjectURL(previewUrl); setPreviewUrl(null); }
-    setImagen(f);
-    if (f) setPreviewUrl(URL.createObjectURL(f));
-  }
-  async function crear() {
-    if (!a.titulo.trim() || !a.cuerpo.trim()) return;
-    setSaving(true); setErr('');
-    try {
-      const fd = new FormData();
-      fd.append('titulo', a.titulo); fd.append('cuerpo', a.cuerpo);
-      fd.append('fijado', String(a.fijado));
-      if (a.programadoPara) fd.append('programadoPara', new Date(a.programadoPara).toISOString());
-      if (imagen) fd.append('imagen', imagen);
-      await api.post('/aula/gestor/anuncios', fd);
-      setA({ titulo: '', cuerpo: '', fijado: false, programadoPara: '' });
-      elegirImagen(null); if (imgRef.current) imgRef.current.value = '';
-      setForm(false); cargar(); onChange();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo publicar.'); }
-    finally { setSaving(false); }
-  }
-  async function fijar(id: number) { await api.patch(`/aula/gestor/anuncios/${id}/fijar`, {}); cargar(); }
-  async function borrar(id: number) { if (!confirm('¿Eliminar este anuncio?')) return; await api.delete(`/aula/gestor/anuncios/${id}`); cargar(); onChange(); }
-
-  const ahora = Date.now();
-
-  return (
-    <div>
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <SecHeader icon={Megaphone} titulo="Anuncios del aula" sub="Con imagen, fijados arriba o programados para publicarse después." />
-        <BtnCrear label="Nuevo anuncio" on={form} toggle={() => setForm((v) => !v)} />
-      </div>
-      {form && (
-        <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4 space-y-3">
-          <input className={inputCls} placeholder="Título del anuncio" value={a.titulo} onChange={(e) => setA((s) => ({ ...s, titulo: e.target.value }))} />
-          <textarea className={inputCls} rows={3} placeholder="Mensaje para tus alumnos" value={a.cuerpo} onChange={(e) => setA((s) => ({ ...s, cuerpo: e.target.value }))} />
-
-          {/* Imagen opcional */}
-          <input ref={imgRef} type="file" accept="image/*" className="hidden" onChange={(e) => elegirImagen(e.target.files?.[0] ?? null)} />
-          {previewUrl ? (
-            <div className="relative inline-block">
-              <img src={previewUrl} alt="" className="max-h-40 rounded-lg border border-stone-200" />
-              <button onClick={() => { elegirImagen(null); if (imgRef.current) imgRef.current.value = ''; }} className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-white border border-stone-200 flex items-center justify-center text-stone-500 hover:text-red-500 shadow" aria-label="Quitar imagen"><X size={13} /></button>
-            </div>
-          ) : (
-            <button onClick={() => imgRef.current?.click()} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg border border-dashed border-stone-300 text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)] transition-colors">
-              <ImagePlus size={14} /> Agregar imagen
-            </button>
-          )}
-
-          {/* Opciones pro: fijar + programar */}
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2 pt-1">
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600 cursor-pointer">
-              <input type="checkbox" checked={a.fijado} onChange={(e) => setA((s) => ({ ...s, fijado: e.target.checked }))} className="accent-[var(--color-guinda-700)]" />
-              <Pin size={13} /> Fijar arriba
-            </label>
-            <label className="inline-flex items-center gap-2 text-xs font-semibold text-stone-600">
-              <Clock size={13} /> Programar publicación
-              <input type="datetime-local" className="text-xs border border-stone-300 rounded-lg px-2 py-1.5 focus:border-[var(--color-guinda-500)] focus:outline-none" value={a.programadoPara} onChange={(e) => setA((s) => ({ ...s, programadoPara: e.target.value }))} />
-            </label>
-          </div>
-          {a.programadoPara && <div className="text-[11px] text-stone-500">Se publicará automáticamente el {fechaHora(a.programadoPara)}. Hasta entonces tus alumnos no lo verán.</div>}
-          {err && <div className="text-xs font-semibold text-red-600">{err}</div>}
-          <button onClick={crear} disabled={saving || !a.titulo.trim() || !a.cuerpo.trim()} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} {a.programadoPara ? 'Programar' : 'Publicar'}</button>
-        </div>
-      )}
-      {items.length === 0 ? <Vacio icon={Megaphone} texto="Aún no hay anuncios de aula." /> : (
-        <div className="space-y-2.5">
-          {items.map((it) => {
-            const programado = !!it.programadoPara && new Date(it.programadoPara).getTime() > ahora;
-            return (
-            <div key={it.id} className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: it.fijado ? 'var(--color-guinda-300, #d8a48f)' : '#e7e5e4' }}>
-              {it.tieneImagen && <img src={`/api/aula/anuncios/${it.id}/imagen`} alt="" className="w-full max-h-56 object-cover" loading="lazy" />}
-              <div className="p-4 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-stone-900">{it.titulo}</span>
-                    {it.fijado && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }}><Pin size={9} /> Fijado</span>}
-                    {programado && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fef3c7', color: '#92400e' }}><Clock size={9} /> Programado · {fechaHora(it.programadoPara!)}</span>}
-                  </div>
-                  <div className="text-sm text-stone-600 mt-0.5 whitespace-pre-wrap">{it.cuerpo}</div>
-                  <div className="text-[11px] text-stone-400 mt-1">{fechaHora(it.createdAt)}</div>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <button onClick={() => fijar(it.id)} className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-[var(--color-guinda-700)]" title={it.fijado ? 'Desfijar' : 'Fijar arriba'} aria-label={it.fijado ? 'Desfijar' : 'Fijar'}>
-                    {it.fijado ? <PinOff size={15} /> : <Pin size={15} />}
-                  </button>
-                  <button onClick={() => borrar(it.id)} className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-500" aria-label="Eliminar anuncio"><Trash2 size={15} /></button>
-                </div>
-              </div>
-            </div>
-          ); })}
-        </div>
-      )}
-    </div>
-  );
-}

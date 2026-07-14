@@ -8,14 +8,14 @@ import { useEffect, useRef, useState } from 'react';
 import { AulaShell } from '../../components/AulaShell';
 import { ForoAula } from '../../components/ForoAula';
 import {
-  School, Megaphone, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
-  Video, PlayCircle, LayoutDashboard, ChevronRight, ChevronLeft, Inbox, MessageCircle, Pin, Paperclip, Download, X,
+  School, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
+  Video, PlayCircle, LayoutDashboard, ChevronRight, ChevronLeft, Inbox, MessageCircle, Paperclip, Download, X,
   Lock, Clock, GraduationCap,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
-type Sec = 'resumen' | 'foro' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
+type Sec = 'resumen' | 'foro' | 'tareas' | 'materiales' | 'videos';
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
   abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
@@ -23,8 +23,7 @@ interface Tarea {
   createdAt: string; miEstado: string | null; miComentario: string | null; miArchivo: string | null;
 }
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null }
-interface Anuncio { id: number; titulo: string; cuerpo: string; fijado: boolean; tieneImagen: boolean; createdAt: string }
-interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null }; tareas: Tarea[]; materiales: Material[]; anuncios: Anuncio[]; misModulos?: { numero: number; nombre: string }[] }
+interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null }; tareas: Tarea[]; materiales: Material[]; misModulos?: { numero: number; nombre: string }[] }
 
 /** Estado de una tarea según su ventana de disponibilidad. */
 function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
@@ -42,7 +41,7 @@ export default function AlumnoAula() {
   const [d, setD] = useState<MiAula | null>(null);
   const [sec, setSec] = useState<Sec>('resumen');
   const [tareaAbierta, setTareaAbierta] = useState<number | null>(null);
-  const cargar = () => api.get<MiAula>('/aula/mi-aula').then(setD).catch(() => setD({ habilitada: false, tareas: [], materiales: [], anuncios: [] }));
+  const cargar = () => api.get<MiAula>('/aula/mi-aula').then(setD).catch(() => setD({ habilitada: false, tareas: [], materiales: [] }));
   useEffect(() => { cargar(); }, []);
 
   const pendientes = d ? d.tareas.filter((t) => !t.miEstado).length : 0;
@@ -51,7 +50,6 @@ export default function AlumnoAula() {
   const NAV = [
     { k: 'resumen' as Sec, label: 'Resumen', icon: LayoutDashboard },
     { k: 'foro' as Sec, label: 'Foro', icon: MessageCircle },
-    { k: 'anuncios' as Sec, label: 'Anuncios', icon: Megaphone, n: d?.anuncios.length },
     { k: 'tareas' as Sec, label: 'Tareas', icon: ClipboardList, n: pendientes },
     { k: 'materiales' as Sec, label: 'Materiales', icon: BookOpen, n: materiales.length },
     { k: 'videos' as Sec, label: 'Videos', icon: Video, n: videos.length },
@@ -102,21 +100,6 @@ export default function AlumnoAula() {
       <div className="min-w-0">
           {sec === 'resumen' && <ResumenSec d={d} pendientes={pendientes} videos={videos.length} materiales={materiales.length} ir={irSec} />}
           {sec === 'foro' && <ForoAula />}
-          {sec === 'anuncios' && (d.anuncios.length === 0 ? <Vacio icon={Megaphone} texto="No hay anuncios." /> : (
-            <div className="space-y-2.5">{d.anuncios.map((a) => (
-              <div key={a.id} className="bg-white border rounded-xl overflow-hidden" style={{ borderColor: a.fijado ? '#d8a48f' : '#e7e5e4' }}>
-                {a.tieneImagen && <img src={`/api/aula/anuncios/${a.id}/imagen`} alt="" className="w-full max-h-56 object-cover" loading="lazy" />}
-                <div className="p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-stone-900">{a.titulo}</span>
-                    {a.fijado && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }}><Pin size={9} /> Fijado</span>}
-                  </div>
-                  <div className="text-sm text-stone-600 mt-0.5 whitespace-pre-wrap">{a.cuerpo}</div>
-                  <div className="text-[11px] text-stone-400 mt-1">{fechaHora(a.createdAt)}</div>
-                </div>
-              </div>
-            ))}</div>
-          ))}
           {sec === 'tareas' && (tarea
             ? <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); }} />
             : d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="No tienes tareas asignadas." /> : (
@@ -142,8 +125,8 @@ export default function AlumnoAula() {
 }
 
 function ResumenSec({ d, pendientes, videos, materiales, ir }: { d: MiAula; pendientes: number; videos: number; materiales: number; ir: (s: Sec) => void }) {
-  const cards: { k: Sec; label: string; desc: string; icon: typeof LayoutDashboard; n: number }[] = [
-    { k: 'anuncios', label: 'Anuncios', desc: 'Avisos de tu centro', icon: Megaphone, n: d.anuncios.length },
+  const cards: { k: Sec; label: string; desc: string; icon: typeof LayoutDashboard; n?: number }[] = [
+    { k: 'foro', label: 'Foro', desc: 'Mensajes, anuncios y encuestas de tu aula', icon: MessageCircle },
     { k: 'tareas', label: 'Tareas', desc: pendientes > 0 ? `${pendientes} pendiente(s)` : 'Al día', icon: ClipboardList, n: d.tareas.length },
     { k: 'materiales', label: 'Materiales', desc: 'Lecturas, archivos y enlaces', icon: BookOpen, n: materiales },
     { k: 'videos', label: 'Videos', desc: 'Clases en video', icon: Video, n: videos },
@@ -154,7 +137,7 @@ function ResumenSec({ d, pendientes, videos, materiales, ir }: { d: MiAula; pend
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {cards.map((c) => (
           <button key={c.k} onClick={() => ir(c.k)} className="text-left bg-white border border-stone-200 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-md transition-all group">
-            <div className="flex items-center justify-between"><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--color-crema-100)]" style={{ color: G }}><c.icon size={17} /></div><span className="text-2xl font-bold text-stone-900">{c.n}</span></div>
+            <div className="flex items-center justify-between"><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--color-crema-100)]" style={{ color: G }}><c.icon size={17} /></div>{typeof c.n === 'number' && <span className="text-2xl font-bold text-stone-900">{c.n}</span>}</div>
             <div className="mt-2 font-semibold text-stone-900 flex items-center gap-1">{c.label} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform" /></div>
             <div className="text-xs text-stone-500">{c.desc}</div>
           </button>

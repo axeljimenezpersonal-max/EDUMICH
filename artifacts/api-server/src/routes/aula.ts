@@ -15,7 +15,7 @@ import multer from 'multer';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaAnuncios, aulaForo, modulos } from '@workspace/db/schema';
+import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaForo, aulaForoVotos, modulos } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 
@@ -34,7 +34,6 @@ const TIPOS_AULA = [
   'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
 ];
-const SOLO_IMAGEN = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 function crearUpload(permitidos: string[]) {
   return multer({
@@ -59,7 +58,6 @@ function crearUpload(permitidos: string[]) {
   });
 }
 const uploadAula = crearUpload(TIPOS_AULA);
-const uploadImagen = crearUpload(SOLO_IMAGEN);
 
 // Envuelve multer para responder 400 con mensaje claro en vez de 500.
 function conArchivo(campo: string, up: multer.Multer = uploadAula) {
@@ -119,13 +117,22 @@ g.use(soloGestorConAula);
 // Resumen (contadores + alumnos)
 g.get('/resumen', async (req, res) => {
   const gid = req.user!.userId;
-  const [[t], [m], [a], [al]] = await Promise.all([
+  const [[t], [m], [f], [al]] = await Promise.all([
     db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM aula_tareas WHERE gestor_user_id = ${gid}`).then(r => r.rows),
     db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM aula_materiales WHERE gestor_user_id = ${gid}`).then(r => r.rows),
-    db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM aula_anuncios WHERE gestor_user_id = ${gid}`).then(r => r.rows),
+    db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM aula_foro WHERE gestor_user_id = ${gid}`).then(r => r.rows),
     db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM estudiantes WHERE gestor_id = ${gid}`).then(r => r.rows),
   ]);
-  res.json({ tareas: Number(t.n), materiales: Number(m.n), anuncios: Number(a.n), alumnos: Number(al.n) });
+  res.json({ tareas: Number(t.n), materiales: Number(m.n), foro: Number(f.n), alumnos: Number(al.n) });
+});
+
+// Candado del foro: modo "solo anuncios" (únicamente el gestor escribe)
+g.patch('/foro-bloqueo', async (req, res) => {
+  const gid = req.user!.userId;
+  const [gRow] = await db.select({ b: gestores.foroSoloGestor }).from(gestores).where(eq(gestores.userId, gid));
+  const nuevo = !gRow?.b;
+  await db.update(gestores).set({ foroSoloGestor: nuevo }).where(eq(gestores.userId, gid));
+  res.json({ ok: true, bloqueado: nuevo });
 });
 
 // ── Módulos que cursa el grupo (convocatoria abierta) — para el selector y el tablero ──
@@ -255,56 +262,13 @@ g.delete('/materiales/:id', async (req, res) => {
   res.json({ ok: true });
 });
 
-// ── Anuncios de aula (imagen + fijado + programación) ──
-g.get('/anuncios', async (req, res) => {
-  const rows = await db.select().from(aulaAnuncios).where(eq(aulaAnuncios.gestorUserId, req.user!.userId))
-    .orderBy(desc(aulaAnuncios.fijado), desc(aulaAnuncios.createdAt));
-  res.json({ anuncios: rows.map(a => ({ ...a, tieneImagen: !!a.imagenRef, imagenRef: undefined })) });
-});
-const anuncioSchema = z.object({
-  titulo: z.string().trim().min(1).max(200),
-  cuerpo: z.string().trim().min(1).max(5000),
-  fijado: z.union([z.boolean(), z.enum(['true', 'false'])]).optional(),
-  programadoPara: z.string().trim().optional().or(z.literal('')),
-});
-g.post('/anuncios', conArchivo('imagen', uploadImagen), async (req, res) => {
-  const p = anuncioSchema.safeParse(req.body);
-  if (!p.success) { res.status(400).json({ error: 'Datos inválidos' }); return; }
-  const prog = p.data.programadoPara ? new Date(p.data.programadoPara) : null;
-  if (prog && Number.isNaN(prog.getTime())) { res.status(400).json({ error: 'Fecha de programación inválida' }); return; }
-  const imagenRef = req.file ? await guardarSubida(req.file, 'aula') : null;
-  const [a] = await db.insert(aulaAnuncios).values({
-    gestorUserId: req.user!.userId, titulo: p.data.titulo, cuerpo: p.data.cuerpo,
-    fijado: p.data.fijado === true || p.data.fijado === 'true',
-    programadoPara: prog, imagenRef, imagenTipo: req.file?.mimetype ?? null,
-  }).returning();
-  res.json({ anuncio: { ...a, tieneImagen: !!a.imagenRef, imagenRef: undefined } });
-});
-g.patch('/anuncios/:id/fijar', async (req, res) => {
-  const id = parseInt(String(req.params.id), 10);
-  const [a] = await db.select().from(aulaAnuncios).where(and(eq(aulaAnuncios.id, id), eq(aulaAnuncios.gestorUserId, req.user!.userId)));
-  if (!a) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
-  await db.update(aulaAnuncios).set({ fijado: !a.fijado }).where(eq(aulaAnuncios.id, id));
-  res.json({ ok: true, fijado: !a.fijado });
-});
-g.delete('/anuncios/:id', async (req, res) => {
-  const id = parseInt(String(req.params.id), 10);
-  await db.delete(aulaAnuncios).where(and(eq(aulaAnuncios.id, id), eq(aulaAnuncios.gestorUserId, req.user!.userId)));
-  res.json({ ok: true });
-});
+// NOTA: los "Anuncios" dejaron de ser sección propia (2026-07-13). Ahora los
+// anuncios viven en el FORO como mensajes destacados del gestor (+ encuestas).
+// La tabla aula_anuncios se conserva en BD por histórico, sin rutas.
 
 router.use('/gestor', g);
 
 // ═══════════════ ARCHIVOS COMPARTIDOS DEL AULA (gestor + sus alumnos) ═══════════════
-// Imagen de un anuncio
-router.get('/anuncios/:id/imagen', async (req, res) => {
-  const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
-  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
-  const id = parseInt(String(req.params.id), 10);
-  const [a] = await db.select().from(aulaAnuncios).where(and(eq(aulaAnuncios.id, id), eq(aulaAnuncios.gestorUserId, gid)));
-  if (!a) { res.status(404).json({ error: 'Anuncio no encontrado' }); return; }
-  await servirArchivo(res, a.imagenRef, 'imagen', a.imagenTipo, true);
-});
 // Archivo de un material
 router.get('/materiales/:id/archivo', async (req, res) => {
   const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
@@ -359,12 +323,6 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
     JOIN modulos m ON m.id = im.modulo_id
     WHERE i.estudiante_id = ${uid} ORDER BY m.numero`).then(r => r.rows);
   const materiales = await db.select().from(aulaMateriales).where(eq(aulaMateriales.gestorUserId, gid)).orderBy(desc(aulaMateriales.createdAt));
-  // Solo anuncios ya publicados (los programados a futuro no se muestran); fijados primero.
-  const anuncios = await db.execute<{ id: number; titulo: string; cuerpo: string; fijado: boolean; imagen_ref: string | null; created_at: string }>(sql`
-    SELECT id, titulo, cuerpo, fijado, imagen_ref, COALESCE(programado_para, created_at)::text AS created_at
-    FROM aula_anuncios
-    WHERE gestor_user_id = ${gid} AND (programado_para IS NULL OR programado_para <= NOW())
-    ORDER BY fijado DESC, COALESCE(programado_para, created_at) DESC`).then(r => r.rows);
 
   res.json({
     habilitada: true,
@@ -377,7 +335,6 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
     })),
     misModulos,
     materiales: materiales.map(m => ({ ...m, archivoRef: undefined })),
-    anuncios: anuncios.map(a => ({ id: a.id, titulo: a.titulo, cuerpo: a.cuerpo, fijado: a.fijado, tieneImagen: !!a.imagen_ref, createdAt: a.created_at })),
   });
 });
 
@@ -405,40 +362,121 @@ router.post('/tareas/:id/entregar', requireRol('estudiante'), conArchivo('archiv
   res.json({ ok: true });
 });
 
-// ═══════════════════════════ FORO (gestor + alumnos del aula) ═══════════════════════════
+// ═══════════════════════════ FORO (canal central del aula) ═══════════════════════════
+// El foro concentra mensajes, anuncios destacados del gestor y encuestas.
+async function foroBloqueado(gid: number): Promise<boolean> {
+  const [g] = await db.select({ b: gestores.foroSoloGestor }).from(gestores).where(eq(gestores.userId, gid));
+  return !!g?.b;
+}
+
 router.get('/foro', async (req, res) => {
-  const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
+  const uid = req.user!.userId;
+  const gid = await aulaDelUsuario(uid, req.user!.rol);
   if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
-  const mensajes = await db.execute<{ id: number; autor_user_id: number; autor: string; autor_rol: string; cuerpo: string; adjunto_nombre: string | null; adjunto_tipo: string | null; created_at: string }>(sql`
-    SELECT f.id, f.autor_user_id, f.autor_rol, f.cuerpo, f.adjunto_nombre, f.adjunto_tipo, f.created_at::text,
+  const mensajes = await db.execute<{ id: number; autor_user_id: number; autor: string; autor_rol: string; tipo: string; destacado: boolean; opciones: string[] | null; cuerpo: string; adjunto_nombre: string | null; adjunto_tipo: string | null; created_at: string }>(sql`
+    SELECT f.id, f.autor_user_id, f.autor_rol, f.tipo, f.destacado, f.opciones, f.cuerpo,
+           f.adjunto_nombre, f.adjunto_tipo, f.created_at::text,
            COALESCE(g.nombre_completo, es.nombre_completo, 'Usuario') AS autor
     FROM aula_foro f
     LEFT JOIN gestores g ON g.user_id = f.autor_user_id
     LEFT JOIN estudiantes es ON es.user_id = f.autor_user_id
     WHERE f.gestor_user_id = ${gid}
     ORDER BY f.created_at ASC`).then(r => r.rows);
+  // Votos de las encuestas del aula: conteo por opción + cuál es mi voto.
+  const votos = await db.execute<{ mensaje_id: number; opcion: number; n: string; mio: boolean }>(sql`
+    SELECT v.mensaje_id, v.opcion, COUNT(*) AS n, BOOL_OR(v.user_id = ${uid}) AS mio
+    FROM aula_foro_votos v
+    JOIN aula_foro f ON f.id = v.mensaje_id AND f.gestor_user_id = ${gid}
+    GROUP BY v.mensaje_id, v.opcion`).then(r => r.rows);
+  const votosPorMsg = new Map<number, { opcion: number; n: number; mio: boolean }[]>();
+  for (const v of votos) {
+    const arr = votosPorMsg.get(v.mensaje_id) ?? [];
+    arr.push({ opcion: v.opcion, n: Number(v.n), mio: v.mio });
+    votosPorMsg.set(v.mensaje_id, arr);
+  }
   res.json({
-    yo: req.user!.userId,
+    yo: uid,
+    soyGestor: req.user!.rol === 'gestor',
+    bloqueado: await foroBloqueado(gid),
     mensajes: mensajes.map(m => ({
       id: m.id, autorId: m.autor_user_id, autor: m.autor, esGestor: m.autor_rol === 'gestor',
+      tipo: m.tipo, destacado: m.destacado, opciones: m.opciones,
+      votos: votosPorMsg.get(m.id) ?? [],
       cuerpo: m.cuerpo, adjuntoNombre: m.adjunto_nombre, adjuntoTipo: m.adjunto_tipo, createdAt: m.created_at,
     })),
   });
 });
 
-const foroSchema = z.object({ cuerpo: z.string().trim().max(3000).optional().or(z.literal('')) });
+const foroSchema = z.object({
+  cuerpo: z.string().trim().max(3000).optional().or(z.literal('')),
+  destacado: z.enum(['true', 'false']).optional(),
+  opciones: z.string().max(2000).optional(), // JSON: array de opciones (encuesta)
+});
 router.post('/foro', conArchivo('adjunto'), async (req, res) => {
-  const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
+  const { userId, rol } = req.user!;
+  const gid = await aulaDelUsuario(userId, rol);
   if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  if (rol !== 'gestor' && (await foroBloqueado(gid))) {
+    res.status(403).json({ error: 'El gestor activó el modo "solo anuncios": por ahora solo él puede escribir.' });
+    return;
+  }
   const p = foroSchema.safeParse(req.body ?? {});
-  const cuerpo = p.success ? (p.data.cuerpo ?? '').trim() : '';
+  if (!p.success) { res.status(400).json({ error: 'Datos inválidos' }); return; }
+  const cuerpo = (p.data.cuerpo ?? '').trim();
+
+  // Encuesta (solo el gestor): cuerpo = pregunta, opciones = 2 a 6 textos.
+  let opciones: string[] | null = null;
+  if (p.data.opciones) {
+    if (rol !== 'gestor') { res.status(403).json({ error: 'Solo el gestor puede crear encuestas.' }); return; }
+    try {
+      const arr: unknown = JSON.parse(p.data.opciones);
+      if (!Array.isArray(arr)) throw new Error();
+      opciones = arr.map(o => String(o).trim().slice(0, 120)).filter(Boolean);
+    } catch { res.status(400).json({ error: 'Opciones de encuesta inválidas' }); return; }
+    if (opciones.length < 2 || opciones.length > 6) { res.status(400).json({ error: 'La encuesta necesita de 2 a 6 opciones.' }); return; }
+    if (!cuerpo) { res.status(400).json({ error: 'Escribe la pregunta de la encuesta.' }); return; }
+  }
   if (!cuerpo && !req.file) { res.status(400).json({ error: 'Escribe un mensaje o adjunta un archivo' }); return; }
+
   const adjuntoRef = req.file ? await guardarSubida(req.file, 'aula') : null;
   const [m] = await db.insert(aulaForo).values({
-    gestorUserId: gid, autorUserId: req.user!.userId, autorRol: req.user!.rol, cuerpo,
+    gestorUserId: gid, autorUserId: userId, autorRol: rol, cuerpo,
+    tipo: opciones ? 'encuesta' : 'mensaje',
+    destacado: rol === 'gestor' && p.data.destacado === 'true',
+    opciones,
     adjuntoRef, adjuntoNombre: req.file?.originalname ?? null, adjuntoTipo: req.file?.mimetype ?? null,
   }).returning();
   res.json({ mensaje: { ...m, adjuntoRef: undefined } });
+});
+
+// Votar en una encuesta (una opción por usuario; puede cambiarla, estilo WhatsApp)
+const votoSchema = z.object({ opcion: z.number().int().min(0) });
+router.post('/foro/:id/votar', async (req, res) => {
+  const { userId, rol } = req.user!;
+  const gid = await aulaDelUsuario(userId, rol);
+  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  const id = parseInt(String(req.params.id), 10);
+  const p = votoSchema.safeParse(req.body);
+  if (!p.success) { res.status(400).json({ error: 'Voto inválido' }); return; }
+  const [f] = await db.select().from(aulaForo).where(and(eq(aulaForo.id, id), eq(aulaForo.gestorUserId, gid)));
+  if (!f || f.tipo !== 'encuesta' || !f.opciones) { res.status(404).json({ error: 'Encuesta no encontrada' }); return; }
+  if (p.data.opcion >= f.opciones.length) { res.status(400).json({ error: 'Opción fuera de rango' }); return; }
+  await db.insert(aulaForoVotos).values({ mensajeId: id, userId, opcion: p.data.opcion })
+    .onConflictDoUpdate({ target: [aulaForoVotos.mensajeId, aulaForoVotos.userId], set: { opcion: p.data.opcion, createdAt: new Date() } });
+  res.json({ ok: true });
+});
+
+// Borrar mensaje: el gestor modera todo su foro; cada quien puede borrar lo suyo.
+router.delete('/foro/:id', async (req, res) => {
+  const { userId, rol } = req.user!;
+  const gid = await aulaDelUsuario(userId, rol);
+  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  const id = parseInt(String(req.params.id), 10);
+  const [f] = await db.select().from(aulaForo).where(and(eq(aulaForo.id, id), eq(aulaForo.gestorUserId, gid)));
+  if (!f) { res.status(404).json({ error: 'Mensaje no encontrado' }); return; }
+  if (rol !== 'gestor' && f.autorUserId !== userId) { res.status(403).json({ error: 'Solo puedes borrar tus mensajes.' }); return; }
+  await db.delete(aulaForo).where(eq(aulaForo.id, id));
+  res.json({ ok: true });
 });
 
 export default router;

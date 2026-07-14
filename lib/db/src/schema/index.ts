@@ -224,6 +224,8 @@ export const gestores = pgTable('gestores', {
   // "Aula virtual" (LMS-lite): módulo de pago que Synapsis activa por gestor.
   // Los módulos/pruebas del alumno son un derecho aparte y NO dependen de esto.
   aulaHabilitada: boolean('aula_habilitada').notNull().default(false),
+  // Foro del aula en modo "solo anuncios": únicamente el gestor puede escribir.
+  foroSoloGestor: boolean('foro_solo_gestor').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   titulo: varchar('titulo', { length: 80 }).notNull().default('Gestor Municipal'),
   capacidadMaxima: integer('capacidad_maxima').notNull().default(50),
@@ -1716,6 +1718,10 @@ export const aulaForo = pgTable('aula_foro', {
   gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   autorUserId: integer('autor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   autorRol: varchar('autor_rol', { length: 20 }).notNull(),
+  // El foro es el canal central del aula: mensajes, anuncios destacados y encuestas.
+  tipo: varchar('tipo', { length: 20 }).notNull().default('mensaje'), // mensaje | encuesta
+  destacado: boolean('destacado').notNull().default(false), // anuncio del gestor (resaltado)
+  opciones: jsonb('opciones').$type<string[]>(), // opciones de la encuesta (solo tipo=encuesta)
   cuerpo: text('cuerpo').notNull(),
   // Adjunto opcional (imagen o archivo, estilo Discord)
   adjuntoRef: varchar('adjunto_ref', { length: 1000 }),
@@ -1724,4 +1730,16 @@ export const aulaForo = pgTable('aula_foro', {
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   gestorIdx: index('aula_foro_gestor_idx').on(t.gestorUserId),
+}));
+
+// Votos de encuestas del foro (una opción por usuario, puede cambiarla — estilo WhatsApp)
+export const aulaForoVotos = pgTable('aula_foro_votos', {
+  id: serial('id').primaryKey(),
+  mensajeId: integer('mensaje_id').notNull().references(() => aulaForo.id, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  opcion: integer('opcion').notNull(), // índice dentro de `opciones`
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  unicoPorUsuario: uniqueIndex('aula_foro_votos_msg_user_uq').on(t.mensajeId, t.userId),
+  mensajeIdx: index('aula_foro_votos_mensaje_idx').on(t.mensajeId),
 }));
