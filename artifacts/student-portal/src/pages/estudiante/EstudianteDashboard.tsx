@@ -43,6 +43,77 @@ interface AnuncioItem {
   yaVisto: boolean;
 }
 
+/**
+ * Widget "Mi aula" (estilo Canvas): si el gestor del alumno tiene aula
+ * habilitada, muestra en el Inicio sus módulos, tareas pendientes y acceso
+ * directo al foro/tareas. Si no hay aula, no ocupa espacio.
+ */
+function WidgetAula() {
+  const [info, setInfo] = useState<{ pendientes: number; total: number; modulos: { numero: number; nombre: string }[]; centro: string | null } | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.get<{ habilitada: boolean }>('/aula/estado')
+      .then((r) => {
+        if (!r.habilitada || !alive) return null;
+        return api.get<{ habilitada: boolean; gestor?: { centro: string | null }; tareas: { miEstado: string | null; abreEn: string | null; cierraEn: string | null }[]; misModulos?: { numero: number; nombre: string }[] }>('/aula/mi-aula');
+      })
+      .then((d) => {
+        if (!d || !d.habilitada || !alive) return;
+        const ahora = Date.now();
+        const activas = d.tareas.filter((t) => !(t.abreEn && new Date(t.abreEn).getTime() > ahora) && !(t.cierraEn && new Date(t.cierraEn).getTime() < ahora));
+        setInfo({
+          pendientes: activas.filter((t) => !t.miEstado).length,
+          total: d.tareas.length,
+          modulos: d.misModulos ?? [],
+          centro: d.gestor?.centro ?? null,
+        });
+      })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  if (!info) return null;
+  return (
+    <Link href="/estudiante/aula"
+      className="group block overflow-hidden rounded-2xl shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)] transition-all hover:-translate-y-0.5 hover:shadow-lg"
+      style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
+      <div className="relative flex flex-col gap-3 px-5 py-4 text-white sm:flex-row sm:items-center sm:justify-between sm:px-6 sm:py-5">
+        <div className="absolute -right-6 -top-10 h-36 w-36 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+        <div className="relative min-w-0">
+          <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Aula virtual · {info.centro || 'Tu centro'}</div>
+          <div className="mt-0.5 flex flex-wrap items-center gap-2 font-serif text-lg font-bold sm:text-xl">
+            Mi aula
+            <ChevronRight size={18} className="transition-transform group-hover:translate-x-1" />
+          </div>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {info.modulos.map((m) => (
+              <span key={m.numero} className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.15)' }} title={m.nombre}>
+                M{m.numero} <span className="max-w-[140px] truncate text-white/75">{m.nombre}</span>
+              </span>
+            ))}
+            <span className="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold" style={{ background: 'rgba(255,255,255,0.15)' }}>
+              Foro · Tareas · Materiales · Videos
+            </span>
+          </div>
+        </div>
+        <div className="relative shrink-0 rounded-xl px-4 py-2.5 text-center" style={{ background: 'rgba(255,255,255,0.15)' }}>
+          {info.pendientes > 0 ? (
+            <>
+              <div className="text-2xl font-bold leading-none">{info.pendientes}</div>
+              <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-white/80">tarea{info.pendientes === 1 ? '' : 's'} pendiente{info.pendientes === 1 ? '' : 's'}</div>
+            </>
+          ) : (
+            <>
+              <CheckCircle2 size={22} className="mx-auto" />
+              <div className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-white/80">al día</div>
+            </>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
 function diasHasta(fechaStr: string | null): number | null {
   if (!fechaStr) return null;
   const hoy = new Date();
@@ -243,6 +314,9 @@ export default function EstudianteDashboard() {
 
         {/* ── Fechas del calendario oficial (ventana de solicitud/pago, examen) ── */}
         <AvisosCalendario ocultarExamen hrefInscripcion="/estudiante/convocatoria" />
+
+        {/* ── Mi aula (estilo Canvas): foro, tareas y materiales del centro ── */}
+        <WidgetAula />
 
         {/* ── Calendario oficial completo (colapsable) ── */}
         <CalendarioOficial />
