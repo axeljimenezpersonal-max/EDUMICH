@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react';
+import { parseDbDate } from '../../../lib/fechas';
 import {
   Search, X, Download, ChevronLeft, ChevronRight, RefreshCw,
   ClipboardList, Filter,
@@ -104,10 +105,11 @@ function maskIp(ip: string): string {
 
 // ─── Date/time formatting ─────────────────────────────────────────────────
 
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
 function formatDateTime(iso: string): { date: string; time: string } {
-  const d = new Date(iso);
-  const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric' });
-  const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const d = parseDbDate(iso);
+  const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Mexico_City' });
+  const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Mexico_City' });
   return { date, time };
 }
 

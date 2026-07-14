@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { Mail, Search, ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
+import { parseDbDate } from '../../lib/fechas';
 
 const GUINDA = '#6B1530';
 
@@ -244,7 +245,7 @@ export default function CorreosEnviados() {
                         ...(selected.ccEmail ? [['CC', selected.ccEmail]] : []),
                         ['Asunto', selected.subject],
                         ['Evento', EVENTO_LABELS[selected.evento] ?? selected.evento],
-                        ['Fecha', new Date(selected.createdAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })],
+                        ['Fecha', parseDbDate(selected.createdAt).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'America/Mexico_City' })],
                       ].map(([label, value]) => (
                         <tr key={label}>
                           <td style={{ color: '#6b635e', fontWeight: 700, paddingRight: 12, paddingBottom: 4, whiteSpace: 'nowrap', width: 60, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: 10 }}>{label}</td>

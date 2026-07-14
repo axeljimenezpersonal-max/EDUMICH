@@ -11,6 +11,7 @@ import {
   FileText, Download, X, Megaphone, BarChart3, Trash2, CheckCircle2, Plus, ClipboardList, School, MapPin,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { horaCorta, diaLargo } from '../lib/fechas';
 
 interface Voto { opcion: number; n: number; mio: boolean }
 interface Msg {
@@ -22,8 +23,9 @@ interface TareaRef { id: number; titulo: string }
 interface CentroInfo { nombre: string | null; clave: string | null; municipio: string | null }
 interface ForoData { yo: number; soyGestor: boolean; bloqueado: boolean; centro: CentroInfo; tareas: TareaRef[]; mensajes: Msg[] }
 
-function hora(iso: string) { return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }); }
-function diaDe(iso: string) { return new Date(iso).toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' }); }
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
+const hora = horaCorta;
+const diaDe = diaLargo;
 function iniciales(n: string) { const p = (n || '?').trim().split(/\s+/); return ((p[0]?.[0] ?? '') + (p[1]?.[0] ?? '')).toUpperCase() || '?'; }
 // Color estable por autor (para el avatar), estilo Discord.
 const AVATAR_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d174d', '#4d7c0f', '#7c3aed'];

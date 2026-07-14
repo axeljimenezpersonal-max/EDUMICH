@@ -12,6 +12,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ShieldCheck, Send, Lock, Info, Headset, Clock, Mail } from 'lucide-react';
 import { api } from '../../lib/api';
+import { parseDbDate } from '../../lib/fechas';
 
 // Datos de atención (placeholder de soporte — cambiar por el correo oficial real
 // antes de producción; el horario es el de oficina L-V 9:00–17:00).
@@ -27,9 +28,9 @@ interface Mensaje {
   createdAt: string;
 }
 
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
 function horaCorta(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return parseDbDate(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
 }
 
 export function CitizenChat() {

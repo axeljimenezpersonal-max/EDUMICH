@@ -15,6 +15,7 @@ import {
   Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock, ChevronLeft,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { parseDbDate, fechaCorta, fechaHoraCorta } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
 interface Tarea {
@@ -29,8 +30,9 @@ interface Entrega { id: number; alumno: string; estado: string; comentario: stri
 interface Resumen { tareas: number; materiales: number; foro: number; alumnos: number }
 
 const G = 'var(--color-guinda-700)';
-function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'; }
-function fechaHora(s: string) { return new Date(s).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }); }
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
+function fecha(s: string | null) { return s ? fechaCorta(s) : '—'; }
+const fechaHora = fechaHoraCorta;
 const inputCls = 'w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none';
 
 export default function GestorAula() {
@@ -322,11 +324,11 @@ function ModuloDetalleGestor({ moduloId, volver }: { moduloId: number; volver: (
 }
 
 // ── Tareas ──
-/** Estado de una tarea según su ventana de disponibilidad. */
+/** Estado de una tarea según su ventana de disponibilidad (tiempos en UTC de la BD). */
 function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
   const ahora = Date.now();
-  if (t.abreEn && new Date(t.abreEn).getTime() > ahora) return 'programada';
-  if (t.cierraEn && new Date(t.cierraEn).getTime() < ahora) return 'cerrada';
+  if (t.abreEn && parseDbDate(t.abreEn).getTime() > ahora) return 'programada';
+  if (t.cierraEn && parseDbDate(t.cierraEn).getTime() < ahora) return 'cerrada';
   return 'abierta';
 }
 

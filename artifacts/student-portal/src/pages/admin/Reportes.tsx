@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { fechaHoraCorta } from '../../lib/fechas';
 import {
   BarChart2, Users, FileText, DollarSign, GraduationCap,
   UserCheck, Inbox, TrendingUp, Download, RefreshCw,
@@ -117,9 +118,10 @@ function formatBytes(b: number): string {
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
   return `${(b / 1024 / 1024).toFixed(1)} MB`;
 }
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
 function fechaCorta(iso: string | null): string {
   if (!iso) return '—';
-  return new Date(iso).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
+  return fechaHoraCorta(iso);
 }
 function pesos(n: number): string {
   return `$${n.toLocaleString('es-MX', { minimumFractionDigits: 0 })}`;

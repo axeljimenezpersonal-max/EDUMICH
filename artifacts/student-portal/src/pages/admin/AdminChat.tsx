@@ -12,6 +12,7 @@ import { useSearch } from 'wouter';
 import { MessageSquare, Send, Search, PenSquare, X, Lock, ChevronLeft, UserRound, GraduationCap, Users } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
+import { parseDbDate } from '../../lib/fechas';
 
 interface Conv {
   id: number;
@@ -38,8 +39,9 @@ interface Destinatario {
   detalle: string;
 }
 
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
 function horaCorta(iso: string): string {
-  return new Date(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  return parseDbDate(iso).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City' });
 }
 
 export default function AdminChat() {

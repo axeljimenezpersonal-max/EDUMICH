@@ -17,6 +17,7 @@ import {
 import { EstudianteLayout } from './EstudianteLayout';
 import { api, calif10 } from '../../lib/api';
 import type { PaseExamenData } from '../../lib/api';
+import { fechaHoraCorta } from '../../lib/fechas';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -181,7 +182,7 @@ export default function PaseExamen() {
             <p className="font-semibold text-sm">{badge.label}</p>
             {pase.estado === 'pase_validado' && pase.paseValidadoEn && (
               <p className="text-xs mt-0.5 opacity-80">
-                Validado: {new Date(pase.paseValidadoEn).toLocaleString('es-MX')}
+                Validado: {fechaHoraCorta(pase.paseValidadoEn)}
               </p>
             )}
             {pase.calificacion !== null && (

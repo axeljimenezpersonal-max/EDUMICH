@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { parseDbDate } from '../../../lib/fechas';
 import { Lock, Eye, EyeOff, Monitor, Shield, RefreshCw, X } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -202,11 +203,12 @@ function maskIp(ip: string): string {
   return ip.slice(0, 6) + '...';
 }
 
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
 function formatDate(iso: string): string {
   try {
-    return new Date(iso).toLocaleString('es-MX', {
+    return parseDbDate(iso).toLocaleString('es-MX', {
       day: '2-digit', month: 'short', year: 'numeric',
-      hour: '2-digit', minute: '2-digit',
+      hour: '2-digit', minute: '2-digit', timeZone: 'America/Mexico_City',
     });
   } catch {
     return iso;

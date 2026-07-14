@@ -15,6 +15,7 @@ import {
   Lock, Clock, GraduationCap, MapPin,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { parseDbDate, fechaCorta, fechaHoraCorta, vencioFecha } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
 interface Tarea {
@@ -27,17 +28,18 @@ interface Material { id: number; moduloId: number | null; titulo: string; descri
 interface ModuloClase { moduloId: number; numero: number; nombre: string; tareas: number; pendientes: number; materiales: number; videos: number }
 interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null; clave: string | null; municipio: string | null }; tareas: Tarea[]; materiales: Material[]; misModulos?: { numero: number; nombre: string }[]; modulosClase?: ModuloClase[] }
 
-/** Estado de una tarea según su ventana de disponibilidad. */
+/** Estado de una tarea según su ventana de disponibilidad (tiempos en UTC de la BD). */
 function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
   const ahora = Date.now();
-  if (t.abreEn && new Date(t.abreEn).getTime() > ahora) return 'programada';
-  if (t.cierraEn && new Date(t.cierraEn).getTime() < ahora) return 'cerrada';
+  if (t.abreEn && parseDbDate(t.abreEn).getTime() > ahora) return 'programada';
+  if (t.cierraEn && parseDbDate(t.cierraEn).getTime() < ahora) return 'cerrada';
   return 'abierta';
 }
 
 const G = 'var(--color-guinda-700)';
-function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; }
-function fechaHora(s: string) { return new Date(s).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }); }
+// Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
+function fecha(s: string | null) { return s ? fechaCorta(s) : ''; }
+const fechaHora = fechaHoraCorta;
 
 // Colores estables por módulo (portada tipo Canvas).
 const MOD_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d174d', '#4d7c0f', '#7c3aed', '#be123c', '#0f766e'];
@@ -258,7 +260,7 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
 function TareaItem({ t, abrir }: { t: Tarea; abrir: () => void }) {
   const entregada = !!t.miEstado;
   const ventana = estadoVentana(t);
-  const vencida = !entregada && (ventana === 'cerrada' || (t.fechaEntrega && new Date(t.fechaEntrega).getTime() < Date.now()));
+  const vencida = !entregada && (ventana === 'cerrada' || (t.fechaEntrega && vencioFecha(t.fechaEntrega)));
   return (
     <button onClick={abrir} className="w-full text-left bg-white border rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-md transition-all group" style={{ borderColor: entregada ? '#bbf7d0' : vencida ? '#fecaca' : '#e7e5e4' }}>
       <div className="flex items-start justify-between gap-3">
@@ -293,7 +295,7 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
   const fileRef = useRef<HTMLInputElement>(null);
   const entregada = !!t.miEstado;
   const ventana = estadoVentana(t);
-  const vencida = !entregada && t.fechaEntrega && new Date(t.fechaEntrega).getTime() < Date.now();
+  const vencida = !entregada && t.fechaEntrega && vencioFecha(t.fechaEntrega);
   const puedeEntregar = ventana === 'abierta';
 
   async function entregar() {
