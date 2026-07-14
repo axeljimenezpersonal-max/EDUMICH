@@ -6,7 +6,8 @@
  * Se usa en el inicio de alumno, gestor y admin. Siempre al día, sin cron.
  */
 import { useEffect, useState } from 'react';
-import { CalendarClock, CalendarCheck, AlertTriangle } from 'lucide-react';
+import { Link } from 'wouter';
+import { CalendarClock, CalendarCheck, AlertTriangle, ChevronRight } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface EventoCalendario {
@@ -46,7 +47,7 @@ const POPPINS = "'Poppins', sans-serif";
  * está inscrito y confunde). El alumno tiene su tarjeta personal "Tu próximo
  * examen". El gestor sí ve el calendario completo.
  */
-export function AvisosCalendario({ ocultarExamen = false }: { ocultarExamen?: boolean } = {}) {
+export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion }: { ocultarExamen?: boolean; hrefInscripcion?: string } = {}) {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export function AvisosCalendario({ ocultarExamen = false }: { ocultarExamen?: bo
   return (
     <div className="space-y-3">
       {visibles.map((e, i) => {
-        if (e.tipo === 'ventana_abierta') return <BannerVentanaAbierta key={i} e={e} />;
+        if (e.tipo === 'ventana_abierta') return <BannerVentanaAbierta key={i} e={e} href={hrefInscripcion} />;
         if (e.tipo === 'examen') return <BannerExamen key={i} e={e} />;
         return <BannerVentanaProxima key={i} e={e} />;
       })}
@@ -72,48 +73,73 @@ export function AvisosCalendario({ ocultarExamen = false }: { ocultarExamen?: bo
 }
 
 // ── Banner PROMINENTE: inscripción y pago abiertos ──────────────────────────
-function BannerVentanaAbierta({ e }: { e: EventoCalendario }) {
+// Si recibe `href`, todo el banner es clickeable y lleva a la inscripción.
+function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string }) {
   const urgente = e.urgencia === 'alta';
   const acento = urgente ? '#be123c' : '#b45309';
   const borde = urgente ? '#fecdd3' : '#fde68a';
-  return (
-    <div
-      className="overflow-hidden rounded-2xl border-2 shadow-sm"
-      style={{ borderColor: borde, background: `linear-gradient(135deg, ${urgente ? '#fff1f2' : '#fffbeb'} 0%, #ffffff 70%)` }}
-    >
-      <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
-            {urgente ? <AlertTriangle size={13} /> : <CalendarClock size={13} />}
-            Inscripción y pago abiertos
-          </div>
-          <div className="mt-1 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
-            Etapa {e.clave}
-          </div>
-          <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
-            La ventana para <strong className="text-stone-800">inscribir y pagar tu examen</strong> está abierta.
-          </p>
+  const contenido = (
+    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="min-w-0">
+        <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
+          {urgente ? <AlertTriangle size={13} /> : <CalendarClock size={13} />}
+          Inscripción y pago abiertos
+        </div>
+        <div className="mt-1 flex flex-wrap items-center gap-2 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
+          Etapa {e.clave}
+          {href && <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" style={{ color: acento }} />}
+        </div>
+        <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
+          La ventana para <strong className="text-stone-800">inscribir y pagar tu examen</strong> está abierta.
+        </p>
+        <div className="mt-2.5 flex flex-wrap items-center gap-2">
           {e.fechaInicio && (
-            <div
-              className="mt-2.5 inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
+            <span
+              className="inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
               style={{ borderColor: borde, color: acento }}
             >
               <CalendarClock size={14} />
               {rangoLargo(e.fechaInicio, e.fecha)}
-            </div>
+            </span>
+          )}
+          {e.fechaInicio && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white"
+              style={{ background: acento }}
+            >
+              <AlertTriangle size={12} />
+              Solo en estas fechas
+            </span>
           )}
         </div>
-        <div
-          className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-4 py-2.5 text-center"
-          style={{ background: urgente ? '#fee2e2' : '#fef3c7' }}
-        >
-          <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
-          <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
-            {e.dias <= 1 ? (e.dias === 0 ? 'cierra hoy' : 'cierra mañana') : 'días para\nel cierre'}
-          </div>
+        <p className="mt-1.5 text-[11px] font-semibold" style={{ color: acento }}>
+          Fuera de este periodo NO se puede inscribir ni pagar el examen.
+        </p>
+        {href && (
+          <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-bold underline decoration-2 underline-offset-2" style={{ color: acento }}>
+            Ir a mi inscripción <ChevronRight size={14} />
+          </span>
+        )}
+      </div>
+      <div
+        className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-4 py-2.5 text-center"
+        style={{ background: urgente ? '#fee2e2' : '#fef3c7' }}
+      >
+        <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
+        <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
+          {e.dias <= 1 ? (e.dias === 0 ? 'cierra hoy' : 'cierra mañana') : 'días para\nel cierre'}
         </div>
       </div>
     </div>
+  );
+  const cls = 'block overflow-hidden rounded-2xl border-2 shadow-sm';
+  const style = { borderColor: borde, background: `linear-gradient(135deg, ${urgente ? '#fff1f2' : '#fffbeb'} 0%, #ffffff 70%)` };
+  return href ? (
+    <Link href={href} className={`${cls} group cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md`} style={style} aria-label={`Ir a la inscripción de la etapa ${e.clave}`}>
+      {contenido}
+    </Link>
+  ) : (
+    <div className={cls} style={style}>{contenido}</div>
   );
 }
 

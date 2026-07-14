@@ -242,7 +242,7 @@ export default function EstudianteDashboard() {
         </div>
 
         {/* ── Fechas del calendario oficial (ventana de solicitud/pago, examen) ── */}
-        <AvisosCalendario ocultarExamen />
+        <AvisosCalendario ocultarExamen hrefInscripcion="/estudiante/convocatoria" />
 
         {/* ── Calendario oficial completo (colapsable) ── */}
         <CalendarioOficial />
