@@ -344,23 +344,23 @@ g.delete('/materiales/:id', async (req, res) => {
 router.use('/gestor', g);
 
 // ═══════════════ ARCHIVOS COMPARTIDOS DEL AULA (gestor + sus alumnos) ═══════════════
-// Archivo de un material
+// Archivo de un material (?inline=1 → vista previa en el navegador)
 router.get('/materiales/:id/archivo', async (req, res) => {
   const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
   if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
   const id = parseInt(String(req.params.id), 10);
   const [m] = await db.select().from(aulaMateriales).where(and(eq(aulaMateriales.id, id), eq(aulaMateriales.gestorUserId, gid)));
   if (!m) { res.status(404).json({ error: 'Material no encontrado' }); return; }
-  await servirArchivo(res, m.archivoRef, m.archivoNombre, m.archivoTipo);
+  await servirArchivo(res, m.archivoRef, m.archivoNombre, m.archivoTipo, req.query.inline === '1');
 });
-// Documento de apoyo de una tarea
+// Documento de apoyo de una tarea (?inline=1 → vista previa en el navegador)
 router.get('/tareas/:id/documento', async (req, res) => {
   const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
   if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
   const id = parseInt(String(req.params.id), 10);
   const [t] = await db.select().from(aulaTareas).where(and(eq(aulaTareas.id, id), eq(aulaTareas.gestorUserId, gid)));
   if (!t) { res.status(404).json({ error: 'Tarea no encontrada' }); return; }
-  await servirArchivo(res, t.archivoRef, t.archivoNombre, t.archivoTipo);
+  await servirArchivo(res, t.archivoRef, t.archivoNombre, t.archivoTipo, req.query.inline === '1');
 });
 // Adjunto de un mensaje del foro
 router.get('/foro/:id/adjunto', async (req, res) => {

@@ -18,6 +18,7 @@ import { api } from '../../lib/api';
 import { parseDbDate, fechaCorta, fechaHoraCorta, vencioFecha, fechaVentana } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 import { TextoRico, AreaConFormato } from '../../components/TextoRico';
+import { DocPreview } from '../../components/DocPreview';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -366,11 +367,9 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
             ? <TextoRico texto={t.instrucciones} className="text-sm text-stone-700 space-y-1" />
             : <div className="text-sm text-stone-700">Tu gestor no agregó instrucciones adicionales.</div>}
           {t.archivoNombre && (
-            <a href={`/api/aula/tareas/${t.id}/documento`} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-semibold text-stone-700 transition-colors hover:border-[var(--color-guinda-500)]">
-              <FileText size={17} style={{ color: G }} />
-              <span className="min-w-0 truncate">{t.archivoNombre}</span>
-              <Download size={14} className="shrink-0 text-stone-400" />
-            </a>
+            <div className="mt-3">
+              <DocPreview url={`/api/aula/tareas/${t.id}/documento`} nombre={t.archivoNombre} />
+            </div>
           )}
         </div>
 
@@ -440,9 +439,9 @@ function MaterialAlumno({ m }: { m: Material }) {
         {m.descripcion && <div className="text-sm text-stone-600 mt-0.5">{m.descripcion}</div>}
         {m.tipo === 'enlace' && m.url && <a href={m.url} target="_blank" rel="noreferrer" className="text-xs font-semibold" style={{ color: G }}>Abrir enlace →</a>}
         {m.tipo === 'archivo' && m.archivoNombre && (
-          <a href={`/api/aula/materiales/${m.id}/archivo`} className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: G }}>
-            <Download size={13} /> Descargar {m.archivoNombre}
-          </a>
+          <div className="mt-2">
+            <DocPreview url={`/api/aula/materiales/${m.id}/archivo`} nombre={m.archivoNombre} />
+          </div>
         )}
         {m.tipo === 'texto' && m.contenido && <TextoRico texto={m.contenido} className="text-sm text-stone-600 mt-1 space-y-0.5" />}
       </div>
