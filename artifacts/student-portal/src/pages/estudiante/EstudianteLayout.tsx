@@ -2,7 +2,7 @@ import { Link, useLocation, useSearch } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard,
-  GraduationCap, School, MessageCircle, ClipboardList, Video,
+  GraduationCap, School, MessageCircle, ClipboardList, Video, ChevronDown,
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { Eye } from 'lucide-react';
@@ -19,13 +19,12 @@ const NAV = [
   { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
   { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
 ];
-// El aula vive DENTRO del portal del alumno: sección propia con sus apartados.
-const NAV_AULA_ITEMS = [
-  { to: '/estudiante/aula', label: 'Mi aula', icon: School, tour: 'nav-aula' },
-  { to: '/estudiante/aula?sec=foro', label: 'Foro', icon: MessageCircle, tour: undefined },
-  { to: '/estudiante/aula?sec=tareas', label: 'Tareas', icon: ClipboardList, tour: undefined },
-  { to: '/estudiante/aula?sec=materiales', label: 'Materiales', icon: BookOpen, tour: undefined },
-  { to: '/estudiante/aula?sec=videos', label: 'Videos', icon: Video, tour: undefined },
+// "Mi aula" es un botón que se despliega (mini-portal) con sus apartados.
+const NAV_AULA_SUB = [
+  { to: '/estudiante/aula?sec=foro', label: 'Foro', icon: MessageCircle },
+  { to: '/estudiante/aula?sec=tareas', label: 'Tareas', icon: ClipboardList },
+  { to: '/estudiante/aula?sec=materiales', label: 'Materiales', icon: BookOpen },
+  { to: '/estudiante/aula?sec=videos', label: 'Videos', icon: Video },
 ];
 const NAV_HERRAMIENTAS = [
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
@@ -46,12 +45,18 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
   const search = useSearch();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [aula, setAula] = useState(false);
-  // Para la barra inferior móvil: plano, con una sola entrada de Aula.
+  // Para la barra inferior móvil: plano — Herramientas antes que Aula.
   const navItems = [
     ...NAV,
-    ...(aula ? [{ to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' }] : []),
     ...NAV_HERRAMIENTAS,
+    ...(aula ? [{ to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' }] : []),
   ];
+
+  // "Mi aula" se despliega: abierto por defecto cuando estás dentro del aula.
+  const onAula = location.startsWith('/estudiante/aula');
+  const [aulaOpen, setAulaOpen] = useState(onAula);
+  useEffect(() => { if (onAula) setAulaOpen(true); }, [onAula]);
+  const secActual = new URLSearchParams(search).get('sec') ?? 'resumen';
 
   // Activo considerando ?sec= (para los apartados del aula).
   function esActivo(to: string): boolean {
@@ -60,7 +65,6 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
     if (!location.startsWith(path)) return false;
     if (path === '/estudiante/aula') {
       const secItem = new URLSearchParams(q ?? '').get('sec') ?? 'resumen';
-      const secActual = new URLSearchParams(search).get('sec') ?? 'resumen';
       return secItem === secActual;
     }
     return true;
@@ -109,36 +113,75 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
               <div className="text-[10px] tracking-widest opacity-80">PORTAL</div>
               <div className="font-serif text-sm">Estudiante</div>
             </div>
-            {([
-              { header: null, items: NAV },
-              ...(aula ? [{ header: 'Aula virtual', items: NAV_AULA_ITEMS }] : []),
-              { header: 'Herramientas', items: NAV_HERRAMIENTAS },
-            ] as { header: string | null; items: typeof NAV }[]).map((grupo, gi) => (
-              <div key={gi}>
-                {grupo.header && <SeccionLabel>{grupo.header}</SeccionLabel>}
-                <ul className={grupo.header ? 'pb-1' : ''}>
-                  {grupo.items.map((item) => {
-                    const active = esActivo(item.to);
-                    return (
-                      <li key={item.to}>
-                        <Link
-                          href={item.to}
-                          data-tour={item.tour}
-                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
-                            active
-                              ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
-                              : 'border-transparent text-stone-700 hover:bg-stone-50'
-                          }`}
-                        >
-                          <item.icon size={16} />
-                          {item.label}
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
+            {/* Menú principal */}
+            <ul>
+              {NAV.map((item) => {
+                const active = esActivo(item.to);
+                return (
+                  <li key={item.to}>
+                    <Link href={item.to} data-tour={item.tour}
+                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                        active ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-700 hover:bg-stone-50'}`}>
+                      <item.icon size={16} />
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Herramientas (siempre primero, sobre el aula) */}
+            <SeccionLabel>Herramientas</SeccionLabel>
+            <ul className="pb-1">
+              {NAV_HERRAMIENTAS.map((item) => {
+                const active = esActivo(item.to);
+                return (
+                  <li key={item.to}>
+                    <Link href={item.to} data-tour={item.tour}
+                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                        active ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-700 hover:bg-stone-50'}`}>
+                      <item.icon size={16} />
+                      {item.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {/* Mi aula — botón que se despliega (mini-portal) */}
+            {aula && (
+              <div className="border-t border-stone-100">
+                <button
+                  data-tour="nav-aula"
+                  onClick={() => { setAulaOpen((o) => (onAula ? !o : true)); if (!onAula) setLocation('/estudiante/aula'); }}
+                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
+                    onAula && secActual === 'resumen'
+                      ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
+                      : 'border-transparent text-stone-700 hover:bg-stone-50'}`}
+                >
+                  <School size={16} />
+                  <span className="flex-1 text-left font-semibold">Mi aula</span>
+                  <ChevronDown size={15} className={`transition-transform ${aulaOpen ? 'rotate-180' : ''}`} style={{ color: '#a8a29e' }} />
+                </button>
+                {aulaOpen && (
+                  <ul className="pb-1" style={{ background: '#fdfcfa' }}>
+                    {NAV_AULA_SUB.map((item) => {
+                      const active = esActivo(item.to);
+                      return (
+                        <li key={item.to}>
+                          <Link href={item.to}
+                            className={`flex items-center gap-3 py-2 pl-11 pr-4 text-[13px] transition-colors border-l-4 ${
+                              active ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-600 hover:bg-stone-50'}`}>
+                            <item.icon size={14} />
+                            {item.label}
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
-            ))}
+            )}
           </div>
         </nav>
 
