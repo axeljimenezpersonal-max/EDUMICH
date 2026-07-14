@@ -1659,6 +1659,10 @@ export const aulaEntregas = pgTable('aula_entregas', {
   estado: varchar('estado', { length: 20 }).notNull().default('entregada'), // entregada | revisada
   comentario: text('comentario'),
   calificacion: numeric('calificacion', { precision: 5, scale: 2 }),
+  // Archivo entregado por el alumno (foto del cuaderno, PDF, etc.)
+  archivoRef: varchar('archivo_ref', { length: 1000 }),
+  archivoNombre: varchar('archivo_nombre', { length: 255 }),
+  archivoTipo: varchar('archivo_tipo', { length: 100 }),
   entregadaEn: timestamp('entregada_en').notNull().defaultNow(),
   revisadaEn: timestamp('revisada_en'),
 }, (t) => ({
@@ -1671,9 +1675,13 @@ export const aulaMateriales = pgTable('aula_materiales', {
   gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   titulo: varchar('titulo', { length: 200 }).notNull(),
   descripcion: text('descripcion'),
-  tipo: varchar('tipo', { length: 20 }).notNull().default('enlace'), // enlace | texto
+  tipo: varchar('tipo', { length: 20 }).notNull().default('enlace'), // enlace | texto | video | archivo
   url: varchar('url', { length: 1000 }),
   contenido: text('contenido'),
+  // Archivo subido por el gestor (PDF, imagen…) cuando tipo = 'archivo'
+  archivoRef: varchar('archivo_ref', { length: 1000 }),
+  archivoNombre: varchar('archivo_nombre', { length: 255 }),
+  archivoTipo: varchar('archivo_tipo', { length: 100 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   gestorIdx: index('aula_materiales_gestor_idx').on(t.gestorUserId),
@@ -1684,6 +1692,11 @@ export const aulaAnuncios = pgTable('aula_anuncios', {
   gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   titulo: varchar('titulo', { length: 200 }).notNull(),
   cuerpo: text('cuerpo').notNull(),
+  // Anuncios "pro": imagen opcional, fijado arriba y publicación programada.
+  imagenRef: varchar('imagen_ref', { length: 1000 }),
+  imagenTipo: varchar('imagen_tipo', { length: 100 }),
+  fijado: boolean('fijado').notNull().default(false),
+  programadoPara: timestamp('programado_para'), // null = publicado de inmediato
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   gestorIdx: index('aula_anuncios_gestor_idx').on(t.gestorUserId),
@@ -1695,6 +1708,10 @@ export const aulaForo = pgTable('aula_foro', {
   autorUserId: integer('autor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   autorRol: varchar('autor_rol', { length: 20 }).notNull(),
   cuerpo: text('cuerpo').notNull(),
+  // Adjunto opcional (imagen o archivo, estilo Discord)
+  adjuntoRef: varchar('adjunto_ref', { length: 1000 }),
+  adjuntoNombre: varchar('adjunto_nombre', { length: 255 }),
+  adjuntoTipo: varchar('adjunto_tipo', { length: 100 }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 }, (t) => ({
   gestorIdx: index('aula_foro_gestor_idx').on(t.gestorUserId),
