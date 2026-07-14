@@ -10,7 +10,7 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Plus, Trash2, Users, Link2, FileText,
   Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight,
-  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock,
+  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock, ChevronLeft,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
@@ -160,28 +160,154 @@ function BtnCrear({ label, on, toggle }: { label: string; on: boolean; toggle: (
 }
 
 // ── Resumen ──
+interface ModuloClase { moduloId: number; numero: number; nombre: string; tareas: number; materiales: number; videos: number; alumnos: number }
+const MOD_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d174d', '#4d7c0f', '#7c3aed', '#be123c', '#0f766e'];
+const colorModulo = (n: number) => MOD_COLORS[Math.abs(n) % MOD_COLORS.length];
+
+/** Home del aula del gestor: sus módulos de clase (Canvas) + administración. */
 function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => void }) {
-  const cards: { k: Sec; label: string; desc: string; icon: typeof LayoutDashboard; n?: number }[] = [
-    { k: 'foro', label: 'Foro', desc: 'Mensajes, anuncios y encuestas del grupo', icon: MessageCircle, n: resumen?.foro },
-    { k: 'tareas', label: 'Tareas', desc: 'Asignaciones con entrega de archivos', icon: ClipboardList, n: resumen?.tareas },
-    { k: 'materiales', label: 'Materiales', desc: 'Lecturas, archivos, enlaces y notas', icon: BookOpen, n: resumen?.materiales },
-    { k: 'videos', label: 'Videos', desc: 'Clases y repasos en video', icon: Video },
+  const [mods, setMods] = useState<ModuloClase[]>([]);
+  const [grupo, setGrupo] = useState<ModulosGrupo | null>(null);
+  const [admin, setAdmin] = useState(false);
+  const [moduloAbierto, setModuloAbierto] = useState<number | null>(null);
+  const cargar = () => api.get<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase').then((r) => setMods(r.modulos)).catch(() => {});
+  useEffect(() => { cargar(); api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, []);
+
+  async function agregar(moduloId: number) { const r = await api.post<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase', { moduloId }); setMods(r.modulos); }
+  async function quitar(moduloId: number) { if (!confirm('¿Quitar este módulo del aula? El contenido no se borra, pero deja de mostrarse como clase.')) return; const r = await api.delete<{ modulos: ModuloClase[] }>(`/aula/gestor/modulos-clase/${moduloId}`); setMods(r.modulos); }
+
+  if (moduloAbierto != null) return <ModuloDetalleGestor moduloId={moduloAbierto} volver={() => { setModuloAbierto(null); cargar(); }} ir={ir} />;
+
+  const yaTiene = new Set(mods.map((m) => m.moduloId));
+  const disponibles = (grupo?.todos ?? []).filter((m) => !yaTiene.has(m.id));
+  const enCursoIds = new Set((grupo?.enCurso ?? []).map((m) => m.moduloId));
+
+  return (
+    <div>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <SecHeader icon={GraduationCap} titulo="Mis módulos de clase" sub="Organiza tu aula por módulo, como en Canvas. Elige qué módulos impartes y publica su contenido." />
+        <button onClick={() => setAdmin((v) => !v)} className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white transition-transform hover:-translate-y-0.5" style={{ background: G }}>
+          {admin ? <X size={15} /> : <Plus size={15} />} {admin ? 'Cerrar' : 'Administrar módulos'}
+        </button>
+      </div>
+
+      {/* Panel de administración: agregar/quitar módulos */}
+      {admin && (
+        <div className="bg-white border border-stone-200 rounded-xl p-4 mb-4">
+          <div className="text-xs font-bold uppercase tracking-wide text-stone-500 mb-2">Agregar un módulo a tu aula</div>
+          {disponibles.length === 0 ? (
+            <div className="text-sm text-stone-400">Ya agregaste todos los módulos del plan.</div>
+          ) : (
+            <div className="flex flex-wrap gap-1.5">
+              {disponibles.map((m) => (
+                <button key={m.id} onClick={() => agregar(m.id)}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-semibold text-stone-700 hover:border-[var(--color-guinda-500)] hover:bg-stone-50">
+                  <Plus size={12} style={{ color: G }} /> <b>M{m.numero}</b> <span className="max-w-[160px] truncate">{m.nombre}</span>
+                  {enCursoIds.has(m.id) && <span className="rounded-full bg-[var(--color-crema-100)] px-1.5 text-[9px] font-bold" style={{ color: G }}>en curso</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {mods.length === 0 ? (
+        <Vacio icon={GraduationCap} texto="Aún no has agregado módulos. Toca “Administrar módulos” para empezar a armar tu clase." />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {mods.map((m) => {
+            const col = colorModulo(m.numero);
+            return (
+              <div key={m.moduloId} className="bg-white border border-stone-200 rounded-2xl overflow-hidden group">
+                <button onClick={() => setModuloAbierto(m.moduloId)} className="block w-full text-left">
+                  <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
+                    <div className="absolute -right-4 -top-6 w-24 h-24 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
+                    <div className="relative px-4 pt-3 flex items-start justify-between">
+                      <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {m.numero}</div>
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold" style={{ color: col }}><Users size={10} /> {m.alumnos}</span>
+                    </div>
+                  </div>
+                  <div className="p-4">
+                    <div className="font-serif text-base font-bold text-stone-900 leading-tight line-clamp-2 min-h-[2.6em]">{m.nombre}</div>
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-stone-500">
+                      <span className="inline-flex items-center gap-1"><ClipboardList size={12} /> {m.tareas}</span>
+                      <span className="inline-flex items-center gap-1"><BookOpen size={12} /> {m.materiales}</span>
+                      <span className="inline-flex items-center gap-1"><Video size={12} /> {m.videos}</span>
+                    </div>
+                  </div>
+                </button>
+                <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2">
+                  <button onClick={() => setModuloAbierto(m.moduloId)} className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: col }}>Abrir módulo <ChevronRight size={13} /></button>
+                  <button onClick={() => quitar(m.moduloId)} className="text-stone-300 hover:text-red-500" aria-label="Quitar módulo"><Trash2 size={14} /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ModuloContenidoGestor {
+  modulo: { id: number; numero: number; nombre: string }; totalAlumnos: number;
+  tareas: (Tarea & { entregas: number })[]; materiales: Material[]; videos: Material[];
+}
+/** Detalle de un módulo para el gestor (solo lectura + accesos a crear). */
+function ModuloDetalleGestor({ moduloId, volver, ir }: { moduloId: number; volver: () => void; ir: (s: Sec) => void }) {
+  const [d, setD] = useState<ModuloContenidoGestor | null>(null);
+  const [tab, setTab] = useState<'tareas' | 'materiales' | 'videos'>('tareas');
+  useEffect(() => { api.get<ModuloContenidoGestor>(`/aula/gestor/modulo/${moduloId}`).then(setD).catch(() => {}); }, [moduloId]);
+  if (!d) return <div className="h-40 rounded-xl animate-pulse bg-stone-100" />;
+  const col = colorModulo(d.modulo.numero);
+  const tabs = [
+    { k: 'tareas' as const, label: 'Tareas', icon: ClipboardList, n: d.tareas.length },
+    { k: 'materiales' as const, label: 'Materiales', icon: BookOpen, n: d.materiales.length },
+    { k: 'videos' as const, label: 'Videos', icon: Video, n: d.videos.length },
   ];
   return (
     <div>
-      <SecHeader icon={LayoutDashboard} titulo="Resumen del aula" sub="Todo lo que publiques aquí lo verán tus alumnos en su portal." />
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {cards.map((c) => (
-          <button key={c.k} onClick={() => ir(c.k)} className="text-left bg-white border border-stone-200 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-md transition-all group">
-            <div className="flex items-center justify-between">
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--color-crema-100)]" style={{ color: G }}><c.icon size={17} /></div>
-              {typeof c.n === 'number' && <span className="text-2xl font-bold text-stone-900">{c.n}</span>}
-            </div>
-            <div className="mt-2 font-semibold text-stone-900 flex items-center gap-1">{c.label} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform" /></div>
-            <div className="text-xs text-stone-500">{c.desc}</div>
-          </button>
-        ))}
+      <button onClick={volver} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]"><ChevronLeft size={14} /> Volver a mis módulos</button>
+      <div className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
+        <div className="absolute -right-6 -top-8 w-32 h-32 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
+        <div className="relative px-6 py-5 text-white flex items-center justify-between">
+          <div><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {d.modulo.numero}</div><h1 className="font-serif text-2xl font-bold leading-tight">{d.modulo.nombre}</h1></div>
+          <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm text-white"><Users size={14} /> {d.totalAlumnos} alumno{d.totalAlumnos === 1 ? '' : 's'}</span>
+        </div>
       </div>
+      <div className="mb-4 flex items-center justify-between border-b border-stone-200">
+        <div className="flex gap-1">
+          {tabs.map((t) => (
+            <button key={t.k} onClick={() => setTab(t.k)} className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === t.k ? '' : 'border-transparent text-stone-500 hover:text-stone-800'}`} style={tab === t.k ? { borderColor: col, color: col } : undefined}>
+              <t.icon size={15} /> {t.label} <span className="rounded-full bg-stone-100 px-1.5 text-[11px] text-stone-500">{t.n}</span>
+            </button>
+          ))}
+        </div>
+        <button onClick={() => ir(tab)} className="inline-flex items-center gap-1 text-xs font-semibold pb-2" style={{ color: col }}><Plus size={13} /> Publicar</button>
+      </div>
+      {tab === 'tareas' && (d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="Este módulo no tiene tareas. Toca “Publicar” para crear una." /> : (
+        <div className="space-y-2">{d.tareas.map((t) => (
+          <div key={t.id} className="bg-white border border-stone-200 rounded-xl p-3.5">
+            <div className="font-semibold text-stone-900">{t.titulo}</div>
+            {t.instrucciones && <div className="text-sm text-stone-600 mt-0.5 line-clamp-2">{t.instrucciones}</div>}
+            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-stone-500">
+              {t.fechaEntrega && <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> {fecha(t.fechaEntrega)}</span>}
+              <span className="inline-flex items-center gap-1 font-semibold" style={{ color: col }}><Users size={12} /> {t.entregas}/{d.totalAlumnos} entregaron</span>
+            </div>
+          </div>
+        ))}</div>
+      ))}
+      {tab === 'materiales' && (d.materiales.length === 0 ? <Vacio icon={BookOpen} texto="Este módulo no tiene materiales." /> : (
+        <div className="space-y-2.5">{d.materiales.map((it) => <MaterialCard key={it.id} it={it} />)}</div>
+      ))}
+      {tab === 'videos' && (d.videos.length === 0 ? <Vacio icon={PlayCircle} texto="Este módulo no tiene videos." /> : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{d.videos.map((it) => { const emb = ytEmbed(it.url); return (
+          <div key={it.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+            {emb ? <div className="aspect-video bg-black"><VideoFrame src={emb} titulo={it.titulo} /></div> : <a href={it.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
+            <div className="p-3"><div className="font-semibold text-sm text-stone-900 truncate">{it.titulo}</div>{it.descripcion && <div className="text-xs text-stone-500 truncate">{it.descripcion}</div>}</div>
+          </div>
+        ); })}</div>
+      ))}
     </div>
   );
 }
@@ -388,13 +514,14 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
   const esVideo = modo === 'videos';
   const [items, setItems] = useState<Material[]>([]);
   const [form, setForm] = useState(false);
-  const [m, setM] = useState({ titulo: '', descripcion: '', tipo: (esVideo ? 'video' : 'enlace') as 'enlace' | 'texto' | 'video' | 'archivo', url: '', contenido: '' });
+  const [m, setM] = useState({ titulo: '', descripcion: '', tipo: (esVideo ? 'video' : 'enlace') as 'enlace' | 'texto' | 'video' | 'archivo', url: '', contenido: '', moduloId: '' });
   const [archivo, setArchivo] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [modulos, setModulos] = useState<ModuloClase[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const cargar = () => api.get<{ materiales: Material[] }>('/aula/gestor/materiales').then((r) => setItems(r.materiales)).catch(() => {});
-  useEffect(() => { cargar(); }, []);
+  useEffect(() => { cargar(); api.get<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase').then((r) => setModulos(r.modulos)).catch(() => {}); }, []);
   const visibles = items.filter((x) => (esVideo ? x.tipo === 'video' : x.tipo !== 'video'));
   async function crear() {
     if (!m.titulo.trim()) return;
@@ -403,9 +530,10 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
       const fd = new FormData();
       fd.append('titulo', m.titulo); fd.append('descripcion', m.descripcion); fd.append('tipo', m.tipo);
       fd.append('url', m.url); fd.append('contenido', m.contenido);
+      if (m.moduloId) fd.append('moduloId', m.moduloId);
       if (m.tipo === 'archivo' && archivo) fd.append('archivo', archivo);
       await api.post('/aula/gestor/materiales', fd);
-      setM({ titulo: '', descripcion: '', tipo: esVideo ? 'video' : 'enlace', url: '', contenido: '' });
+      setM({ titulo: '', descripcion: '', tipo: esVideo ? 'video' : 'enlace', url: '', contenido: '', moduloId: '' });
       setArchivo(null); if (fileRef.current) fileRef.current.value = '';
       setForm(false); cargar(); onChange();
     } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo publicar.'); }
@@ -425,6 +553,14 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
         <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4 space-y-3">
           <input className={inputCls} placeholder={esVideo ? 'Título del video' : 'Título del material'} value={m.titulo} onChange={(e) => setM((s) => ({ ...s, titulo: e.target.value }))} />
           <input className={inputCls} placeholder="Descripción (opcional)" value={m.descripcion} onChange={(e) => setM((s) => ({ ...s, descripcion: e.target.value }))} />
+          <div>
+            <label className="text-xs font-semibold text-stone-500 block mb-1">Módulo de clase</label>
+            <select className={inputCls} value={m.moduloId} onChange={(e) => setM((s) => ({ ...s, moduloId: e.target.value }))}>
+              <option value="">General (sin módulo)</option>
+              {modulos.map((mm) => <option key={mm.moduloId} value={mm.moduloId}>M{mm.numero} · {mm.nombre}</option>)}
+            </select>
+            {modulos.length === 0 && <div className="text-[11px] text-stone-400 mt-1">Agrega módulos desde “Mis módulos de clase” para poder organizarlos por módulo.</div>}
+          </div>
           {!esVideo && (
             <div className="flex flex-wrap gap-2">
               {([['enlace', 'Enlace'], ['archivo', 'Archivo (PDF, Word…)'], ['texto', 'Texto/Nota']] as const).map(([tp, lbl]) => (

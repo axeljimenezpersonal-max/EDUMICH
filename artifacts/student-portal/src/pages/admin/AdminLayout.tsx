@@ -485,13 +485,13 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </ul>
           </div>
 
-          {/* OTROS */}
+          {/* HERRAMIENTAS */}
           <div className="py-1.5 border-t border-stone-100">
             <div
               className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
               style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
             >
-              OTROS
+              HERRAMIENTAS
             </div>
             <ul className="list-none">
               {otrosItems.map(({ href, icon: Icon, label, tour }) => (

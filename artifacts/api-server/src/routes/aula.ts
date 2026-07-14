@@ -15,7 +15,7 @@ import multer from 'multer';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaForo, aulaForoVotos, modulos } from '@workspace/db/schema';
+import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaForo, aulaForoVotos, aulaModulosClase, modulos } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 
@@ -156,6 +156,62 @@ g.get('/modulos-grupo', async (req, res) => {
   res.json({ convocatoria: conv?.nombre ?? null, enCurso, todos });
 });
 
+// ── Módulos de clase (los que imparte el gestor) — organización estilo Canvas ──
+// Devuelve cada módulo con sus contadores de contenido y # de alumnos que lo cursan.
+async function modulosClaseDe(gid: number) {
+  return db.execute<{ modulo_id: number; numero: number; nombre: string; tareas: string; materiales: string; videos: string; alumnos: string }>(sql`
+    SELECT m.id AS modulo_id, m.numero, m.nombre,
+      (SELECT COUNT(*) FROM aula_tareas t WHERE t.gestor_user_id = ${gid} AND t.modulo_id = m.id) AS tareas,
+      (SELECT COUNT(*) FROM aula_materiales x WHERE x.gestor_user_id = ${gid} AND x.modulo_id = m.id AND x.tipo <> 'video') AS materiales,
+      (SELECT COUNT(*) FROM aula_materiales x WHERE x.gestor_user_id = ${gid} AND x.modulo_id = m.id AND x.tipo = 'video') AS videos,
+      (SELECT COUNT(DISTINCT i.estudiante_id) FROM inscripciones i
+         JOIN convocatorias c ON c.id = i.convocatoria_id AND c.estado = 'abierta'
+         JOIN inscripcion_modulos im ON im.inscripcion_id = i.id AND im.modulo_id = m.id
+         JOIN estudiantes es ON es.user_id = i.estudiante_id AND es.gestor_id = ${gid}) AS alumnos
+    FROM aula_modulos_clase amc JOIN modulos m ON m.id = amc.modulo_id
+    WHERE amc.gestor_user_id = ${gid} ORDER BY m.numero`).then(r => r.rows.map(x => ({
+      moduloId: x.modulo_id, numero: x.numero, nombre: x.nombre,
+      tareas: Number(x.tareas), materiales: Number(x.materiales), videos: Number(x.videos), alumnos: Number(x.alumnos),
+    })));
+}
+
+g.get('/modulos-clase', async (req, res) => {
+  res.json({ modulos: await modulosClaseDe(req.user!.userId) });
+});
+const moduloClaseSchema = z.object({ moduloId: z.coerce.number().int().positive() });
+g.post('/modulos-clase', async (req, res) => {
+  const p = moduloClaseSchema.safeParse(req.body);
+  if (!p.success) { res.status(400).json({ error: 'Módulo inválido' }); return; }
+  await db.insert(aulaModulosClase).values({ gestorUserId: req.user!.userId, moduloId: p.data.moduloId })
+    .onConflictDoNothing();
+  res.json({ modulos: await modulosClaseDe(req.user!.userId) });
+});
+g.delete('/modulos-clase/:moduloId', async (req, res) => {
+  const moduloId = parseInt(String(req.params.moduloId), 10);
+  await db.delete(aulaModulosClase).where(and(eq(aulaModulosClase.gestorUserId, req.user!.userId), eq(aulaModulosClase.moduloId, moduloId)));
+  res.json({ modulos: await modulosClaseDe(req.user!.userId) });
+});
+
+// ── Contenido de UN módulo (gestor): tareas, materiales y videos de ese módulo ──
+g.get('/modulo/:moduloId', async (req, res) => {
+  const gid = req.user!.userId;
+  const moduloId = parseInt(String(req.params.moduloId), 10);
+  const [modulo] = await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(eq(modulos.id, moduloId));
+  if (!modulo) { res.status(404).json({ error: 'Módulo no encontrado' }); return; }
+  const [al] = await db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM estudiantes WHERE gestor_id = ${gid}`).then(r => r.rows);
+  const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; created_at: string; entregas: string }>(sql`
+    SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text, t.archivo_nombre, t.created_at::text,
+           (SELECT COUNT(*) FROM aula_entregas e WHERE e.tarea_id = t.id) AS entregas
+    FROM aula_tareas t WHERE t.gestor_user_id = ${gid} AND t.modulo_id = ${moduloId} ORDER BY t.created_at DESC`).then(r => r.rows);
+  const mats = await db.select().from(aulaMateriales).where(and(eq(aulaMateriales.gestorUserId, gid), eq(aulaMateriales.moduloId, moduloId))).orderBy(desc(aulaMateriales.createdAt));
+  res.json({
+    modulo, totalAlumnos: Number(al.n),
+    tareas: tareas.map(t => ({ id: t.id, titulo: t.titulo, instrucciones: t.instrucciones, fechaEntrega: t.fecha_entrega, abreEn: t.abre_en, cierraEn: t.cierra_en, archivoNombre: t.archivo_nombre, createdAt: t.created_at, entregas: Number(t.entregas) })),
+    materiales: mats.filter(m => m.tipo !== 'video').map(m => ({ ...m, archivoRef: undefined })),
+    videos: mats.filter(m => m.tipo === 'video').map(m => ({ ...m, archivoRef: undefined })),
+  });
+});
+
 // ── Tareas ──
 g.get('/tareas', async (req, res) => {
   const gid = req.user!.userId;
@@ -240,6 +296,7 @@ const materialSchema = z.object({
   tipo: z.enum(['enlace', 'texto', 'video', 'archivo']),
   url: z.string().trim().max(1000).optional().or(z.literal('')),
   contenido: z.string().trim().max(10000).optional().or(z.literal('')),
+  moduloId: z.string().trim().regex(/^\d*$/, 'Módulo inválido').optional(),
 });
 g.post('/materiales', conArchivo('archivo'), async (req, res) => {
   const p = materialSchema.safeParse(req.body);
@@ -250,11 +307,12 @@ g.post('/materiales', conArchivo('archivo'), async (req, res) => {
     archivoRef = await guardarSubida(req.file, 'aula');
   }
   const [m] = await db.insert(aulaMateriales).values({
-    gestorUserId: req.user!.userId, titulo: p.data.titulo, descripcion: p.data.descripcion || null,
+    gestorUserId: req.user!.userId, moduloId: p.data.moduloId ? Number(p.data.moduloId) : null,
+    titulo: p.data.titulo, descripcion: p.data.descripcion || null,
     tipo: p.data.tipo, url: p.data.url || null, contenido: p.data.contenido || null,
     archivoRef, archivoNombre: req.file?.originalname ?? null, archivoTipo: req.file?.mimetype ?? null,
   }).returning();
-  res.json({ material: m });
+  res.json({ material: { ...m, archivoRef: undefined } });
 });
 g.delete('/materiales/:id', async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
@@ -308,9 +366,9 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
     FROM gestores g LEFT JOIN municipios m ON m.id = g.municipio_id
     WHERE g.user_id = ${gid}`).then(r => r.rows);
 
-  const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; mi_estado: string | null; mi_comentario: string | null; mi_archivo: string | null }>(sql`
+  const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_id: number | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; mi_estado: string | null; mi_comentario: string | null; mi_archivo: string | null }>(sql`
     SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
-           t.archivo_nombre, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
+           t.archivo_nombre, t.modulo_id, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
            e.estado AS mi_estado, e.comentario AS mi_comentario, e.archivo_nombre AS mi_archivo
     FROM aula_tareas t
     LEFT JOIN modulos m ON m.id = t.modulo_id
@@ -325,7 +383,24 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
     JOIN inscripcion_modulos im ON im.inscripcion_id = i.id
     JOIN modulos m ON m.id = im.modulo_id
     WHERE i.estudiante_id = ${uid} ORDER BY m.numero`).then(r => r.rows);
-  const materiales = await db.select().from(aulaMateriales).where(eq(aulaMateriales.gestorUserId, gid)).orderBy(desc(aulaMateriales.createdAt));
+  const materialesRaw = await db.execute<{ id: number; modulo_id: number | null; tipo: string; titulo: string; descripcion: string | null; url: string | null; contenido: string | null; archivo_nombre: string | null; created_at: string }>(sql`
+    SELECT id, modulo_id, tipo, titulo, descripcion, url, contenido, archivo_nombre, created_at::text
+    FROM aula_materiales WHERE gestor_user_id = ${gid} ORDER BY created_at DESC`).then(r => r.rows);
+  const materiales = materialesRaw.map(m => ({ id: m.id, moduloId: m.modulo_id, tipo: m.tipo, titulo: m.titulo, descripcion: m.descripcion, url: m.url, contenido: m.contenido, archivoNombre: m.archivo_nombre, createdAt: m.created_at }));
+
+  // Módulos de clase del gestor con contadores para el alumno (Canvas grid).
+  const modulosClase = await db.execute<{ modulo_id: number; numero: number; nombre: string; tareas: string; pendientes: string; materiales: string; videos: string }>(sql`
+    SELECT m.id AS modulo_id, m.numero, m.nombre,
+      (SELECT COUNT(*) FROM aula_tareas t WHERE t.gestor_user_id = ${gid} AND t.modulo_id = m.id AND t.publicada = true) AS tareas,
+      (SELECT COUNT(*) FROM aula_tareas t WHERE t.gestor_user_id = ${gid} AND t.modulo_id = m.id AND t.publicada = true
+         AND NOT EXISTS (SELECT 1 FROM aula_entregas e WHERE e.tarea_id = t.id AND e.estudiante_id = ${uid})) AS pendientes,
+      (SELECT COUNT(*) FROM aula_materiales x WHERE x.gestor_user_id = ${gid} AND x.modulo_id = m.id AND x.tipo <> 'video') AS materiales,
+      (SELECT COUNT(*) FROM aula_materiales x WHERE x.gestor_user_id = ${gid} AND x.modulo_id = m.id AND x.tipo = 'video') AS videos
+    FROM aula_modulos_clase amc JOIN modulos m ON m.id = amc.modulo_id
+    WHERE amc.gestor_user_id = ${gid} ORDER BY m.numero`).then(r => r.rows.map(x => ({
+      moduloId: x.modulo_id, numero: x.numero, nombre: x.nombre,
+      tareas: Number(x.tareas), pendientes: Number(x.pendientes), materiales: Number(x.materiales), videos: Number(x.videos),
+    })));
 
   res.json({
     habilitada: true,
@@ -333,11 +408,10 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
     tareas: tareas.map(t => ({
       id: t.id, titulo: t.titulo, instrucciones: t.instrucciones, fechaEntrega: t.fecha_entrega,
       abreEn: t.abre_en, cierraEn: t.cierra_en, archivoNombre: t.archivo_nombre,
-      moduloNumero: t.modulo_numero, moduloNombre: t.modulo_nombre,
+      moduloId: t.modulo_id, moduloNumero: t.modulo_numero, moduloNombre: t.modulo_nombre,
       createdAt: t.created_at, miEstado: t.mi_estado, miComentario: t.mi_comentario, miArchivo: t.mi_archivo,
     })),
-    misModulos,
-    materiales: materiales.map(m => ({ ...m, archivoRef: undefined })),
+    misModulos, modulosClase, materiales,
   });
 });
 

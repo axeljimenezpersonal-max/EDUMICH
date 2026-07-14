@@ -1681,9 +1681,23 @@ export const aulaEntregas = pgTable('aula_entregas', {
   tareaIdx: index('aula_entregas_tarea_idx').on(t.tareaId),
 }));
 
+// Módulos que el gestor imparte en su aula (independiente de la convocatoria).
+// El aula se organiza por estos "módulos de clase" estilo Canvas/Blackboard.
+export const aulaModulosClase = pgTable('aula_modulos_clase', {
+  id: serial('id').primaryKey(),
+  gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  moduloId: integer('modulo_id').notNull().references(() => modulos.id),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+}, (t) => ({
+  unico: uniqueIndex('aula_modulos_clase_gestor_modulo_uq').on(t.gestorUserId, t.moduloId),
+  gestorIdx: index('aula_modulos_clase_gestor_idx').on(t.gestorUserId),
+}));
+
 export const aulaMateriales = pgTable('aula_materiales', {
   id: serial('id').primaryKey(),
   gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Módulo de clase al que pertenece (null = material general del aula).
+  moduloId: integer('modulo_id').references(() => modulos.id),
   titulo: varchar('titulo', { length: 200 }).notNull(),
   descripcion: text('descripcion'),
   tipo: varchar('tipo', { length: 20 }).notNull().default('enlace'), // enlace | texto | video | archivo

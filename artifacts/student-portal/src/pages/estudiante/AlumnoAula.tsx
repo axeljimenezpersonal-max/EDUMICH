@@ -21,11 +21,12 @@ type Sec = 'resumen' | 'foro' | 'tareas' | 'materiales' | 'videos';
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
   abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
-  moduloNumero: number | null; moduloNombre: string | null;
+  moduloId: number | null; moduloNumero: number | null; moduloNombre: string | null;
   createdAt: string; miEstado: string | null; miComentario: string | null; miArchivo: string | null;
 }
-interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null }
-interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null; clave: string | null; municipio: string | null }; tareas: Tarea[]; materiales: Material[]; misModulos?: { numero: number; nombre: string }[] }
+interface Material { id: number; moduloId: number | null; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null }
+interface ModuloClase { moduloId: number; numero: number; nombre: string; tareas: number; pendientes: number; materiales: number; videos: number }
+interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null; clave: string | null; municipio: string | null }; tareas: Tarea[]; materiales: Material[]; misModulos?: { numero: number; nombre: string }[]; modulosClase?: ModuloClase[] }
 
 /** Estado de una tarea según su ventana de disponibilidad. */
 function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
@@ -48,10 +49,11 @@ export default function AlumnoAula() {
   const sec: Sec = SECS.includes(secParam as Sec) ? (secParam as Sec) : 'resumen';
   const [d, setD] = useState<MiAula | null>(null);
   const [tareaAbierta, setTareaAbierta] = useState<number | null>(null);
+  const [moduloAbierto, setModuloAbierto] = useState<number | null>(null);
   const cargar = () => api.get<MiAula>('/aula/mi-aula').then(setD).catch(() => setD({ habilitada: false, tareas: [], materiales: [] }));
   useEffect(() => { cargar(); }, []);
-  // Al cambiar de sección (desde el sidebar) se cierra el detalle de tarea.
-  useEffect(() => { setTareaAbierta(null); }, [sec]);
+  // Al cambiar de sección (desde el sidebar) se cierra el detalle de tarea/módulo.
+  useEffect(() => { setTareaAbierta(null); setModuloAbierto(null); }, [sec]);
 
   const pendientes = d ? d.tareas.filter((t) => !t.miEstado).length : 0;
   const videos = d ? d.materiales.filter((m) => m.tipo === 'video') : [];
@@ -103,7 +105,9 @@ export default function AlumnoAula() {
       )}
 
       <div className="min-w-0">
-          {sec === 'resumen' && <ResumenSec d={d} pendientes={pendientes} videos={videos.length} materiales={materiales.length} ir={irSec} />}
+          {sec === 'resumen' && (moduloAbierto != null
+            ? <ModuloDetalleAlumno moduloId={moduloAbierto} volver={() => setModuloAbierto(null)} onRecargar={cargar} />
+            : <ModulosGridAlumno d={d} irSec={irSec} abrirModulo={setModuloAbierto} />)}
           {sec === 'foro' && <ForoAula hrefTareas="/estudiante/aula?sec=tareas" />}
           {sec === 'tareas' && (tarea
             ? <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); }} />
@@ -129,25 +133,131 @@ export default function AlumnoAula() {
   );
 }
 
-function ResumenSec({ d, pendientes, videos, materiales, ir }: { d: MiAula; pendientes: number; videos: number; materiales: number; ir: (s: Sec) => void }) {
-  const cards: { k: Sec; label: string; desc: string; icon: typeof LayoutDashboard; n?: number }[] = [
-    { k: 'foro', label: 'Foro', desc: 'Mensajes, anuncios y encuestas de tu aula', icon: MessageCircle },
-    { k: 'tareas', label: 'Tareas', desc: pendientes > 0 ? `${pendientes} pendiente(s)` : 'Al día', icon: ClipboardList, n: d.tareas.length },
-    { k: 'materiales', label: 'Materiales', desc: 'Lecturas, archivos y enlaces', icon: BookOpen, n: materiales },
-    { k: 'videos', label: 'Videos', desc: 'Clases en video', icon: Video, n: videos },
+// Colores estables por módulo (portada tipo Canvas).
+const MOD_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d174d', '#4d7c0f', '#7c3aed', '#be123c', '#0f766e'];
+const colorModulo = (n: number) => MOD_COLORS[Math.abs(n) % MOD_COLORS.length];
+
+/** Home del aula del alumno: mis clases (módulos) estilo Canvas. */
+function ModulosGridAlumno({ d, irSec, abrirModulo }: { d: MiAula; irSec: (s: Sec) => void; abrirModulo: (id: number) => void }) {
+  const mods = d.modulosClase ?? [];
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-lg font-bold text-stone-900"><GraduationCap size={18} style={{ color: G }} /> Mis clases</div>
+          <div className="text-xs text-stone-500 mt-0.5">Entra a cada módulo para ver sus tareas, materiales y videos.</div>
+        </div>
+        <button onClick={() => irSec('foro')} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50">
+          <MessageCircle size={14} style={{ color: G }} /> Ir al foro
+        </button>
+      </div>
+
+      {mods.length === 0 ? (
+        <Vacio icon={GraduationCap} texto="Tu profesor aún no ha abierto módulos de clase en el aula." />
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {mods.map((m) => {
+            const col = colorModulo(m.numero);
+            return (
+              <button key={m.moduloId} onClick={() => abrirModulo(m.moduloId)}
+                className="text-left bg-white border border-stone-200 rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group">
+                {/* Portada de color */}
+                <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
+                  <div className="absolute -right-4 -top-6 w-24 h-24 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
+                  <div className="absolute right-6 -bottom-8 w-20 h-20 rounded-full" style={{ background: 'rgba(255,255,255,0.08)' }} />
+                  <div className="relative px-4 pt-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {m.numero}</div>
+                    {m.pendientes > 0 && (
+                      <span className="absolute right-3 top-0 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-[10px] font-bold" style={{ color: col }}>
+                        {m.pendientes} pendiente{m.pendientes === 1 ? '' : 's'}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="p-4">
+                  <div className="font-serif text-base font-bold text-stone-900 leading-tight line-clamp-2 min-h-[2.6em]">{m.nombre}</div>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-stone-500">
+                    <span className="inline-flex items-center gap-1"><ClipboardList size={12} /> {m.tareas} tarea{m.tareas === 1 ? '' : 's'}</span>
+                    <span className="inline-flex items-center gap-1"><BookOpen size={12} /> {m.materiales}</span>
+                    <span className="inline-flex items-center gap-1"><Video size={12} /> {m.videos}</span>
+                  </div>
+                  <div className="mt-3 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: col }}>
+                    Entrar al módulo <ChevronRight size={13} className="group-hover:translate-x-0.5 transition-transform" />
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface ModuloContenido {
+  modulo: { id: number; numero: number; nombre: string };
+  tareas: Tarea[]; materiales: Material[]; videos: Material[];
+}
+
+/** Detalle de un módulo para el alumno: tareas, materiales y videos del módulo. */
+function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: number; volver: () => void; onRecargar: () => void }) {
+  const [d, setD] = useState<ModuloContenido | null>(null);
+  const [tab, setTab] = useState<'tareas' | 'materiales' | 'videos'>('tareas');
+  const [tareaAbierta, setTareaAbierta] = useState<number | null>(null);
+  const cargar = () => api.get<ModuloContenido>(`/aula/modulo/${moduloId}`).then(setD).catch(() => {});
+  useEffect(() => { cargar(); }, [moduloId]);
+  const col = d ? colorModulo(d.modulo.numero) : G;
+  const tarea = tareaAbierta != null ? d?.tareas.find((t) => t.id === tareaAbierta) ?? null : null;
+
+  if (!d) return <div className="h-40 rounded-xl animate-pulse bg-stone-100" />;
+  if (tarea) return (
+    <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); onRecargar(); }} />
+  );
+
+  const tabs = [
+    { k: 'tareas' as const, label: 'Tareas', icon: ClipboardList, n: d.tareas.length },
+    { k: 'materiales' as const, label: 'Materiales', icon: BookOpen, n: d.materiales.length },
+    { k: 'videos' as const, label: 'Videos', icon: Video, n: d.videos.length },
   ];
   return (
     <div>
-      <div className="mb-4"><div className="flex items-center gap-2 text-lg font-bold text-stone-900"><LayoutDashboard size={18} style={{ color: G }} /> Resumen</div><div className="text-xs text-stone-500 mt-0.5">Lo que tu centro de asesoría publicó para ti.</div></div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {cards.map((c) => (
-          <button key={c.k} onClick={() => ir(c.k)} className="text-left bg-white border border-stone-200 rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-md transition-all group">
-            <div className="flex items-center justify-between"><div className="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--color-crema-100)]" style={{ color: G }}><c.icon size={17} /></div>{typeof c.n === 'number' && <span className="text-2xl font-bold text-stone-900">{c.n}</span>}</div>
-            <div className="mt-2 font-semibold text-stone-900 flex items-center gap-1">{c.label} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform" /></div>
-            <div className="text-xs text-stone-500">{c.desc}</div>
+      <button onClick={volver} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]">
+        <ChevronLeft size={14} /> Volver a mis clases
+      </button>
+      {/* Portada del módulo */}
+      <div className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
+        <div className="absolute -right-6 -top-8 w-32 h-32 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
+        <div className="relative px-6 py-5 text-white">
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {d.modulo.numero}</div>
+          <h1 className="font-serif text-2xl font-bold leading-tight">{d.modulo.nombre}</h1>
+        </div>
+      </div>
+      {/* Tabs */}
+      <div className="mb-4 flex gap-1 border-b border-stone-200">
+        {tabs.map((t) => (
+          <button key={t.k} onClick={() => setTab(t.k)}
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === t.k ? '' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
+            style={tab === t.k ? { borderColor: col, color: col } : undefined}>
+            <t.icon size={15} /> {t.label} <span className="rounded-full bg-stone-100 px-1.5 text-[11px] text-stone-500">{t.n}</span>
           </button>
         ))}
       </div>
+
+      {tab === 'tareas' && (d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="Este módulo aún no tiene tareas." /> : (
+        <div className="space-y-2.5">{d.tareas.map((t) => <TareaItem key={t.id} t={t} abrir={() => setTareaAbierta(t.id)} />)}</div>
+      ))}
+      {tab === 'materiales' && (d.materiales.length === 0 ? <Vacio icon={BookOpen} texto="Este módulo aún no tiene materiales." /> : (
+        <div className="space-y-2.5">{d.materiales.map((m) => <MaterialAlumno key={m.id} m={m} />)}</div>
+      ))}
+      {tab === 'videos' && (d.videos.length === 0 ? <Vacio icon={PlayCircle} texto="Este módulo aún no tiene videos." /> : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{d.videos.map((m) => { const emb = ytEmbed(m.url); return (
+          <div key={m.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+            {emb ? <div className="aspect-video bg-black"><VideoFrame src={emb} titulo={m.titulo} /></div>
+              : <a href={m.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
+            <div className="p-3"><div className="font-semibold text-sm text-stone-900 truncate">{m.titulo}</div>{m.descripcion && <div className="text-xs text-stone-500 truncate">{m.descripcion}</div>}</div>
+          </div>
+        ); })}</div>
+      ))}
     </div>
   );
 }
