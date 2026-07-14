@@ -1730,6 +1730,9 @@ export const aulaAnuncios = pgTable('aula_anuncios', {
 export const aulaForo = pgTable('aula_foro', {
   id: serial('id').primaryKey(),
   gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  // Foro por módulo de clase (mini-portal dentro de cada módulo). null = canal
+  // general histórico, ya sin acceso directo desde la UI.
+  moduloId: integer('modulo_id').references(() => modulos.id),
   autorUserId: integer('autor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   autorRol: varchar('autor_rol', { length: 20 }).notNull(),
   // El foro es el canal central del aula: mensajes, anuncios destacados y encuestas.

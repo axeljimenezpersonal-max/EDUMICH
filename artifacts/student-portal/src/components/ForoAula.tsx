@@ -55,7 +55,15 @@ function CuerpoConTareas({ cuerpo, tareas, hrefTareas }: { cuerpo: string; tarea
   return <span className="whitespace-pre-wrap break-words">{partes}</span>;
 }
 
-export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas' }: { hrefTareas?: string } = {}) {
+interface ForoAulaProps {
+  hrefTareas?: string;
+  /** Si se da, el foro queda acotado a ese módulo de clase (mini-portal). */
+  moduloId?: number;
+  /** Modo compacto: oculta el encabezado del centro (ya lo muestra la portada del módulo) y ajusta el alto. */
+  compacto?: boolean;
+}
+
+export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas', moduloId, compacto = false }: ForoAulaProps = {}) {
   const [data, setData] = useState<ForoData | null>(null);
   const [texto, setTexto] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -73,15 +81,17 @@ export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas' }: { hrefT
   const imgRef = useRef<HTMLInputElement>(null);
 
   const tareasMap = useMemo(() => new Map((data?.tareas ?? []).map((t) => [t.id, t.titulo])), [data?.tareas]);
+  const foroUrl = `/aula/foro${moduloId ? `?moduloId=${moduloId}` : ''}`;
 
-  const cargar = (scroll = false) => api.get<ForoData>('/aula/foro')
+  const cargar = (scroll = false) => api.get<ForoData>(foroUrl)
     .then((r) => setData((prev) => {
       if (scroll && prev && prev.mensajes.length !== r.mensajes.length) setTimeout(() => finRef.current?.scrollIntoView({ behavior: 'smooth' }), 60);
       return r;
     }))
     .catch(() => {});
 
-  useEffect(() => { cargar(); const t = setInterval(() => cargar(true), 6000); return () => clearInterval(t); }, []);
+  // Al cambiar de módulo, recarga desde cero (evita mostrar el foro anterior).
+  useEffect(() => { setData(null); cargar(); const t = setInterval(() => cargar(true), 6000); return () => clearInterval(t); }, [moduloId]);
   useEffect(() => { if (data) setTimeout(() => finRef.current?.scrollIntoView(), 120); }, [data === null]);
   useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
@@ -109,6 +119,7 @@ export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas' }: { hrefT
     try {
       const fd = new FormData();
       fd.append('cuerpo', texto.trim());
+      if (moduloId) fd.append('moduloId', String(moduloId));
       if (soyGestor && modoAnuncio && !modoEncuesta) fd.append('destacado', 'true');
       if (soyGestor && modoEncuesta) fd.append('opciones', JSON.stringify(opcionesValidas));
       if (archivo && !modoEncuesta) fd.append('adjunto', archivo);
@@ -152,8 +163,9 @@ export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas' }: { hrefT
 
   return (
     // Ocupa el alto disponible: la página no se mueve, SOLO el chat scrollea.
-    <div className="flex flex-col" style={{ height: 'calc(100dvh - 150px)', minHeight: 420 }}>
-      {/* Encabezado del centro (no dice el nombre del gestor, sino el CENTRO) */}
+    <div className="flex flex-col" style={{ height: compacto ? 'calc(100dvh - 300px)' : 'calc(100dvh - 150px)', minHeight: 380 }}>
+      {/* Encabezado del centro (no dice el nombre del gestor, sino el CENTRO) — se oculta dentro de un módulo, ya lo dice la portada. */}
+      {!compacto && (
       <div className="mb-2.5 flex items-start justify-between gap-3">
         <div className="flex items-center gap-2.5 min-w-0">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--color-crema-100)', color: G }}>
@@ -177,6 +189,17 @@ export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas' }: { hrefT
           </button>
         )}
       </div>
+      )}
+      {compacto && soyGestor && data && (
+        <div className="mb-2 flex justify-end">
+          <button onClick={toggleBloqueo}
+            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition-colors"
+            style={bloqueado ? { background: G, borderColor: G, color: '#fff' } : { borderColor: '#d6d3d1', color: '#57534e' }}
+            title={bloqueado ? 'Solo tú puedes escribir. Toca para abrir el foro a tus alumnos.' : 'Toca para que solo tú puedas escribir (modo anuncios).'}>
+            {bloqueado ? <Lock size={12} /> : <Unlock size={12} />} {bloqueado ? 'Solo anuncios' : 'Foro abierto'}
+          </button>
+        </div>
+      )}
 
       {/* Aviso compacto de seguridad (una línea, desplegable) */}
       <div className="mb-2 rounded-lg border px-3 py-1.5 text-[11px]" style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534' }}>

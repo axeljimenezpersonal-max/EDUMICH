@@ -215,18 +215,21 @@ g.get('/modulo/:moduloId', async (req, res) => {
 // ── Tareas ──
 g.get('/tareas', async (req, res) => {
   const gid = req.user!.userId;
-  const rows = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; entregas: string }>(sql`
+  // Filtro opcional por módulo de clase (mini-portal dentro del módulo).
+  const moduloId = req.query.moduloId ? parseInt(String(req.query.moduloId), 10) : null;
+  const moduloSnippet = moduloId != null ? sql`AND t.modulo_id = ${moduloId}` : sql``;
+  const rows = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_id: number | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; entregas: string }>(sql`
     SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
-           t.archivo_nombre, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
+           t.archivo_nombre, t.modulo_id, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
            (SELECT COUNT(*) FROM aula_entregas e WHERE e.tarea_id = t.id) AS entregas
     FROM aula_tareas t LEFT JOIN modulos m ON m.id = t.modulo_id
-    WHERE t.gestor_user_id = ${gid} ORDER BY t.created_at DESC`).then(r => r.rows);
+    WHERE t.gestor_user_id = ${gid} ${moduloSnippet} ORDER BY t.created_at DESC`).then(r => r.rows);
   const [al] = await db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM estudiantes WHERE gestor_id = ${gid}`).then(r => r.rows);
   res.json({
     tareas: rows.map(r => ({
       id: r.id, titulo: r.titulo, instrucciones: r.instrucciones, fechaEntrega: r.fecha_entrega,
       abreEn: r.abre_en, cierraEn: r.cierra_en, archivoNombre: r.archivo_nombre,
-      moduloNumero: r.modulo_numero, moduloNombre: r.modulo_nombre,
+      moduloId: r.modulo_id, moduloNumero: r.modulo_numero, moduloNombre: r.modulo_nombre,
       createdAt: r.created_at, entregas: Number(r.entregas),
     })),
     totalAlumnos: Number(al.n),
@@ -450,6 +453,9 @@ router.get('/foro', async (req, res) => {
   const uid = req.user!.userId;
   const gid = await aulaDelUsuario(uid, req.user!.rol);
   if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  // Foro por módulo de clase (mini-portal dentro de cada módulo).
+  const moduloId = req.query.moduloId ? parseInt(String(req.query.moduloId), 10) : null;
+  const moduloSnippet = moduloId != null ? sql`AND f.modulo_id = ${moduloId}` : sql`AND f.modulo_id IS NULL`;
   const mensajes = await db.execute<{ id: number; autor_user_id: number; autor: string; autor_rol: string; tipo: string; destacado: boolean; opciones: string[] | null; cuerpo: string; adjunto_nombre: string | null; adjunto_tipo: string | null; created_at: string }>(sql`
     SELECT f.id, f.autor_user_id, f.autor_rol, f.tipo, f.destacado, f.opciones, f.cuerpo,
            f.adjunto_nombre, f.adjunto_tipo, f.created_at::text,
@@ -457,7 +463,7 @@ router.get('/foro', async (req, res) => {
     FROM aula_foro f
     LEFT JOIN gestores g ON g.user_id = f.autor_user_id
     LEFT JOIN estudiantes es ON es.user_id = f.autor_user_id
-    WHERE f.gestor_user_id = ${gid}
+    WHERE f.gestor_user_id = ${gid} ${moduloSnippet}
     ORDER BY f.created_at ASC`).then(r => r.rows);
   // Votos de las encuestas del aula: conteo por opción + cuál es mi voto.
   const votos = await db.execute<{ mensaje_id: number; opcion: number; n: string; mio: boolean }>(sql`
@@ -471,13 +477,14 @@ router.get('/foro', async (req, res) => {
     arr.push({ opcion: v.opcion, n: Number(v.n), mio: v.mio });
     votosPorMsg.set(v.mensaje_id, arr);
   }
-  // Datos del centro (para el encabezado del foro) + tareas del aula (para los
-  // hipervínculos "#tarea" que se pueden insertar en los mensajes).
+  // Datos del centro (para el encabezado del foro) + tareas del módulo (para
+  // los hipervínculos "#tarea" que se pueden insertar en los mensajes).
   const [centro] = await db.execute<{ centro: string | null; clave: string | null; municipio: string | null }>(sql`
     SELECT g.centro_asesoria AS centro, g.clave_centro AS clave, m.nombre AS municipio
     FROM gestores g LEFT JOIN municipios m ON m.id = g.municipio_id WHERE g.user_id = ${gid}`).then(r => r.rows);
+  const tareasSnippet = moduloId != null ? sql`AND modulo_id = ${moduloId}` : sql``;
   const tareas = await db.execute<{ id: number; titulo: string }>(sql`
-    SELECT id, titulo FROM aula_tareas WHERE gestor_user_id = ${gid} AND publicada = true ORDER BY created_at DESC`).then(r => r.rows);
+    SELECT id, titulo FROM aula_tareas WHERE gestor_user_id = ${gid} AND publicada = true ${tareasSnippet} ORDER BY created_at DESC`).then(r => r.rows);
   res.json({
     yo: uid,
     soyGestor: req.user!.rol === 'gestor',
@@ -497,6 +504,7 @@ const foroSchema = z.object({
   cuerpo: z.string().trim().max(3000).optional().or(z.literal('')),
   destacado: z.enum(['true', 'false']).optional(),
   opciones: z.string().max(2000).optional(), // JSON: array de opciones (encuesta)
+  moduloId: z.string().trim().regex(/^\d*$/, 'Módulo inválido').optional(),
 });
 router.post('/foro', conArchivo('adjunto'), async (req, res) => {
   const { userId, rol } = req.user!;
@@ -526,7 +534,8 @@ router.post('/foro', conArchivo('adjunto'), async (req, res) => {
 
   const adjuntoRef = req.file ? await guardarSubida(req.file, 'aula') : null;
   const [m] = await db.insert(aulaForo).values({
-    gestorUserId: gid, autorUserId: userId, autorRol: rol, cuerpo,
+    gestorUserId: gid, moduloId: p.data.moduloId ? Number(p.data.moduloId) : null,
+    autorUserId: userId, autorRol: rol, cuerpo,
     tipo: opciones ? 'encuesta' : 'mensaje',
     destacado: rol === 'gestor' && p.data.destacado === 'true',
     opciones,

@@ -1,7 +1,9 @@
 /**
- * Aula virtual del gestor (LMS-lite estilo Canvas), integrada DENTRO del panel
- * del gestor: la sub-navegación (Tablero · Foro · Tareas · Materiales · Videos)
- * vive en el sidebar principal vía ?sec=. Solo si el aula está habilitada.
+ * Aula virtual del gestor (estilo Canvas / Tec de Monterrey), integrada DENTRO
+ * del panel del gestor. La home del aula es el grid de "mis módulos de clase".
+ * Al entrar a un módulo aparece un mini-portal a la izquierda —Foro (landing,
+ * donde el profesor publica avisos destacados y encuestas), Tareas, Materiales,
+ * Videos— todo scoped a ESE módulo. Solo si el aula está habilitada.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
@@ -15,16 +17,14 @@ import {
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
-type Sec = 'resumen' | 'foro' | 'tareas' | 'materiales' | 'videos';
-
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
   abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
-  moduloNumero: number | null; moduloNombre: string | null; createdAt: string; entregas: number;
+  moduloId: number | null; moduloNumero: number | null; moduloNombre: string | null; createdAt: string; entregas: number;
 }
 interface ModuloGrupo { moduloId: number; numero: number; nombre: string; alumnos: number }
 interface ModulosGrupo { convocatoria: string | null; enCurso: ModuloGrupo[]; todos: { id: number; numero: number; nombre: string }[] }
-interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null; createdAt: string }
+interface Material { id: number; moduloId: number | null; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null; createdAt: string }
 interface Entrega { id: number; alumno: string; estado: string; comentario: string | null; archivoNombre: string | null; entregada_en: string }
 interface Resumen { tareas: number; materiales: number; foro: number; alumnos: number }
 
@@ -33,14 +33,11 @@ function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es
 function fechaHora(s: string) { return new Date(s).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }); }
 const inputCls = 'w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none';
 
-const SECS: Sec[] = ['resumen', 'foro', 'tareas', 'materiales', 'videos'];
-
 export default function GestorAula() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const secParam = new URLSearchParams(search).get('sec');
-  const sec: Sec = SECS.includes(secParam as Sec) ? (secParam as Sec) : 'resumen';
-  const setSec = (s: Sec) => setLocation(s === 'resumen' ? '/gestor/aula' : `/gestor/aula?sec=${s}`);
+  const moduloParam = new URLSearchParams(search).get('modulo');
+  const moduloId = moduloParam ? Number(moduloParam) : null;
   const [resumen, setResumen] = useState<Resumen | null>(null);
   const [habilitada, setHabilitada] = useState<boolean | null>(null);
   const cargarResumen = () => api.get<Resumen>('/aula/gestor/resumen').then(setResumen).catch(() => {});
@@ -54,10 +51,18 @@ export default function GestorAula() {
     return <GestorLayout><AulaNoContratada /></GestorLayout>;
   }
 
+  // Dentro de un módulo: mini-portal (Foro · Tareas · Materiales · Videos).
+  if (moduloId != null) {
+    return (
+      <GestorLayout>
+        <ModuloDetalleGestor moduloId={moduloId} volver={() => setLocation('/gestor/aula')} />
+      </GestorLayout>
+    );
+  }
+
   return (
     <GestorLayout>
-      {/* Banner tipo curso — oculto en el Foro para que el chat ocupe la pantalla */}
-      {sec !== 'foro' && (
+      {/* Banner tipo curso */}
       <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]"
         style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
         <div className="relative px-6 py-6 text-white">
@@ -87,13 +92,7 @@ export default function GestorAula() {
         </div>
       </div>
 
-      )}
-
-      {sec === 'resumen' && <ResumenSec resumen={resumen} ir={setSec} />}
-      {sec === 'foro' && <ForoAula hrefTareas="/gestor/aula?sec=tareas" />}
-      {sec === 'tareas' && <TareasTab onChange={cargarResumen} />}
-      {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
-      {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}
+      <ResumenSec abrirModulo={(id) => setLocation(`/gestor/aula?modulo=${id}`)} />
     </GestorLayout>
   );
 }
@@ -165,18 +164,15 @@ const MOD_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d1
 const colorModulo = (n: number) => MOD_COLORS[Math.abs(n) % MOD_COLORS.length];
 
 /** Home del aula del gestor: sus módulos de clase (Canvas) + administración. */
-function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => void }) {
+function ResumenSec({ abrirModulo }: { abrirModulo: (id: number) => void }) {
   const [mods, setMods] = useState<ModuloClase[]>([]);
   const [grupo, setGrupo] = useState<ModulosGrupo | null>(null);
   const [admin, setAdmin] = useState(false);
-  const [moduloAbierto, setModuloAbierto] = useState<number | null>(null);
   const cargar = () => api.get<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase').then((r) => setMods(r.modulos)).catch(() => {});
   useEffect(() => { cargar(); api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, []);
 
   async function agregar(moduloId: number) { const r = await api.post<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase', { moduloId }); setMods(r.modulos); }
   async function quitar(moduloId: number) { if (!confirm('¿Quitar este módulo del aula? El contenido no se borra, pero deja de mostrarse como clase.')) return; const r = await api.delete<{ modulos: ModuloClase[] }>(`/aula/gestor/modulos-clase/${moduloId}`); setMods(r.modulos); }
-
-  if (moduloAbierto != null) return <ModuloDetalleGestor moduloId={moduloAbierto} volver={() => { setModuloAbierto(null); cargar(); }} ir={ir} />;
 
   const yaTiene = new Set(mods.map((m) => m.moduloId));
   const disponibles = (grupo?.todos ?? []).filter((m) => !yaTiene.has(m.id));
@@ -219,7 +215,7 @@ function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => 
             const col = colorModulo(m.numero);
             return (
               <div key={m.moduloId} className="bg-white border border-stone-200 rounded-2xl overflow-hidden group">
-                <button onClick={() => setModuloAbierto(m.moduloId)} className="block w-full text-left">
+                <button onClick={() => abrirModulo(m.moduloId)} className="block w-full text-left">
                   <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
                     <div className="absolute -right-4 -top-6 w-24 h-24 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
                     <div className="relative px-4 pt-3 flex items-start justify-between">
@@ -237,7 +233,7 @@ function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => 
                   </div>
                 </button>
                 <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2">
-                  <button onClick={() => setModuloAbierto(m.moduloId)} className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: col }}>Abrir módulo <ChevronRight size={13} /></button>
+                  <button onClick={() => abrirModulo(m.moduloId)} className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: col }}>Abrir módulo <ChevronRight size={13} /></button>
                   <button onClick={() => quitar(m.moduloId)} className="text-stone-300 hover:text-red-500" aria-label="Quitar módulo"><Trash2 size={14} /></button>
                 </div>
               </div>
@@ -249,65 +245,78 @@ function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => 
   );
 }
 
-interface ModuloContenidoGestor {
-  modulo: { id: number; numero: number; nombre: string }; totalAlumnos: number;
-  tareas: (Tarea & { entregas: number })[]; materiales: Material[]; videos: Material[];
-}
-/** Detalle de un módulo para el gestor (solo lectura + accesos a crear). */
-function ModuloDetalleGestor({ moduloId, volver, ir }: { moduloId: number; volver: () => void; ir: (s: Sec) => void }) {
-  const [d, setD] = useState<ModuloContenidoGestor | null>(null);
-  const [tab, setTab] = useState<'tareas' | 'materiales' | 'videos'>('tareas');
-  useEffect(() => { api.get<ModuloContenidoGestor>(`/aula/gestor/modulo/${moduloId}`).then(setD).catch(() => {}); }, [moduloId]);
-  if (!d) return <div className="h-40 rounded-xl animate-pulse bg-stone-100" />;
-  const col = colorModulo(d.modulo.numero);
-  const tabs = [
-    { k: 'tareas' as const, label: 'Tareas', icon: ClipboardList, n: d.tareas.length },
-    { k: 'materiales' as const, label: 'Materiales', icon: BookOpen, n: d.materiales.length },
-    { k: 'videos' as const, label: 'Videos', icon: Video, n: d.videos.length },
+type TabModulo = 'foro' | 'tareas' | 'materiales' | 'videos';
+const TABS_MODULO: TabModulo[] = ['foro', 'tareas', 'materiales', 'videos'];
+
+/** Detalle de un módulo para el gestor: mini-portal a la izquierda (Foro ·
+ *  Tareas · Materiales · Videos), todo scoped al módulo. El Foro es la portada:
+ *  ahí el profesor publica avisos destacados y encuestas para la clase. */
+function ModuloDetalleGestor({ moduloId, volver }: { moduloId: number; volver: () => void }) {
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const tabParam = new URLSearchParams(search).get('tab');
+  const tab: TabModulo = TABS_MODULO.includes(tabParam as TabModulo) ? (tabParam as TabModulo) : 'foro';
+  const setTab = (t: TabModulo) => setLocation(`/gestor/aula?modulo=${moduloId}${t === 'foro' ? '' : `&tab=${t}`}`);
+
+  const [info, setInfo] = useState<{ modulo: { id: number; numero: number; nombre: string }; totalAlumnos: number; tareas: unknown[]; materiales: unknown[]; videos: unknown[] } | null>(null);
+  const cargarInfo = () => api.get<typeof info>(`/aula/gestor/modulo/${moduloId}`).then((r) => setInfo(r)).catch(() => {});
+  useEffect(() => { setInfo(null); cargarInfo(); }, [moduloId]);
+
+  if (!info) return <div className="h-40 rounded-xl animate-pulse bg-stone-100" />;
+  const col = colorModulo(info.modulo.numero);
+
+  const NAV_ITEMS: { k: TabModulo; label: string; icon: typeof MessageCircle; n?: number }[] = [
+    { k: 'foro', label: 'Foro', icon: MessageCircle },
+    { k: 'tareas', label: 'Tareas', icon: ClipboardList, n: info.tareas.length },
+    { k: 'materiales', label: 'Materiales', icon: BookOpen, n: info.materiales.length },
+    { k: 'videos', label: 'Videos', icon: Video, n: info.videos.length },
   ];
+
   return (
     <div>
       <button onClick={volver} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]"><ChevronLeft size={14} /> Volver a mis módulos</button>
+      {/* Portada del módulo */}
       <div className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
         <div className="absolute -right-6 -top-8 w-32 h-32 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
-        <div className="relative px-6 py-5 text-white flex items-center justify-between">
-          <div><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {d.modulo.numero}</div><h1 className="font-serif text-2xl font-bold leading-tight">{d.modulo.nombre}</h1></div>
-          <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm text-white"><Users size={14} /> {d.totalAlumnos} alumno{d.totalAlumnos === 1 ? '' : 's'}</span>
+        <div className="relative px-6 py-5 text-white flex items-center justify-between gap-3">
+          <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo {info.modulo.numero}</div><h1 className="font-serif text-2xl font-bold leading-tight">{info.modulo.nombre}</h1></div>
+          <span className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-1.5 text-sm text-white"><Users size={14} /> {info.totalAlumnos} alumno{info.totalAlumnos === 1 ? '' : 's'}</span>
         </div>
       </div>
-      <div className="mb-4 flex items-center justify-between border-b border-stone-200">
-        <div className="flex gap-1">
-          {tabs.map((t) => (
-            <button key={t.k} onClick={() => setTab(t.k)} className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === t.k ? '' : 'border-transparent text-stone-500 hover:text-stone-800'}`} style={tab === t.k ? { borderColor: col, color: col } : undefined}>
-              <t.icon size={15} /> {t.label} <span className="rounded-full bg-stone-100 px-1.5 text-[11px] text-stone-500">{t.n}</span>
-            </button>
-          ))}
-        </div>
-        <button onClick={() => ir(tab)} className="inline-flex items-center gap-1 text-xs font-semibold pb-2" style={{ color: col }}><Plus size={13} /> Publicar</button>
+
+      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
+        {/* Mini portal a la izquierda */}
+        <nav className="md:sticky md:top-[114px] self-start">
+          <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
+            <ul>
+              {NAV_ITEMS.map((item) => {
+                const active = tab === item.k;
+                return (
+                  <li key={item.k}>
+                    <button onClick={() => setTab(item.k)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm border-l-4 transition-colors"
+                      style={active ? { background: `${col}14`, borderColor: col, color: col, fontWeight: 600 } : { borderColor: 'transparent', color: '#44403c' }}>
+                      <item.icon size={16} />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {typeof item.n === 'number' && item.n > 0 && (
+                        <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: active ? col : '#f0f0ee', color: active ? '#fff' : '#78716c' }}>{item.n}</span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </nav>
+
+        {/* Contenido del tab (formularios y listas scoped al módulo) */}
+        <main className="min-w-0">
+          {tab === 'foro' && <ForoAula moduloId={moduloId} compacto hrefTareas={`/gestor/aula?modulo=${moduloId}&tab=tareas`} />}
+          {tab === 'tareas' && <TareasTab moduloId={moduloId} onChange={cargarInfo} />}
+          {tab === 'materiales' && <MaterialesTab modo="materiales" moduloId={moduloId} onChange={cargarInfo} />}
+          {tab === 'videos' && <MaterialesTab modo="videos" moduloId={moduloId} onChange={cargarInfo} />}
+        </main>
       </div>
-      {tab === 'tareas' && (d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="Este módulo no tiene tareas. Toca “Publicar” para crear una." /> : (
-        <div className="space-y-2">{d.tareas.map((t) => (
-          <div key={t.id} className="bg-white border border-stone-200 rounded-xl p-3.5">
-            <div className="font-semibold text-stone-900">{t.titulo}</div>
-            {t.instrucciones && <div className="text-sm text-stone-600 mt-0.5 line-clamp-2">{t.instrucciones}</div>}
-            <div className="mt-1.5 flex flex-wrap items-center gap-3 text-xs text-stone-500">
-              {t.fechaEntrega && <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> {fecha(t.fechaEntrega)}</span>}
-              <span className="inline-flex items-center gap-1 font-semibold" style={{ color: col }}><Users size={12} /> {t.entregas}/{d.totalAlumnos} entregaron</span>
-            </div>
-          </div>
-        ))}</div>
-      ))}
-      {tab === 'materiales' && (d.materiales.length === 0 ? <Vacio icon={BookOpen} texto="Este módulo no tiene materiales." /> : (
-        <div className="space-y-2.5">{d.materiales.map((it) => <MaterialCard key={it.id} it={it} />)}</div>
-      ))}
-      {tab === 'videos' && (d.videos.length === 0 ? <Vacio icon={PlayCircle} texto="Este módulo no tiene videos." /> : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{d.videos.map((it) => { const emb = ytEmbed(it.url); return (
-          <div key={it.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-            {emb ? <div className="aspect-video bg-black"><VideoFrame src={emb} titulo={it.titulo} /></div> : <a href={it.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
-            <div className="p-3"><div className="font-semibold text-sm text-stone-900 truncate">{it.titulo}</div>{it.descripcion && <div className="text-xs text-stone-500 truncate">{it.descripcion}</div>}</div>
-          </div>
-        ); })}</div>
-      ))}
     </div>
   );
 }
@@ -321,7 +330,7 @@ function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): '
   return 'abierta';
 }
 
-function TareasTab({ onChange }: { onChange: () => void }) {
+function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: number }) {
   const [items, setItems] = useState<Tarea[]>([]);
   const [totalAlumnos, setTotalAlumnos] = useState(0);
   const [grupo, setGrupo] = useState<ModulosGrupo | null>(null);
@@ -333,8 +342,8 @@ function TareasTab({ onChange }: { onChange: () => void }) {
   const [entregasDe, setEntregasDe] = useState<number | null>(null);
   const [entregas, setEntregas] = useState<Entrega[]>([]);
   const docRef = useRef<HTMLInputElement>(null);
-  const cargar = () => api.get<{ tareas: Tarea[]; totalAlumnos: number }>('/aula/gestor/tareas').then((r) => { setItems(r.tareas); setTotalAlumnos(r.totalAlumnos); }).catch(() => {});
-  useEffect(() => { cargar(); api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, []);
+  const cargar = () => api.get<{ tareas: Tarea[]; totalAlumnos: number }>(`/aula/gestor/tareas${moduloId ? `?moduloId=${moduloId}` : ''}`).then((r) => { setItems(r.tareas); setTotalAlumnos(r.totalAlumnos); }).catch(() => {});
+  useEffect(() => { cargar(); if (!moduloId) api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, [moduloId]);
 
   const puedePublicar = !!t.titulo.trim() && !!t.instrucciones.trim();
   async function crear() {
@@ -343,7 +352,9 @@ function TareasTab({ onChange }: { onChange: () => void }) {
     try {
       const fd = new FormData();
       fd.append('titulo', t.titulo); fd.append('instrucciones', t.instrucciones);
-      if (t.moduloId) fd.append('moduloId', t.moduloId);
+      // Dentro de un módulo la tarea SIEMPRE pertenece a ese módulo.
+      const mid = moduloId ? String(moduloId) : t.moduloId;
+      if (mid) fd.append('moduloId', mid);
       if (t.fechaEntrega) fd.append('fechaEntrega', t.fechaEntrega);
       if (t.abreEn) fd.append('abreEn', new Date(t.abreEn).toISOString());
       if (t.cierraEn) fd.append('cierraEn', new Date(t.cierraEn).toISOString());
@@ -363,12 +374,12 @@ function TareasTab({ onChange }: { onChange: () => void }) {
   return (
     <div>
       <div className="flex items-start justify-between gap-3 mb-4">
-        <SecHeader icon={ClipboardList} titulo="Tareas" sub="Asignaciones por módulo, con documento, apertura, cierre y fecha límite." />
+        <SecHeader icon={ClipboardList} titulo="Tareas" sub={moduloId ? 'Asignaciones de este módulo, con documento, apertura, cierre y fecha límite.' : 'Asignaciones por módulo, con documento, apertura, cierre y fecha límite.'} />
         <BtnCrear label="Nueva tarea" on={form} toggle={() => setForm((v) => !v)} />
       </div>
 
       {/* Módulos que cursa el grupo esta convocatoria */}
-      {grupo && grupo.enCurso.length > 0 && (
+      {!moduloId && grupo && grupo.enCurso.length > 0 && (
         <div className="mb-4 rounded-xl border border-stone-200 bg-white p-3.5">
           <div className="flex items-center gap-1.5 text-xs font-bold text-stone-700 mb-2">
             <GraduationCap size={14} style={{ color: G }} />
@@ -396,6 +407,7 @@ function TareasTab({ onChange }: { onChange: () => void }) {
             <label className={lblCls}>Instrucciones * <span className="font-normal text-stone-400">(qué debe hacer y entregar el alumno)</span></label>
             <textarea className={inputCls} rows={4} placeholder="Describe la actividad, criterios de evaluación y formato de entrega…" value={t.instrucciones} onChange={(e) => setT((s) => ({ ...s, instrucciones: e.target.value }))} />
           </div>
+          {!moduloId && (
           <div>
             <label className={lblCls}>Módulo</label>
             <select className={inputCls} value={t.moduloId} onChange={(e) => setT((s) => ({ ...s, moduloId: e.target.value }))}>
@@ -410,6 +422,7 @@ function TareasTab({ onChange }: { onChange: () => void }) {
               </optgroup>
             </select>
           </div>
+          )}
           <div>
             <label className={lblCls}>Documento de apoyo <span className="font-normal text-stone-400">(actividad, rúbrica, lectura… opcional)</span></label>
             <input ref={docRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden" onChange={(e) => setDocumento(e.target.files?.[0] ?? null)} />
@@ -455,11 +468,11 @@ function TareasTab({ onChange }: { onChange: () => void }) {
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-stone-900">{it.titulo}</span>
-                    {it.moduloNumero != null && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }} title={it.moduloNombre ?? ''}>M{it.moduloNumero}</span>}
+                    {!moduloId && it.moduloNumero != null && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }} title={it.moduloNombre ?? ''}>M{it.moduloNumero}</span>}
                     {estado === 'programada' && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fef3c7', color: '#92400e' }}><Clock size={9} /> Abre {fechaHora(it.abreEn!)}</span>}
                     {estado === 'cerrada' && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#991b1b' }}>Cerrada</span>}
                   </div>
-                  {it.moduloNombre && <div className="text-[11px] text-stone-400 mt-0.5">Módulo {it.moduloNumero}: {it.moduloNombre}</div>}
+                  {!moduloId && it.moduloNombre && <div className="text-[11px] text-stone-400 mt-0.5">Módulo {it.moduloNumero}: {it.moduloNombre}</div>}
                   {it.instrucciones && <div className="text-sm text-stone-600 mt-0.5 whitespace-pre-wrap">{it.instrucciones}</div>}
                   {it.archivoNombre && (
                     <a href={`/api/aula/tareas/${it.id}/documento`} className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: G }}>
@@ -510,7 +523,7 @@ function TareasTab({ onChange }: { onChange: () => void }) {
 }
 
 // ── Materiales / Videos (mismo backend, distinto tipo) ──
-function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onChange: () => void }) {
+function MaterialesTab({ modo, onChange, moduloId }: { modo: 'materiales' | 'videos'; onChange: () => void; moduloId?: number }) {
   const esVideo = modo === 'videos';
   const [items, setItems] = useState<Material[]>([]);
   const [form, setForm] = useState(false);
@@ -521,8 +534,10 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
   const [modulos, setModulos] = useState<ModuloClase[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
   const cargar = () => api.get<{ materiales: Material[] }>('/aula/gestor/materiales').then((r) => setItems(r.materiales)).catch(() => {});
-  useEffect(() => { cargar(); api.get<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase').then((r) => setModulos(r.modulos)).catch(() => {}); }, []);
-  const visibles = items.filter((x) => (esVideo ? x.tipo === 'video' : x.tipo !== 'video'));
+  useEffect(() => { cargar(); if (!moduloId) api.get<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase').then((r) => setModulos(r.modulos)).catch(() => {}); }, [moduloId]);
+  const visibles = items
+    .filter((x) => (esVideo ? x.tipo === 'video' : x.tipo !== 'video'))
+    .filter((x) => (moduloId ? x.moduloId === moduloId : true));
   async function crear() {
     if (!m.titulo.trim()) return;
     setSaving(true); setErr('');
@@ -530,7 +545,9 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
       const fd = new FormData();
       fd.append('titulo', m.titulo); fd.append('descripcion', m.descripcion); fd.append('tipo', m.tipo);
       fd.append('url', m.url); fd.append('contenido', m.contenido);
-      if (m.moduloId) fd.append('moduloId', m.moduloId);
+      // Dentro de un módulo el material SIEMPRE pertenece a ese módulo.
+      const mid = moduloId ? String(moduloId) : m.moduloId;
+      if (mid) fd.append('moduloId', mid);
       if (m.tipo === 'archivo' && archivo) fd.append('archivo', archivo);
       await api.post('/aula/gestor/materiales', fd);
       setM({ titulo: '', descripcion: '', tipo: esVideo ? 'video' : 'enlace', url: '', contenido: '', moduloId: '' });
@@ -553,6 +570,7 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
         <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4 space-y-3">
           <input className={inputCls} placeholder={esVideo ? 'Título del video' : 'Título del material'} value={m.titulo} onChange={(e) => setM((s) => ({ ...s, titulo: e.target.value }))} />
           <input className={inputCls} placeholder="Descripción (opcional)" value={m.descripcion} onChange={(e) => setM((s) => ({ ...s, descripcion: e.target.value }))} />
+          {!moduloId && (
           <div>
             <label className="text-xs font-semibold text-stone-500 block mb-1">Módulo de clase</label>
             <select className={inputCls} value={m.moduloId} onChange={(e) => setM((s) => ({ ...s, moduloId: e.target.value }))}>
@@ -561,6 +579,7 @@ function MaterialesTab({ modo, onChange }: { modo: 'materiales' | 'videos'; onCh
             </select>
             {modulos.length === 0 && <div className="text-[11px] text-stone-400 mt-1">Agrega módulos desde “Mis módulos de clase” para poder organizarlos por módulo.</div>}
           </div>
+          )}
           {!esVideo && (
             <div className="flex flex-wrap gap-2">
               {([['enlace', 'Enlace'], ['archivo', 'Archivo (PDF, Word…)'], ['texto', 'Texto/Nota']] as const).map(([tp, lbl]) => (

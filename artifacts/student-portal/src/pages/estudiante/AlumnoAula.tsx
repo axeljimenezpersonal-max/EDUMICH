@@ -1,9 +1,9 @@
 /**
- * Aula virtual del alumno (estilo Canvas), integrada DENTRO de su portal: la
- * sub-navegación (Mi aula · Foro · Tareas · Materiales · Videos) vive en el
- * sidebar principal vía ?sec=. Solo si su gestor tiene aula. Es aparte de sus
- * módulos/pruebas oficiales. Las tareas se abren en una vista de detalle donde
- * el alumno entrega con comentario y archivo.
+ * Aula virtual del alumno (estilo Canvas / Tec de Monterrey), integrada DENTRO
+ * de su portal. La home del aula es un grid de "mis clases" (módulos). Al
+ * entrar a una clase aparece un mini-portal a la izquierda —Foro (landing),
+ * Tareas, Materiales, Videos— todo scoped a ESE módulo. Solo si su gestor
+ * tiene aula. Es aparte de sus módulos/pruebas oficiales.
  */
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useSearch } from 'wouter';
@@ -11,13 +11,12 @@ import { EstudianteLayout } from './EstudianteLayout';
 import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
-  Video, PlayCircle, LayoutDashboard, ChevronRight, ChevronLeft, Inbox, MessageCircle, Paperclip, Download, X,
+  Video, PlayCircle, ChevronRight, ChevronLeft, Inbox, MessageCircle, Paperclip, Download, X,
   Lock, Clock, GraduationCap, MapPin,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
-type Sec = 'resumen' | 'foro' | 'tareas' | 'materiales' | 'videos';
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
   abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
@@ -40,27 +39,22 @@ const G = 'var(--color-guinda-700)';
 function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; }
 function fechaHora(s: string) { return new Date(s).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' }); }
 
-const SECS: Sec[] = ['resumen', 'foro', 'tareas', 'materiales', 'videos'];
+// Colores estables por módulo (portada tipo Canvas).
+const MOD_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d174d', '#4d7c0f', '#7c3aed', '#be123c', '#0f766e'];
+const colorModulo = (n: number) => MOD_COLORS[Math.abs(n) % MOD_COLORS.length];
 
 export default function AlumnoAula() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const secParam = new URLSearchParams(search).get('sec');
-  const sec: Sec = SECS.includes(secParam as Sec) ? (secParam as Sec) : 'resumen';
+  const moduloParam = new URLSearchParams(search).get('modulo');
+  const moduloId = moduloParam ? Number(moduloParam) : null;
   const [d, setD] = useState<MiAula | null>(null);
-  const [tareaAbierta, setTareaAbierta] = useState<number | null>(null);
-  const [moduloAbierto, setModuloAbierto] = useState<number | null>(null);
   const cargar = () => api.get<MiAula>('/aula/mi-aula').then(setD).catch(() => setD({ habilitada: false, tareas: [], materiales: [] }));
   useEffect(() => { cargar(); }, []);
-  // Al cambiar de sección (desde el sidebar) se cierra el detalle de tarea/módulo.
-  useEffect(() => { setTareaAbierta(null); setModuloAbierto(null); }, [sec]);
 
   const pendientes = d ? d.tareas.filter((t) => !t.miEstado).length : 0;
-  const videos = d ? d.materiales.filter((m) => m.tipo === 'video') : [];
-  const materiales = d ? d.materiales.filter((m) => m.tipo !== 'video') : [];
-
-  const irSec = (s: Sec) => setLocation(s === 'resumen' ? '/estudiante/aula' : `/estudiante/aula?sec=${s}`);
-  const tarea = tareaAbierta != null ? d?.tareas.find((t) => t.id === tareaAbierta) ?? null : null;
+  const abrirModulo = (id: number) => setLocation(`/estudiante/aula?modulo=${id}`);
+  const volverAClases = () => setLocation('/estudiante/aula');
 
   return (
     <EstudianteLayout>
@@ -68,88 +62,57 @@ export default function AlumnoAula() {
         <div className="h-52 rounded-xl animate-pulse bg-stone-100" />
       ) : !d.habilitada ? (
         <AulaNoDisponible />
+      ) : moduloId != null ? (
+        <ModuloDetalleAlumno moduloId={moduloId} volver={volverAClases} onRecargar={cargar} />
       ) : (
-      <>
-      {/* Banner — se oculta en el Foro para que el chat ocupe toda la pantalla */}
-      {sec !== 'foro' && (
-      <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]" style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
-        <div className="relative px-6 py-6 text-white">
-          <div className="absolute -right-8 -top-10 w-44 h-44 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
-          <div className="relative flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}><School size={24} /></div>
-            <div className="min-w-0">
-              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">Aula de mi centro</div>
-              <h1 className="font-serif text-2xl font-bold leading-tight truncate">{d.gestor?.centro || (d.gestor?.municipio ? `Centro de asesoría · ${d.gestor.municipio}` : 'Aula virtual')}</h1>
-              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/75">
-                {d.gestor?.municipio && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {d.gestor.municipio}</span>}
-                {d.gestor?.clave && <span className="rounded bg-white/15 px-1.5 py-0.5 font-mono font-semibold">{d.gestor.clave}</span>}
+        <>
+          {/* Banner */}
+          <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]" style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
+            <div className="relative px-6 py-6 text-white">
+              <div className="absolute -right-8 -top-10 w-44 h-44 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
+              <div className="relative flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}><School size={24} /></div>
+                <div className="min-w-0">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">Aula de mi centro</div>
+                  <h1 className="font-serif text-2xl font-bold leading-tight truncate">{d.gestor?.centro || (d.gestor?.municipio ? `Centro de asesoría · ${d.gestor.municipio}` : 'Aula virtual')}</h1>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/75">
+                    {d.gestor?.municipio && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {d.gestor.municipio}</span>}
+                    {d.gestor?.clave && <span className="rounded bg-white/15 px-1.5 py-0.5 font-mono font-semibold">{d.gestor.clave}</span>}
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-          {(pendientes > 0 || (d.misModulos && d.misModulos.length > 0)) && (
-            <div className="relative mt-4 flex flex-wrap gap-2">
-              {d.misModulos?.map((m) => (
-                <span key={m.numero} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }} title={m.nombre}>
-                  <GraduationCap size={14} /> <b>M{m.numero}</b> <span className="text-white/80 max-w-[180px] truncate">{m.nombre}</span>
-                </span>
-              ))}
-              {pendientes > 0 && (
-                <span className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }}>
-                  <ClipboardList size={14} /> <b>{pendientes}</b> tarea{pendientes === 1 ? '' : 's'} pendiente{pendientes === 1 ? '' : 's'}
-                </span>
+              {(pendientes > 0 || (d.misModulos && d.misModulos.length > 0)) && (
+                <div className="relative mt-4 flex flex-wrap gap-2">
+                  {d.misModulos?.map((m) => (
+                    <span key={m.numero} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }} title={m.nombre}>
+                      <GraduationCap size={14} /> <b>M{m.numero}</b> <span className="text-white/80 max-w-[180px] truncate">{m.nombre}</span>
+                    </span>
+                  ))}
+                  {pendientes > 0 && (
+                    <span className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                      <ClipboardList size={14} /> <b>{pendientes}</b> tarea{pendientes === 1 ? '' : 's'} pendiente{pendientes === 1 ? '' : 's'}
+                    </span>
+                  )}
+                </div>
               )}
             </div>
-          )}
-        </div>
-      </div>
-      )}
+          </div>
 
-      <div className="min-w-0">
-          {sec === 'resumen' && (moduloAbierto != null
-            ? <ModuloDetalleAlumno moduloId={moduloAbierto} volver={() => setModuloAbierto(null)} onRecargar={cargar} />
-            : <ModulosGridAlumno d={d} irSec={irSec} abrirModulo={setModuloAbierto} />)}
-          {sec === 'foro' && <ForoAula hrefTareas="/estudiante/aula?sec=tareas" />}
-          {sec === 'tareas' && (tarea
-            ? <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); }} />
-            : d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="No tienes tareas asignadas." /> : (
-            <div className="space-y-2.5">{d.tareas.map((t) => <TareaItem key={t.id} t={t} abrir={() => setTareaAbierta(t.id)} />)}</div>
-          ))}
-          {sec === 'materiales' && (materiales.length === 0 ? <Vacio icon={BookOpen} texto="Aún no hay materiales." /> : (
-            <div className="space-y-2.5">{materiales.map((m) => <MaterialAlumno key={m.id} m={m} />)}</div>
-          ))}
-          {sec === 'videos' && (videos.length === 0 ? <Vacio icon={PlayCircle} texto="Aún no hay videos." /> : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{videos.map((m) => { const emb = ytEmbed(m.url); return (
-              <div key={m.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-                {emb ? <div className="aspect-video bg-black"><VideoFrame src={emb} titulo={m.titulo} /></div>
-                  : <a href={m.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
-                <div className="p-3"><div className="font-semibold text-sm text-stone-900 truncate">{m.titulo}</div>{m.descripcion && <div className="text-xs text-stone-500 truncate">{m.descripcion}</div>}</div>
-              </div>
-            ); })}</div>
-          ))}
-      </div>
-      </>
+          <ModulosGridAlumno d={d} abrirModulo={abrirModulo} />
+        </>
       )}
     </EstudianteLayout>
   );
 }
 
-// Colores estables por módulo (portada tipo Canvas).
-const MOD_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#9d174d', '#4d7c0f', '#7c3aed', '#be123c', '#0f766e'];
-const colorModulo = (n: number) => MOD_COLORS[Math.abs(n) % MOD_COLORS.length];
-
 /** Home del aula del alumno: mis clases (módulos) estilo Canvas. */
-function ModulosGridAlumno({ d, irSec, abrirModulo }: { d: MiAula; irSec: (s: Sec) => void; abrirModulo: (id: number) => void }) {
+function ModulosGridAlumno({ d, abrirModulo }: { d: MiAula; abrirModulo: (id: number) => void }) {
   const mods = d.modulosClase ?? [];
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-lg font-bold text-stone-900"><GraduationCap size={18} style={{ color: G }} /> Mis clases</div>
-          <div className="text-xs text-stone-500 mt-0.5">Entra a cada módulo para ver sus tareas, materiales y videos.</div>
-        </div>
-        <button onClick={() => irSec('foro')} className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-3 py-2 text-xs font-semibold text-stone-700 hover:bg-stone-50">
-          <MessageCircle size={14} style={{ color: G }} /> Ir al foro
-        </button>
+      <div className="mb-4">
+        <div className="flex items-center gap-2 text-lg font-bold text-stone-900"><GraduationCap size={18} style={{ color: G }} /> Mis clases</div>
+        <div className="text-xs text-stone-500 mt-0.5">Entra a cada módulo para ver su foro, tareas, materiales y videos.</div>
       </div>
 
       {mods.length === 0 ? (
@@ -198,27 +161,34 @@ interface ModuloContenido {
   modulo: { id: number; numero: number; nombre: string };
   tareas: Tarea[]; materiales: Material[]; videos: Material[];
 }
+type TabModulo = 'foro' | 'tareas' | 'materiales' | 'videos';
+const TABS_MODULO: TabModulo[] = ['foro', 'tareas', 'materiales', 'videos'];
 
-/** Detalle de un módulo para el alumno: tareas, materiales y videos del módulo. */
+/** Detalle de un módulo para el alumno: mini-portal a la izquierda (Foro ·
+ *  Tareas · Materiales · Videos), contenido scoped a ese módulo a la derecha. */
 function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: number; volver: () => void; onRecargar: () => void }) {
+  const [, setLocation] = useLocation();
+  const search = useSearch();
+  const tabParam = new URLSearchParams(search).get('tab');
+  const tab: TabModulo = TABS_MODULO.includes(tabParam as TabModulo) ? (tabParam as TabModulo) : 'foro';
+  const setTab = (t: TabModulo) => setLocation(`/estudiante/aula?modulo=${moduloId}${t === 'foro' ? '' : `&tab=${t}`}`);
+
   const [d, setD] = useState<ModuloContenido | null>(null);
-  const [tab, setTab] = useState<'tareas' | 'materiales' | 'videos'>('tareas');
   const [tareaAbierta, setTareaAbierta] = useState<number | null>(null);
   const cargar = () => api.get<ModuloContenido>(`/aula/modulo/${moduloId}`).then(setD).catch(() => {});
-  useEffect(() => { cargar(); }, [moduloId]);
-  const col = d ? colorModulo(d.modulo.numero) : G;
-  const tarea = tareaAbierta != null ? d?.tareas.find((t) => t.id === tareaAbierta) ?? null : null;
+  useEffect(() => { setD(null); setTareaAbierta(null); cargar(); }, [moduloId]);
 
   if (!d) return <div className="h-40 rounded-xl animate-pulse bg-stone-100" />;
-  if (tarea) return (
-    <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); onRecargar(); }} />
-  );
+  const col = colorModulo(d.modulo.numero);
+  const tarea = tareaAbierta != null ? d.tareas.find((t) => t.id === tareaAbierta) ?? null : null;
 
-  const tabs = [
-    { k: 'tareas' as const, label: 'Tareas', icon: ClipboardList, n: d.tareas.length },
-    { k: 'materiales' as const, label: 'Materiales', icon: BookOpen, n: d.materiales.length },
-    { k: 'videos' as const, label: 'Videos', icon: Video, n: d.videos.length },
+  const NAV_ITEMS: { k: TabModulo; label: string; icon: typeof MessageCircle; n?: number }[] = [
+    { k: 'foro', label: 'Foro', icon: MessageCircle },
+    { k: 'tareas', label: 'Tareas', icon: ClipboardList, n: d.tareas.length },
+    { k: 'materiales', label: 'Materiales', icon: BookOpen, n: d.materiales.length },
+    { k: 'videos', label: 'Videos', icon: Video, n: d.videos.length },
   ];
+
   return (
     <div>
       <button onClick={volver} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]">
@@ -232,32 +202,54 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
           <h1 className="font-serif text-2xl font-bold leading-tight">{d.modulo.nombre}</h1>
         </div>
       </div>
-      {/* Tabs */}
-      <div className="mb-4 flex gap-1 border-b border-stone-200">
-        {tabs.map((t) => (
-          <button key={t.k} onClick={() => setTab(t.k)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold border-b-2 -mb-px transition-colors ${tab === t.k ? '' : 'border-transparent text-stone-500 hover:text-stone-800'}`}
-            style={tab === t.k ? { borderColor: col, color: col } : undefined}>
-            <t.icon size={15} /> {t.label} <span className="rounded-full bg-stone-100 px-1.5 text-[11px] text-stone-500">{t.n}</span>
-          </button>
-        ))}
-      </div>
 
-      {tab === 'tareas' && (d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="Este módulo aún no tiene tareas." /> : (
-        <div className="space-y-2.5">{d.tareas.map((t) => <TareaItem key={t.id} t={t} abrir={() => setTareaAbierta(t.id)} />)}</div>
-      ))}
-      {tab === 'materiales' && (d.materiales.length === 0 ? <Vacio icon={BookOpen} texto="Este módulo aún no tiene materiales." /> : (
-        <div className="space-y-2.5">{d.materiales.map((m) => <MaterialAlumno key={m.id} m={m} />)}</div>
-      ))}
-      {tab === 'videos' && (d.videos.length === 0 ? <Vacio icon={PlayCircle} texto="Este módulo aún no tiene videos." /> : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{d.videos.map((m) => { const emb = ytEmbed(m.url); return (
-          <div key={m.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-            {emb ? <div className="aspect-video bg-black"><VideoFrame src={emb} titulo={m.titulo} /></div>
-              : <a href={m.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
-            <div className="p-3"><div className="font-semibold text-sm text-stone-900 truncate">{m.titulo}</div>{m.descripcion && <div className="text-xs text-stone-500 truncate">{m.descripcion}</div>}</div>
+      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
+        {/* Mini portal a la izquierda */}
+        <nav className="md:sticky md:top-[114px] self-start">
+          <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
+            <ul>
+              {NAV_ITEMS.map((item) => {
+                const active = tab === item.k;
+                return (
+                  <li key={item.k}>
+                    <button onClick={() => { setTareaAbierta(null); setTab(item.k); }}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm border-l-4 transition-colors"
+                      style={active ? { background: `${col}14`, borderColor: col, color: col, fontWeight: 600 } : { borderColor: 'transparent', color: '#44403c' }}>
+                      <item.icon size={16} />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {typeof item.n === 'number' && item.n > 0 && (
+                        <span className="text-[10px] font-bold rounded-full px-1.5 py-0.5" style={{ background: active ? col : '#f0f0ee', color: active ? '#fff' : '#78716c' }}>{item.n}</span>
+                      )}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
           </div>
-        ); })}</div>
-      ))}
+        </nav>
+
+        {/* Contenido del tab seleccionado */}
+        <main className="min-w-0">
+          {tab === 'foro' && <ForoAula moduloId={moduloId} compacto hrefTareas={`/estudiante/aula?modulo=${moduloId}&tab=tareas`} />}
+          {tab === 'tareas' && (tarea
+            ? <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); onRecargar(); }} />
+            : d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="Este módulo aún no tiene tareas." /> : (
+              <div className="space-y-2.5">{d.tareas.map((t) => <TareaItem key={t.id} t={t} abrir={() => setTareaAbierta(t.id)} />)}</div>
+            ))}
+          {tab === 'materiales' && (d.materiales.length === 0 ? <Vacio icon={BookOpen} texto="Este módulo aún no tiene materiales." /> : (
+            <div className="space-y-2.5">{d.materiales.map((m) => <MaterialAlumno key={m.id} m={m} />)}</div>
+          ))}
+          {tab === 'videos' && (d.videos.length === 0 ? <Vacio icon={PlayCircle} texto="Este módulo aún no tiene videos." /> : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{d.videos.map((m) => { const emb = ytEmbed(m.url); return (
+              <div key={m.id} className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+                {emb ? <div className="aspect-video bg-black"><VideoFrame src={emb} titulo={m.titulo} /></div>
+                  : <a href={m.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
+                <div className="p-3"><div className="font-semibold text-sm text-stone-900 truncate">{m.titulo}</div>{m.descripcion && <div className="text-xs text-stone-500 truncate">{m.descripcion}</div>}</div>
+              </div>
+            ); })}</div>
+          ))}
+        </main>
+      </div>
     </div>
   );
 }
@@ -272,7 +264,6 @@ function TareaItem({ t, abrir }: { t: Tarea; abrir: () => void }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-semibold text-stone-900 flex flex-wrap items-center gap-1.5">
-            {t.moduloNumero != null && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }} title={t.moduloNombre ?? ''}>M{t.moduloNumero}</span>}
             {t.titulo} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-stone-500">
@@ -325,9 +316,8 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
       <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-100 flex items-start justify-between gap-3" style={{ background: 'var(--color-crema-50, #fdfaf5)' }}>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Tarea{t.moduloNumero != null ? ` · Módulo ${t.moduloNumero}` : ''}</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Tarea</div>
             <h2 className="font-serif text-xl font-bold text-stone-900">{t.titulo}</h2>
-            {t.moduloNombre && <div className="text-xs text-stone-500">{t.moduloNombre}</div>}
             <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-stone-500">
               <span>Publicada: {fecha(t.createdAt)}</span>
               {t.abreEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Abre: {fechaHora(t.abreEn)}</span>}

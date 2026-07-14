@@ -1,8 +1,8 @@
-import { Link, useLocation, useSearch } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard,
-  GraduationCap, School, MessageCircle, ClipboardList, Video, ChevronDown, Lock,
+  GraduationCap, School, Lock,
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { Eye } from 'lucide-react';
@@ -18,13 +18,6 @@ const NAV = [
   { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
   { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
   { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
-];
-// "Mi aula" es un botón que se despliega (mini-portal) con sus apartados.
-const NAV_AULA_SUB = [
-  { to: '/estudiante/aula?sec=foro', label: 'Foro', icon: MessageCircle },
-  { to: '/estudiante/aula?sec=tareas', label: 'Tareas', icon: ClipboardList },
-  { to: '/estudiante/aula?sec=materiales', label: 'Materiales', icon: BookOpen },
-  { to: '/estudiante/aula?sec=videos', label: 'Videos', icon: Video },
 ];
 const NAV_HERRAMIENTAS = [
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
@@ -42,7 +35,6 @@ function SeccionLabel({ children }: { children: ReactNode }) {
 export function EstudianteLayout({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const [location] = useLocation();
-  const search = useSearch();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [aula, setAula] = useState(false);
   // Para la barra inferior móvil: plano — Herramientas antes que Aula.
@@ -52,22 +44,10 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
     { to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' },
   ];
 
-  // "Mi aula" se despliega: abierto por defecto cuando estás dentro del aula.
   const onAula = location.startsWith('/estudiante/aula');
-  const [aulaOpen, setAulaOpen] = useState(onAula);
-  useEffect(() => { if (onAula) setAulaOpen(true); }, [onAula]);
-  const secActual = new URLSearchParams(search).get('sec') ?? 'resumen';
-
-  // Activo considerando ?sec= (para los apartados del aula).
   function esActivo(to: string): boolean {
-    const [path, q] = to.split('?');
-    if (path === '/estudiante') return location === '/estudiante';
-    if (!location.startsWith(path)) return false;
-    if (path === '/estudiante/aula') {
-      const secItem = new URLSearchParams(q ?? '').get('sec') ?? 'resumen';
-      return secItem === secActual;
-    }
-    return true;
+    if (to === '/estudiante') return location === '/estudiante';
+    return location.startsWith(to);
   }
 
   useEffect(() => {
@@ -148,52 +128,23 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
               })}
             </ul>
 
-            {/* Mi aula — botón que se despliega (mini-portal). Si el gestor no
-                la tiene, se muestra en gris con candado (clic → pantalla de aviso). */}
+            {/* Mi aula — un solo link a "Mis clases". Todo lo demás (Foro,
+                Tareas, Materiales, Videos) vive DENTRO de cada módulo.
+                Si el centro no tiene aula, se muestra en gris con candado. */}
             <div className="border-t border-stone-100">
-              {aula ? (
-                <>
-                  <button
-                    data-tour="nav-aula"
-                    onClick={() => { setAulaOpen((o) => (onAula ? !o : true)); if (!onAula) setLocation('/estudiante/aula'); }}
-                    className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
-                      onAula && secActual === 'resumen'
-                        ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold'
-                        : 'border-transparent text-stone-700 hover:bg-stone-50'}`}
-                  >
-                    <School size={16} />
-                    <span className="flex-1 text-left font-semibold">Mi aula</span>
-                    <ChevronDown size={15} className={`transition-transform ${aulaOpen ? 'rotate-180' : ''}`} style={{ color: '#a8a29e' }} />
-                  </button>
-                  {aulaOpen && (
-                    <ul className="pb-1" style={{ background: '#fdfcfa' }}>
-                      {NAV_AULA_SUB.map((item) => {
-                        const active = esActivo(item.to);
-                        return (
-                          <li key={item.to}>
-                            <Link href={item.to}
-                              className={`flex items-center gap-3 py-2 pl-11 pr-4 text-[13px] transition-colors border-l-4 ${
-                                active ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)] font-semibold' : 'border-transparent text-stone-600 hover:bg-stone-50'}`}>
-                              <item.icon size={14} />
-                              {item.label}
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </>
-              ) : (
-                <Link href="/estudiante/aula" data-tour="nav-aula"
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors border-l-4 ${
-                    onAula ? 'bg-stone-50 border-stone-300' : 'border-transparent hover:bg-stone-50'}`}
-                  style={{ color: '#a8a29e' }}
-                  title="Tu centro aún no cuenta con Aula Virtual">
-                  <School size={16} />
-                  <span className="flex-1 text-left font-semibold">Mi aula</span>
-                  <Lock size={13} />
-                </Link>
-              )}
+              <Link href="/estudiante/aula" data-tour="nav-aula"
+                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm font-semibold transition-colors border-l-4 ${
+                  !aula
+                    ? 'border-transparent hover:bg-stone-50'
+                    : onAula
+                      ? 'bg-[var(--color-crema-100)] border-[var(--color-guinda-700)] text-[var(--color-guinda-800)]'
+                      : 'border-transparent text-stone-700 hover:bg-stone-50'}`}
+                style={!aula ? { color: '#a8a29e' } : undefined}
+                title={aula ? undefined : 'Tu centro aún no cuenta con Aula Virtual'}>
+                <School size={16} />
+                <span className="flex-1 text-left">Mi aula</span>
+                {!aula && <Lock size={13} />}
+              </Link>
             </div>
           </div>
         </nav>
