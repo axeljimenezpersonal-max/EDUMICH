@@ -608,31 +608,66 @@ function Dato({ label, val }: { label: string; val: string }) {
 }
 
 // ─── Nueva orden ───────────────────────────────────────────────────────────
+const COSTO_EXAMEN = 145;
+
+interface AlumnoBusqueda {
+  id: number; nombreCompleto: string; curp: string | null;
+  municipio: { nombre: string } | null;
+  gestor: { id: number; nombreCompleto: string } | null;
+}
+interface GestorBusqueda { id: number; nombreCompleto: string; municipio: { nombre: string } | null }
+
+function iniciales(n: string) { const p = (n || '?').trim().split(/\s+/); return ((p[0]?.[0] ?? '') + (p[1]?.[0] ?? '')).toUpperCase() || '?'; }
+
 function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCreada: (id: number) => void; onToast: (m: string, ok?: boolean) => void }) {
+  const [modo, setModo] = useState<'alumno' | 'gestor'>('alumno');
   const [q, setQ] = useState('');
-  const [resultados, setResultados] = useState<{ id: number; nombreCompleto: string; curp: string | null }[]>([]);
   const [buscando, setBuscando] = useState(false);
-  const [alumno, setAlumno] = useState<{ id: number; nombreCompleto: string } | null>(null);
+  const [resAlumnos, setResAlumnos] = useState<AlumnoBusqueda[]>([]);
+  const [resGestores, setResGestores] = useState<GestorBusqueda[]>([]);
+  const [gestor, setGestor] = useState<GestorBusqueda | null>(null);
+  const [alumnosDeGestor, setAlumnosDeGestor] = useState<AlumnoBusqueda[]>([]);
+  const [alumno, setAlumno] = useState<AlumnoBusqueda | null>(null);
   const [candidatos, setCandidatos] = useState<PagoExamenCandidato[]>([]);
+  const [cargandoCand, setCargandoCand] = useState(false);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [creando, setCreando] = useState(false);
+
+  function reset() {
+    setQ(''); setResAlumnos([]); setResGestores([]); setGestor(null);
+    setAlumnosDeGestor([]); setAlumno(null); setCandidatos([]); setSel(new Set());
+  }
+  function cambiarModo(m: 'alumno' | 'gestor') { setModo(m); reset(); }
 
   async function buscar() {
     if (q.trim().length < 2) return;
     setBuscando(true);
     try {
-      const r = await api.get<{ alumnos: { id: number; nombreCompleto: string; curp: string | null }[] }>(`/admin/alumnos?search=${encodeURIComponent(q.trim())}&limit=10`);
-      setResultados(r.alumnos);
+      if (modo === 'alumno') {
+        const r = await api.get<{ alumnos: AlumnoBusqueda[] }>(`/admin/alumnos?search=${encodeURIComponent(q.trim())}&limit=12`);
+        setResAlumnos(r.alumnos);
+      } else {
+        const r = await api.get<{ gestores: GestorBusqueda[] }>(`/admin/gestores?search=${encodeURIComponent(q.trim())}&limit=12`);
+        setResGestores(r.gestores);
+      }
     } catch { onToast('Error al buscar', false); } finally { setBuscando(false); }
   }
 
-  async function elegir(a: { id: number; nombreCompleto: string }) {
-    setAlumno(a); setResultados([]); setSel(new Set());
+  async function elegirGestor(g: GestorBusqueda) {
+    setGestor(g); setResGestores([]);
+    try {
+      const r = await api.get<{ alumnos: AlumnoBusqueda[] }>(`/admin/alumnos?gestorId=${g.id}&limit=100`);
+      setAlumnosDeGestor(r.alumnos);
+    } catch { onToast('Error al cargar alumnos del centro', false); }
+  }
+
+  async function elegirAlumno(a: AlumnoBusqueda) {
+    setAlumno(a); setResAlumnos([]); setSel(new Set()); setCargandoCand(true);
     try {
       const r = await api.get<{ examenes: PagoExamenCandidato[] }>(`/pagos-examen/candidatos/${a.id}`);
       setCandidatos(r.examenes);
       setSel(new Set(r.examenes.map((e) => e.id)));
-    } catch { onToast('Error al cargar exámenes', false); }
+    } catch { onToast('Error al cargar exámenes', false); } finally { setCargandoCand(false); }
   }
 
   async function crear() {
@@ -640,79 +675,192 @@ function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCread
     setCreando(true);
     try {
       const r = await api.post<{ id: number }>('/pagos-examen', { estudianteId: alumno.id, examenInscripcionIds: [...sel] });
-      onToast('Orden creada'); onCreada(r.id);
+      onToast('Orden de pago creada'); onCreada(r.id);
     } catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); } finally { setCreando(false); }
   }
 
+  const toggle = (id: number) => setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const todos = candidatos.length > 0 && sel.size === candidatos.length;
+
   return (
     <>
-      <button onClick={onBack} className="text-sm text-stone-600 hover:text-[var(--color-guinda-700)] inline-flex items-center gap-1.5 mb-5">
+      <button onClick={onBack} className="text-sm text-stone-600 hover:text-[var(--color-guinda-700)] inline-flex items-center gap-1.5 mb-4">
         <ChevronLeft size={15} /> Volver a órdenes
       </button>
-      <h1 className="font-serif text-2xl font-bold text-stone-900 mb-4">Nueva orden de pago</h1>
+      <h1 className="font-serif text-2xl font-bold text-stone-900">Nueva orden de pago</h1>
+      <p className="text-sm text-stone-500 mb-5">Genera la orden ante Tesorería para los exámenes de un alumno. ${COSTO_EXAMEN} por examen.</p>
 
-      {!alumno ? (
-        <div className="bg-white border border-stone-200 rounded-xl p-4 max-w-lg">
-          <label className="block text-xs font-semibold text-stone-600 mb-1.5">Busca al alumno (nombre, CURP o matrícula)</label>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-              <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscar()} placeholder="Nombre o CURP…" className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-3 py-2" />
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-5 items-start">
+        {/* Columna izquierda: selección */}
+        <div className="space-y-4">
+          {/* Paso 1 — a quién */}
+          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+            <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-bold text-stone-800"><span className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] text-white" style={{ background: 'var(--color-guinda-700)' }}>1</span> ¿Para quién es la orden?</div>
+              {(alumno || gestor) && <button onClick={reset} className="text-xs font-semibold text-[var(--color-guinda-700)] hover:underline">Reiniciar</button>}
             </div>
-            <button onClick={buscar} disabled={buscando} className="px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
-              {buscando ? <Loader2 size={15} className="animate-spin" /> : 'Buscar'}
-            </button>
-          </div>
-          <div className="mt-3 divide-y divide-stone-100">
-            {resultados.map((a) => (
-              <button key={a.id} onClick={() => elegir(a)} className="w-full text-left px-2 py-2.5 hover:bg-stone-50 rounded-lg">
-                <div className="text-sm font-medium text-stone-800">{a.nombreCompleto}</div>
-                <div className="text-xs text-stone-400 font-mono">{a.curp ?? '—'}</div>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : (
-        <div className="max-w-lg space-y-4">
-          <div className="bg-white border border-stone-200 rounded-xl p-4 flex items-center justify-between">
-            <div>
-              <div className="text-sm font-bold text-stone-900">{alumno.nombreCompleto}</div>
-              <div className="text-xs text-stone-400">Alumno seleccionado</div>
+            <div className="p-4">
+              {/* Toggle modo */}
+              {!alumno && (
+                <div className="inline-flex rounded-lg border border-stone-200 p-0.5 mb-3">
+                  {(['alumno', 'gestor'] as const).map((m) => (
+                    <button key={m} onClick={() => cambiarModo(m)}
+                      className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-colors ${modo === m ? 'text-white' : 'text-stone-600'}`}
+                      style={modo === m ? { background: 'var(--color-guinda-700)' } : undefined}>
+                      {m === 'alumno' ? 'Alumno individual' : 'Por centro (gestor)'}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Alumno ya elegido */}
+              {alumno ? (
+                <div className="flex items-center gap-3 rounded-lg border border-stone-200 bg-stone-50 p-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white" style={{ background: 'var(--color-guinda-700)' }}>{iniciales(alumno.nombreCompleto)}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-stone-900 truncate">{alumno.nombreCompleto}</div>
+                    <div className="text-xs text-stone-500 flex flex-wrap gap-x-2">
+                      <span className="font-mono">{alumno.curp ?? '—'}</span>
+                      {alumno.municipio && <span>· {alumno.municipio.nombre}</span>}
+                      {alumno.gestor && <span>· {alumno.gestor.nombreCompleto}</span>}
+                    </div>
+                  </div>
+                  <button onClick={() => { setAlumno(null); setCandidatos([]); setSel(new Set()); }} className="text-xs font-semibold text-[var(--color-guinda-700)] hover:underline shrink-0">Cambiar</button>
+                </div>
+              ) : (
+                <>
+                  {/* Buscador (o alumnos del gestor elegido) */}
+                  {!(modo === 'gestor' && gestor) && (
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscar()}
+                          placeholder={modo === 'alumno' ? 'Nombre, CURP o correo del alumno…' : 'Nombre o correo del gestor…'}
+                          className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none" />
+                      </div>
+                      <button onClick={buscar} disabled={buscando} className="px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
+                        {buscando ? <Loader2 size={15} className="animate-spin" /> : 'Buscar'}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Resultados de alumnos */}
+                  {modo === 'alumno' && resAlumnos.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {resAlumnos.map((a) => (
+                        <button key={a.id} onClick={() => elegirAlumno(a)} className="w-full flex items-center gap-3 text-left px-2.5 py-2 hover:bg-stone-50 rounded-lg">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: '#a8a29e' }}>{iniciales(a.nombreCompleto)}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-stone-800 truncate">{a.nombreCompleto}</div>
+                            <div className="text-xs text-stone-400 flex flex-wrap gap-x-2"><span className="font-mono">{a.curp ?? '—'}</span>{a.municipio && <span>· {a.municipio.nombre}</span>}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Resultados de gestores */}
+                  {modo === 'gestor' && !gestor && resGestores.length > 0 && (
+                    <div className="mt-3 space-y-1">
+                      {resGestores.map((g) => (
+                        <button key={g.id} onClick={() => elegirGestor(g)} className="w-full flex items-center gap-3 text-left px-2.5 py-2 hover:bg-stone-50 rounded-lg">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: '#7c3aed' }}>{iniciales(g.nombreCompleto)}</div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-stone-800 truncate">{g.nombreCompleto}</div>
+                            {g.municipio && <div className="text-xs text-stone-400">{g.municipio.nombre}</div>}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Gestor elegido → sus alumnos */}
+                  {modo === 'gestor' && gestor && (
+                    <div>
+                      <div className="mb-2 flex items-center justify-between rounded-lg bg-[var(--color-crema-100)] px-3 py-2">
+                        <span className="text-xs font-semibold text-stone-700">Centro: <b>{gestor.nombreCompleto}</b></span>
+                        <button onClick={() => { setGestor(null); setAlumnosDeGestor([]); }} className="text-xs font-semibold text-[var(--color-guinda-700)] hover:underline">Cambiar centro</button>
+                      </div>
+                      <div className="text-[11px] font-semibold uppercase tracking-wide text-stone-400 mb-1">Elige un alumno del centro</div>
+                      {alumnosDeGestor.length === 0 ? (
+                        <div className="text-sm text-stone-400 py-4 text-center">Este centro no tiene alumnos.</div>
+                      ) : (
+                        <div className="max-h-72 overflow-y-auto space-y-1">
+                          {alumnosDeGestor.map((a) => (
+                            <button key={a.id} onClick={() => elegirAlumno(a)} className="w-full flex items-center gap-3 text-left px-2.5 py-2 hover:bg-stone-50 rounded-lg">
+                              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: '#a8a29e' }}>{iniciales(a.nombreCompleto)}</div>
+                              <div className="min-w-0"><div className="text-sm font-medium text-stone-800 truncate">{a.nombreCompleto}</div><div className="text-xs text-stone-400 font-mono">{a.curp ?? '—'}</div></div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            <button onClick={() => { setAlumno(null); setCandidatos([]); }} className="text-xs text-[var(--color-guinda-700)] font-semibold hover:underline">Cambiar</button>
           </div>
 
-          {candidatos.length === 0 ? (
-            <div className="border-2 border-dashed border-stone-200 rounded-xl p-8 text-center text-sm text-stone-500">
-              Este alumno no tiene exámenes pendientes de orden de pago.
-            </div>
-          ) : (
+          {/* Paso 2 — módulos/exámenes */}
+          {alumno && (
             <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-              <div className="px-4 py-2.5 bg-[var(--color-crema-100)] border-b border-stone-200 text-xs font-bold uppercase tracking-wide text-stone-600">
-                Exámenes a cubrir ($145 c/u)
+              <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm font-bold text-stone-800"><span className="flex h-5 w-5 items-center justify-center rounded-full text-[11px] text-white" style={{ background: 'var(--color-guinda-700)' }}>2</span> Módulos a cubrir</div>
+                {candidatos.length > 0 && (
+                  <button onClick={() => setSel(todos ? new Set() : new Set(candidatos.map((c) => c.id)))} className="text-xs font-semibold text-[var(--color-guinda-700)] hover:underline">
+                    {todos ? 'Quitar todos' : 'Seleccionar todos'}
+                  </button>
+                )}
               </div>
-              <div className="divide-y divide-stone-100">
-                {candidatos.map((c) => {
-                  const on = sel.has(c.id);
-                  return (
-                    <label key={c.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-stone-50 cursor-pointer">
-                      <input type="checkbox" checked={on} onChange={() => setSel((s) => { const n = new Set(s); on ? n.delete(c.id) : n.add(c.id); return n; })} className="w-4 h-4 accent-[var(--color-guinda-700)]" />
-                      <span className="flex-1 text-sm text-stone-800">Módulo {c.moduloNumero} — {c.moduloNombre}</span>
-                      <span className="font-mono text-[11px] text-stone-400">{c.folio}</span>
-                    </label>
-                  );
-                })}
-              </div>
-              <div className="px-4 py-3 bg-stone-50 border-t border-stone-200 flex items-center justify-between">
-                <span className="text-sm text-stone-600">{sel.size} × $145 = <strong className="text-stone-900">{fmtMoney(sel.size * 145)}</strong></span>
-                <button onClick={crear} disabled={creando || sel.size === 0} className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
-                  {creando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Crear orden
-                </button>
-              </div>
+              {cargandoCand ? (
+                <div className="py-10 text-center text-sm text-stone-400"><Loader2 size={18} className="animate-spin inline mr-2" /> Cargando exámenes…</div>
+              ) : candidatos.length === 0 ? (
+                <div className="p-8 text-center">
+                  <ClipboardList size={26} className="mx-auto mb-2 text-stone-300" />
+                  <div className="text-sm font-semibold text-stone-600">Sin exámenes pendientes</div>
+                  <div className="text-xs text-stone-400 mt-1 max-w-xs mx-auto">Este alumno no tiene módulos inscritos sin orden de pago. Inscríbele módulos primero desde su expediente.</div>
+                </div>
+              ) : (
+                <div className="divide-y divide-stone-100">
+                  {candidatos.map((c) => {
+                    const on = sel.has(c.id);
+                    return (
+                      <label key={c.id} className="flex items-center gap-3 px-4 py-3 hover:bg-stone-50 cursor-pointer">
+                        <input type="checkbox" checked={on} onChange={() => toggle(c.id)} className="w-4 h-4 accent-[var(--color-guinda-700)]" />
+                        <span className="flex h-8 w-9 shrink-0 items-center justify-center rounded-lg text-xs font-bold" style={{ background: on ? 'var(--color-guinda-700)' : '#f5f5f4', color: on ? '#fff' : '#78716c' }}>M{c.moduloNumero}</span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-sm font-medium text-stone-800 truncate">{c.moduloNombre}</span>
+                          <span className="block text-[11px] text-stone-400 font-mono">Folio {c.folio}</span>
+                        </span>
+                        <span className="text-sm font-semibold text-stone-500 shrink-0">{fmtMoney(COSTO_EXAMEN)}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
-      )}
+
+        {/* Columna derecha: resumen sticky */}
+        <div className="lg:sticky lg:top-[100px] bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div className="px-4 py-3 bg-[var(--color-guinda-700)] text-white">
+            <div className="text-[10px] font-bold uppercase tracking-widest opacity-80">Resumen de la orden</div>
+            <div className="font-serif text-lg font-bold">{fmtMoney(sel.size * COSTO_EXAMEN)}</div>
+          </div>
+          <div className="p-4 space-y-2.5 text-sm">
+            <div className="flex justify-between"><span className="text-stone-500">Alumno</span><span className="font-semibold text-stone-800 text-right truncate max-w-[170px]">{alumno?.nombreCompleto ?? '—'}</span></div>
+            <div className="flex justify-between"><span className="text-stone-500">Exámenes</span><span className="font-semibold text-stone-800">{sel.size}</span></div>
+            <div className="flex justify-between"><span className="text-stone-500">Precio unitario</span><span className="text-stone-800">{fmtMoney(COSTO_EXAMEN)}</span></div>
+            <div className="border-t border-stone-100 pt-2.5 flex justify-between"><span className="font-bold text-stone-900">Total</span><span className="font-bold text-stone-900">{fmtMoney(sel.size * COSTO_EXAMEN)}</span></div>
+            <button onClick={crear} disabled={creando || !alumno || sel.size === 0}
+              className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-40">
+              {creando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Crear orden de pago
+            </button>
+            <p className="text-[11px] text-stone-400 leading-relaxed">La línea de captura la emite Tesorería del Estado. EDUMICH solo genera y concilia la orden.</p>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
