@@ -9,14 +9,20 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Megaphone, Plus, Trash2, Users, Link2, FileText,
   Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight,
-  Inbox, MessageCircle, Pin, PinOff, ImagePlus, X, Clock, Download, Paperclip,
+  Inbox, MessageCircle, Pin, PinOff, ImagePlus, X, Clock, Download, Paperclip, GraduationCap,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
 type Sec = 'resumen' | 'foro' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
 
-interface Tarea { id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null; createdAt: string; entregas: number }
+interface Tarea {
+  id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
+  abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
+  moduloNumero: number | null; moduloNombre: string | null; createdAt: string; entregas: number;
+}
+interface ModuloGrupo { moduloId: number; numero: number; nombre: string; alumnos: number }
+interface ModulosGrupo { convocatoria: string | null; enCurso: ModuloGrupo[]; todos: { id: number; numero: number; nombre: string }[] }
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null; createdAt: string }
 interface Anuncio { id: number; titulo: string; cuerpo: string; fijado: boolean; programadoPara: string | null; tieneImagen: boolean; createdAt: string }
 interface Entrega { id: number; alumno: string; estado: string; comentario: string | null; archivoNombre: string | null; entregada_en: string }
@@ -127,45 +133,162 @@ function ResumenSec({ resumen, ir }: { resumen: Resumen | null; ir: (s: Sec) => 
 }
 
 // ── Tareas ──
+/** Estado de una tarea según su ventana de disponibilidad. */
+function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
+  const ahora = Date.now();
+  if (t.abreEn && new Date(t.abreEn).getTime() > ahora) return 'programada';
+  if (t.cierraEn && new Date(t.cierraEn).getTime() < ahora) return 'cerrada';
+  return 'abierta';
+}
+
 function TareasTab({ onChange }: { onChange: () => void }) {
   const [items, setItems] = useState<Tarea[]>([]);
   const [totalAlumnos, setTotalAlumnos] = useState(0);
+  const [grupo, setGrupo] = useState<ModulosGrupo | null>(null);
   const [form, setForm] = useState(false);
-  const [t, setT] = useState({ titulo: '', instrucciones: '', fechaEntrega: '' });
+  const [t, setT] = useState({ titulo: '', instrucciones: '', moduloId: '', fechaEntrega: '', abreEn: '', cierraEn: '' });
+  const [documento, setDocumento] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
   const [entregasDe, setEntregasDe] = useState<number | null>(null);
   const [entregas, setEntregas] = useState<Entrega[]>([]);
+  const docRef = useRef<HTMLInputElement>(null);
   const cargar = () => api.get<{ tareas: Tarea[]; totalAlumnos: number }>('/aula/gestor/tareas').then((r) => { setItems(r.tareas); setTotalAlumnos(r.totalAlumnos); }).catch(() => {});
-  useEffect(() => { cargar(); }, []);
-  async function crear() { if (!t.titulo.trim()) return; setSaving(true); try { await api.post('/aula/gestor/tareas', t); setT({ titulo: '', instrucciones: '', fechaEntrega: '' }); setForm(false); cargar(); onChange(); } finally { setSaving(false); } }
+  useEffect(() => { cargar(); api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, []);
+
+  const puedePublicar = !!t.titulo.trim() && !!t.instrucciones.trim();
+  async function crear() {
+    if (!puedePublicar) return;
+    setSaving(true); setErr('');
+    try {
+      const fd = new FormData();
+      fd.append('titulo', t.titulo); fd.append('instrucciones', t.instrucciones);
+      if (t.moduloId) fd.append('moduloId', t.moduloId);
+      if (t.fechaEntrega) fd.append('fechaEntrega', t.fechaEntrega);
+      if (t.abreEn) fd.append('abreEn', new Date(t.abreEn).toISOString());
+      if (t.cierraEn) fd.append('cierraEn', new Date(t.cierraEn).toISOString());
+      if (documento) fd.append('documento', documento);
+      await api.post('/aula/gestor/tareas', fd);
+      setT({ titulo: '', instrucciones: '', moduloId: '', fechaEntrega: '', abreEn: '', cierraEn: '' });
+      setDocumento(null); if (docRef.current) docRef.current.value = '';
+      setForm(false); cargar(); onChange();
+    } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo publicar.'); }
+    finally { setSaving(false); }
+  }
   async function borrar(id: number) { if (!confirm('¿Eliminar esta tarea?')) return; await api.delete(`/aula/gestor/tareas/${id}`); cargar(); onChange(); }
   async function verEntregas(id: number) { if (entregasDe === id) { setEntregasDe(null); return; } const r = await api.get<{ entregas: Entrega[] }>(`/aula/gestor/tareas/${id}/entregas`); setEntregas(r.entregas); setEntregasDe(id); }
+
+  const lblCls = 'text-xs font-semibold text-stone-500 block mb-1';
 
   return (
     <div>
       <div className="flex items-start justify-between gap-3 mb-4">
-        <SecHeader icon={ClipboardList} titulo="Tareas" sub="Publica asignaciones; tus alumnos entregan con comentario y archivo." />
+        <SecHeader icon={ClipboardList} titulo="Tareas" sub="Asignaciones por módulo, con documento, apertura, cierre y fecha límite." />
         <BtnCrear label="Nueva tarea" on={form} toggle={() => setForm((v) => !v)} />
       </div>
+
+      {/* Módulos que cursa el grupo esta convocatoria */}
+      {grupo && grupo.enCurso.length > 0 && (
+        <div className="mb-4 rounded-xl border border-stone-200 bg-white p-3.5">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-stone-700 mb-2">
+            <GraduationCap size={14} style={{ color: G }} />
+            Tu grupo este periodo{grupo.convocatoria ? ` · ${grupo.convocatoria}` : ''}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {grupo.enCurso.map((m) => (
+              <span key={m.moduloId} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs" style={{ background: 'var(--color-crema-100)' }}>
+                <b style={{ color: G }}>M{m.numero}</b>
+                <span className="text-stone-700">{m.nombre}</span>
+                <span className="rounded-full px-1.5 text-[10px] font-bold text-white" style={{ background: G }}>{m.alumnos} alumno{m.alumnos === 1 ? '' : 's'}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {form && (
-        <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4 space-y-3">
-          <input className={inputCls} placeholder="Título de la tarea" value={t.titulo} onChange={(e) => setT((s) => ({ ...s, titulo: e.target.value }))} />
-          <textarea className={inputCls} rows={3} placeholder="Instrucciones (opcional)" value={t.instrucciones} onChange={(e) => setT((s) => ({ ...s, instrucciones: e.target.value }))} />
-          <div><label className="text-xs font-semibold text-stone-500 block mb-1">Fecha de entrega (opcional)</label><input type="date" className={inputCls + ' max-w-[200px]'} value={t.fechaEntrega} onChange={(e) => setT((s) => ({ ...s, fechaEntrega: e.target.value }))} /></div>
-          <button onClick={crear} disabled={saving || !t.titulo.trim()} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Publicar</button>
+        <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4 space-y-3.5">
+          <div>
+            <label className={lblCls}>Título *</label>
+            <input className={inputCls} placeholder="Ej. Ensayo: La sociedad mexicana" value={t.titulo} onChange={(e) => setT((s) => ({ ...s, titulo: e.target.value }))} />
+          </div>
+          <div>
+            <label className={lblCls}>Instrucciones * <span className="font-normal text-stone-400">(qué debe hacer y entregar el alumno)</span></label>
+            <textarea className={inputCls} rows={4} placeholder="Describe la actividad, criterios de evaluación y formato de entrega…" value={t.instrucciones} onChange={(e) => setT((s) => ({ ...s, instrucciones: e.target.value }))} />
+          </div>
+          <div>
+            <label className={lblCls}>Módulo</label>
+            <select className={inputCls} value={t.moduloId} onChange={(e) => setT((s) => ({ ...s, moduloId: e.target.value }))}>
+              <option value="">General (todo el grupo, sin módulo)</option>
+              {grupo?.enCurso.length ? (
+                <optgroup label={`En curso${grupo.convocatoria ? ` — ${grupo.convocatoria}` : ''}`}>
+                  {grupo.enCurso.map((m) => <option key={m.moduloId} value={m.moduloId}>M{m.numero} · {m.nombre} ({m.alumnos} alumno{m.alumnos === 1 ? '' : 's'})</option>)}
+                </optgroup>
+              ) : null}
+              <optgroup label="Todos los módulos del plan">
+                {grupo?.todos.map((m) => <option key={m.id} value={m.id}>M{m.numero} · {m.nombre}</option>)}
+              </optgroup>
+            </select>
+          </div>
+          <div>
+            <label className={lblCls}>Documento de apoyo <span className="font-normal text-stone-400">(actividad, rúbrica, lectura… opcional)</span></label>
+            <input ref={docRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden" onChange={(e) => setDocumento(e.target.files?.[0] ?? null)} />
+            {documento ? (
+              <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                <FileText size={16} style={{ color: G }} />
+                <span className="min-w-0 flex-1 truncate text-xs text-stone-600">{documento.name}</span>
+                <button onClick={() => { setDocumento(null); if (docRef.current) docRef.current.value = ''; }} className="text-stone-400 hover:text-red-500" aria-label="Quitar documento"><X size={15} /></button>
+              </div>
+            ) : (
+              <button onClick={() => docRef.current?.click()} className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-300 rounded-lg px-3 py-3 text-sm text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)] transition-colors">
+                <Paperclip size={15} /> Adjuntar documento (máx. 15 MB)
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className={lblCls}>Abre <span className="font-normal text-stone-400">(opcional)</span></label>
+              <input type="datetime-local" className={inputCls} value={t.abreEn} onChange={(e) => setT((s) => ({ ...s, abreEn: e.target.value }))} />
+            </div>
+            <div>
+              <label className={lblCls}>Cierra <span className="font-normal text-stone-400">(opcional)</span></label>
+              <input type="datetime-local" className={inputCls} value={t.cierraEn} onChange={(e) => setT((s) => ({ ...s, cierraEn: e.target.value }))} />
+            </div>
+            <div>
+              <label className={lblCls}>Fecha de entrega <span className="font-normal text-stone-400">(opcional)</span></label>
+              <input type="date" className={inputCls} value={t.fechaEntrega} onChange={(e) => setT((s) => ({ ...s, fechaEntrega: e.target.value }))} />
+            </div>
+          </div>
+          {t.abreEn && t.cierraEn && new Date(t.cierraEn) <= new Date(t.abreEn) && <div className="text-xs font-semibold text-red-600">El cierre debe ser después de la apertura.</div>}
+          {err && <div className="text-xs font-semibold text-red-600">{err}</div>}
+          <button onClick={crear} disabled={saving || !puedePublicar} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Publicar tarea</button>
         </div>
       )}
       {items.length === 0 ? <Vacio icon={ClipboardList} texto="Aún no has publicado tareas." /> : (
         <div className="space-y-2.5">
           {items.map((it) => {
             const pct = totalAlumnos > 0 ? Math.round((it.entregas / totalAlumnos) * 100) : 0;
+            const estado = estadoVentana(it);
             return (
             <div key={it.id} className="bg-white border border-stone-200 rounded-xl p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
-                  <div className="font-semibold text-stone-900">{it.titulo}</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-stone-900">{it.titulo}</span>
+                    {it.moduloNumero != null && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }} title={it.moduloNombre ?? ''}>M{it.moduloNumero}</span>}
+                    {estado === 'programada' && <span className="inline-flex items-center gap-1 text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fef3c7', color: '#92400e' }}><Clock size={9} /> Abre {fechaHora(it.abreEn!)}</span>}
+                    {estado === 'cerrada' && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded" style={{ background: '#fee2e2', color: '#991b1b' }}>Cerrada</span>}
+                  </div>
+                  {it.moduloNombre && <div className="text-[11px] text-stone-400 mt-0.5">Módulo {it.moduloNumero}: {it.moduloNombre}</div>}
                   {it.instrucciones && <div className="text-sm text-stone-600 mt-0.5 whitespace-pre-wrap">{it.instrucciones}</div>}
+                  {it.archivoNombre && (
+                    <a href={`/api/aula/tareas/${it.id}/documento`} className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: G }}>
+                      <FileText size={13} /> {it.archivoNombre}
+                    </a>
+                  )}
                   <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-stone-500">
+                    {it.abreEn && estado !== 'programada' && <span className="inline-flex items-center gap-1"><Clock size={12} /> Abrió: {fechaHora(it.abreEn)}</span>}
+                    {it.cierraEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Cierra: {fechaHora(it.cierraEn)}</span>}
                     {it.fechaEntrega && <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> Entrega: {fecha(it.fechaEntrega)}</span>}
                     <button onClick={() => verEntregas(it.id)} className="inline-flex items-center gap-1 font-semibold" style={{ color: G }}><Users size={12} /> {it.entregas}/{totalAlumnos} entregaron {entregasDe === it.id ? '▴' : '▾'}</button>
                   </div>

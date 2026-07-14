@@ -15,7 +15,7 @@ import multer from 'multer';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { db } from '../db';
-import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaAnuncios, aulaForo } from '@workspace/db/schema';
+import { gestores, estudiantes, aulaTareas, aulaEntregas, aulaMateriales, aulaAnuncios, aulaForo, modulos } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 
@@ -128,31 +128,72 @@ g.get('/resumen', async (req, res) => {
   res.json({ tareas: Number(t.n), materiales: Number(m.n), anuncios: Number(a.n), alumnos: Number(al.n) });
 });
 
+// ── Módulos que cursa el grupo (convocatoria abierta) — para el selector y el tablero ──
+g.get('/modulos-grupo', async (req, res) => {
+  const gid = req.user!.userId;
+  const [conv] = await db.execute<{ id: number; nombre: string }>(sql`
+    SELECT id, nombre FROM convocatorias WHERE estado = 'abierta' ORDER BY fecha_apertura DESC LIMIT 1`).then(r => r.rows);
+  let enCurso: { moduloId: number; numero: number; nombre: string; alumnos: number }[] = [];
+  if (conv) {
+    enCurso = await db.execute<{ modulo_id: number; numero: number; nombre: string; alumnos: string }>(sql`
+      SELECT m.id AS modulo_id, m.numero, m.nombre, COUNT(DISTINCT i.estudiante_id) AS alumnos
+      FROM inscripciones i
+      JOIN inscripcion_modulos im ON im.inscripcion_id = i.id
+      JOIN modulos m ON m.id = im.modulo_id
+      JOIN estudiantes es ON es.user_id = i.estudiante_id AND es.gestor_id = ${gid}
+      WHERE i.convocatoria_id = ${conv.id}
+      GROUP BY m.id, m.numero, m.nombre ORDER BY m.numero`).then(r =>
+      r.rows.map(x => ({ moduloId: x.modulo_id, numero: x.numero, nombre: x.nombre, alumnos: Number(x.alumnos) })));
+  }
+  const todos = await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).orderBy(modulos.numero);
+  res.json({ convocatoria: conv?.nombre ?? null, enCurso, todos });
+});
+
 // ── Tareas ──
 g.get('/tareas', async (req, res) => {
   const gid = req.user!.userId;
-  const rows = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; created_at: string; entregas: string }>(sql`
-    SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.created_at::text,
+  const rows = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; entregas: string }>(sql`
+    SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
+           t.archivo_nombre, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
            (SELECT COUNT(*) FROM aula_entregas e WHERE e.tarea_id = t.id) AS entregas
-    FROM aula_tareas t WHERE t.gestor_user_id = ${gid} ORDER BY t.created_at DESC`).then(r => r.rows);
+    FROM aula_tareas t LEFT JOIN modulos m ON m.id = t.modulo_id
+    WHERE t.gestor_user_id = ${gid} ORDER BY t.created_at DESC`).then(r => r.rows);
   const [al] = await db.execute<{ n: string }>(sql`SELECT COUNT(*) n FROM estudiantes WHERE gestor_id = ${gid}`).then(r => r.rows);
-  res.json({ tareas: rows.map(r => ({ id: r.id, titulo: r.titulo, instrucciones: r.instrucciones, fechaEntrega: r.fecha_entrega, createdAt: r.created_at, entregas: Number(r.entregas) })), totalAlumnos: Number(al.n) });
+  res.json({
+    tareas: rows.map(r => ({
+      id: r.id, titulo: r.titulo, instrucciones: r.instrucciones, fechaEntrega: r.fecha_entrega,
+      abreEn: r.abre_en, cierraEn: r.cierra_en, archivoNombre: r.archivo_nombre,
+      moduloNumero: r.modulo_numero, moduloNombre: r.modulo_nombre,
+      createdAt: r.created_at, entregas: Number(r.entregas),
+    })),
+    totalAlumnos: Number(al.n),
+  });
 });
 
+const fechaODia = z.string().trim().refine(s => s === '' || !Number.isNaN(new Date(s).getTime()), 'Fecha inválida');
 const tareaSchema = z.object({
   titulo: z.string().trim().min(1).max(200),
-  instrucciones: z.string().trim().max(5000).optional().or(z.literal('')),
-  fechaEntrega: z.string().datetime().optional().or(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).optional().or(z.literal('')),
+  instrucciones: z.string().trim().min(1, 'Las instrucciones son obligatorias').max(5000),
+  moduloId: z.string().trim().regex(/^\d*$/, 'Módulo inválido').optional(),
+  fechaEntrega: fechaODia.optional(),
+  abreEn: fechaODia.optional(),
+  cierraEn: fechaODia.optional(),
 });
-g.post('/tareas', async (req, res) => {
+g.post('/tareas', conArchivo('documento'), async (req, res) => {
   const p = tareaSchema.safeParse(req.body);
-  if (!p.success) { res.status(400).json({ error: 'Datos inválidos' }); return; }
-  const fe = p.data.fechaEntrega && p.data.fechaEntrega !== '' ? new Date(p.data.fechaEntrega) : null;
+  if (!p.success) { res.status(400).json({ error: p.error.issues[0]?.message ?? 'Datos inválidos' }); return; }
+  const d = p.data;
+  const fecha = (s?: string) => (s && s !== '' ? new Date(s) : null);
+  const abre = fecha(d.abreEn), cierra = fecha(d.cierraEn), fe = fecha(d.fechaEntrega);
+  if (abre && cierra && cierra <= abre) { res.status(400).json({ error: 'El cierre debe ser después de la apertura.' }); return; }
+  const archivoRef = req.file ? await guardarSubida(req.file, 'aula') : null;
   const [t] = await db.insert(aulaTareas).values({
-    gestorUserId: req.user!.userId, titulo: p.data.titulo,
-    instrucciones: p.data.instrucciones || null, fechaEntrega: fe,
+    gestorUserId: req.user!.userId, titulo: d.titulo, instrucciones: d.instrucciones,
+    moduloId: d.moduloId ? Number(d.moduloId) : null,
+    abreEn: abre, cierraEn: cierra, fechaEntrega: fe,
+    archivoRef, archivoNombre: req.file?.originalname ?? null, archivoTipo: req.file?.mimetype ?? null,
   }).returning();
-  res.json({ tarea: t });
+  res.json({ tarea: { ...t, archivoRef: undefined } });
 });
 g.delete('/tareas/:id', async (req, res) => {
   const id = parseInt(String(req.params.id), 10);
@@ -273,6 +314,15 @@ router.get('/materiales/:id/archivo', async (req, res) => {
   if (!m) { res.status(404).json({ error: 'Material no encontrado' }); return; }
   await servirArchivo(res, m.archivoRef, m.archivoNombre, m.archivoTipo);
 });
+// Documento de apoyo de una tarea
+router.get('/tareas/:id/documento', async (req, res) => {
+  const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
+  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  const id = parseInt(String(req.params.id), 10);
+  const [t] = await db.select().from(aulaTareas).where(and(eq(aulaTareas.id, id), eq(aulaTareas.gestorUserId, gid)));
+  if (!t) { res.status(404).json({ error: 'Tarea no encontrada' }); return; }
+  await servirArchivo(res, t.archivoRef, t.archivoNombre, t.archivoTipo);
+});
 // Adjunto de un mensaje del foro
 router.get('/foro/:id/adjunto', async (req, res) => {
   const gid = await aulaDelUsuario(req.user!.userId, req.user!.rol);
@@ -291,13 +341,23 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
   const gid = e.gestorId;
   const [gInfo] = await db.select({ nombre: gestores.nombreCompleto, centro: gestores.centroAsesoria }).from(gestores).where(eq(gestores.userId, gid));
 
-  const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; created_at: string; mi_estado: string | null; mi_comentario: string | null; mi_archivo: string | null }>(sql`
-    SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.created_at::text,
+  const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; mi_estado: string | null; mi_comentario: string | null; mi_archivo: string | null }>(sql`
+    SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
+           t.archivo_nombre, m.numero AS modulo_numero, m.nombre AS modulo_nombre, t.created_at::text,
            e.estado AS mi_estado, e.comentario AS mi_comentario, e.archivo_nombre AS mi_archivo
     FROM aula_tareas t
+    LEFT JOIN modulos m ON m.id = t.modulo_id
     LEFT JOIN aula_entregas e ON e.tarea_id = t.id AND e.estudiante_id = ${uid}
     WHERE t.gestor_user_id = ${gid} AND t.publicada = true
     ORDER BY t.created_at DESC`).then(r => r.rows);
+  // Módulos que cursa ESTE alumno en la convocatoria abierta (contexto del aula)
+  const misModulos = await db.execute<{ numero: number; nombre: string }>(sql`
+    SELECT m.numero, m.nombre
+    FROM inscripciones i
+    JOIN convocatorias c ON c.id = i.convocatoria_id AND c.estado = 'abierta'
+    JOIN inscripcion_modulos im ON im.inscripcion_id = i.id
+    JOIN modulos m ON m.id = im.modulo_id
+    WHERE i.estudiante_id = ${uid} ORDER BY m.numero`).then(r => r.rows);
   const materiales = await db.select().from(aulaMateriales).where(eq(aulaMateriales.gestorUserId, gid)).orderBy(desc(aulaMateriales.createdAt));
   // Solo anuncios ya publicados (los programados a futuro no se muestran); fijados primero.
   const anuncios = await db.execute<{ id: number; titulo: string; cuerpo: string; fijado: boolean; imagen_ref: string | null; created_at: string }>(sql`
@@ -309,7 +369,13 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
   res.json({
     habilitada: true,
     gestor: { nombre: gInfo?.nombre ?? '', centro: gInfo?.centro ?? null },
-    tareas: tareas.map(t => ({ id: t.id, titulo: t.titulo, instrucciones: t.instrucciones, fechaEntrega: t.fecha_entrega, createdAt: t.created_at, miEstado: t.mi_estado, miComentario: t.mi_comentario, miArchivo: t.mi_archivo })),
+    tareas: tareas.map(t => ({
+      id: t.id, titulo: t.titulo, instrucciones: t.instrucciones, fechaEntrega: t.fecha_entrega,
+      abreEn: t.abre_en, cierraEn: t.cierra_en, archivoNombre: t.archivo_nombre,
+      moduloNumero: t.modulo_numero, moduloNombre: t.modulo_nombre,
+      createdAt: t.created_at, miEstado: t.mi_estado, miComentario: t.mi_comentario, miArchivo: t.mi_archivo,
+    })),
+    misModulos,
     materiales: materiales.map(m => ({ ...m, archivoRef: undefined })),
     anuncios: anuncios.map(a => ({ id: a.id, titulo: a.titulo, cuerpo: a.cuerpo, fijado: a.fijado, tieneImagen: !!a.imagen_ref, createdAt: a.created_at })),
   });
@@ -325,6 +391,10 @@ router.post('/tareas/:id/entregar', requireRol('estudiante'), conArchivo('archiv
   const [e] = await db.select({ gestorId: estudiantes.gestorId }).from(estudiantes).where(eq(estudiantes.userId, uid));
   const [t] = await db.select().from(aulaTareas).where(eq(aulaTareas.id, id));
   if (!t || !e?.gestorId || t.gestorUserId !== e.gestorId) { res.status(404).json({ error: 'Tarea no encontrada' }); return; }
+  // Ventana de disponibilidad: se respeta también en el servidor.
+  const ahora = new Date();
+  if (t.abreEn && t.abreEn > ahora) { res.status(400).json({ error: 'Esta tarea aún no abre.' }); return; }
+  if (t.cierraEn && t.cierraEn < ahora) { res.status(400).json({ error: 'Esta tarea ya cerró; ya no acepta entregas.' }); return; }
   const archivoRef = req.file ? await guardarSubida(req.file, 'aula') : null;
   const nuevo = {
     comentario, estado: 'entregada', entregadaEn: new Date(),

@@ -1643,7 +1643,16 @@ export const aulaTareas = pgTable('aula_tareas', {
   id: serial('id').primaryKey(),
   gestorUserId: integer('gestor_user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   titulo: varchar('titulo', { length: 200 }).notNull(),
-  instrucciones: text('instrucciones'),
+  instrucciones: text('instrucciones'), // obligatorias a nivel API/UI desde 2026-07-13
+  // Módulo del plan al que pertenece la tarea (null = general del aula)
+  moduloId: integer('modulo_id').references(() => modulos.id),
+  // Documento de apoyo que sube el gestor (PDF con la actividad, rúbrica, etc.)
+  archivoRef: varchar('archivo_ref', { length: 1000 }),
+  archivoNombre: varchar('archivo_nombre', { length: 255 }),
+  archivoTipo: varchar('archivo_tipo', { length: 100 }),
+  // Ventana de disponibilidad: antes de abrir no se puede entregar; al cerrar tampoco.
+  abreEn: timestamp('abre_en'),   // null = disponible desde su publicación
+  cierraEn: timestamp('cierra_en'), // null = no cierra
   fechaEntrega: timestamp('fecha_entrega'),
   publicada: boolean('publicada').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),

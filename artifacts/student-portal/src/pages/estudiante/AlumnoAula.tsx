@@ -10,15 +10,29 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, Megaphone, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
   Video, PlayCircle, LayoutDashboard, ChevronRight, ChevronLeft, Inbox, MessageCircle, Pin, Paperclip, Download, X,
+  Lock, Clock, GraduationCap,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 
 type Sec = 'resumen' | 'foro' | 'anuncios' | 'tareas' | 'materiales' | 'videos';
-interface Tarea { id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null; createdAt: string; miEstado: string | null; miComentario: string | null; miArchivo: string | null }
+interface Tarea {
+  id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
+  abreEn: string | null; cierraEn: string | null; archivoNombre: string | null;
+  moduloNumero: number | null; moduloNombre: string | null;
+  createdAt: string; miEstado: string | null; miComentario: string | null; miArchivo: string | null;
+}
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null }
 interface Anuncio { id: number; titulo: string; cuerpo: string; fijado: boolean; tieneImagen: boolean; createdAt: string }
-interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null }; tareas: Tarea[]; materiales: Material[]; anuncios: Anuncio[] }
+interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null }; tareas: Tarea[]; materiales: Material[]; anuncios: Anuncio[]; misModulos?: { numero: number; nombre: string }[] }
+
+/** Estado de una tarea según su ventana de disponibilidad. */
+function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
+  const ahora = Date.now();
+  if (t.abreEn && new Date(t.abreEn).getTime() > ahora) return 'programada';
+  if (t.cierraEn && new Date(t.cierraEn).getTime() < ahora) return 'cerrada';
+  return 'abierta';
+}
 
 const G = 'var(--color-guinda-700)';
 function fecha(s: string | null) { return s ? new Date(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; }
@@ -68,9 +82,18 @@ export default function AlumnoAula() {
               <h1 className="font-serif text-2xl font-bold leading-tight">{d.gestor?.centro || d.gestor?.nombre || 'Aula virtual'}</h1>
             </div>
           </div>
-          {pendientes > 0 && (
-            <div className="relative mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }}>
-              <ClipboardList size={14} /> Tienes <b>{pendientes}</b> tarea{pendientes === 1 ? '' : 's'} pendiente{pendientes === 1 ? '' : 's'}
+          {(pendientes > 0 || (d.misModulos && d.misModulos.length > 0)) && (
+            <div className="relative mt-4 flex flex-wrap gap-2">
+              {d.misModulos?.map((m) => (
+                <span key={m.numero} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }} title={m.nombre}>
+                  <GraduationCap size={14} /> <b>M{m.numero}</b> <span className="text-white/80 max-w-[180px] truncate">{m.nombre}</span>
+                </span>
+              ))}
+              {pendientes > 0 && (
+                <span className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  <ClipboardList size={14} /> <b>{pendientes}</b> tarea{pendientes === 1 ? '' : 's'} pendiente{pendientes === 1 ? '' : 's'}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -144,20 +167,29 @@ function ResumenSec({ d, pendientes, videos, materiales, ir }: { d: MiAula; pend
 /** Tarjeta compacta de tarea en la lista: se abre en vista de detalle. */
 function TareaItem({ t, abrir }: { t: Tarea; abrir: () => void }) {
   const entregada = !!t.miEstado;
-  const vencida = !entregada && t.fechaEntrega && new Date(t.fechaEntrega).getTime() < Date.now();
+  const ventana = estadoVentana(t);
+  const vencida = !entregada && (ventana === 'cerrada' || (t.fechaEntrega && new Date(t.fechaEntrega).getTime() < Date.now()));
   return (
     <button onClick={abrir} className="w-full text-left bg-white border rounded-xl p-4 hover:-translate-y-0.5 hover:shadow-md transition-all group" style={{ borderColor: entregada ? '#bbf7d0' : vencida ? '#fecaca' : '#e7e5e4' }}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="font-semibold text-stone-900 flex items-center gap-1.5">{t.titulo} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform shrink-0" /></div>
+          <div className="font-semibold text-stone-900 flex flex-wrap items-center gap-1.5">
+            {t.moduloNumero != null && <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded text-white" style={{ background: G }} title={t.moduloNombre ?? ''}>M{t.moduloNumero}</span>}
+            {t.titulo} <ChevronRight size={14} className="text-stone-300 group-hover:translate-x-0.5 transition-transform shrink-0" />
+          </div>
           <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-stone-500">
+            {ventana === 'programada' && t.abreEn && <span className="inline-flex items-center gap-1 font-semibold" style={{ color: '#92400e' }}><Lock size={12} /> Abre el {fechaHora(t.abreEn)}</span>}
+            {ventana === 'abierta' && t.cierraEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Cierra: {fechaHora(t.cierraEn)}</span>}
             {t.fechaEntrega && <span className="inline-flex items-center gap-1"><CalendarClock size={12} /> Entrega: {fecha(t.fechaEntrega)}</span>}
+            {t.archivoNombre && <span className="inline-flex items-center gap-1"><FileText size={12} /> Incluye documento</span>}
             {t.miArchivo && <span className="inline-flex items-center gap-1"><Paperclip size={12} /> {t.miArchivo}</span>}
           </div>
         </div>
         {entregada
           ? <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#dcfce7', color: '#166534' }}><CheckCircle2 size={12} /> Entregada</span>
-          : <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: vencida ? '#fee2e2' : '#fef3c7', color: vencida ? '#991b1b' : '#92400e' }}>{vencida ? 'Vencida' : 'Pendiente'}</span>}
+          : ventana === 'programada'
+            ? <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: '#f5f5f4', color: '#78716c' }}><Lock size={11} /> Próximamente</span>
+            : <span className="shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-full" style={{ background: vencida ? '#fee2e2' : '#fef3c7', color: vencida ? '#991b1b' : '#92400e' }}>{vencida ? (ventana === 'cerrada' ? 'Cerrada' : 'Vencida') : 'Pendiente'}</span>}
       </div>
     </button>
   );
@@ -171,7 +203,9 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
   const [err, setErr] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const entregada = !!t.miEstado;
+  const ventana = estadoVentana(t);
   const vencida = !entregada && t.fechaEntrega && new Date(t.fechaEntrega).getTime() < Date.now();
+  const puedeEntregar = ventana === 'abierta';
 
   async function entregar() {
     setSaving(true); setErr('');
@@ -193,10 +227,13 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
       <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-stone-100 flex items-start justify-between gap-3" style={{ background: 'var(--color-crema-50, #fdfaf5)' }}>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Tarea</div>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-stone-400">Tarea{t.moduloNumero != null ? ` · Módulo ${t.moduloNumero}` : ''}</div>
             <h2 className="font-serif text-xl font-bold text-stone-900">{t.titulo}</h2>
+            {t.moduloNombre && <div className="text-xs text-stone-500">{t.moduloNombre}</div>}
             <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-stone-500">
               <span>Publicada: {fecha(t.createdAt)}</span>
+              {t.abreEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Abre: {fechaHora(t.abreEn)}</span>}
+              {t.cierraEn && <span className="inline-flex items-center gap-1"><Clock size={12} /> Cierra: {fechaHora(t.cierraEn)}</span>}
               {t.fechaEntrega && <span className="inline-flex items-center gap-1 font-semibold" style={{ color: vencida ? '#b91c1c' : undefined }}><CalendarClock size={12} /> Entrega: {fecha(t.fechaEntrega)}</span>}
             </div>
           </div>
@@ -208,35 +245,56 @@ function TareaDetalle({ t, volver, onDone }: { t: Tarea; volver: () => void; onD
         <div className="px-5 py-4">
           <div className="text-xs font-bold uppercase tracking-wide text-stone-400 mb-1.5">Instrucciones</div>
           <div className="text-sm text-stone-700 whitespace-pre-wrap">{t.instrucciones || 'Tu gestor no agregó instrucciones adicionales.'}</div>
+          {t.archivoNombre && (
+            <a href={`/api/aula/tareas/${t.id}/documento`} className="mt-3 inline-flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-semibold text-stone-700 transition-colors hover:border-[var(--color-guinda-500)]">
+              <FileText size={17} style={{ color: G }} />
+              <span className="min-w-0 truncate">{t.archivoNombre}</span>
+              <Download size={14} className="shrink-0 text-stone-400" />
+            </a>
+          )}
         </div>
 
         <div className="px-5 py-4 border-t border-stone-100">
           <div className="text-xs font-bold uppercase tracking-wide text-stone-400 mb-2">{entregada ? 'Tu entrega (puedes actualizarla)' : 'Entregar tarea'}</div>
+          {!puedeEntregar && (
+            <div className="mb-3 flex items-center gap-2 rounded-lg border px-3 py-2.5 text-xs font-semibold" style={ventana === 'programada' ? { background: '#fffbeb', borderColor: '#fde68a', color: '#92400e' } : { background: '#fef2f2', borderColor: '#fecaca', color: '#991b1b' }}>
+              <Lock size={14} className="shrink-0" />
+              {ventana === 'programada'
+                ? <>Esta tarea abre el <b>{fechaHora(t.abreEn!)}</b>. Podrás entregar a partir de esa fecha.</>
+                : <>Esta tarea cerró el <b>{fechaHora(t.cierraEn!)}</b> y ya no acepta entregas.</>}
+            </div>
+          )}
           {entregada && t.miArchivo && !archivo && (
             <div className="mb-2 inline-flex items-center gap-2 rounded-lg bg-stone-50 border border-stone-200 px-3 py-2 text-xs text-stone-600">
               <FileText size={14} style={{ color: G }} /> Entregaste: <b>{t.miArchivo}</b>
             </div>
           )}
-          <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3} placeholder="Comentario para tu gestor (opcional)" className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none" />
-          <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
-          {archivo ? (
-            <div className="mt-2 flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
-              <FileText size={16} style={{ color: G }} />
-              <span className="min-w-0 flex-1 truncate text-xs text-stone-600">{archivo.name}</span>
-              <button onClick={() => { setArchivo(null); if (fileRef.current) fileRef.current.value = ''; }} className="text-stone-400 hover:text-red-500" aria-label="Quitar archivo"><X size={15} /></button>
-            </div>
+          {puedeEntregar ? (
+            <>
+              <textarea value={comentario} onChange={(e) => setComentario(e.target.value)} rows={3} placeholder="Comentario para tu gestor (opcional)" className="w-full text-sm border border-stone-300 rounded-lg px-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none" />
+              <input ref={fileRef} type="file" accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" className="hidden" onChange={(e) => setArchivo(e.target.files?.[0] ?? null)} />
+              {archivo ? (
+                <div className="mt-2 flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                  <FileText size={16} style={{ color: G }} />
+                  <span className="min-w-0 flex-1 truncate text-xs text-stone-600">{archivo.name}</span>
+                  <button onClick={() => { setArchivo(null); if (fileRef.current) fileRef.current.value = ''; }} className="text-stone-400 hover:text-red-500" aria-label="Quitar archivo"><X size={15} /></button>
+                </div>
+              ) : (
+                <button onClick={() => fileRef.current?.click()} className="mt-2 w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-300 rounded-lg px-3 py-3.5 text-sm text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)] transition-colors">
+                  <Paperclip size={15} /> Adjuntar mi trabajo (foto, PDF, Word… máx. 15 MB)
+                </button>
+              )}
+              {err && <div className="mt-2 text-xs font-semibold text-red-600">{err}</div>}
+              <div className="mt-3 flex gap-2">
+                <button onClick={entregar} disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>
+                  {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} {entregada ? 'Actualizar entrega' : 'Entregar'}
+                </button>
+                <button onClick={volver} className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-300 text-stone-600">Cancelar</button>
+              </div>
+            </>
           ) : (
-            <button onClick={() => fileRef.current?.click()} className="mt-2 w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-300 rounded-lg px-3 py-3.5 text-sm text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)] transition-colors">
-              <Paperclip size={15} /> Adjuntar mi trabajo (foto, PDF, Word… máx. 15 MB)
-            </button>
+            <button onClick={volver} className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-300 text-stone-600">Volver a tareas</button>
           )}
-          {err && <div className="mt-2 text-xs font-semibold text-red-600">{err}</div>}
-          <div className="mt-3 flex gap-2">
-            <button onClick={entregar} disabled={saving} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>
-              {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />} {entregada ? 'Actualizar entrega' : 'Entregar'}
-            </button>
-            <button onClick={volver} className="px-4 py-2 text-sm font-medium rounded-lg border border-stone-300 text-stone-600">Cancelar</button>
-          </div>
         </div>
       </div>
     </div>
