@@ -2633,6 +2633,7 @@ router.get('/gestores/:gestorId', async (req, res) => {
       municipio_nombre: string | null;
       estado: string;
       capacidad_maxima: number;
+      aula_habilitada: boolean;
       email: string;
       ultimo_login: Date | null;
       total_alumnos: number;
@@ -2655,6 +2656,7 @@ router.get('/gestores/:gestorId', async (req, res) => {
         m.nombre AS municipio_nombre,
         g.estado,
         g.capacidad_maxima,
+        g.aula_habilitada,
         u.email,
         u.ultimo_login,
         (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id)::int AS total_alumnos,
@@ -2709,6 +2711,7 @@ router.get('/gestores/:gestorId', async (req, res) => {
       municipio: r.municipio_id ? { id: r.municipio_id, nombre: r.municipio_nombre ?? '' } : null,
       estado: r.estado as 'activo' | 'inactivo',
       capacidadMaxima: r.capacidad_maxima,
+      aulaHabilitada: !!r.aula_habilitada,
       metricas: {
         totalAlumnos,
         expedientesCompletos,
@@ -2834,6 +2837,8 @@ const patchGestorSchema = z.object({
   centroAsesoria: z.string().optional(),
   claveCentro: z.string().optional(),
   rfcCentro: z.string().optional(),
+  // Aula virtual: módulo "plus" del gestor (Synapsis lo activa/cobra)
+  aulaHabilitada: z.boolean().optional(),
 });
 
 router.patch('/gestores/:gestorId', async (req, res) => {
@@ -2861,6 +2866,7 @@ router.patch('/gestores/:gestorId', async (req, res) => {
     if (data.centroAsesoria !== undefined) setValues.centroAsesoria = data.centroAsesoria;
     if (data.claveCentro !== undefined) setValues.claveCentro = data.claveCentro;
     if (data.rfcCentro !== undefined) setValues.rfcCentro = data.rfcCentro;
+    if (data.aulaHabilitada !== undefined) setValues.aulaHabilitada = data.aulaHabilitada;
 
     await db.update(gestores).set(setValues).where(eq(gestores.userId, gestorId));
 

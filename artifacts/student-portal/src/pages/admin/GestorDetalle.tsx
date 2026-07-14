@@ -21,6 +21,7 @@ type GestorDetalle = {
   municipio: { id: number; nombre: string } | null;
   estado: 'activo' | 'inactivo';
   capacidadMaxima: number;
+  aulaHabilitada: boolean;
   metricas: {
     totalAlumnos: number;
     expedientesCompletos: number;
@@ -540,6 +541,22 @@ export default function GestorDetalle() {
     }
   }
 
+  const [togglingAula, setTogglingAula] = useState(false);
+  async function handleToggleAula() {
+    if (!gestor || togglingAula) return;
+    const nuevo = !gestor.aulaHabilitada;
+    setTogglingAula(true);
+    try {
+      await api.patch(`/admin/gestores/${gestor.id}`, { aulaHabilitada: nuevo });
+      setGestor((g) => g ? { ...g, aulaHabilitada: nuevo } : g);
+      showToast(nuevo ? 'Aula virtual activada para este gestor y sus alumnos' : 'Aula virtual desactivada', true);
+    } catch {
+      showToast('Error al cambiar el aula virtual', false);
+    } finally {
+      setTogglingAula(false);
+    }
+  }
+
   if (loadingGestor) {
     return (
       <AdminLayout>
@@ -747,6 +764,32 @@ export default function GestorDetalle() {
               <Users size={12} /> Ver alumnos
             </button>
           </div>
+        </div>
+
+        {/* Aula virtual (módulo "plus" del gestor) */}
+        <div className="mx-8 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3"
+          style={gestor.aulaHabilitada ? { borderColor: '#bbf7d0', background: '#f0fdf4' } : { borderColor: '#e7e5e4', background: '#fafaf9' }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+              style={gestor.aulaHabilitada ? { background: '#dcfce7', color: '#166534' } : { background: '#e7e5e4', color: '#78716c' }}>
+              <GraduationCap size={17} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-bold" style={{ color: '#443e39' }}>
+                Aula virtual {gestor.aulaHabilitada
+                  ? <span className="ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: '#dcfce7', color: '#166534' }}>Activa</span>
+                  : <span className="ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: '#e7e5e4', color: '#78716c' }}>Inactiva</span>}
+              </div>
+              <div className="text-xs" style={{ color: '#6b635e' }}>
+                Beneficio adicional del centro: foro, tareas, materiales y videos para sus alumnos.
+              </div>
+            </div>
+          </div>
+          <button onClick={handleToggleAula} disabled={togglingAula}
+            className="shrink-0 px-3.5 py-1.5 text-xs font-bold rounded-lg text-white disabled:opacity-50"
+            style={{ background: gestor.aulaHabilitada ? '#78716c' : '#2d7d46' }}>
+            {togglingAula ? 'Guardando…' : gestor.aulaHabilitada ? 'Desactivar aula' : 'Activar aula'}
+          </button>
         </div>
 
         {/* Meta row */}
