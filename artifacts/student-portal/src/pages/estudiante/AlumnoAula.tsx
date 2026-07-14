@@ -12,7 +12,7 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Link2, FileText, CheckCircle2, CalendarClock, Loader2,
   Video, PlayCircle, LayoutDashboard, ChevronRight, ChevronLeft, Inbox, MessageCircle, Paperclip, Download, X,
-  Lock, Clock, GraduationCap,
+  Lock, Clock, GraduationCap, MapPin,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
@@ -25,7 +25,7 @@ interface Tarea {
   createdAt: string; miEstado: string | null; miComentario: string | null; miArchivo: string | null;
 }
 interface Material { id: number; titulo: string; descripcion: string | null; tipo: string; url: string | null; contenido: string | null; archivoNombre: string | null }
-interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null }; tareas: Tarea[]; materiales: Material[]; misModulos?: { numero: number; nombre: string }[] }
+interface MiAula { habilitada: boolean; gestor?: { nombre: string; centro: string | null; clave: string | null; municipio: string | null }; tareas: Tarea[]; materiales: Material[]; misModulos?: { numero: number; nombre: string }[] }
 
 /** Estado de una tarea según su ventana de disponibilidad. */
 function estadoVentana(t: { abreEn: string | null; cierraEn: string | null }): 'programada' | 'abierta' | 'cerrada' {
@@ -68,15 +68,20 @@ export default function AlumnoAula() {
         <AulaNoDisponible />
       ) : (
       <>
-      {/* Banner */}
+      {/* Banner — se oculta en el Foro para que el chat ocupe toda la pantalla */}
+      {sec !== 'foro' && (
       <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]" style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
         <div className="relative px-6 py-6 text-white">
           <div className="absolute -right-8 -top-10 w-44 h-44 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
           <div className="relative flex items-center gap-3">
             <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.15)' }}><School size={24} /></div>
-            <div>
+            <div className="min-w-0">
               <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-white/70">Aula de mi centro</div>
-              <h1 className="font-serif text-2xl font-bold leading-tight">{d.gestor?.centro || d.gestor?.nombre || 'Aula virtual'}</h1>
+              <h1 className="font-serif text-2xl font-bold leading-tight truncate">{d.gestor?.centro || (d.gestor?.municipio ? `Centro de asesoría · ${d.gestor.municipio}` : 'Aula virtual')}</h1>
+              <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-white/75">
+                {d.gestor?.municipio && <span className="inline-flex items-center gap-1"><MapPin size={11} /> {d.gestor.municipio}</span>}
+                {d.gestor?.clave && <span className="rounded bg-white/15 px-1.5 py-0.5 font-mono font-semibold">{d.gestor.clave}</span>}
+              </div>
             </div>
           </div>
           {(pendientes > 0 || (d.misModulos && d.misModulos.length > 0)) && (
@@ -95,10 +100,11 @@ export default function AlumnoAula() {
           )}
         </div>
       </div>
+      )}
 
       <div className="min-w-0">
           {sec === 'resumen' && <ResumenSec d={d} pendientes={pendientes} videos={videos.length} materiales={materiales.length} ir={irSec} />}
-          {sec === 'foro' && <ForoAula />}
+          {sec === 'foro' && <ForoAula hrefTareas="/estudiante/aula?sec=tareas" />}
           {sec === 'tareas' && (tarea
             ? <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); }} />
             : d.tareas.length === 0 ? <Vacio icon={ClipboardList} texto="No tienes tareas asignadas." /> : (

@@ -56,7 +56,8 @@ export default function GestorAula() {
 
   return (
     <GestorLayout>
-      {/* Banner tipo curso */}
+      {/* Banner tipo curso — oculto en el Foro para que el chat ocupe la pantalla */}
+      {sec !== 'foro' && (
       <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]"
         style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
         <div className="relative px-6 py-6 text-white">
@@ -86,8 +87,10 @@ export default function GestorAula() {
         </div>
       </div>
 
+      )}
+
       {sec === 'resumen' && <ResumenSec resumen={resumen} ir={setSec} />}
-      {sec === 'foro' && <ForoAula />}
+      {sec === 'foro' && <ForoAula hrefTareas="/gestor/aula?sec=tareas" />}
       {sec === 'tareas' && <TareasTab onChange={cargarResumen} />}
       {sec === 'materiales' && <MaterialesTab modo="materiales" onChange={cargarResumen} />}
       {sec === 'videos' && <MaterialesTab modo="videos" onChange={cargarResumen} />}

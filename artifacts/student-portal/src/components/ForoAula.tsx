@@ -4,10 +4,11 @@
  * modo "solo anuncios" (candado: únicamente el gestor escribe). El gestor
  * modera: puede borrar cualquier mensaje.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'wouter';
 import {
   Send, MessageCircle, ShieldCheck, Loader2, Lock, Unlock, AlertTriangle, Paperclip, ImagePlus,
-  FileText, Download, X, Megaphone, BarChart3, Trash2, CheckCircle2, Plus,
+  FileText, Download, X, Megaphone, BarChart3, Trash2, CheckCircle2, Plus, ClipboardList, School, MapPin,
 } from 'lucide-react';
 import { api } from '../lib/api';
 
@@ -17,7 +18,9 @@ interface Msg {
   tipo: string; destacado: boolean; opciones: string[] | null; votos: Voto[];
   cuerpo: string; adjuntoNombre: string | null; adjuntoTipo: string | null; createdAt: string;
 }
-interface ForoData { yo: number; soyGestor: boolean; bloqueado: boolean; mensajes: Msg[] }
+interface TareaRef { id: number; titulo: string }
+interface CentroInfo { nombre: string | null; clave: string | null; municipio: string | null }
+interface ForoData { yo: number; soyGestor: boolean; bloqueado: boolean; centro: CentroInfo; tareas: TareaRef[]; mensajes: Msg[] }
 
 function hora(iso: string) { return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' }); }
 function diaDe(iso: string) { return new Date(iso).toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long' }); }
@@ -27,8 +30,32 @@ const AVATAR_COLORS = ['#6b1e3a', '#0d9488', '#4338ca', '#b45309', '#0369a1', '#
 function colorAutor(id: number) { return AVATAR_COLORS[Math.abs(id) % AVATAR_COLORS.length]; }
 const G = 'var(--color-guinda-700)';
 const MAX_ADJUNTO_MB = 15;
+const TAREA_RE = /#tarea:(\d+)/g;
 
-export function ForoAula() {
+/** Renderiza el cuerpo del mensaje convirtiendo los tokens #tarea:ID en chips
+ *  clicables que llevan a la sección de tareas del aula. */
+function CuerpoConTareas({ cuerpo, tareas, hrefTareas }: { cuerpo: string; tareas: Map<number, string>; hrefTareas: string }) {
+  const partes: ReactNode[] = [];
+  let last = 0; let m: RegExpExecArray | null; let key = 0;
+  TAREA_RE.lastIndex = 0;
+  while ((m = TAREA_RE.exec(cuerpo)) !== null) {
+    if (m.index > last) partes.push(cuerpo.slice(last, m.index));
+    const id = Number(m[1]);
+    const titulo = tareas.get(id);
+    partes.push(
+      <Link key={`t${key++}`} href={hrefTareas}
+        className="mx-0.5 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[13px] font-semibold align-baseline"
+        style={{ background: 'var(--color-crema-100)', color: G }}>
+        <ClipboardList size={12} /> {titulo ? titulo : `Tarea #${id}`}
+      </Link>
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < cuerpo.length) partes.push(cuerpo.slice(last));
+  return <span className="whitespace-pre-wrap break-words">{partes}</span>;
+}
+
+export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas' }: { hrefTareas?: string } = {}) {
   const [data, setData] = useState<ForoData | null>(null);
   const [texto, setTexto] = useState('');
   const [archivo, setArchivo] = useState<File | null>(null);
@@ -40,9 +67,12 @@ export function ForoAula() {
   const [modoAnuncio, setModoAnuncio] = useState(false);
   const [modoEncuesta, setModoEncuesta] = useState(false);
   const [opciones, setOpciones] = useState<string[]>(['', '']);
+  const [pickerTarea, setPickerTarea] = useState(false);
   const finRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const imgRef = useRef<HTMLInputElement>(null);
+
+  const tareasMap = useMemo(() => new Map((data?.tareas ?? []).map((t) => [t.id, t.titulo])), [data?.tareas]);
 
   const cargar = (scroll = false) => api.get<ForoData>('/aula/foro')
     .then((r) => setData((prev) => {
@@ -117,12 +147,26 @@ export function ForoAula() {
     items.push({ tipo: 'msg', m, compacto });
   });
 
+  const centro = data?.centro;
+  const centroTitulo = centro?.nombre || (centro?.municipio ? `Centro de asesoría · ${centro.municipio}` : 'Foro del aula');
+
   return (
-    <div>
-      <div className="mb-3 flex items-start justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-lg font-bold text-stone-900"><MessageCircle size={18} style={{ color: G }} /> Foro del aula</div>
-          <div className="text-xs text-stone-500 mt-0.5">El canal de tu grupo: mensajes, anuncios y encuestas. Todos los del aula lo ven.</div>
+    // Ocupa el alto disponible: la página no se mueve, SOLO el chat scrollea.
+    <div className="flex flex-col" style={{ height: 'calc(100dvh - 150px)', minHeight: 420 }}>
+      {/* Encabezado del centro (no dice el nombre del gestor, sino el CENTRO) */}
+      <div className="mb-2.5 flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--color-crema-100)', color: G }}>
+            <School size={20} />
+          </div>
+          <div className="min-w-0">
+            <div className="font-serif text-lg font-bold text-stone-900 truncate leading-tight">{centroTitulo}</div>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-stone-500">
+              {centro?.municipio && <span className="inline-flex items-center gap-1"><MapPin size={10} /> {centro.municipio}</span>}
+              {centro?.clave && <span className="rounded bg-stone-100 px-1.5 py-0.5 font-mono font-semibold text-stone-600">{centro.clave}</span>}
+              <span className="inline-flex items-center gap-1"><MessageCircle size={10} /> Foro del grupo</span>
+            </div>
+          </div>
         </div>
         {soyGestor && data && (
           <button onClick={toggleBloqueo}
@@ -134,28 +178,23 @@ export function ForoAula() {
         )}
       </div>
 
-      {/* Candado de seguridad + aviso de uso */}
-      <div className="mb-3 space-y-1.5">
-        <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs" style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534' }}>
-          <Lock size={13} className="shrink-0" />
-          <span><b>Conversación protegida.</b> Tus datos y mensajes están resguardados dentro de la plataforma y solo los ven los integrantes de tu aula.</span>
-        </div>
-        <div className="rounded-lg border px-3 py-2 text-xs" style={{ background: '#fffbeb', borderColor: '#fde68a', color: '#92400e' }}>
-          <button onClick={() => setAvisoAbierto((v) => !v)} className="flex w-full items-center gap-2 text-left font-semibold">
-            <AlertTriangle size={13} className="shrink-0" />
-            Aviso de uso responsable {avisoAbierto ? '▴' : '▾'}
-          </button>
-          {avisoAbierto && (
-            <p className="mt-1.5 pl-5 leading-relaxed">
-              Este foro es un espacio institucional de estudio. Los mensajes se conservan y pueden ser
-              revisados por la Secretaría en caso de reporte o auditoría. Evita compartir datos personales
-              sensibles (CURP, teléfonos, domicilios) y usa un lenguaje respetuoso.
-            </p>
-          )}
-        </div>
+      {/* Aviso compacto de seguridad (una línea, desplegable) */}
+      <div className="mb-2 rounded-lg border px-3 py-1.5 text-[11px]" style={{ background: '#f0fdf4', borderColor: '#bbf7d0', color: '#166534' }}>
+        <button onClick={() => setAvisoAbierto((v) => !v)} className="flex w-full items-center gap-1.5 text-left font-semibold">
+          <Lock size={12} className="shrink-0" />
+          <span className="flex-1">Conversación protegida y de uso responsable</span>
+          <span>{avisoAbierto ? '▴' : '▾'}</span>
+        </button>
+        {avisoAbierto && (
+          <p className="mt-1.5 pl-5 leading-relaxed text-[11px]" style={{ color: '#4d7c5a' }}>
+            Tus mensajes se resguardan dentro de la plataforma y solo los ven los integrantes de tu aula. Se
+            conservan y pueden revisarse por la Secretaría en caso de reporte. Evita compartir datos sensibles
+            (CURP, teléfonos, domicilios) y usa un lenguaje respetuoso.
+          </p>
+        )}
       </div>
 
-      <div className="bg-white border border-stone-200 rounded-xl flex flex-col overflow-hidden" style={{ height: 'min(64vh, 600px)' }}>
+      <div className="flex-1 min-h-0 bg-white border border-stone-200 rounded-xl flex flex-col overflow-hidden">
         <div className="flex-1 overflow-y-auto px-4 py-3">
           {msgs.length === 0 ? (
             <div className="h-full flex flex-col items-center justify-center text-center text-sm text-stone-400">
@@ -171,7 +210,7 @@ export function ForoAula() {
                 </div>
               ) : (
                 <MensajeRow key={it.m.id} m={it.m} mio={it.m.autorId === data?.yo} compacto={it.compacto}
-                  puedeBorrar={soyGestor || it.m.autorId === data?.yo}
+                  puedeBorrar={soyGestor || it.m.autorId === data?.yo} tareas={tareasMap} hrefTareas={hrefTareas}
                   onVotar={(op) => votar(it.m.id, op)} onBorrar={() => borrar(it.m.id)} />
               ))}
               <div ref={finRef} />
@@ -244,6 +283,24 @@ export function ForoAula() {
                   <>
                     <button onClick={() => imgRef.current?.click()} className="flex h-11 w-9 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-[var(--color-guinda-700)]" title="Subir foto" aria-label="Subir foto"><ImagePlus size={18} /></button>
                     <button onClick={() => fileRef.current?.click()} className="flex h-11 w-9 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-[var(--color-guinda-700)]" title="Adjuntar archivo" aria-label="Adjuntar archivo"><Paperclip size={18} /></button>
+                    {/* Insertar vínculo a una tarea */}
+                    <div className="relative">
+                      <button onClick={() => setPickerTarea((v) => !v)} disabled={tareasMap.size === 0}
+                        className="flex h-11 w-9 items-center justify-center rounded-lg text-stone-400 transition-colors hover:bg-stone-100 hover:text-[var(--color-guinda-700)] disabled:opacity-40"
+                        title={tareasMap.size ? 'Vincular una tarea' : 'No hay tareas para vincular'} aria-label="Vincular tarea"><ClipboardList size={18} /></button>
+                      {pickerTarea && (
+                        <div className="absolute bottom-12 left-0 z-20 w-64 max-h-60 overflow-y-auto rounded-xl border border-stone-200 bg-white p-1.5 shadow-lg">
+                          <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-stone-400">Vincular tarea</div>
+                          {(data?.tareas ?? []).map((t) => (
+                            <button key={t.id}
+                              onClick={() => { setTexto((s) => `${s}${s && !s.endsWith(' ') ? ' ' : ''}#tarea:${t.id} `); setPickerTarea(false); }}
+                              className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm text-stone-700 hover:bg-stone-50">
+                              <ClipboardList size={13} style={{ color: G }} /> <span className="truncate">{t.titulo}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </>
                 )}
                 <textarea value={texto} onChange={(e) => setTexto(e.target.value)} rows={1}
@@ -262,8 +319,9 @@ export function ForoAula() {
   );
 }
 
-function MensajeRow({ m, mio, compacto, puedeBorrar, onVotar, onBorrar }: {
+function MensajeRow({ m, mio, compacto, puedeBorrar, tareas, hrefTareas, onVotar, onBorrar }: {
   m: Msg; mio: boolean; compacto: boolean; puedeBorrar: boolean;
+  tareas: Map<number, string>; hrefTareas: string;
   onVotar: (opcion: number) => void; onBorrar: () => void;
 }) {
   const esImagen = !!m.adjuntoTipo?.startsWith('image/');
@@ -281,7 +339,7 @@ function MensajeRow({ m, mio, compacto, puedeBorrar, onVotar, onBorrar }: {
           </span>
         </div>
         <div className="px-3.5 py-2.5">
-          {m.cuerpo && <div className="whitespace-pre-wrap break-words text-sm font-medium text-stone-800">{m.cuerpo}</div>}
+          {m.cuerpo && <div className="text-sm font-medium text-stone-800"><CuerpoConTareas cuerpo={m.cuerpo} tareas={tareas} hrefTareas={hrefTareas} /></div>}
           {adjuntoUrl && <AdjuntoView url={adjuntoUrl} nombre={m.adjuntoNombre} esImagen={esImagen} />}
         </div>
       </div>
@@ -352,7 +410,7 @@ function MensajeRow({ m, mio, compacto, puedeBorrar, onVotar, onBorrar }: {
             <span className="text-[10px] text-stone-400">{hora(m.createdAt)}</span>
           </div>
         )}
-        {m.cuerpo && <div className="whitespace-pre-wrap break-words text-sm text-stone-800">{m.cuerpo}</div>}
+        {m.cuerpo && <div className="text-sm text-stone-800"><CuerpoConTareas cuerpo={m.cuerpo} tareas={tareas} hrefTareas={hrefTareas} /></div>}
         {adjuntoUrl && <AdjuntoView url={adjuntoUrl} nombre={m.adjuntoNombre} esImagen={esImagen} />}
       </div>
       {puedeBorrar && (

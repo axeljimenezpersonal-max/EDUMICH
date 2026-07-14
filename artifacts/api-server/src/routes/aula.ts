@@ -303,7 +303,10 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
   const [e] = await db.select({ gestorId: estudiantes.gestorId }).from(estudiantes).where(eq(estudiantes.userId, uid));
   if (!e?.gestorId || !(await aulaHabilitadaGestor(e.gestorId))) { res.json({ habilitada: false }); return; }
   const gid = e.gestorId;
-  const [gInfo] = await db.select({ nombre: gestores.nombreCompleto, centro: gestores.centroAsesoria }).from(gestores).where(eq(gestores.userId, gid));
+  const [gInfo] = await db.execute<{ nombre: string; centro: string | null; clave: string | null; municipio: string | null }>(sql`
+    SELECT g.nombre_completo AS nombre, g.centro_asesoria AS centro, g.clave_centro AS clave, m.nombre AS municipio
+    FROM gestores g LEFT JOIN municipios m ON m.id = g.municipio_id
+    WHERE g.user_id = ${gid}`).then(r => r.rows);
 
   const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; modulo_numero: number | null; modulo_nombre: string | null; created_at: string; mi_estado: string | null; mi_comentario: string | null; mi_archivo: string | null }>(sql`
     SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
@@ -326,7 +329,7 @@ router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
 
   res.json({
     habilitada: true,
-    gestor: { nombre: gInfo?.nombre ?? '', centro: gInfo?.centro ?? null },
+    gestor: { nombre: gInfo?.nombre ?? '', centro: gInfo?.centro ?? null, clave: gInfo?.clave ?? null, municipio: gInfo?.municipio ?? null },
     tareas: tareas.map(t => ({
       id: t.id, titulo: t.titulo, instrucciones: t.instrucciones, fechaEntrega: t.fecha_entrega,
       abreEn: t.abre_en, cierraEn: t.cierra_en, archivoNombre: t.archivo_nombre,
@@ -394,10 +397,19 @@ router.get('/foro', async (req, res) => {
     arr.push({ opcion: v.opcion, n: Number(v.n), mio: v.mio });
     votosPorMsg.set(v.mensaje_id, arr);
   }
+  // Datos del centro (para el encabezado del foro) + tareas del aula (para los
+  // hipervínculos "#tarea" que se pueden insertar en los mensajes).
+  const [centro] = await db.execute<{ centro: string | null; clave: string | null; municipio: string | null }>(sql`
+    SELECT g.centro_asesoria AS centro, g.clave_centro AS clave, m.nombre AS municipio
+    FROM gestores g LEFT JOIN municipios m ON m.id = g.municipio_id WHERE g.user_id = ${gid}`).then(r => r.rows);
+  const tareas = await db.execute<{ id: number; titulo: string }>(sql`
+    SELECT id, titulo FROM aula_tareas WHERE gestor_user_id = ${gid} AND publicada = true ORDER BY created_at DESC`).then(r => r.rows);
   res.json({
     yo: uid,
     soyGestor: req.user!.rol === 'gestor',
     bloqueado: await foroBloqueado(gid),
+    centro: { nombre: centro?.centro ?? null, clave: centro?.clave ?? null, municipio: centro?.municipio ?? null },
+    tareas,
     mensajes: mensajes.map(m => ({
       id: m.id, autorId: m.autor_user_id, autor: m.autor, esGestor: m.autor_rol === 'gestor',
       tipo: m.tipo, destacado: m.destacado, opciones: m.opciones,
