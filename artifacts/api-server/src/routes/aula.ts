@@ -359,6 +359,43 @@ router.get('/foro/:id/adjunto', async (req, res) => {
 });
 
 // ═══════════════════════════ ALUMNO ═══════════════════════════
+// Contenido de UN módulo de clase para el alumno (mini-portal del módulo):
+// tareas con SU estado de entrega + materiales + videos, scoped al módulo.
+router.get('/modulo/:moduloId', requireRol('estudiante'), async (req, res) => {
+  const uid = req.user!.userId;
+  const gid = await aulaDelUsuario(uid, 'estudiante');
+  if (gid == null) { res.status(403).json({ error: 'Sin aula.' }); return; }
+  const moduloId = parseInt(String(req.params.moduloId), 10);
+  const [modulo] = await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(eq(modulos.id, moduloId));
+  if (!modulo) { res.status(404).json({ error: 'Módulo no encontrado' }); return; }
+
+  const tareas = await db.execute<{ id: number; titulo: string; instrucciones: string | null; fecha_entrega: string | null; abre_en: string | null; cierra_en: string | null; archivo_nombre: string | null; created_at: string; mi_estado: string | null; mi_comentario: string | null; mi_archivo: string | null }>(sql`
+    SELECT t.id, t.titulo, t.instrucciones, t.fecha_entrega::text, t.abre_en::text, t.cierra_en::text,
+           t.archivo_nombre, t.created_at::text,
+           e.estado AS mi_estado, e.comentario AS mi_comentario, e.archivo_nombre AS mi_archivo
+    FROM aula_tareas t
+    LEFT JOIN aula_entregas e ON e.tarea_id = t.id AND e.estudiante_id = ${uid}
+    WHERE t.gestor_user_id = ${gid} AND t.modulo_id = ${moduloId} AND t.publicada = true
+    ORDER BY t.created_at DESC`).then(r => r.rows);
+  const mats = await db.execute<{ id: number; modulo_id: number | null; tipo: string; titulo: string; descripcion: string | null; url: string | null; contenido: string | null; archivo_nombre: string | null }>(sql`
+    SELECT id, modulo_id, tipo, titulo, descripcion, url, contenido, archivo_nombre
+    FROM aula_materiales WHERE gestor_user_id = ${gid} AND modulo_id = ${moduloId}
+    ORDER BY created_at DESC`).then(r => r.rows);
+
+  const mapMat = (m: typeof mats[number]) => ({ id: m.id, moduloId: m.modulo_id, tipo: m.tipo, titulo: m.titulo, descripcion: m.descripcion, url: m.url, contenido: m.contenido, archivoNombre: m.archivo_nombre });
+  res.json({
+    modulo,
+    tareas: tareas.map(t => ({
+      id: t.id, titulo: t.titulo, instrucciones: t.instrucciones, fechaEntrega: t.fecha_entrega,
+      abreEn: t.abre_en, cierraEn: t.cierra_en, archivoNombre: t.archivo_nombre,
+      moduloId, moduloNumero: modulo.numero, moduloNombre: modulo.nombre,
+      createdAt: t.created_at, miEstado: t.mi_estado, miComentario: t.mi_comentario, miArchivo: t.mi_archivo,
+    })),
+    materiales: mats.filter(m => m.tipo !== 'video').map(mapMat),
+    videos: mats.filter(m => m.tipo === 'video').map(mapMat),
+  });
+});
+
 router.get('/mi-aula', requireRol('estudiante'), async (req, res) => {
   const uid = req.user!.userId;
   const [e] = await db.select({ gestorId: estudiantes.gestorId }).from(estudiantes).where(eq(estudiantes.userId, uid));
