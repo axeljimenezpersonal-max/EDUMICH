@@ -919,6 +919,38 @@ export default function AdminAlumnoDetalle() {
       .finally(() => setLoading(false));
   }, [alumnoId]);
 
+  // ── Asignar / cambiar gestor (centro de asesoría) ──
+  const [asignandoGestor, setAsignandoGestor] = useState(false);
+  const [gestoresLista, setGestoresLista] = useState<{ id: number; nombreCompleto: string; municipio: { nombre: string } | null }[]>([]);
+  const [gestorSel, setGestorSel] = useState('');
+  const [guardandoGestor, setGuardandoGestor] = useState(false);
+
+  async function abrirAsignarGestor() {
+    setGestorSel(String(data?.alumno.gestor?.id ?? ''));
+    setAsignandoGestor(true);
+    try {
+      const r = await api.get<{ gestores: { id: number; nombreCompleto: string; municipio: { nombre: string } | null }[] }>('/admin/gestores?limit=100');
+      setGestoresLista(r.gestores ?? []);
+    } catch {
+      showToast('No se pudo cargar la lista de gestores', false);
+      setAsignandoGestor(false);
+    }
+  }
+  async function handleAsignarGestor() {
+    setGuardandoGestor(true);
+    try {
+      await api.post(`/admin/alumnos/${alumnoId}/asignar-gestor`, { gestorId: gestorSel ? Number(gestorSel) : null });
+      const fresh = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
+      setData(fresh);
+      setAsignandoGestor(false);
+      showToast(gestorSel ? 'Gestor asignado al alumno' : 'Gestor removido del alumno', true);
+    } catch (e) {
+      showToast((e as Error).message || 'Error al asignar gestor', false);
+    } finally {
+      setGuardandoGestor(false);
+    }
+  }
+
   async function handleResetPassword() {
     if (!data) return;
     if (!confirm(`¿Enviar contraseña temporal a ${data.alumno.email}?`)) return;
@@ -1142,6 +1174,11 @@ export default function AdminAlumnoDetalle() {
                 style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
                 <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
               </button>
+              <button onClick={abrirAsignarGestor}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
+                style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
+                <Users size={12} /> {alumno.gestor ? 'Cambiar gestor' : 'Asignar gestor'}
+              </button>
               {alumno.gestor && (
                 <button onClick={() => setLocation(`/admin/gestores/${alumno.gestor!.id}`)}
                   className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg"
@@ -1151,6 +1188,31 @@ export default function AdminAlumnoDetalle() {
               )}
             </div>
           </div>
+
+          {/* Selector de gestor (centro de asesoría) */}
+          {asignandoGestor && (
+            <div className="mt-3 flex flex-wrap items-center gap-2 rounded-xl px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.12)' }}>
+              <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: 'rgba(255,255,255,0.75)' }}>Centro de asesoría / gestor:</span>
+              <select value={gestorSel} onChange={(e) => setGestorSel(e.target.value)}
+                className="min-w-[220px] rounded-lg border-0 px-3 py-1.5 text-xs font-semibold focus:outline-none"
+                style={{ background: '#fff', color: '#443e39' }}>
+                <option value="">— Sin gestor —</option>
+                {gestoresLista.map((g) => (
+                  <option key={g.id} value={g.id}>{g.nombreCompleto}{g.municipio ? ` · ${g.municipio.nombre}` : ''}</option>
+                ))}
+              </select>
+              <button onClick={handleAsignarGestor} disabled={guardandoGestor}
+                className="px-3 py-1.5 text-xs font-bold rounded-lg disabled:opacity-50"
+                style={{ background: '#fff', color: 'var(--color-guinda-700)' }}>
+                {guardandoGestor ? 'Guardando…' : 'Guardar'}
+              </button>
+              <button onClick={() => setAsignandoGestor(false)}
+                className="px-3 py-1.5 text-xs font-semibold rounded-lg"
+                style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)' }}>
+                Cancelar
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Meta con etiquetas (fondo blanco) */}

@@ -104,16 +104,16 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
           )}
           {e.fechaInicio && (
             <span
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide text-white"
-              style={{ background: acento }}
+              className="inline-flex items-center gap-1.5 rounded-lg border bg-white/70 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wide"
+              style={{ borderColor: borde, color: '#78716c' }}
             >
-              <AlertTriangle size={12} />
-              Solo en estas fechas
+              <CalendarCheck size={12} />
+              Único periodo
             </span>
           )}
         </div>
-        <p className="mt-1.5 text-[11px] font-semibold" style={{ color: acento }}>
-          Fuera de este periodo NO se puede inscribir ni pagar el examen.
+        <p className="mt-1.5 text-[11px] text-stone-500">
+          Fuera de estas fechas no es posible inscribir ni pagar el examen.
         </p>
         {href && (
           <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-bold underline decoration-2 underline-offset-2" style={{ color: acento }}>
