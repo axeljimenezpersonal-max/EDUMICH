@@ -271,8 +271,17 @@ export const TOUR_PAGOS: TourStep[] = [
   {
     id: 'pagos-como',
     icon: 'Landmark',
-    title: 'Cómo se paga',
-    body: 'El pago es ante la Tesorería del Estado: descargas tu orden con línea de captura, pagas en banco / tienda / en línea, y subes tu comprobante aquí. La coordinación lo confirma y quedas listo para tu examen.',
+    title: 'Cómo se paga · paso a paso',
+    body: 'El pago es ante la Tesorería del Estado. El camino es siempre el mismo: solicitas tu orden, la Tesorería la emite con tu línea de captura, la pagas en banco / tienda / en línea y subes tu comprobante. La coordinación lo confirma y quedas listo.',
+    illustration: 'pagoFlow',
+  },
+  {
+    id: 'pagos-orden',
+    anchor: 'pagos-ordenes',
+    placement: 'top',
+    icon: 'Receipt',
+    title: 'Dónde está tu orden de pago',
+    body: 'Aquí abajo vive cada orden de pago. Con “Solicitar orden” la pides; cuando la Tesorería la emite, aparece tu línea de captura para copiar y pagar; y ya pagada, subes tu comprobante en este mismo bloque. Cada orden muestra en qué paso va (solicitada, emitida, pagada, confirmada).',
   },
   {
     id: 'pagos-fin',

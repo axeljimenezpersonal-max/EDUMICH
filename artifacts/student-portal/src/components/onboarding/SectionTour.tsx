@@ -90,6 +90,7 @@ export function SectionTour({
             icon={step.icon}
             title={step.title}
             body={step.body}
+            illustration={step.illustration}
             index={index}
             total={total}
             rect={step.anchor ? rect : null}

@@ -18,6 +18,7 @@ export interface TourStep {
   icon?: string;   // nombre de icono de lucide-react
   title: string;
   body: string;
+  illustration?: string;  // clave de una ilustración animada (ver TourIllustrations)
 }
 
 // ── Estudiante ─────────────────────────────────────────────────

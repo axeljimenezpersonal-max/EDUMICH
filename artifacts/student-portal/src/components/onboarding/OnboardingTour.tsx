@@ -74,6 +74,7 @@ export function OnboardingTour({ rol, nombre, municipio }: Props) {
         icon={step.icon}
         title={title}
         body={body}
+        illustration={step.illustration}
         index={index}
         total={total}
         rect={anchor ? rect : null}

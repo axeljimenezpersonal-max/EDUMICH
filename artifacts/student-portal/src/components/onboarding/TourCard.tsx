@@ -10,6 +10,7 @@ import type { LucideProps } from 'lucide-react';
 import { X, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import type { Placement } from './steps';
 import type { SpotRect } from './SpotlightOverlay';
+import { ILLUSTRATIONS } from './TourIllustrations';
 
 interface Props {
   icon?: string;
@@ -24,6 +25,7 @@ interface Props {
   onNext: () => void;
   onPrev: () => void;
   onSkip: () => void;
+  illustration?: string;
 }
 
 const CARD_W = 356;
@@ -98,8 +100,9 @@ function computePosition(
   };
 }
 
-export function TourCard({ icon, title, body, index, total, rect, placement, isLast, isFirst, onNext, onPrev, onSkip }: Props) {
+export function TourCard({ icon, title, body, index, total, rect, placement, isLast, isFirst, onNext, onPrev, onSkip, illustration }: Props) {
   const Icon = useMemo(() => resolveIcon(icon), [icon]);
+  const Illustration = illustration ? ILLUSTRATIONS[illustration] : undefined;
   const cardRef = useRef<HTMLDivElement>(null);
   const nextBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -189,6 +192,8 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
         <p id="tour-card-body" className="text-sm text-stone-600 leading-relaxed">
           {body}
         </p>
+
+        {Illustration && <Illustration />}
 
         {/* Puntos de progreso */}
         <div className="flex items-center gap-1.5 mt-4 mb-4" aria-hidden>
