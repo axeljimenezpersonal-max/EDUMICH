@@ -17,6 +17,8 @@ import {
 import { api } from '../../lib/api';
 import { parseDbDate, fechaCorta, fechaHoraCorta, vencioFecha, fechaVentana } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_AULA_HOME, TOUR_AULA_MODULO, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 import { DocPreview } from '../../components/DocPreview';
 
@@ -122,11 +124,12 @@ function ModulosGridAlumno({ d, abrirModulo }: { d: MiAula; abrirModulo: (id: nu
       {mods.length === 0 ? (
         <Vacio icon={GraduationCap} texto="Tu profesor aún no ha abierto módulos de clase en el aula." />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-          {mods.map((m) => {
+        <div data-tour="aula-clases" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+          {mods.map((m, i) => {
             const col = colorModulo(m.numero);
             return (
               <button key={m.moduloId} onClick={() => abrirModulo(m.moduloId)}
+                data-tour={i === 0 ? 'aula-clase' : undefined}
                 className="text-left bg-white border border-stone-200 rounded-2xl overflow-hidden hover:-translate-y-0.5 hover:shadow-lg transition-all group">
                 {/* Portada de color */}
                 <div className="relative h-24 overflow-hidden" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
@@ -157,6 +160,8 @@ function ModulosGridAlumno({ d, abrirModulo }: { d: MiAula; abrirModulo: (id: nu
           })}
         </div>
       )}
+
+      <SectionTour steps={TOUR_AULA_HOME} storageKey="edumich_sec_aula_home_v1" gateKey={GATE_ESTUDIANTE} buttonLabel="Tutorial de Mi aula" />
     </div>
   );
 }
@@ -195,11 +200,11 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
 
   return (
     <div>
-      <button onClick={volver} className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]">
+      <button onClick={volver} data-tour="aula-volver" className="mb-3 inline-flex items-center gap-1 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]">
         <ChevronLeft size={14} /> Volver a mis clases
       </button>
       {/* Portada del módulo */}
-      <div className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
+      <div data-tour="aula-portada" className="rounded-2xl overflow-hidden mb-4 relative" style={{ background: `linear-gradient(135deg, ${col} 0%, ${col}cc 100%)` }}>
         <div className="absolute -right-6 -top-8 w-32 h-32 rounded-full" style={{ background: 'rgba(255,255,255,0.10)' }} />
         <div className="relative px-6 py-5 text-white">
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/70">Módulo de clase</div>
@@ -209,7 +214,7 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
 
       <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-4">
         {/* Mini portal a la izquierda */}
-        <nav className="md:sticky md:top-[114px] self-start">
+        <nav data-tour="aula-nav" className="md:sticky md:top-[114px] self-start">
           <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
             <ul>
               {NAV_ITEMS.map((item) => {
@@ -233,7 +238,7 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
         </nav>
 
         {/* Contenido del tab seleccionado */}
-        <main className="min-w-0">
+        <main data-tour="aula-contenido" className="min-w-0">
           {tab === 'foro' && <ForoAula moduloId={moduloId} compacto hrefTareas={`/estudiante/aula?modulo=${moduloId}&tab=tareas`} />}
           {tab === 'tareas' && (tarea
             ? <TareaDetalle t={tarea} volver={() => setTareaAbierta(null)} onDone={() => { cargar(); onRecargar(); }} />
@@ -254,6 +259,8 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
           ))}
         </main>
       </div>
+
+      <SectionTour steps={TOUR_AULA_MODULO} storageKey="edumich_sec_aula_modulo_v1" gateKey={GATE_ESTUDIANTE} buttonLabel="Tutorial de la clase" />
     </div>
   );
 }

@@ -289,6 +289,84 @@ export const TOUR_IDENTIFICACION: TourStep[] = [
   },
 ];
 
+// ── Mi aula · parrilla de clases ───────────────────────────────
+export const TOUR_AULA_HOME: TourStep[] = [
+  {
+    id: 'aula-intro',
+    icon: 'GraduationCap',
+    title: 'Bienvenido a tu aula virtual',
+    body: 'Si tu centro de asesoría la tiene activa, aquí tomas clase en línea. Todo se organiza por MÓDULO, igual que en una universidad. Te muestro cómo se usa.',
+  },
+  {
+    id: 'aula-clases',
+    anchor: 'aula-clases',
+    placement: 'top',
+    icon: 'School',
+    title: 'Estas son tus clases',
+    body: 'Cada tarjeta es un módulo que tu profesor abrió. El número de color te dice cuántas tareas, materiales y videos tiene, y si hay tareas pendientes.',
+  },
+  {
+    id: 'aula-entrar',
+    anchor: 'aula-clase',
+    placement: 'bottom',
+    icon: 'MousePointerClick',
+    title: 'Entra a una clase',
+    body: 'Toca una tarjeta para abrir el módulo. Adentro encontrarás su foro, sus tareas, materiales y videos, todos juntos.',
+  },
+  {
+    id: 'aula-home-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Eso es tu aula!',
+    body: 'Entra a cualquier clase para ver su contenido. ¿Necesitas repasar? Este botón repite el tutorial cuando quieras.',
+  },
+];
+
+// ── Mi aula · dentro de una clase (módulo) ─────────────────────
+export const TOUR_AULA_MODULO: TourStep[] = [
+  {
+    id: 'aulamod-intro',
+    anchor: 'aula-portada',
+    placement: 'bottom',
+    icon: 'School',
+    title: 'Dentro de tu clase',
+    body: 'Arriba ves qué módulo estás cursando. Todo lo de aquí pertenece SOLO a esta materia.',
+  },
+  {
+    id: 'aulamod-nav',
+    anchor: 'aula-nav',
+    placement: 'right',
+    icon: 'PanelsTopLeft',
+    title: 'Tu menú de la clase',
+    body: 'Con este menú te mueves dentro del módulo: Foro para conversar, Tareas para entregar, Materiales para leer y Videos para ver. El número te avisa si hay algo nuevo.',
+  },
+  {
+    id: 'aulamod-foro',
+    anchor: 'aula-contenido',
+    placement: 'top',
+    icon: 'MessageCircle',
+    title: 'El Foro es tu punto de entrada',
+    body: 'Aquí tu profesor pone avisos y encuestas, y puedes preguntar tus dudas. En Tareas entregas tu trabajo (con foto o archivo) antes de la fecha límite.',
+  },
+  {
+    id: 'aulamod-volver',
+    anchor: 'aula-volver',
+    placement: 'bottom',
+    icon: 'ChevronLeft',
+    title: 'Volver a tus clases',
+    body: 'Con este enlace regresas a la lista de todas tus clases para entrar a otro módulo.',
+  },
+  {
+    id: 'aulamod-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Ya sabes usar tu clase!',
+    body: 'Revisa el foro, entrega tus tareas y repasa los materiales. Este botón repite el tutorial cuando quieras.',
+  },
+];
+
 // ── Mensajes ───────────────────────────────────────────────────
 export const TOUR_MENSAJES: TourStep[] = [
   {
