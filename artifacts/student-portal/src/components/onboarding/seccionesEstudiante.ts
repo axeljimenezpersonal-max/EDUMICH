@@ -14,16 +14,24 @@ export const TOUR_INICIO: TourStep[] = [
   {
     id: 'ini-intro',
     icon: 'LayoutDashboard',
-    title: 'Tu página de Inicio',
-    body: 'Es tu punto de partida cada vez que entras. Aquí ves, de un vistazo, en qué punto vas de tu trámite y qué te toca hacer. Te muestro bloque por bloque.',
+    title: 'Bienvenido a tu página de Inicio',
+    body: 'Este es tu tablero: cada vez que entres, aquí ves de un vistazo en qué punto vas de tu trámite y qué sigue. Te lo muestro bloque por bloque, en orden. ¡Empecemos!',
+  },
+  {
+    id: 'ini-inscripcion',
+    anchor: 'dash-inscripcion',
+    placement: 'bottom',
+    icon: 'CalendarClock',
+    title: 'Inscripción y pago abiertos',
+    body: 'Cuando hay una etapa abierta para inscribirte y pagar tu examen, aquí aparece con sus fechas exactas y los días que faltan para el cierre. Tócalo para ir directo a inscribirte. Si no ves este aviso, es que no hay una ventana abierta por ahora.',
   },
   {
     id: 'ini-ficha',
     anchor: 'dash-ficha',
     placement: 'bottom',
     icon: 'FileText',
-    title: 'Tu ficha de pre-registro',
-    body: 'Aquí está tu folio y hasta cuándo es válido. Puedes descargar tu ficha en PDF. Cuando la SEP-DGB valide tu registro, este bloque mostrará tu matrícula oficial.',
+    title: 'Tus documentos: cédula, matrícula y credencial',
+    body: 'Estas tres tarjetas son tus documentos clave. Al inicio verás tu FICHA DE PRE-REGISTRO con tu folio; cuando la SEP-DGB valide tu registro, aparecen tu MATRÍCULA oficial y tu CÉDULA de inscripción. La tercera es tu IDENTIFICACIÓN digital. Todo descargable.',
   },
   {
     id: 'ini-estado',
@@ -31,7 +39,15 @@ export const TOUR_INICIO: TourStep[] = [
     placement: 'top',
     icon: 'CheckCircle2',
     title: 'Estado de tu inscripción',
-    body: 'Te dice en qué etapa del proceso estás y cuáles son tus siguientes pasos. Si aún no te has inscrito a una convocatoria, aquí verás "No tienes inscripción activa".',
+    body: 'Te dice en qué punto del proceso vas y qué te toca hacer. Si aún no te inscribes a una convocatoria, aquí verás que no tienes inscripción activa.',
+  },
+  {
+    id: 'ini-examen',
+    anchor: 'dash-examen',
+    placement: 'top',
+    icon: 'CalendarCheck',
+    title: 'Tu próximo examen',
+    body: 'Si ya estás inscrito, aquí ves tu convocatoria, la fecha de presentación, tu sede y una cuenta regresiva. Justo abajo aparecen tus exámenes de esa convocatoria.',
   },
   {
     id: 'ini-kpis',
@@ -39,7 +55,7 @@ export const TOUR_INICIO: TourStep[] = [
     placement: 'top',
     icon: 'BarChart3',
     title: 'Tus números clave',
-    body: 'Cuatro indicadores de tu avance: módulos aprobados de los 22 que necesitas, documentos aprobados, documentos que faltan por subir, y avisos sin leer.',
+    body: 'Cuatro indicadores de tu avance: módulos aprobados de los 22 que necesitas, documentos aprobados, documentos que te faltan y avisos sin leer. Toca cada uno para ir a su sección.',
   },
   {
     id: 'ini-avisos',
@@ -47,7 +63,7 @@ export const TOUR_INICIO: TourStep[] = [
     placement: 'top',
     icon: 'Bell',
     title: 'Avisos importantes',
-    body: 'Los comunicados de la coordinación aparecen aquí: fechas, requisitos y recordatorios. Da clic en "Ver todos" para revisar el historial completo.',
+    body: 'Los comunicados de la coordinación aparecen aquí: fechas, requisitos y recordatorios. Toca "Ver todos" para revisar el historial completo.',
   },
   {
     id: 'ini-ayuda',
@@ -55,7 +71,7 @@ export const TOUR_INICIO: TourStep[] = [
     placement: 'top',
     icon: 'LifeBuoy',
     title: '¿Necesitas ayuda?',
-    body: 'Los datos de contacto de tu gestor municipal y de la administración. Si algo no te queda claro en tu trámite, aquí sabes a quién acudir.',
+    body: 'Aquí están los datos de contacto de tu gestor y de la administración. Si algo no te queda claro en tu trámite, ya sabes a quién acudir.',
   },
   {
     id: 'ini-fin',
@@ -63,7 +79,7 @@ export const TOUR_INICIO: TourStep[] = [
     placement: 'left',
     icon: 'RefreshCw',
     title: '¡Listo! Repítelo cuando quieras',
-    body: 'Con este botón puedes volver a ver el tutorial de esta sección las veces que necesites. Cada página del portal tiene el suyo.',
+    body: 'Con este botón vuelves a ver el tutorial de esta sección las veces que necesites. Cada página del portal tiene el suyo. ¡Empieza por tu expediente y sigue el camino!',
   },
 ];
 
