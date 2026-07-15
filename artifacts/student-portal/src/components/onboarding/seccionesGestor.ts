@@ -78,7 +78,7 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     placement: 'bottom',
     icon: 'ListChecks',
     title: 'Son dos pasos',
-    body: 'Paso 1, datos personales; paso 2, documentos. Avanzas de uno al otro cuando el anterior está completo, así no se te olvida nada.',
+    body: 'Paso 1, datos personales; paso 2, DOCUMENTOS: ahí subes tú los documentos del alumno (acta, CURP, comprobante, certificado de secundaria, foto). Avanzas al paso 2 cuando los datos están completos.',
   },
   {
     id: 'g-alta-datos',
@@ -86,7 +86,13 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     placement: 'top',
     icon: 'IdCard',
     title: 'Captura sus datos',
-    body: 'Llena los campos marcados con asterisco. La CURP se valida automáticamente para evitar errores y duplicados. Al alumno le llegarán sus credenciales de acceso a la plataforma.',
+    body: 'Llena los campos marcados con asterisco. La CURP se valida automáticamente para evitar errores y duplicados. El correo es importante: ahí le llegan sus credenciales de acceso.',
+  },
+  {
+    id: 'g-alta-cuenta',
+    icon: 'KeyRound',
+    title: 'Se crea su cuenta',
+    body: 'Al registrarlo, el alumno recibe por correo sus credenciales para entrar a SU PROPIO portal, donde consulta su avance, paga y ve sus calificaciones. Avísale que revise su correo (y la carpeta de no deseados). Si no le llegan, puedes reenviárselas desde su ficha.',
   },
   {
     id: 'g-alta-fin',
@@ -94,7 +100,7 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     placement: 'left',
     icon: 'RefreshCw',
     title: '¡Listo para registrar!',
-    body: 'Al terminar, el alumno queda “pendiente de revisión” hasta que la administración valide sus documentos. Repite este tutorial con el botón cuando quieras.',
+    body: 'Al terminar, el alumno queda “pendiente de revisión” hasta que la administración valide sus documentos. Después continúas su proceso desde su ficha. Repite este tutorial con el botón cuando quieras.',
   },
 ];
 
@@ -129,6 +135,81 @@ export const TOUR_G_ALUMNOS: TourStep[] = [
     icon: 'RefreshCw',
     title: '¡Esos son tus alumnos!',
     body: 'Tu directorio de seguimiento. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Ficha del alumno (/gestor/alumnos/:id) ─────────────────────
+// La pantalla donde el gestor hace el grueso de su trabajo con cada alumno.
+export const TOUR_G_FICHA: TourStep[] = [
+  {
+    id: 'g-ficha-intro',
+    icon: 'UserSquare',
+    title: 'La ficha del alumno',
+    body: 'Esta es la pantalla donde haces la mayor parte de tu trabajo con cada alumno: subir sus documentos, inscribirlo a los módulos, gestionar su pago, seguir sus calificaciones y su credencial. Todo su trámite, en un solo lugar.',
+  },
+  {
+    id: 'g-ficha-tabs',
+    anchor: 'g-ficha-tabs',
+    placement: 'bottom',
+    icon: 'PanelsTopLeft',
+    title: 'Su trámite, por pestañas',
+    body: 'El proceso va en orden por estas pestañas: Documentos → Inscripción → Pagos → Calificaciones → Credencial. El número de cada una te avisa qué falta. Te muestro para qué sirve cada una.',
+  },
+  {
+    id: 'g-ficha-docs',
+    anchor: 'g-ficha-tab-docs',
+    placement: 'bottom',
+    icon: 'FolderOpen',
+    title: '1) Documentos · los subes tú',
+    body: 'Aquí cargas los documentos del expediente del alumno (5 obligatorios) y su cédula de inscripción. Tú y el alumno comparten el mismo expediente: si te trae los papeles físicos, los subes tú; él también puede subirlos desde su portal. La administración los valida.',
+  },
+  {
+    id: 'g-ficha-cuenta',
+    anchor: 'g-ficha-credenciales',
+    placement: 'bottom',
+    icon: 'KeyRound',
+    title: 'Su cuenta de acceso',
+    body: 'Al registrar al alumno se le crea su propia cuenta y se le envían sus credenciales por correo. Recuérdale que él también tiene su portal, donde ve su avance, paga y consulta calificaciones. Si no le llegaron, aquí puedes reenviárselas.',
+  },
+  {
+    id: 'g-ficha-inscripcion',
+    anchor: 'g-ficha-tab-plan',
+    placement: 'bottom',
+    icon: 'CalendarCheck',
+    title: '2) Inscripción · a los módulos',
+    body: 'En esta pestaña inscribes al alumno a los módulos de examen de la convocatoria activa. Los módulos de un mismo bloque comparten día y hora, así que solo se puede inscribir uno de cada bloque. De aquí sale su pase de examen una vez pagado.',
+  },
+  {
+    id: 'g-ficha-pagos',
+    anchor: 'g-ficha-tab-convocatoria',
+    placement: 'bottom',
+    icon: 'Receipt',
+    title: '3) Pagos · su examen',
+    body: 'Aquí gestionas el pago de sus exámenes ante la Tesorería. Cuando el pago queda confirmado, su inscripción pasa a “confirmada” y el alumno obtiene su pase para presentarse el día del examen.',
+  },
+  {
+    id: 'g-ficha-calif',
+    anchor: 'g-ficha-tab-calificaciones',
+    placement: 'bottom',
+    icon: 'GraduationCap',
+    title: 'Calificaciones',
+    body: 'Consulta los resultados oficiales del alumno conforme la administración los registra. Solo lectura: aquí das seguimiento, no capturas notas.',
+  },
+  {
+    id: 'g-ficha-cred',
+    anchor: 'g-ficha-tab-credencial',
+    placement: 'bottom',
+    icon: 'Award',
+    title: 'Credencial',
+    body: 'Su identificación oficial como estudiante. Cuando está emitida, puedes consultarla y descargarla desde aquí.',
+  },
+  {
+    id: 'g-ficha-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Ese es el proceso completo!',
+    body: 'Documentos, inscripción, pago, pase, calificaciones y credencial: todo el acompañamiento del alumno vive aquí. Repite este tutorial con el botón cuando quieras.',
   },
 ];
 

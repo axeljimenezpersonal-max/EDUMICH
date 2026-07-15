@@ -54,6 +54,8 @@ import DocumentoUploader from '../../components/DocumentoUploader';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { CredencialPreview } from '../../components/CredencialPreview';
 import FirmaPad from '../../components/FirmaPad';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_FICHA, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { CampoCopiable } from '../../components/CampoCopiable';
 import { ConfirmModal } from '../../components/ConfirmModal';
 
@@ -546,13 +548,14 @@ export default function AlumnoDetalle() {
       </div>
 
       {/* ── Tab bar ── */}
-      <div className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
+      <div data-tour="g-ficha-tabs" className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
         {tabItems.map(({ key, label, icon, badge, badgeVariant }) => {
           const active = activeTab === key;
           const isWarn = !active && badgeVariant === 'warn';
           return (
             <button
               key={key}
+              data-tour={`g-ficha-tab-${key}`}
               onClick={() => setActiveTab(key)}
               className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
                 active
@@ -640,7 +643,7 @@ export default function AlumnoDetalle() {
 
           {/* Acceso del alumno — va después de matrícula y licencia */}
           {alumno.passwordTemporal ? (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
+            <div data-tour="g-ficha-credenciales" className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 flex items-start gap-3">
               <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center shrink-0">
                 <Send size={16} className="text-amber-600" />
               </div>
@@ -662,7 +665,7 @@ export default function AlumnoDetalle() {
               </button>
             </div>
           ) : (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 flex items-center gap-3">
+            <div data-tour="g-ficha-credenciales" className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 mb-4 flex items-center gap-3">
               <div className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
                 <UserCheck size={16} className="text-emerald-600" />
               </div>
@@ -958,6 +961,12 @@ export default function AlumnoDetalle() {
         </div>
       )}
 
+      <SectionTour
+        steps={TOUR_G_FICHA}
+        storageKey="edumich_sec_g_ficha_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de la ficha"
+      />
     </GestorLayout>
   );
 }
