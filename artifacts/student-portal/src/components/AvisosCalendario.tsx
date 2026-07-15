@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { CalendarClock, CalendarCheck, AlertTriangle, ChevronRight } from 'lucide-react';
+import { CalendarClock, CalendarCheck, AlertTriangle, ChevronRight, Download } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface EventoCalendario {
@@ -47,7 +47,7 @@ const POPPINS = "'Poppins', sans-serif";
  * está inscrito y confunde). El alumno tiene su tarjeta personal "Tu próximo
  * examen". El gestor sí ve el calendario completo.
  */
-export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataTour }: { ocultarExamen?: boolean; hrefInscripcion?: string; dataTour?: string } = {}) {
+export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataTour, examenGestor = false }: { ocultarExamen?: boolean; hrefInscripcion?: string; dataTour?: string; examenGestor?: boolean } = {}) {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
 
   useEffect(() => {
@@ -67,7 +67,7 @@ export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataT
     <div data-tour={dataTour} className="space-y-3">
       {visibles.map((e, i) => {
         if (e.tipo === 'ventana_abierta') return <BannerVentanaAbierta key={i} e={e} href={hrefInscripcion} />;
-        if (e.tipo === 'examen') return <BannerExamen key={i} e={e} />;
+        if (e.tipo === 'examen') return <BannerExamen key={i} e={e} gestor={examenGestor} />;
         return <BannerVentanaProxima key={i} e={e} />;
       })}
     </div>
@@ -150,37 +150,56 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
 }
 
 // ── Banner PROMINENTE: examen próximo ───────────────────────────────────────
-function BannerExamen({ e }: { e: EventoCalendario }) {
-  const urgente = e.urgencia === 'alta';
-  const acento = urgente ? '#be123c' : '#b45309';
-  const borde = urgente ? '#fecdd3' : '#fde68a';
+// Para el GESTOR el examen NO es urgencia suya: él no evalúa, solo acompaña a
+// sus alumnos. Por eso se muestra en tono MORADO (informativo) y con un botón
+// para descargar la lista de alumnos que participan. Para el alumno/admin
+// mantiene el tono de urgencia (rojo/ámbar) según los días restantes.
+function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boolean }) {
+  const urgente = !gestor && e.urgencia === 'alta';
+  const acento = gestor ? '#6d28d9' : urgente ? '#be123c' : '#b45309';
+  const borde = gestor ? '#ddd6fe' : urgente ? '#fecdd3' : '#fde68a';
+  const bg = gestor ? '#f5f3ff' : urgente ? '#fff1f2' : '#fffbeb';
+  const countBg = gestor ? '#ede9fe' : urgente ? '#fee2e2' : '#fef3c7';
   return (
     <div
       className="overflow-hidden rounded-2xl border-2 shadow-sm"
-      style={{ borderColor: borde, background: `linear-gradient(135deg, ${urgente ? '#fff1f2' : '#fffbeb'} 0%, #ffffff 70%)` }}
+      style={{ borderColor: borde, background: `linear-gradient(135deg, ${bg} 0%, #ffffff 70%)` }}
     >
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
         <div className="min-w-0">
           <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
-            <CalendarCheck size={13} /> Examen próximo
+            <CalendarCheck size={13} /> {gestor ? 'Examen de tus alumnos' : 'Examen próximo'}
           </div>
           <div className="mt-1 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
             Etapa {e.clave}
           </div>
           <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
-            Presentación del <strong className="text-stone-800">examen oficial</strong>.
+            {gestor
+              ? <>Tus alumnos presentan su <strong className="text-stone-800">examen oficial</strong>. Acompáñalos y ten lista tu documentación.</>
+              : <>Presentación del <strong className="text-stone-800">examen oficial</strong>.</>}
           </p>
-          <div
-            className="mt-2.5 inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
-            style={{ borderColor: borde, color: acento }}
-          >
-            <CalendarCheck size={14} />
-            {e.fechaFin ? rangoCorto(e.fecha, e.fechaFin) : fmtLargo(e.fecha)}
+          <div className="mt-2.5 flex flex-wrap items-center gap-2">
+            <div
+              className="inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
+              style={{ borderColor: borde, color: acento }}
+            >
+              <CalendarCheck size={14} />
+              {e.fechaFin ? rangoCorto(e.fecha, e.fechaFin) : fmtLargo(e.fecha)}
+            </div>
+            {gestor && (
+              <a
+                href={`/api/gestor/etapas/${encodeURIComponent(e.clave)}/participantes.csv`}
+                className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-bold transition-colors hover:bg-white"
+                style={{ borderColor: borde, background: '#ffffffcc', color: acento }}
+              >
+                <Download size={14} /> Descargar lista de alumnos
+              </a>
+            )}
           </div>
         </div>
         <div
           className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-4 py-2.5 text-center"
-          style={{ background: urgente ? '#fee2e2' : '#fef3c7' }}
+          style={{ background: countBg }}
         >
           <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
           <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>

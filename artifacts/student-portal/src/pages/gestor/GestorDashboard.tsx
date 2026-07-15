@@ -157,7 +157,7 @@ export default function GestorDashboard() {
       )}
 
       {/* Fechas del calendario oficial (ventana de solicitud/pago, examen) */}
-      <div className="mb-6"><AvisosCalendario /></div>
+      <div className="mb-6"><AvisosCalendario examenGestor /></div>
 
       {/* Calendario oficial completo (colapsable) */}
       <div className="mb-6"><CalendarioOficial /></div>

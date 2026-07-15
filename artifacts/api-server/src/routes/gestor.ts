@@ -994,6 +994,64 @@ router.get('/calificaciones/pdf', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// GET /gestor/etapas/:clave/participantes.csv
+// Lista (CSV) de los alumnos DEL GESTOR inscritos al examen de una etapa.
+// Es la "lista de participantes" que el gestor descarga para llevar el día del
+// examen. El gestor es intermediario: no evalúa, solo acompaña a sus alumnos.
+// ─────────────────────────────────────────────────────────────────────────
+router.get('/etapas/:clave/participantes.csv', async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const clave = String(req.params.clave).toUpperCase();
+
+    const etapaRes = await db.execute<{ id: number }>(sql`
+      SELECT id FROM convocatorias_etapas WHERE upper(clave) = ${clave} LIMIT 1
+    `);
+    const etapa = etapaRes.rows[0];
+    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+
+    const rows = await db.execute<{
+      folio: string; nombre_completo: string; curp: string;
+      modulo_numero: number; modulo_nombre: string; sede_nombre: string | null; estado: string;
+    }>(sql`
+      SELECT ei.folio, e.nombre_completo, e.curp,
+             m.numero AS modulo_numero, m.nombre AS modulo_nombre,
+             s.nombre AS sede_nombre, ei.estado
+      FROM examenes_inscripciones ei
+      JOIN estudiantes e ON e.user_id = ei.estudiante_id
+      JOIN modulos m ON m.id = ei.modulo_id
+      LEFT JOIN sedes s ON s.id = ei.sede_id
+      WHERE e.gestor_id = ${userId} AND ei.etapa_id = ${etapa.id}
+      ORDER BY e.nombre_completo, m.numero
+    `);
+
+    const ESTADOS: Record<string, string> = {
+      inscrito: 'Inscrito', preinscrito: 'Pre-inscrito', confirmado: 'Confirmado',
+      pagado: 'Pagado', presentado: 'Presentó', ausente: 'Ausente',
+    };
+    const esc = (v: unknown) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const header = ['Folio', 'Alumno', 'CURP', 'Módulo', 'Sede', 'Estado'];
+    const lineas = [header.map(esc).join(',')];
+    for (const r of rows.rows) {
+      lineas.push([
+        r.folio,
+        r.nombre_completo,
+        r.curp,
+        `M${r.modulo_numero} — ${r.modulo_nombre}`,
+        r.sede_nombre ?? 'Por asignar',
+        ESTADOS[r.estado] ?? r.estado,
+      ].map(esc).join(','));
+    }
+    const csv = '﻿' + lineas.join('\r\n');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="participantes-${clave}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'No se pudo generar la lista' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // GET /gestor/evaluaciones
 // Evaluaciones de práctica (quizzes de módulo en la plataforma) de los
 // alumnos del gestor. Complementa /gestor/calificaciones (exámenes oficiales).
