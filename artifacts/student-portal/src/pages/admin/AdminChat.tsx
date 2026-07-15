@@ -11,6 +11,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useSearch } from 'wouter';
 import { MessageSquare, Send, Search, PenSquare, X, Lock, ChevronLeft, UserRound, GraduationCap, Users } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_CHAT, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 import { parseDbDate } from '../../lib/fechas';
 
@@ -145,7 +147,7 @@ export default function AdminChat() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-[340px_1fr]" style={{ minHeight: 'calc(100vh - 260px)' }}>
         {/* Bandeja */}
-        <div className={`overflow-hidden rounded-xl border border-stone-200 bg-white ${selId != null ? 'hidden md:block' : ''}`}>
+        <div data-tour="a-chat-bandeja" className={`overflow-hidden rounded-xl border border-stone-200 bg-white ${selId != null ? 'hidden md:block' : ''}`}>
           <div className="border-b border-stone-100 p-2.5 space-y-2.5">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
@@ -314,6 +316,13 @@ export default function AdminChat() {
           onAbrir={(id) => { setNuevoOpen(false); setSelId(id); cargarConvs(); }}
         />
       )}
+
+      <SectionTour
+        steps={TOUR_A_CHAT}
+        storageKey="edumich_sec_a_chat_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial del chat"
+      />
     </AdminLayout>
   );
 }

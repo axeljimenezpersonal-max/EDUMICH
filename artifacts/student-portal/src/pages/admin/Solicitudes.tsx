@@ -10,8 +10,6 @@ import {
   Copy,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
-import { SectionTour } from '../../components/onboarding/SectionTour';
-import { TOUR_A_SOLICITUDES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 
 interface Solicitud {
@@ -197,7 +195,7 @@ export default function Solicitudes() {
           <div className="text-xs text-stone-400 mt-1">Todas las solicitudes han sido procesadas.</div>
         </div>
       ) : (
-        <div data-tour="a-sol-tabla" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-stone-50 border-b border-stone-200">
@@ -457,13 +455,6 @@ export default function Solicitudes() {
           </div>
         </div>
       )}
-
-      <SectionTour
-        steps={TOUR_A_SOLICITUDES}
-        storageKey="edumich_sec_a_solicitudes_v1"
-        gateKey={GATE_ADMIN}
-        buttonLabel="Tutorial de solicitudes"
-      />
     </AdminLayout>
   );
 }

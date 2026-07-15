@@ -146,16 +146,40 @@ export const TOUR_A_SOLICITUDES: TourStep[] = [
     id: 'a-sol-intro',
     icon: 'Inbox',
     title: 'Solicitudes de cuenta',
-    body: 'Aquí llegan las personas que pidieron una cuenta desde la página pública. Tú decides: al aprobarlas se crea su cuenta de alumno y se les asigna un gestor; al rechazarlas, se les explica por qué. Es la puerta de entrada al sistema.',
+    body: 'Esta es la PUERTA DE ENTRADA al sistema: aquí caen las personas que pidieron una cuenta desde la página pública. Nadie entra sin pasar por aquí. Tú decides: al aprobar se crea su cuenta de alumno, se le asigna un gestor y se le envían sus credenciales; al rechazar, se le explica el motivo.',
     illustration: 'solicitudFlow',
   },
   {
-    id: 'a-sol-tabla',
-    anchor: 'a-sol-tabla',
+    id: 'a-sol-stats',
+    anchor: 'a-sol-stats',
+    placement: 'bottom',
+    icon: 'BarChart3',
+    title: 'El pulso de tu bandeja',
+    body: 'Cuántas están pendientes y —muy importante— cuántas llevan MÁS DE 7 DÍAS esperando. Esas son las que urgen: una persona lleva una semana sin poder entrar. También ves lo aprobado y rechazado del mes.',
+  },
+  {
+    id: 'a-sol-tabs',
+    anchor: 'a-sol-tabs',
+    placement: 'bottom',
+    icon: 'LayoutGrid',
+    title: 'Pendientes, aprobadas y rechazadas',
+    body: 'Tu trabajo vive en “Pendientes”. Las otras dos pestañas son tu historial: sirven para consultar a quién ya diste de alta o a quién rechazaste y por qué, sin perder el rastro de nada.',
+  },
+  {
+    id: 'a-sol-filtros',
+    anchor: 'a-sol-filtros',
+    placement: 'bottom',
+    icon: 'Filter',
+    title: 'Filtra para priorizar',
+    body: 'Busca por nombre, CURP o correo; acota por municipio; y usa “Urgencia” para atacar primero las más viejas. “Ordenar por” con “Más antigua primero” es la mejor forma de no dejar a nadie esperando.',
+  },
+  {
+    id: 'a-sol-lista',
+    anchor: 'a-sol-lista',
     placement: 'top',
     icon: 'ListChecks',
-    title: 'Revisa cada solicitud',
-    body: 'Cada renglón muestra al solicitante, su CURP, municipio y fecha. En “Acciones” la apruebas (se crea su cuenta y recibe sus accesos) o la rechazas indicando el motivo. Verifica que la CURP y los datos sean correctos antes de aprobar.',
+    title: 'Aprueba o rechaza',
+    body: 'Cada renglón muestra al solicitante con su CURP, municipio y cuánto lleva esperando. Ábrelo para revisar sus datos: verifica que la CURP sea correcta y no esté duplicada. Al aprobar, eliges el gestor de su municipio; al rechazar, escribe un motivo claro (esa persona lo va a leer).',
   },
   {
     id: 'a-sol-fin',
@@ -163,7 +187,7 @@ export const TOUR_A_SOLICITUDES: TourStep[] = [
     placement: 'left',
     icon: 'RefreshCw',
     title: '¡Esas son las solicitudes!',
-    body: 'La bandeja de entrada del sistema. Repite este tutorial con el botón cuando quieras.',
+    body: 'Mantener esta bandeja en cero es lo que permite que entren nuevos alumnos. Repite este tutorial con el botón cuando quieras.',
   },
 ];
 
@@ -241,5 +265,217 @@ export const TOUR_A_CALIFICACIONES: TourStep[] = [
     icon: 'RefreshCw',
     title: '¡Eso es Calificaciones!',
     body: 'La fuente oficial de resultados del estado. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Verificación ───────────────────────────────────────────────
+export const TOUR_A_VERIFICACION: TourStep[] = [
+  {
+    id: 'a-ver-intro',
+    icon: 'ScanLine',
+    title: 'Verificación de identidad',
+    body: 'Tu herramienta de ventanilla: escanea el QR de la credencial digital de un alumno y su expediente se abre al instante. El QR está firmado, así que además te confirma que la credencial es AUTÉNTICA y no una imagen falsificada.',
+    illustration: 'verificaFlow',
+  },
+  {
+    id: 'a-ver-modo',
+    anchor: 'a-ver-modo',
+    placement: 'bottom',
+    icon: 'LayoutGrid',
+    title: 'Qué puedes escanear hoy',
+    body: 'Por ahora solo “Alumno (credencial)” está disponible. “Pase de examen” aparece marcado como Próximamente: esa función aún no entra, así que no la ofrezcas todavía en sede.',
+  },
+  {
+    id: 'a-ver-escaner',
+    anchor: 'a-ver-escaner',
+    placement: 'top',
+    icon: 'QrCode',
+    title: 'Cómo se usa',
+    body: 'Pide al alumno que muestre el QR de su credencial en su teléfono y apúntalo a la cámara. El navegador te pedirá permiso de cámara la primera vez. Al leerlo, se abre su expediente completo sin teclear nada.',
+  },
+  {
+    id: 'a-ver-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esa es Verificación!',
+    body: 'Identificar a un alumno en segundos, con certeza. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Convocatorias ──────────────────────────────────────────────
+export const TOUR_A_CONVOCATORIAS: TourStep[] = [
+  {
+    id: 'a-conv-intro',
+    icon: 'Calendar',
+    title: 'El calendario que manda',
+    body: 'Aquí viven las etapas oficiales de la DGB. Es la sección más delicada del panel: estas fechas GOBIERNAN todo el sistema. Definen cuándo un alumno puede inscribirse, pagar y presentar examen. Si una fecha está mal aquí, se bloquea o se abre indebidamente para todo el estado.',
+  },
+  {
+    id: 'a-conv-acciones',
+    anchor: 'a-conv-acciones',
+    placement: 'bottom',
+    icon: 'Upload',
+    title: 'Carga el año completo',
+    body: 'Con “Precargar etapas” subes de golpe el calendario oficial del año, en vez de capturar etapa por etapa. El selector de año te deja consultar o preparar otros ciclos.',
+  },
+  {
+    id: 'a-conv-stats',
+    anchor: 'a-conv-stats',
+    placement: 'bottom',
+    icon: 'BarChart3',
+    title: 'Cómo va el año',
+    body: 'Cuántas etapas hay programadas, cuántas ya finalizaron, cuántas tienen inscripción abierta ahora mismo y cuántos alumnos se han inscrito en el año.',
+  },
+  {
+    id: 'a-conv-activa',
+    anchor: 'a-conv-activa',
+    placement: 'bottom',
+    icon: 'Flag',
+    title: 'La etapa activa',
+    body: 'Esta es la etapa que está corriendo. Es la que ven alumnos y gestores en sus paneles, y de la que dependen sus ventanas de inscripción y pago. Antes de cambiar sus fechas, considera que afecta a todos en ese momento.',
+  },
+  {
+    id: 'a-conv-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esas son las Convocatorias!',
+    body: 'El reloj oficial del sistema. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Anuncios ───────────────────────────────────────────────────
+export const TOUR_A_ANUNCIOS: TourStep[] = [
+  {
+    id: 'a-anun-intro',
+    icon: 'Megaphone',
+    title: 'Comunicados institucionales',
+    body: 'Tu megáfono hacia alumnos y gestores. Lo que publicas aquí les aparece como banner en su inicio. Úsalo para recordatorios de fechas, avisos de cierre o cambios importantes — no para conversaciones (eso es el Chat).',
+  },
+  {
+    id: 'a-anun-nuevo',
+    anchor: 'a-anun-nuevo',
+    placement: 'bottom',
+    icon: 'Plus',
+    title: 'Crea un anuncio',
+    body: 'Redacta el título y el mensaje, elige su prioridad (informativo, importante o urgente — define el color del banner), y opcionalmente añade un botón con enlace. Puedes dirigirlo a todos o segmentarlo por municipio, etapa o gestor.',
+  },
+  {
+    id: 'a-anun-stats',
+    anchor: 'a-anun-stats',
+    placement: 'bottom',
+    icon: 'BarChart3',
+    title: 'Qué está al aire',
+    body: 'De un vistazo: cuántos anuncios están publicados, cuántos son urgentes, cuántos siguen en borrador y cuántos ya archivaste. Vigila los urgentes: son los más intrusivos para el usuario.',
+  },
+  {
+    id: 'a-anun-tabs',
+    anchor: 'a-anun-tabs',
+    placement: 'bottom',
+    icon: 'LayoutGrid',
+    title: 'Publica, guarda o archiva',
+    body: 'Un anuncio en borrador no lo ve nadie: puedes prepararlo con calma y publicarlo cuando toque. Cuando ya no aplique, archívalo para que deje de mostrarse sin borrar el registro.',
+  },
+  {
+    id: 'a-anun-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esos son los Anuncios!',
+    body: 'Tu canal de comunicación masiva. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Chat en vivo ───────────────────────────────────────────────
+export const TOUR_A_CHAT: TourStep[] = [
+  {
+    id: 'a-chat-intro',
+    icon: 'MessageSquare',
+    title: 'Chat en vivo',
+    body: 'Atiendes en tiempo real a alumnos y gestores de todo el estado. Ojo con la regla: ellos SOLO pueden escribirle a la Secretaría; tú puedes responderle a cualquiera. Eres su único canal directo de soporte.',
+  },
+  {
+    id: 'a-chat-bandeja',
+    anchor: 'a-chat-bandeja',
+    placement: 'right',
+    icon: 'Inbox',
+    title: 'Tu bandeja',
+    body: 'Aquí caen todas las conversaciones. Busca por nombre o correo, y usa el filtro para separar Alumnos de Gestores. Las que tienen mensajes sin leer se marcan, para que no se te escape ninguna.',
+  },
+  {
+    id: 'a-chat-legal',
+    icon: 'Lock',
+    title: 'Todo queda registrado',
+    body: 'Cada conversación se registra y se almacena por motivos legales y de privacidad de datos, y puede ser consultada. Responde siempre en tono formal e institucional: lo que escribas es un documento oficial.',
+    illustration: 'chatLegal',
+  },
+  {
+    id: 'a-chat-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Ese es el Chat!',
+    body: 'Tu ventanilla de atención en vivo. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Reportes ───────────────────────────────────────────────────
+export const TOUR_A_REPORTES: TourStep[] = [
+  {
+    id: 'a-rep-intro',
+    icon: 'BarChart2',
+    title: 'Panel de indicadores',
+    body: 'El pulso de la operación en vivo y el lugar donde generas los reportes que necesitas presentar. Si el Inicio te dice “qué hacer hoy”, Reportes te dice “cómo vamos” y te da la evidencia para sustentarlo.',
+  },
+  {
+    id: 'a-rep-indicadores',
+    anchor: 'a-rep-indicadores',
+    placement: 'bottom',
+    icon: 'Activity',
+    title: 'Los indicadores en vivo',
+    body: 'Las métricas de la operación actualizadas al momento: avance, comportamiento por municipio y tendencias. Úsalas para detectar dónde hace falta empujar antes de que se convierta en problema.',
+  },
+  {
+    id: 'a-rep-descargas',
+    anchor: 'a-rep-descargas',
+    placement: 'top',
+    icon: 'Download',
+    title: 'Centro de descargas',
+    body: 'Aquí generas y descargas reportes filtrados para tus informes oficiales. Elige el reporte, aplica los filtros que necesites y descárgalo listo para entregar.',
+  },
+  {
+    id: 'a-rep-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esos son los Reportes!',
+    body: 'Tus números, siempre listos para rendir cuentas. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Configuración ──────────────────────────────────────────────
+export const TOUR_A_CONFIGURACION: TourStep[] = [
+  {
+    id: 'a-cfg-intro',
+    icon: 'Settings',
+    title: 'Configuración del sistema',
+    body: 'Los ajustes de fondo de la plataforma. Aquí se toca poco, pero lo que se toca afecta a todos: por eso conviene saber qué es cada cosa antes de mover nada.',
+  },
+  {
+    id: 'a-cfg-nav',
+    anchor: 'a-cfg-nav',
+    placement: 'right',
+    icon: 'PanelsTopLeft',
+    title: 'Sus secciones',
+    body: 'El menú de la izquierda agrupa los ajustes por tema. “Mi cuenta” es tu perfil y tu contraseña —eso lo puedes cambiar con confianza—; el resto son parámetros institucionales que conviene revisar con calma.',
+  },
+  {
+    id: 'a-cfg-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esa es la Configuración!',
+    body: 'El cuarto de máquinas del sistema. Repite este tutorial con el botón cuando quieras.',
   },
 ];

@@ -6,6 +6,8 @@ import {
   MessageSquare, Target, Lock, Info, ChevronLeft, ChevronRight, Copy,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_SOLICITUDES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -898,7 +900,7 @@ export default function SolicitudesLista() {
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
       {resumen && (
-        <div className="flex gap-3 mb-5 flex-wrap">
+        <div data-tour="a-sol-stats" className="flex gap-3 mb-5 flex-wrap">
           {estadoParam === 'pendiente' ? (
             <>
               <StatCard icon={<Clock size={14} />} num={resumen.pendientes} label="Pendientes" variant="warning" />
@@ -922,7 +924,7 @@ export default function SolicitudesLista() {
       )}
 
       {/* ── SUB-TABS ─────────────────────────────────────────────────── */}
-      <div className="flex gap-0 border-b-2 border-stone-200 mb-4">
+      <div data-tour="a-sol-tabs" className="flex gap-0 border-b-2 border-stone-200 mb-4">
         {[
           { key: 'pendiente' as const, label: 'Pendientes', icon: <Clock size={13} />, count: resumen?.pendientes, urgent: true },
           { key: 'aprobada' as const, label: 'Aprobadas', icon: <Check size={13} />, count: resumen?.aprobadasEsteMes, urgent: false },
@@ -964,7 +966,7 @@ export default function SolicitudesLista() {
       </div>
 
       {/* ── FILTROS ──────────────────────────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl p-4 mb-4">
+      <div data-tour="a-sol-filtros" className="bg-white border border-stone-200 rounded-xl p-4 mb-4">
         <div className="grid gap-3" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
           {/* Search */}
           <div>
@@ -1038,7 +1040,7 @@ export default function SolicitudesLista() {
         style={{ display: 'grid', gridTemplateColumns: drawerOpen ? '1fr 460px' : '1fr', gap: 16 }}
       >
         {/* TABLE */}
-        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div data-tour="a-sol-lista" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
           {/* Results bar */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-stone-50" style={{ background: 'white' }}>
             <span className="text-sm" style={{ color: '#443e39' }}>
@@ -1184,6 +1186,13 @@ export default function SolicitudesLista() {
           onSuccess={handleRejectSuccess}
         />
       )}
+
+      <SectionTour
+        steps={TOUR_A_SOLICITUDES}
+        storageKey="edumich_sec_a_solicitudes_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de solicitudes"
+      />
     </AdminLayout>
   );
 }

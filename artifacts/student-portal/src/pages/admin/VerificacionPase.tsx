@@ -24,6 +24,8 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_VERIFICACION, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 
 // ── Tipos ─────────────────────────────────────────────────────────────────
@@ -210,7 +212,7 @@ export default function VerificacionPase() {
 
         {/* ── Selector de modo ─────────────────────────────────────────────── */}
         {(state.tipo === 'idle') && (
-          <div className="bg-white border border-stone-200 rounded-2xl p-1.5 flex gap-1.5">
+          <div data-tour="a-ver-modo" className="bg-white border border-stone-200 rounded-2xl p-1.5 flex gap-1.5">
             {([
               { key: 'credencial' as Modo, label: 'Alumno (credencial)', disponible: true },
               { key: 'pase' as Modo, label: 'Pase de examen', disponible: false },
@@ -239,7 +241,7 @@ export default function VerificacionPase() {
 
         {/* ── Estado: IDLE ────────────────────────────────────────────────── */}
         {state.tipo === 'idle' && !camError && (
-          <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+          <div data-tour="a-ver-escaner" className="overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
             <div
               className="relative px-8 py-10 text-center text-white"
               style={{ background: 'linear-gradient(150deg, var(--color-guinda-700), var(--color-guinda-800) 90%)' }}
@@ -524,6 +526,13 @@ export default function VerificacionPase() {
           </div>
         )}
       </div>
+
+      <SectionTour
+        steps={TOUR_A_VERIFICACION}
+        storageKey="edumich_sec_a_verificacion_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de verificación"
+      />
     </AdminLayout>
   );
 }

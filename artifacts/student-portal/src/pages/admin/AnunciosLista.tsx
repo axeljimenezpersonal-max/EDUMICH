@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_ANUNCIOS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 import {
   Megaphone, Plus, Archive, ArchiveRestore, Trash2, Edit2,
@@ -553,6 +555,7 @@ export default function AnunciosLista() {
             </div>
           </div>
           <button
+            data-tour="a-anun-nuevo"
             onClick={() => setModal({ form: { ...EMPTY_FORM } })}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: 'var(--color-guinda-700)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
           >
@@ -561,7 +564,7 @@ export default function AnunciosLista() {
         </div>
 
         {/* Stats grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+        <div data-tour="a-anun-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Publicados',  value: resumen.publicados, color: '#16a34a', bg: '#f0fdf4' },
             { label: 'Urgentes',    value: resumen.urgentes,   color: '#be123c', bg: '#fff1f2' },
@@ -576,7 +579,7 @@ export default function AnunciosLista() {
         </div>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#f0ece8', borderRadius: 8, padding: 4 }}>
+        <div data-tour="a-anun-tabs" style={{ display: 'flex', gap: 4, marginBottom: 16, background: '#f0ece8', borderRadius: 8, padding: 4 }}>
           {tabs.map(t => (
             <button
               key={t.key}
@@ -629,6 +632,13 @@ export default function AnunciosLista() {
           />
         )}
       </div>
+
+      <SectionTour
+        steps={TOUR_A_ANUNCIOS}
+        storageKey="edumich_sec_a_anuncios_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de anuncios"
+      />
     </AdminLayout>
   );
 }

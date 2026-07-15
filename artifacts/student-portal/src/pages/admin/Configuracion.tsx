@@ -5,6 +5,8 @@ import {
   Calendar, MapPin, Mail, Share2, ClipboardList, Info, Trash2,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_CONFIGURACION, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { SaveBar } from '../../components/SaveBar';
 import { useAdminPerfil } from '../../lib/useAdmin';
 
@@ -121,6 +123,7 @@ export default function Configuracion() {
 
         {/* ── Config sidebar ── */}
         <aside
+          data-tour="a-cfg-nav"
           className="bg-white border border-stone-200 rounded-lg overflow-hidden flex-shrink-0 sticky"
           style={{ width: 220, top: 96, alignSelf: 'start' }}
         >
@@ -182,6 +185,13 @@ export default function Configuracion() {
       </div>
 
       <SaveBar isDirty={isDirty} onSave={handleSave} onDiscard={handleDiscard} saving={saving} />
+
+      <SectionTour
+        steps={TOUR_A_CONFIGURACION}
+        storageKey="edumich_sec_a_configuracion_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de configuración"
+      />
     </AdminLayout>
   );
 }

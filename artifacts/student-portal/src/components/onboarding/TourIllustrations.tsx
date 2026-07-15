@@ -13,7 +13,7 @@ import {
   FileText, Landmark, Banknote, Upload, BadgeCheck,
   LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
   MessageCircle, ClipboardList, BookOpen, PlayCircle,
-  Inbox, Search, UserCheck,
+  Inbox, Search, UserCheck, QrCode, ShieldCheck, FolderOpen,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -54,6 +54,13 @@ const PASOS_SOLICITUD: Paso[] = [
   { Icon: Inbox, label: 'Solicita' },
   { Icon: Search, label: 'Revisas' },
   { Icon: UserCheck, label: 'Aprobada' },
+];
+
+const PASOS_VERIFICA: Paso[] = [
+  { Icon: QrCode, label: 'Escaneas' },
+  { Icon: ShieldCheck, label: 'Firma válida' },
+  { Icon: UserCheck, label: 'Auténtica' },
+  { Icon: FolderOpen, label: 'Expediente' },
 ];
 
 function usePrefiereMenosMovimiento(): boolean {
@@ -382,6 +389,7 @@ export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   altaFlow: () => <FlowAnimation pasos={PASOS_ALTA} />,
   cicloAdmin: () => <FlowAnimation pasos={PASOS_CICLO} />,
   solicitudFlow: () => <FlowAnimation pasos={PASOS_SOLICITUD} />,
+  verificaFlow: () => <FlowAnimation pasos={PASOS_VERIFICA} />,
   chatLegal: ChatLegalAnimation,
   chatDemo: ChatDemoAnimation,
   aulaCard: AulaCardAnimation,

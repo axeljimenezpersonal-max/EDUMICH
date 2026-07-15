@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_CONVOCATORIAS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 import { Calendar, Users, ChevronRight, ArrowRight, Flag, Upload, X, CheckCircle2, AlertTriangle, Loader2 } from 'lucide-react';
 
@@ -93,7 +95,7 @@ export default function ConvocatoriasLista() {
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div data-tour="a-conv-acciones" className="flex items-center gap-2">
           <button
             onClick={() => setPrecargaOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
@@ -130,7 +132,7 @@ export default function ConvocatoriasLista() {
       )}
 
       {/* Stats row */}
-      <div className="grid grid-cols-4 gap-3 mb-6">
+      <div data-tour="a-conv-stats" className="grid grid-cols-4 gap-3 mb-6">
         <StatCard
           icon={<Calendar size={16} />}
           num={data?.stats.etapasTotal ?? 0}
@@ -157,6 +159,7 @@ export default function ConvocatoriasLista() {
       {/* Active etapa banner */}
       {etapaActiva && (
         <div
+          data-tour="a-conv-activa"
           className="rounded-xl mb-6 px-6 py-4 relative overflow-hidden flex items-center justify-between gap-6"
           style={{ background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)', color: 'white' }}
         >
@@ -343,6 +346,13 @@ export default function ConvocatoriasLista() {
           </div>
         </div>
       )}
+
+      <SectionTour
+        steps={TOUR_A_CONVOCATORIAS}
+        storageKey="edumich_sec_a_convocatorias_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de convocatorias"
+      />
     </AdminLayout>
   );
 }

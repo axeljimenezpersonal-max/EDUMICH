@@ -11,6 +11,8 @@ import {
   PieChart, Pie, CartesianGrid,
 } from 'recharts';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_REPORTES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -145,7 +147,7 @@ export default function Reportes() {
           </div>
         </div>
 
-        <PanelIndicadores />
+        <div data-tour="a-rep-indicadores"><PanelIndicadores /></div>
 
         <div className="my-8 flex items-center gap-3">
           <div className="h-px flex-1 bg-stone-200" />
@@ -153,8 +155,15 @@ export default function Reportes() {
           <div className="h-px flex-1 bg-stone-200" />
         </div>
 
-        <CentroDescargas />
+        <div data-tour="a-rep-descargas"><CentroDescargas /></div>
       </div>
+
+      <SectionTour
+        steps={TOUR_A_REPORTES}
+        storageKey="edumich_sec_a_reportes_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de reportes"
+      />
     </AdminLayout>
   );
 }
