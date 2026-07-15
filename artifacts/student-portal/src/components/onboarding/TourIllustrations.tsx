@@ -9,7 +9,10 @@
 
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Landmark, Banknote, Upload, BadgeCheck } from 'lucide-react';
+import {
+  FileText, Landmark, Banknote, Upload, BadgeCheck,
+  LockOpen, ClipboardCheck, GraduationCap,
+} from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
 type Paso = { Icon: React.ComponentType<LucideProps>; label: string };
@@ -20,6 +23,13 @@ const PASOS_PAGO: Paso[] = [
   { Icon: Banknote, label: 'Pagas' },
   { Icon: Upload, label: 'Comprobante' },
   { Icon: BadgeCheck, label: 'Confirmado' },
+];
+
+const PASOS_PRUEBA: Paso[] = [
+  { Icon: Banknote, label: 'Pagas examen' },
+  { Icon: LockOpen, label: 'Prueba incluida' },
+  { Icon: ClipboardCheck, label: 'Practicas' },
+  { Icon: GraduationCap, label: 'Llegas listo' },
 ];
 
 function usePrefiereMenosMovimiento(): boolean {
@@ -36,12 +46,12 @@ function usePrefiereMenosMovimiento(): boolean {
 }
 
 /**
- * Flujo de pago animado: los nodos se van "encendiendo" en secuencia y la línea
+ * Flujo animado genérico: los nodos se van "encendiendo" en secuencia y la línea
  * que los une se rellena a su paso; al completarse hace una pausa y reinicia.
  */
-function PagoFlowAnimation() {
+function FlowAnimation({ pasos }: { pasos: Paso[] }) {
   const reduce = usePrefiereMenosMovimiento();
-  const N = PASOS_PAGO.length;
+  const N = pasos.length;
   // `activo` va de 0 a N (en N todos están encendidos → beat de "completado").
   const [activo, setActivo] = useState(reduce ? N : 0);
 
@@ -58,7 +68,7 @@ function PagoFlowAnimation() {
       aria-hidden
     >
       <div className="flex items-start">
-        {PASOS_PAGO.map((p, i) => {
+        {pasos.map((p, i) => {
           const encendido = i <= activo;
           const P = p.Icon;
           return (
@@ -107,5 +117,6 @@ function PagoFlowAnimation() {
 
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
-  pagoFlow: PagoFlowAnimation,
+  pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
+  pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
 };

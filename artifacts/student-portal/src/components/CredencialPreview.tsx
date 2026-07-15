@@ -156,7 +156,7 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
   if (flippable) {
     const H = faceH ?? FLIP_H;
     return (
-      <div className="flex flex-col items-center gap-4">
+      <div data-tour="id-credencial" className="flex flex-col items-center gap-4">
         <div ref={wrapRef} style={{ width: '100%' }}>
           {/* Medidor oculto: caras a ancho de diseño para conocer su altura real */}
           <div style={{ position: 'absolute', visibility: 'hidden', pointerEvents: 'none', width: CARD_W, left: -9999, top: 0 }} aria-hidden>
@@ -183,6 +183,7 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
           </div>
         </div>
         <button
+          data-tour="id-voltear"
           onClick={() => setFlipped((f) => !f)}
           className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
         >

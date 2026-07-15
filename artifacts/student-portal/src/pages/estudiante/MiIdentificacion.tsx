@@ -470,7 +470,7 @@ export default function MiIdentificacion() {
         <CredencialPreview basePath="/estudiante" flippable />
 
         {/* ── Acciones ────────────────────────────────────────────── */}
-        <div className="flex items-center gap-3 mt-5 flex-wrap justify-center">
+        <div data-tour="id-acciones" className="flex items-center gap-3 mt-5 flex-wrap justify-center">
           <button
             onClick={handleDescargar}
             disabled={descargando}
