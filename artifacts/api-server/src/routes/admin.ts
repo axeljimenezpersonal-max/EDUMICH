@@ -1826,10 +1826,23 @@ router.post('/alumnos/:id/asignar-gestor', async (req, res) => {
   const parse = asignarGestorSchema.safeParse(req.body);
   if (!parse.success) { res.status(400).json({ error: 'Datos inválidos' }); return; }
   try {
+    // Para la bitácora: nombres de alumno y gestor antes/después.
+    const [alu] = await db.select({ nombre: estudiantes.nombreCompleto }).from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+    let gestorNombre = 'sin gestor';
+    if (parse.data.gestorId) {
+      const [g] = await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, parse.data.gestorId));
+      gestorNombre = g?.nombre ?? `#${parse.data.gestorId}`;
+    }
     await db.execute(sql`
       UPDATE estudiantes SET gestor_id = ${parse.data.gestorId}, updated_at = now()
       WHERE user_id = ${alumnoId}
     `);
+    await tryAuditLog({
+      userId: req.user!.userId, accion: parse.data.gestorId ? 'asignar_gestor' : 'quitar_gestor',
+      entidad: 'estudiantes', entidadId: alumnoId,
+      detalle: `Asignó a ${alu?.nombre ?? `alumno #${alumnoId}`} el gestor: ${gestorNombre}`,
+      metadata: { gestorId: parse.data.gestorId }, req,
+    });
     res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error interno' });
@@ -2822,6 +2835,12 @@ router.post('/gestores', soloJefe, async (req, res) => {
       }
     } catch {}
 
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'crear_gestor', entidad: 'gestores', entidadId: newGestor.gestor.userId,
+      detalle: `Dio de alta al gestor ${nombreCompleto} (${municipioNombre})`,
+      metadata: { email: data.email, municipioId: data.municipioId }, req,
+    });
+
     res.status(201).json({
       ok: true,
       gestor: {
@@ -2998,6 +3017,13 @@ router.post('/gestores/:gestorId/desactivar', soloJefe, async (req, res) => {
       }
     });
 
+    const [gDat] = await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, gestorId));
+    await tryAuditLog({
+      userId: adminId, accion: 'desactivar_gestor', entidad: 'gestores', entidadId: gestorId,
+      detalle: `Dio de baja al gestor ${gDat?.nombre ?? `#${gestorId}`}${alumnosReasignados ? ` (reasignó ${alumnosReasignados} alumnos)` : ''}`,
+      metadata: { razon, reasignarAGestorId, alumnosReasignados }, req,
+    });
+
     res.json({ ok: true, alumnosReasignados });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
@@ -3065,6 +3091,12 @@ router.post('/gestores/:gestorId/activar', soloJefe, async (req, res) => {
       await tx.update(users)
         .set({ activo: true, updatedAt: new Date() })
         .where(eq(users.id, gestorId));
+    });
+
+    const [gDat] = await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, gestorId));
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'reactivar_gestor', entidad: 'gestores', entidadId: gestorId,
+      detalle: `Reactivó al gestor ${gDat?.nombre ?? `#${gestorId}`}`, req,
     });
 
     res.json({ ok: true });

@@ -12,6 +12,14 @@ import bcrypt from 'bcryptjs';
 const router = Router();
 router.use(authRequired, requireRol('admin'));
 
+// La bitácora de actividad (supervisión) es facultad de jefatura: solo la
+// administradora titular puede auditar lo que hace su equipo.
+async function soloJefeBitacora(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) {
+  const [a] = await db.select({ j: administradores.esJefe }).from(administradores).where(eq(administradores.userId, req.user!.userId));
+  if (a?.j) { next(); return; }
+  res.status(403).json({ error: 'La bitácora está reservada a la administradora titular.' });
+}
+
 // ─────────────────────────────────────────────────────────────
 // Audit helper
 // ─────────────────────────────────────────────────────────────
@@ -447,7 +455,7 @@ router.post('/seguridad/sesiones/cerrar-todas', async (req, res) => {
 // BITÁCORA DE AUDITORÍA
 // ─────────────────────────────────────────────────────────────
 
-router.get('/bitacora', async (req, res) => {
+router.get('/bitacora', soloJefeBitacora, async (req, res) => {
   const page = Math.max(1, Number(req.query.page ?? 1));
   const limit = Math.min(Number(req.query.limit ?? 50), 200);
   const offset = (page - 1) * limit;
@@ -493,7 +501,7 @@ router.get('/bitacora', async (req, res) => {
   res.json({ rows: masked, total: Number(totalRes[0]?.total ?? 0), page, limit });
 });
 
-router.get('/bitacora/usuarios', async (_req, res) => {
+router.get('/bitacora/usuarios', soloJefeBitacora, async (_req, res) => {
   const rows = await db.selectDistinct({
     id: auditLog.userId,
     nombre: auditLog.userNombre,

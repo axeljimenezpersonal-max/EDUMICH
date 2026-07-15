@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { SaveBar } from '../../components/SaveBar';
+import { useAdminPerfil } from '../../lib/useAdmin';
 
 // ─────────────────────────────────────────────────────────────
 // Lazy-load section components
@@ -35,31 +36,39 @@ type Seccion =
   | 'documentos-requeridos' | 'pagos' | 'etapas-dgb'
   | 'municipios' | 'plantillas-correo' | 'integraciones' | 'bitacora' | 'depuracion' | 'acerca-de';
 
-const NAV_GROUPS: {
-  label: string;
-  items: { id: Seccion; label: string; icon: React.FC<{ size?: number }> }[];
-}[] = [
-  {
-    label: 'PERSONAL',
-    items: [
-      { id: 'mi-cuenta', label: 'Mi cuenta', icon: UserCircle },
-      { id: 'seguridad', label: 'Seguridad', icon: Shield },
-    ],
-  },
-  {
-    label: 'INSTITUCIÓN',
-    items: [
-      { id: 'documentos-requeridos', label: 'Documentos requeridos', icon: FileText },
-      { id: 'etapas-dgb', label: 'Etapas DGB', icon: Calendar },
-    ],
-  },
-  {
-    label: 'SISTEMA',
-    items: [
-      { id: 'acerca-de', label: 'Acerca de EDUMICH', icon: Info },
-    ],
-  },
-];
+type NavGroup = { label: string; items: { id: Seccion; label: string; icon: React.FC<{ size?: number }> }[] };
+// La sección "Supervisión" (bitácora de actividad) es una facultad de jefatura:
+// solo la administradora TITULAR (Velia) puede auditar lo que hace su equipo.
+function navGroups(esJefe: boolean): NavGroup[] {
+  return [
+    {
+      label: 'PERSONAL',
+      items: [
+        { id: 'mi-cuenta', label: 'Mi cuenta', icon: UserCircle },
+        { id: 'seguridad', label: 'Seguridad', icon: Shield },
+      ],
+    },
+    {
+      label: 'INSTITUCIÓN',
+      items: [
+        { id: 'documentos-requeridos', label: 'Documentos requeridos', icon: FileText },
+        { id: 'etapas-dgb', label: 'Etapas DGB', icon: Calendar },
+      ],
+    },
+    ...(esJefe ? [{
+      label: 'SUPERVISIÓN',
+      items: [
+        { id: 'bitacora' as Seccion, label: 'Bitácora de actividad', icon: ClipboardList },
+      ],
+    }] : []),
+    {
+      label: 'SISTEMA',
+      items: [
+        { id: 'acerca-de', label: 'Acerca de EDUMICH', icon: Info },
+      ],
+    },
+  ];
+}
 
 // ─────────────────────────────────────────────────────────────
 // Main component
@@ -69,6 +78,8 @@ export default function Configuracion() {
   const params = useParams<{ seccion?: string }>();
   const [, setLocation] = useLocation();
   const seccion = (params.seccion ?? 'mi-cuenta') as Seccion;
+  const { esJefe } = useAdminPerfil();
+  const NAV_GROUPS = navGroups(esJefe);
 
   const [isDirty, setIsDirty] = useState(false);
   const [saving, setSaving] = useState(false);
