@@ -23,7 +23,7 @@ import {
 import { EstudianteLayout } from './EstudianteLayout';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
-import { TOUR_INSCRIPCION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
+import { TOUR_INSCRIPCION, TOUR_INSCRIPCION_ACTIVA, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
 import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria, ExpedienteResponse } from '../../lib/api';
 
@@ -521,7 +521,7 @@ function ModulosInscripcion({
 function ProximasEtapasSection({ etapas }: { etapas: EtapaConvocatoria[] }) {
   if (etapas.length === 0) return null;
   return (
-    <div>
+    <div data-tour="insc-proximas">
       <h3 className="font-semibold text-stone-800 mb-3 flex items-center gap-2">
         <Calendar className="w-4 h-4 text-[var(--color-guinda-700)]" />
         Próximas etapas
@@ -674,6 +674,14 @@ export default function MiConvocatoria() {
     ? (calendarioData.etapas.find((e) => e.id === etapaActiva.id) ?? null)
     : null;
 
+  // Tutorial ADAPTATIVO: si la convocatoria está abierta o el alumno ya tiene
+  // exámenes, mostramos el recorrido de la inscripción en curso (paso a paso por
+  // la pantalla real); si aún no puede inscribirse, el recorrido de requisitos.
+  const inscripcionEnCurso = (requisitos.puedeInscribirse && !!etapaActiva) || tieneExamenes;
+  const tourSteps = inscripcionEnCurso ? TOUR_INSCRIPCION_ACTIVA : TOUR_INSCRIPCION;
+  const tourKey = inscripcionEnCurso ? 'edumich_sec_inscripcion_activa_v1' : 'edumich_sec_inscripcion_v1';
+  const tourLabel = inscripcionEnCurso ? 'Tutorial de mi inscripción' : 'Tutorial de Inscripción';
+
   return (
     <EstudianteLayout>
       <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -783,7 +791,7 @@ export default function MiConvocatoria() {
 
         {/* Banner etapa activa */}
         {requisitos.puedeInscribirse && etapaActiva && (
-          <div className="bg-[var(--color-guinda-700)] rounded-2xl p-5 text-white">
+          <div data-tour="insc-abierta" className="bg-[var(--color-guinda-700)] rounded-2xl p-5 text-white">
             <div className="flex items-start gap-3">
               <div className="bg-white/20 rounded-lg p-2">
                 <FileCheck className="w-5 h-5" />
@@ -806,6 +814,7 @@ export default function MiConvocatoria() {
 
         {/* Módulos disponibles para inscribir (inline) */}
         {requisitos.puedeInscribirse && etapaActiva && etapaActiva.estado === 'inscripcion_abierta' && (
+          <div data-tour="insc-modulos">
           <ModulosInscripcion
             etapa={etapaActiva}
             calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}
@@ -816,6 +825,7 @@ export default function MiConvocatoria() {
             onEditarPreinscripcion={() => { setErrorEditar(null); setConfirmEditar(true); }}
             onSuccess={() => cargarConvocatoria()}
           />
+          </div>
         )}
 
         {/* Mis exámenes por convocatoria: próximos arriba, realizados como historial */}
@@ -837,7 +847,7 @@ export default function MiConvocatoria() {
           const anteriores = grupos.filter((g) => g.maxFecha < hoyUTC).sort((a, b) => b.maxFecha - a.maxFecha);
           const nAnteriores = anteriores.reduce((s, g) => s + g.exs.length, 0);
           return (
-            <div className="space-y-5">
+            <div data-tour="insc-examenes" className="space-y-5">
               {proximos.length > 0 && (
                 <div>
                   <h2 className="font-semibold text-stone-800 flex items-center gap-2 mb-3">
@@ -869,7 +879,7 @@ export default function MiConvocatoria() {
 
         {/* Sede asignada */}
         {sedeAsignada && (
-          <div>
+          <div data-tour="insc-sede">
             <h2 className="font-semibold text-stone-800 mb-3 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-[var(--color-guinda-700)]" />
               Sede asignada
@@ -888,7 +898,7 @@ export default function MiConvocatoria() {
         )}
 
         {/* ¿Cómo termino mi inscripción? */}
-        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div data-tour="insc-pasos" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
           <div className="px-5 py-4 border-b border-stone-100 bg-[var(--color-crema-100)] flex items-center gap-2">
             <FileCheck className="w-4 h-4 text-[var(--color-guinda-700)]" />
             <p className="font-bold text-stone-900 text-sm">¿Cómo termino mi inscripción?</p>
@@ -979,10 +989,10 @@ export default function MiConvocatoria() {
       )}
 
           <SectionTour
-            steps={TOUR_INSCRIPCION}
-            storageKey="edumich_sec_inscripcion_v1"
+            steps={tourSteps}
+            storageKey={tourKey}
             gateKey={GATE_ESTUDIANTE}
-            buttonLabel="Tutorial de Inscripción"
+            buttonLabel={tourLabel}
           />
     </EstudianteLayout>
   );

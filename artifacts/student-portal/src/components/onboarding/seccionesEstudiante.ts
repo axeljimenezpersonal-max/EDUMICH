@@ -173,6 +173,77 @@ export const TOUR_INSCRIPCION: TourStep[] = [
   },
 ];
 
+/**
+ * Recorrido de Inscripción cuando la convocatoria está ABIERTA y el alumno ya
+ * puede (o ya empezó a) inscribir módulos. Adapta el mensaje al estado real de
+ * la página: si un bloque aún no existe (p. ej. la sede todavía no se asigna),
+ * su tarjeta simplemente se centra en lugar de iluminar un elemento.
+ */
+export const TOUR_INSCRIPCION_ACTIVA: TourStep[] = [
+  {
+    id: 'insc-act-intro',
+    icon: 'CalendarCheck',
+    title: 'Tu inscripción está abierta',
+    body: 'Estás justo en la ventana para inscribir tus exámenes de esta convocatoria. Te muestro cada parte de la pantalla y cómo dejar tu inscripción lista.',
+  },
+  {
+    id: 'insc-act-abierta',
+    anchor: 'insc-abierta',
+    placement: 'bottom',
+    icon: 'CalendarClock',
+    title: 'Paso 1 · Esta es la convocatoria abierta',
+    body: 'Esta es la etapa cuya inscripción y pago están abiertos ahora. Aquí ves las fechas exactas y los días que faltan para el cierre. Solo dentro de esta ventana puedes inscribir y pagar.',
+  },
+  {
+    id: 'insc-act-modulos',
+    anchor: 'insc-modulos',
+    placement: 'top',
+    icon: 'BookOpenCheck',
+    title: 'Módulos disponibles para inscribir',
+    body: 'Estos son los módulos que puedes presentar en esta convocatoria. Elige los que quieras (hasta 4) y confírmalos: con eso quedas pre-inscrito y se genera tu ficha de pago.',
+  },
+  {
+    id: 'insc-act-examenes',
+    anchor: 'insc-examenes',
+    placement: 'top',
+    icon: 'ClipboardCheck',
+    title: 'Tus exámenes inscritos',
+    body: 'Aquí aparecen los exámenes que ya inscribiste, agrupados por convocatoria. Cada uno muestra su estado (pre-inscrito o confirmado) y, más abajo, guardamos como historial los que ya presentaste.',
+  },
+  {
+    id: 'insc-act-sede',
+    anchor: 'insc-sede',
+    placement: 'top',
+    icon: 'MapPin',
+    title: 'Tu sede de examen',
+    body: 'Aquí verás la sede donde presentarás. Se asigna más adelante, cuando la coordinación la publique — si todavía no aparece, es normal: te avisaremos en cuanto se sepa.',
+  },
+  {
+    id: 'insc-act-pasos',
+    anchor: 'insc-pasos',
+    placement: 'top',
+    icon: 'ListChecks',
+    title: 'Siguientes pasos · ¿Cómo termino?',
+    body: 'Tu lugar se confirma solo cuando el pago se valida. Aquí tienes los pasos: descarga tu ficha, paga antes de la fecha límite, espera la confirmación y descarga tu pase para el día del examen.',
+  },
+  {
+    id: 'insc-act-proximas',
+    anchor: 'insc-proximas',
+    placement: 'top',
+    icon: 'CalendarRange',
+    title: 'Próximas etapas',
+    body: 'Además de la convocatoria abierta, aquí ves las etapas que vienen con sus fechas. Así puedes planear qué módulos presentar en cada una.',
+  },
+  {
+    id: 'insc-act-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Listo, esa es tu Inscripción!',
+    body: 'Elige módulos, genera tu ficha, paga y confirma. Puedes repetir este tutorial cuando quieras con este botón.',
+  },
+];
+
 // ── Pagos ──────────────────────────────────────────────────────
 export const TOUR_PAGOS: TourStep[] = [
   {
