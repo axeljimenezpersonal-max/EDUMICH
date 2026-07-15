@@ -7,6 +7,7 @@ import {
   MessageSquare, GraduationCap, HelpCircle,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useAdminPerfil } from '../../lib/useAdmin';
 import { safeUrl } from '../../lib/safeUrl';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
@@ -275,6 +276,7 @@ function SidebarBadge({ count }: { count: number; muted?: boolean }) {
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
+  const { esJefe } = useAdminPerfil();
   const [sidebar, setSidebar] = useState<SidebarSnapshot>({
     nombreAdmin: 'Administrador',
     totalAlumnos: 0,
@@ -407,7 +409,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                   {apellido(sidebar.nombreAdmin)}
                 </div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)', letterSpacing: '0.1em' }}>
-                  Administrador
+                  {esJefe ? 'Administradora · Titular' : 'Administración · Operativo'}
                 </div>
               </div>
               <div

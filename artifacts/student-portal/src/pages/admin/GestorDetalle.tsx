@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
+import { useAdminPerfil } from '../../lib/useAdmin';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -464,6 +465,7 @@ export default function GestorDetalle() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute('/admin/gestores/:id');
   const gestorId = Number(params?.id);
+  const { esJefe } = useAdminPerfil();
 
   const [gestor, setGestor] = useState<GestorDetalle | null>(null);
   const [loadingGestor, setLoadingGestor] = useState(true);
@@ -761,7 +763,7 @@ export default function GestorDetalle() {
             >
               <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
             </button>
-            {inactivo ? (
+            {esJefe && (inactivo ? (
               <button
                 onClick={handleActivar}
                 disabled={activating}
@@ -778,7 +780,7 @@ export default function GestorDetalle() {
               >
                 <UserX size={12} /> Desactivar
               </button>
-            )}
+            ))}
             <button
               onClick={() => setLocation(`/admin/alumnos?gestorId=${gestor.id}`)}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white rounded-lg"

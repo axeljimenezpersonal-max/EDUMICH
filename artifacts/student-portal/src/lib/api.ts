@@ -118,6 +118,9 @@ export interface MeResponse {
     municipio?: string;
     municipioId?: number;
     telefono?: string;
+    puesto?: string;
+    // Admin: la titular (Velia) es jefa; su equipo son operativos (esJefe=false).
+    esJefe?: boolean;
   };
 }
 

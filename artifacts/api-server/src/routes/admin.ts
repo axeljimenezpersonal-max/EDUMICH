@@ -71,6 +71,19 @@ const router = Router();
 
 router.use(authRequired, requireRol('admin'));
 
+// ── Jefatura ────────────────────────────────────────────────────────────────
+// La TITULAR (Velia) es jefa; su equipo son administradores operativos. Ambos
+// operan casi todo, pero las facultades de jefatura —alta/baja de gestores y
+// firma responsable de la cédula— quedan reservadas a la jefa.
+export async function esAdminJefe(userId: number): Promise<boolean> {
+  const [a] = await db.select({ j: administradores.esJefe }).from(administradores).where(eq(administradores.userId, userId));
+  return !!a?.j;
+}
+async function soloJefe(req: import('express').Request, res: import('express').Response, next: import('express').NextFunction) {
+  if (await esAdminJefe(req.user!.userId)) { next(); return; }
+  res.status(403).json({ error: 'Esta acción está reservada a la administradora titular.' });
+}
+
 // ─── POST /admin/credencial/validar ───────────────────────────────────────
 // Escaneo del QR de la credencial digital: resuelve el folio -> alumno para
 // que el operador abra su ficha dentro de administración.
@@ -2744,7 +2757,7 @@ const crearGestorSchema = z.object({
   capacidadMaxima: z.number().int().positive().optional(),
 });
 
-router.post('/gestores', async (req, res) => {
+router.post('/gestores', soloJefe, async (req, res) => {
   const parse = crearGestorSchema.safeParse(req.body);
   if (!parse.success) {
     res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
@@ -2942,7 +2955,7 @@ const desactivarGestorSchema = z.object({
   reasignarAGestorId: z.number().int().positive().optional(),
 });
 
-router.post('/gestores/:gestorId/desactivar', async (req, res) => {
+router.post('/gestores/:gestorId/desactivar', soloJefe, async (req, res) => {
   const gestorId = Number(req.params.gestorId);
   if (!gestorId) { res.status(400).json({ error: 'ID inválido' }); return; }
 
@@ -2998,7 +3011,7 @@ const reasignarAlumnosSchema = z.object({
   razon: z.string().optional(),
 });
 
-router.post('/gestores/:gestorId/reasignar-alumnos', async (req, res) => {
+router.post('/gestores/:gestorId/reasignar-alumnos', soloJefe, async (req, res) => {
   const gestorId = Number(req.params.gestorId);
   if (!gestorId) { res.status(400).json({ error: 'ID inválido' }); return; }
 
@@ -3027,7 +3040,7 @@ router.post('/gestores/:gestorId/reasignar-alumnos', async (req, res) => {
 });
 
 // ─── POST /admin/gestores/:gestorId/activar ───────────────────────────────
-router.post('/gestores/:gestorId/activar', async (req, res) => {
+router.post('/gestores/:gestorId/activar', soloJefe, async (req, res) => {
   const gestorId = Number(req.params.gestorId);
   if (!gestorId) { res.status(400).json({ error: 'ID inválido' }); return; }
 

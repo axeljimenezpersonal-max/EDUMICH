@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
+import { useAdminPerfil } from '../../lib/useAdmin';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -511,6 +512,7 @@ function Toast({ msg, ok, onDone }: { msg: string; ok: boolean; onDone: () => vo
 
 export default function GestoresLista() {
   const [, setLocation] = useLocation();
+  const { esJefe } = useAdminPerfil();
 
   // Filters
   const [searchInput, setSearchInput] = useState('');
@@ -608,13 +610,15 @@ export default function GestoresLista() {
           <button onClick={load} className="p-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 transition-colors" title="Recargar">
             <RefreshCw size={14} style={{ color: '#6b635e' }} />
           </button>
-          <button
-            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg"
-            style={{ background: 'var(--color-guinda-700)' }}
-            onClick={() => setCrearOpen(true)}
-          >
-            <UserPlus size={14} /> Nuevo gestor
-          </button>
+          {esJefe && (
+            <button
+              className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg"
+              style={{ background: 'var(--color-guinda-700)' }}
+              onClick={() => setCrearOpen(true)}
+            >
+              <UserPlus size={14} /> Nuevo gestor
+            </button>
+          )}
         </div>
       </div>
 

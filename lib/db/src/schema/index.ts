@@ -311,6 +311,10 @@ export const administradores = pgTable('administradores', {
   puesto: varchar('puesto', { length: 120 }),
   emailPublico: varchar('email_publico', { length: 255 }),
   telefonoPublico: varchar('telefono_publico', { length: 30 }),
+  // Jefatura: la TITULAR (Velia) es jefa; su equipo son administradores
+  // operativos (esJefe=false) — operan casi todo salvo facultades de jefatura:
+  // alta/baja de gestores, alta/baja de alumnos y firma responsable de cédula.
+  esJefe: boolean('es_jefe').notNull().default(false),
   // Una vez que el admin confirma su perfil (nombre/cargo/tel), queda bloqueado.
   perfilConfirmado: boolean('perfil_confirmado').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
