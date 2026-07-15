@@ -28,7 +28,7 @@ interface Props {
   illustration?: string;
 }
 
-const CARD_W = 356;
+const CARD_W = 416;
 const GAP = 16;
 const MARGIN = 12;
 
@@ -155,25 +155,25 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
         />
       </div>
 
-      <div className="p-5">
-        <div className="flex items-start gap-3 mb-2.5">
+      <div className="p-6">
+        <div className="flex items-start gap-3.5 mb-3">
           <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
+            className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-white"
             style={{ background: 'var(--color-guinda-700)' }}
             aria-hidden
           >
-            <Icon size={22} />
+            <Icon size={24} />
           </div>
           <div className="min-w-0 pt-0.5">
             <div
-              className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[0.12em] mb-0.5"
+              className="flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-[0.12em] mb-1"
               style={{ color: 'var(--color-dorado)' }}
             >
               Paso {index + 1} de {total}
             </div>
             <h2
               id="tour-card-title"
-              className="font-serif text-lg font-bold leading-snug"
+              className="font-serif text-xl font-bold leading-snug"
               style={{ color: '#1c1917' }}
             >
               {title}
@@ -189,7 +189,7 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
           </button>
         </div>
 
-        <p id="tour-card-body" className="text-sm text-stone-600 leading-relaxed">
+        <p id="tour-card-body" className="text-[15px] text-stone-600 leading-relaxed">
           {body}
         </p>
 
@@ -214,7 +214,7 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
           <button
             type="button"
             onClick={onSkip}
-            className="text-xs font-semibold text-stone-400 hover:text-[var(--color-guinda-700)] transition-colors"
+            className="text-[13px] font-semibold text-stone-400 hover:text-[var(--color-guinda-700)] transition-colors"
           >
             {isLast ? 'Cerrar' : 'Saltar tutorial'}
           </button>
@@ -224,19 +224,19 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
               <button
                 type="button"
                 onClick={onPrev}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-crema-200)] bg-white px-3.5 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-crema-200)] bg-white px-4 py-2.5 text-[15px] font-semibold text-stone-600 hover:bg-stone-50 transition-colors"
               >
-                <ArrowLeft size={14} /> Atrás
+                <ArrowLeft size={16} /> Atrás
               </button>
             )}
             <button
               ref={nextBtnRef}
               type="button"
               onClick={onNext}
-              className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-bold text-white transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-[15px] font-bold text-white transition-colors"
               style={{ background: 'var(--color-guinda-700)' }}
             >
-              {isLast ? <>Entendido <Check size={15} /></> : <>Siguiente <ArrowRight size={15} /></>}
+              {isLast ? <>Entendido <Check size={16} /></> : <>Siguiente <ArrowRight size={16} /></>}
             </button>
           </div>
         </div>
