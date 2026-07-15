@@ -648,24 +648,39 @@ function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCread
   }
   function cambiarModo(m: 'alumno' | 'gestor') { setModo(m); reset(); }
 
-  async function buscar() {
-    if (q.trim().length < 2) return;
+  // Lista SIEMPRE precargada de la A a la Z. Sin texto muestra el directorio
+  // completo; conforme escribes filtra en vivo (con retardo corto) y el backend
+  // busca por palabras sueltas en cualquier orden. Sin botón "Buscar".
+  useEffect(() => {
+    if (alumno) return;                       // ya se eligió alumno
+    if (modo === 'gestor' && gestor) return;  // ya se eligió centro → se listan sus alumnos
+    let alive = true;
+    const term = q.trim();
     setBuscando(true);
-    try {
-      if (modo === 'alumno') {
-        const r = await api.get<{ alumnos: AlumnoBusqueda[] }>(`/admin/alumnos?search=${encodeURIComponent(q.trim())}&limit=12`);
-        setResAlumnos(r.alumnos);
-      } else {
-        const r = await api.get<{ gestores: GestorBusqueda[] }>(`/admin/gestores?search=${encodeURIComponent(q.trim())}&limit=12`);
-        setResGestores(r.gestores);
+    const t = setTimeout(async () => {
+      try {
+        const qs = term ? `&search=${encodeURIComponent(term)}` : '';
+        if (modo === 'alumno') {
+          const r = await api.get<{ alumnos: AlumnoBusqueda[] }>(`/admin/alumnos?sortBy=nombre&sortDir=asc&limit=100${qs}`);
+          if (alive) setResAlumnos(r.alumnos);
+        } else {
+          const r = await api.get<{ gestores: GestorBusqueda[] }>(`/admin/gestores?limit=100${qs}`);
+          if (alive) setResGestores(r.gestores);
+        }
+      } catch {
+        if (alive) onToast('Error al buscar', false);
+      } finally {
+        if (alive) setBuscando(false);
       }
-    } catch { onToast('Error al buscar', false); } finally { setBuscando(false); }
-  }
+    }, term ? 250 : 0);
+    return () => { alive = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q, modo, gestor, alumno]);
 
   async function elegirGestor(g: GestorBusqueda) {
     setGestor(g); setResGestores([]);
     try {
-      const r = await api.get<{ alumnos: AlumnoBusqueda[] }>(`/admin/alumnos?gestorId=${g.id}&limit=100`);
+      const r = await api.get<{ alumnos: AlumnoBusqueda[] }>(`/admin/alumnos?gestorId=${g.id}&sortBy=nombre&sortDir=asc&limit=100`);
       setAlumnosDeGestor(r.alumnos);
     } catch { onToast('Error al cargar alumnos del centro', false); }
   }
@@ -740,22 +755,30 @@ function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCread
                 <>
                   {/* Buscador (o alumnos del gestor elegido) */}
                   {!(modo === 'gestor' && gestor) && (
-                    <div className="flex gap-2">
-                      <div className="relative flex-1">
-                        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
-                        <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && buscar()}
-                          placeholder={modo === 'alumno' ? 'Nombre, CURP o correo del alumno…' : 'Nombre o correo del gestor…'}
-                          className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-3 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none" />
-                      </div>
-                      <button onClick={buscar} disabled={buscando} className="px-4 py-2 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
-                        {buscando ? <Loader2 size={15} className="animate-spin" /> : 'Buscar'}
-                      </button>
+                    <div className="relative">
+                      <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                      <input value={q} onChange={(e) => setQ(e.target.value)} autoFocus
+                        placeholder={modo === 'alumno' ? 'Filtra por nombre, CURP o correo…' : 'Filtra por nombre o correo del gestor…'}
+                        className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-9 py-2 focus:border-[var(--color-guinda-500)] focus:outline-none" />
+                      {buscando ? (
+                        <Loader2 size={15} className="absolute right-3 top-1/2 -translate-y-1/2 animate-spin text-stone-400" />
+                      ) : q ? (
+                        <button onClick={() => setQ('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600" aria-label="Limpiar">
+                          <X size={14} />
+                        </button>
+                      ) : null}
                     </div>
                   )}
 
-                  {/* Resultados de alumnos */}
-                  {modo === 'alumno' && resAlumnos.length > 0 && (
-                    <div className="mt-3 space-y-1">
+                  {/* Directorio de alumnos — precargado A→Z, filtra en vivo */}
+                  {modo === 'alumno' && (resAlumnos.length === 0 ? (
+                    !buscando && (
+                      <div className="mt-3 py-6 text-center text-sm text-stone-400">
+                        {q.trim() ? 'Ningún alumno coincide con esa búsqueda.' : 'Aún no hay alumnos registrados.'}
+                      </div>
+                    )
+                  ) : (
+                    <div className="mt-3 max-h-72 overflow-y-auto space-y-1">
                       {resAlumnos.map((a) => (
                         <button key={a.id} onClick={() => elegirAlumno(a)} className="w-full flex items-center gap-3 text-left px-2.5 py-2 hover:bg-stone-50 rounded-lg">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: '#a8a29e' }}>{iniciales(a.nombreCompleto)}</div>
@@ -766,11 +789,17 @@ function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCread
                         </button>
                       ))}
                     </div>
-                  )}
+                  ))}
 
-                  {/* Resultados de gestores */}
-                  {modo === 'gestor' && !gestor && resGestores.length > 0 && (
-                    <div className="mt-3 space-y-1">
+                  {/* Directorio de centros (gestores) — precargado A→Z, filtra en vivo */}
+                  {modo === 'gestor' && !gestor && (resGestores.length === 0 ? (
+                    !buscando && (
+                      <div className="mt-3 py-6 text-center text-sm text-stone-400">
+                        {q.trim() ? 'Ningún centro coincide con esa búsqueda.' : 'Aún no hay gestores registrados.'}
+                      </div>
+                    )
+                  ) : (
+                    <div className="mt-3 max-h-72 overflow-y-auto space-y-1">
                       {resGestores.map((g) => (
                         <button key={g.id} onClick={() => elegirGestor(g)} className="w-full flex items-center gap-3 text-left px-2.5 py-2 hover:bg-stone-50 rounded-lg">
                           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white" style={{ background: '#7c3aed' }}>{iniciales(g.nombreCompleto)}</div>
@@ -781,7 +810,7 @@ function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCread
                         </button>
                       ))}
                     </div>
-                  )}
+                  ))}
 
                   {/* Gestor elegido → sus alumnos */}
                   {modo === 'gestor' && gestor && (

@@ -615,8 +615,15 @@ router.get('/gestores', async (req, res) => {
   const sortBy = VALID_SORT_GESTORES.includes(sortByParam as typeof VALID_SORT_GESTORES[number])
     ? sortByParam : 'nombre';
 
+  // Búsqueda POR PALABRAS (ver /admin/alumnos): cada palabra debe aparecer en el
+  // nombre o el correo, en cualquier orden.
   const searchSnippet = search
-    ? sql`AND (g.nombre_completo ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})`
+    ? sql`AND ${sql.join(
+        search.split(/\s+/).filter(Boolean).map(
+          (t) => sql`(g.nombre_completo ILIKE ${`%${t}%`} OR u.email ILIKE ${`%${t}%`})`
+        ),
+        sql` AND `
+      )}`
     : sql``;
   const estadoSnippet = (estadoFilter === 'activo' || estadoFilter === 'inactivo')
     ? sql`AND g.estado = ${estadoFilter}`
@@ -1944,8 +1951,16 @@ router.get('/alumnos', async (req, res) => {
   };
 
   const presetSnippet = filtroValido ? sql.raw(filterSqlSnippets[filtroValido]) : sql``;
+  // Búsqueda POR PALABRAS: cada palabra debe aparecer en el nombre, la CURP o el
+  // correo (en cualquier orden). Así "axel gonzalez" encuentra a "Axel Eduardo
+  // Jimenez Gonzalez", cosa que un solo ILIKE contiguo no lograba.
   const searchSnippet = search
-    ? sql`AND (e.nombre_completo ILIKE ${`%${search}%`} OR e.curp ILIKE ${`%${search}%`} OR u.email ILIKE ${`%${search}%`})`
+    ? sql`AND ${sql.join(
+        search.split(/\s+/).filter(Boolean).map(
+          (t) => sql`(e.nombre_completo ILIKE ${`%${t}%`} OR e.curp ILIKE ${`%${t}%`} OR u.email ILIKE ${`%${t}%`})`
+        ),
+        sql` AND `
+      )}`
     : sql``;
   const municipioSnippet = municipioIdParam > 0 ? sql`AND e.municipio_id = ${municipioIdParam}` : sql``;
   const estadoSnippet = VALID_ESTADO_EXP.includes(estadoExpParam) ? sql.raw(estadoExpSnippets[estadoExpParam]) : sql``;
