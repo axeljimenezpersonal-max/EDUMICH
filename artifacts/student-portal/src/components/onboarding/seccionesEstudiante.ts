@@ -434,7 +434,7 @@ export const TOUR_AULA_HOME: TourStep[] = [
     id: 'aula-intro',
     icon: 'GraduationCap',
     title: 'Bienvenido a tu aula virtual',
-    body: 'Si tu centro de asesoría la tiene activa, aquí tomas clase en línea. Todo se organiza por MÓDULO, igual que en una universidad. Te muestro cómo se usa.',
+    body: 'Si tu centro de asesoría la tiene activa, aquí tomas clase en línea sin costo extra. Todo se organiza por MÓDULO, como en la universidad: cada materia tiene su propio espacio con foro, tareas, materiales y videos. Es aparte de tus exámenes: es un apoyo para estudiar mejor.',
   },
   {
     id: 'aula-clases',
@@ -442,7 +442,8 @@ export const TOUR_AULA_HOME: TourStep[] = [
     placement: 'top',
     icon: 'School',
     title: 'Estas son tus clases',
-    body: 'Cada tarjeta es un módulo que tu profesor abrió. El número de color te dice cuántas tareas, materiales y videos tiene, y si hay tareas pendientes.',
+    body: 'Cada tarjeta es un módulo que tu profesor abrió. De un vistazo te dice cuántas tareas, materiales y videos tiene, y si tienes algo PENDIENTE por entregar (el aviso de color). Así sabes a qué clase entrar primero.',
+    illustration: 'aulaCard',
   },
   {
     id: 'aula-entrar',
@@ -478,7 +479,8 @@ export const TOUR_AULA_MODULO: TourStep[] = [
     placement: 'right',
     icon: 'PanelsTopLeft',
     title: 'Tu menú de la clase',
-    body: 'Con este menú te mueves dentro del módulo: Foro para conversar, Tareas para entregar, Materiales para leer y Videos para ver. El número te avisa si hay algo nuevo.',
+    body: 'Dentro del módulo te mueves con este menú de cuatro secciones. Cada una es para algo distinto —mira cómo cambia en la animación— y el numerito te avisa cuando hay algo nuevo o pendiente.',
+    illustration: 'aulaNav',
   },
   {
     id: 'aulamod-foro',

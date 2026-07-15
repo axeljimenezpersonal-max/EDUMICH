@@ -12,6 +12,7 @@ import { motion } from 'framer-motion';
 import {
   FileText, Landmark, Banknote, Upload, BadgeCheck,
   LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
+  MessageCircle, ClipboardList, BookOpen, PlayCircle,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -234,10 +235,129 @@ function ChatDemoAnimation() {
   );
 }
 
+/**
+ * Tarjeta de clase animada (parrilla del aula): reproduce una tarjeta de módulo
+ * con su franja de color, el aviso de pendientes que late y sus contadores de
+ * tareas, materiales y videos. Enseña de un vistazo qué información da cada
+ * tarjeta, sin que nadie tenga que explicarlo.
+ */
+function AulaCardAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  return (
+    <div
+      className="mt-4 overflow-hidden rounded-xl border"
+      style={{ borderColor: 'var(--color-crema-200)', background: '#fff' }}
+      aria-hidden
+    >
+      <div
+        className="relative px-3 py-2.5 text-white"
+        style={{ background: 'linear-gradient(135deg, #0f766e 0%, #115e59 100%)' }}
+      >
+        <div className="text-[9px] font-bold uppercase tracking-[0.14em] opacity-85">Módulo 1</div>
+        <motion.span
+          className="absolute right-2 top-2 rounded-full bg-white/25 px-2 py-0.5 text-[9px] font-bold"
+          animate={reduce ? {} : { scale: [1, 1.09, 1] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+        >
+          3 pendientes
+        </motion.span>
+      </div>
+      <div className="p-3">
+        <div className="text-[12px] font-bold leading-snug" style={{ color: '#1c1917' }}>
+          M1 — De la información al conocimiento
+        </div>
+        <div className="mt-2 flex flex-wrap gap-3 text-[10px] font-semibold" style={{ color: '#78716c' }}>
+          <span className="flex items-center gap-1"><ClipboardList size={12} /> 3 tareas</span>
+          <span className="flex items-center gap-1"><BookOpen size={12} /> 3 materiales</span>
+          <span className="flex items-center gap-1"><PlayCircle size={12} /> 1 video</span>
+        </div>
+        <div className="mt-2.5 text-[11px] font-bold" style={{ color: 'var(--color-guinda-700)' }}>
+          Entrar al módulo →
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const SECCIONES_AULA = [
+  { Icon: MessageCircle, label: 'Foro', desc: 'Avisos del profe y tus dudas.' },
+  { Icon: ClipboardCheck, label: 'Tareas', desc: 'Entrega tu trabajo con foto o archivo.' },
+  { Icon: BookOpen, label: 'Materiales', desc: 'Lecturas y recursos para estudiar.' },
+  { Icon: PlayCircle, label: 'Videos', desc: 'Clases y explicaciones en video.' },
+];
+
+/**
+ * Menú del módulo animado: la selección recorre las cuatro secciones (Foro,
+ * Tareas, Materiales, Videos) y el panel de la derecha explica para qué sirve
+ * cada una. Demuestra la navegación y sus funciones por sí solo.
+ */
+function AulaNavAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setI((v) => (v + 1) % SECCIONES_AULA.length), 1450);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const activa = SECCIONES_AULA[i];
+  const ActivaIcon = activa.Icon;
+
+  return (
+    <div
+      className="mt-4 flex gap-3 rounded-xl border p-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      <div className="flex w-[118px] shrink-0 flex-col gap-1.5">
+        {SECCIONES_AULA.map((s, idx) => {
+          const on = idx === i;
+          const S = s.Icon;
+          return (
+            <div
+              key={s.label}
+              className="flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-[12px] font-semibold"
+              style={{
+                background: on ? 'var(--color-guinda-700)' : '#fff',
+                color: on ? '#fff' : '#78716c',
+                borderColor: on ? 'var(--color-guinda-700)' : 'var(--color-crema-200)',
+                transition: 'background .35s, color .35s, border-color .35s',
+              }}
+            >
+              <S size={14} /> {s.label}
+            </div>
+          );
+        })}
+      </div>
+      <div
+        className="flex flex-1 flex-col justify-center rounded-lg border bg-white p-3"
+        style={{ borderColor: 'var(--color-crema-200)' }}
+      >
+        <div className="flex items-center gap-2 text-[12px] font-bold" style={{ color: 'var(--color-guinda-700)' }}>
+          <ActivaIcon size={15} /> {activa.label}
+        </div>
+        <motion.p
+          key={activa.label}
+          className="mt-1 text-[11px] leading-snug"
+          style={{ color: '#57534e' }}
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          {activa.desc}
+        </motion.p>
+      </div>
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
   pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
   chatLegal: ChatLegalAnimation,
   chatDemo: ChatDemoAnimation,
+  aulaCard: AulaCardAnimation,
+  aulaNav: AulaNavAnimation,
 };
