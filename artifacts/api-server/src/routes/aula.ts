@@ -239,6 +239,35 @@ g.get('/tareas', async (req, res) => {
   });
 });
 
+// Editar una tarea existente (mismos campos que al crear; el documento se
+// puede conservar, reemplazar o quitar con quitarDocumento='true').
+g.patch('/tareas/:id', conArchivo('documento'), async (req, res) => {
+  const id = parseInt(String(req.params.id), 10);
+  const [existente] = await db.select().from(aulaTareas)
+    .where(and(eq(aulaTareas.id, id), eq(aulaTareas.gestorUserId, req.user!.userId)));
+  if (!existente) { res.status(404).json({ error: 'Tarea no encontrada' }); return; }
+  const p = tareaSchema.safeParse(req.body);
+  if (!p.success) { res.status(400).json({ error: p.error.issues[0]?.message ?? 'Datos inválidos' }); return; }
+  const d = p.data;
+  const fecha = (s?: string) => (s && s !== '' ? new Date(s) : null);
+  const abre = fecha(d.abreEn), cierra = fecha(d.cierraEn), fe = fecha(d.fechaEntrega);
+  if (abre && cierra && cierra <= abre) { res.status(400).json({ error: 'El cierre debe ser después de la apertura.' }); return; }
+  const set: Partial<typeof aulaTareas.$inferInsert> = {
+    titulo: d.titulo, instrucciones: d.instrucciones,
+    moduloId: d.moduloId ? Number(d.moduloId) : null,
+    abreEn: abre, cierraEn: cierra, fechaEntrega: fe, updatedAt: new Date(),
+  };
+  if (req.file) {
+    set.archivoRef = await guardarSubida(req.file, 'aula');
+    set.archivoNombre = req.file.originalname;
+    set.archivoTipo = req.file.mimetype;
+  } else if ((req.body as { quitarDocumento?: string }).quitarDocumento === 'true') {
+    set.archivoRef = null; set.archivoNombre = null; set.archivoTipo = null;
+  }
+  await db.update(aulaTareas).set(set).where(eq(aulaTareas.id, id));
+  res.json({ ok: true });
+});
+
 // Ojito: ocultar/mostrar una tarea a los alumnos (precargar y destapar después).
 g.patch('/tareas/:id/publicar', async (req, res) => {
   const id = parseInt(String(req.params.id), 10);

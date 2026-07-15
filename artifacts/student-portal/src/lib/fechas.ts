@@ -87,3 +87,13 @@ export function fechaVentana(s: string, tipo: 'abre' | 'cierra'): string {
   const soloDia = tipo === 'abre' ? esInicioDeDia(s) : esFinDeDia(s);
   return soloDia ? fechaLarga(s) : `${fechaLarga(s)} · ${horaCorta(s)}`;
 }
+
+/** Valor para <input type="date"> (YYYY-MM-DD) en hora de MX — para prellenar formularios. */
+export function aInputFecha(s: string): string {
+  return parseDbDate(s).toLocaleDateString('en-CA', { timeZone: TZ });
+}
+
+/** Valor para <input type="datetime-local"> (YYYY-MM-DDTHH:mm) en hora de MX. */
+export function aInputFechaHora(s: string): string {
+  return `${aInputFecha(s)}T${horaHHMM(s)}`;
+}

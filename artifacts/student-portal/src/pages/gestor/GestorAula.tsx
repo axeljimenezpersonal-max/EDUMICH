@@ -12,10 +12,10 @@ import { ForoAula } from '../../components/ForoAula';
 import {
   School, ClipboardList, BookOpen, Plus, Trash2, Users, Link2, FileText,
   Loader2, CalendarClock, LayoutDashboard, Video, PlayCircle, CheckCircle2, ChevronRight,
-  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock, ChevronLeft, Eye, EyeOff,
+  Inbox, MessageCircle, X, Clock, Download, Paperclip, GraduationCap, Lock, ChevronLeft, Eye, EyeOff, Pencil,
 } from 'lucide-react';
 import { api } from '../../lib/api';
-import { parseDbDate, fechaCorta, fechaHoraCorta, fechaVentana } from '../../lib/fechas';
+import { parseDbDate, fechaCorta, fechaHoraCorta, fechaVentana, esInicioDeDia, esFinDeDia, aInputFecha, aInputFechaHora } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 
@@ -344,6 +344,10 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
   // 00:00 y cierra a las 23:59 del día elegido. Con hora usa datetime-local.
   const [conHora, setConHora] = useState(false);
   const [documento, setDocumento] = useState<File | null>(null);
+  // Edición: id de la tarea que se edita + su documento actual.
+  const [editando, setEditando] = useState<number | null>(null);
+  const [docActual, setDocActual] = useState<string | null>(null);
+  const [quitarDoc, setQuitarDoc] = useState(false);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
   const [entregasDe, setEntregasDe] = useState<number | null>(null);
@@ -353,6 +357,30 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
   useEffect(() => { cargar(); if (!moduloId) api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, [moduloId]);
 
   const puedePublicar = !!t.titulo.trim() && !!t.instrucciones.trim();
+
+  function limpiarForm() {
+    setT({ titulo: '', instrucciones: '', moduloId: '', abreEn: '', cierraEn: '' });
+    setDocumento(null); if (docRef.current) docRef.current.value = '';
+    setEditando(null); setDocActual(null); setQuitarDoc(false); setConHora(false); setErr('');
+  }
+
+  /** Abre el formulario prellenado con los datos de una tarea existente. */
+  function abrirEdicion(it: Tarea) {
+    const horaEspecifica = !!(it.abreEn && !esInicioDeDia(it.abreEn)) || !!(it.cierraEn && !esFinDeDia(it.cierraEn));
+    setConHora(horaEspecifica);
+    setT({
+      titulo: it.titulo,
+      instrucciones: it.instrucciones ?? '',
+      moduloId: it.moduloId ? String(it.moduloId) : '',
+      abreEn: it.abreEn ? (horaEspecifica ? aInputFechaHora(it.abreEn) : aInputFecha(it.abreEn)) : '',
+      cierraEn: it.cierraEn ? (horaEspecifica ? aInputFechaHora(it.cierraEn) : aInputFecha(it.cierraEn)) : '',
+    });
+    setDocumento(null); if (docRef.current) docRef.current.value = '';
+    setDocActual(it.archivoNombre); setQuitarDoc(false); setErr('');
+    setEditando(it.id); setForm(true);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
   async function crear() {
     if (!puedePublicar) return;
     setSaving(true); setErr('');
@@ -370,11 +398,15 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
         fd.append('fechaEntrega', t.cierraEn.slice(0, 10));
       }
       if (documento) fd.append('documento', documento);
-      await api.post('/aula/gestor/tareas', fd);
-      setT({ titulo: '', instrucciones: '', moduloId: '', abreEn: '', cierraEn: '' });
-      setDocumento(null); if (docRef.current) docRef.current.value = '';
+      if (editando != null) {
+        if (quitarDoc && !documento) fd.append('quitarDocumento', 'true');
+        await api.patch(`/aula/gestor/tareas/${editando}`, fd);
+      } else {
+        await api.post('/aula/gestor/tareas', fd);
+      }
+      limpiarForm();
       setForm(false); cargar(); onChange();
-    } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo publicar.'); }
+    } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo guardar.'); }
     finally { setSaving(false); }
   }
   async function borrar(id: number) { if (!confirm('¿Eliminar esta tarea?')) return; await api.delete(`/aula/gestor/tareas/${id}`); cargar(); onChange(); }
@@ -390,7 +422,7 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
     <div>
       <div className="flex items-start justify-between gap-3 mb-4">
         <SecHeader icon={ClipboardList} titulo="Tareas" sub={moduloId ? 'Asignaciones de este módulo, con documento, apertura, cierre y fecha límite.' : 'Asignaciones por módulo, con documento, apertura, cierre y fecha límite.'} />
-        <BtnCrear label="Nueva tarea" on={form} toggle={() => setForm((v) => !v)} />
+        <BtnCrear label="Nueva tarea" on={form} toggle={() => { limpiarForm(); setForm((v) => !v); }} />
       </div>
 
       {/* Módulos que cursa el grupo esta convocatoria */}
@@ -414,6 +446,11 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
 
       {form && (
         <div className="bg-white border border-stone-200 rounded-xl p-5 mb-4 space-y-3.5">
+          {editando != null && (
+            <div className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold" style={{ background: 'var(--color-crema-100)', color: 'var(--color-guinda-800)' }}>
+              <Pencil size={13} /> Editando la tarea «{t.titulo || '…'}» — los cambios se guardan al presionar el botón.
+            </div>
+          )}
           <div>
             <label className={lblCls}>Título *</label>
             <input className={inputCls} placeholder="Ej. Ensayo: La sociedad mexicana" value={t.titulo} onChange={(e) => setT((s) => ({ ...s, titulo: e.target.value }))} />
@@ -445,13 +482,25 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
             {documento ? (
               <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
                 <FileText size={16} style={{ color: G }} />
-                <span className="min-w-0 flex-1 truncate text-xs text-stone-600">{documento.name}</span>
+                <span className="min-w-0 flex-1 truncate text-xs text-stone-600">{documento.name}{editando != null && docActual ? ' (reemplaza al actual)' : ''}</span>
                 <button onClick={() => { setDocumento(null); if (docRef.current) docRef.current.value = ''; }} className="text-stone-400 hover:text-red-500" aria-label="Quitar documento"><X size={15} /></button>
               </div>
+            ) : editando != null && docActual && !quitarDoc ? (
+              <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                <FileText size={16} style={{ color: G }} />
+                <span className="min-w-0 flex-1 truncate text-xs text-stone-600">Actual: <b>{docActual}</b></span>
+                <button onClick={() => docRef.current?.click()} className="shrink-0 text-[11px] font-semibold" style={{ color: G }}>Reemplazar</button>
+                <button onClick={() => setQuitarDoc(true)} className="shrink-0 text-[11px] font-semibold text-red-500">Quitar</button>
+              </div>
             ) : (
-              <button onClick={() => docRef.current?.click()} className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-300 rounded-lg px-3 py-3 text-sm text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)] transition-colors">
-                <Paperclip size={15} /> Adjuntar documento (máx. 15 MB)
-              </button>
+              <div>
+                {editando != null && quitarDoc && (
+                  <div className="mb-1.5 text-[11px] font-semibold text-red-600">El documento actual se quitará al guardar. <button onClick={() => setQuitarDoc(false)} className="underline">Deshacer</button></div>
+                )}
+                <button onClick={() => docRef.current?.click()} className="w-full flex items-center justify-center gap-2 border-2 border-dashed border-stone-300 rounded-lg px-3 py-3 text-sm text-stone-500 hover:border-[var(--color-guinda-500)] hover:text-[var(--color-guinda-700)] transition-colors">
+                  <Paperclip size={15} /> Adjuntar documento (máx. 15 MB)
+                </button>
+              </div>
             )}
           </div>
           <div>
@@ -476,7 +525,10 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
           </div>
           {t.abreEn && t.cierraEn && new Date(conHora ? t.cierraEn : `${t.cierraEn}T23:59:00`) <= new Date(conHora ? t.abreEn : `${t.abreEn}T00:00:00`) && <div className="text-xs font-semibold text-red-600">El cierre debe ser después de la apertura.</div>}
           {err && <div className="text-xs font-semibold text-red-600">{err}</div>}
-          <button onClick={crear} disabled={saving || !puedePublicar} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>{saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Publicar tarea</button>
+          <button onClick={crear} disabled={saving || !puedePublicar} className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white disabled:opacity-40" style={{ background: G }}>
+            {saving ? <Loader2 size={14} className="animate-spin" /> : editando != null ? <Pencil size={14} /> : <Plus size={14} />}
+            {editando != null ? 'Guardar cambios' : 'Publicar tarea'}
+          </button>
         </div>
       )}
       {items.length === 0 ? <Vacio icon={ClipboardList} texto="Aún no has publicado tareas." /> : (
@@ -531,6 +583,11 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
                   </div>
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
+                  <button onClick={() => abrirEdicion(it)}
+                    className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-[var(--color-guinda-700)]"
+                    title="Editar tarea" aria-label="Editar tarea">
+                    <Pencil size={15} />
+                  </button>
                   <button onClick={() => togglePublicada(it.id)}
                     className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-[var(--color-guinda-700)]"
                     title={it.publicada ? 'Ocultar a los alumnos (deja de verse en su aula)' : 'Mostrar a los alumnos'}
