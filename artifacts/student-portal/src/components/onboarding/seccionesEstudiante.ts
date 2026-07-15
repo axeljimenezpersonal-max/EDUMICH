@@ -516,9 +516,17 @@ export const TOUR_MENSAJES: TourStep[] = [
   },
   {
     id: 'msg-privacidad',
-    icon: 'ShieldCheck',
-    title: 'Ten en cuenta',
-    body: 'La conversación queda registrada por privacidad y seguimiento. Mantén un trato formal y adjunta lo que te pidan. ¡Estamos para ayudarte!',
+    icon: 'Lock',
+    title: 'Queda registrada y almacenada',
+    body: 'Importante: toda esta conversación se registra y se almacena por motivos legales y de privacidad de datos, y puede ser consultada por el personal. Por eso mantén un trato formal y respetuoso, como en cualquier trámite oficial.',
+    illustration: 'chatLegal',
+  },
+  {
+    id: 'msg-ejemplo',
+    icon: 'MessagesSquare',
+    title: 'Así se ve una conversación',
+    body: 'Escribes tu duda, la Secretaría la lee y te responde en horario de oficina (lunes a viernes, 9:00 a 17:00). Sé claro y concreto; si te piden un documento, puedes adjuntarlo en el chat.',
+    illustration: 'chatDemo',
   },
   {
     id: 'msg-fin',

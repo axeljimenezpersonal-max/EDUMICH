@@ -11,7 +11,7 @@ import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   FileText, Landmark, Banknote, Upload, BadgeCheck,
-  LockOpen, ClipboardCheck, GraduationCap,
+  LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -115,8 +115,129 @@ function FlowAnimation({ pasos }: { pasos: Paso[] }) {
   );
 }
 
+/**
+ * Aviso legal animado: el candado hace un "zoom" suave en bucle y las dos
+ * etiquetas —Registrada y Almacenada— quedan encendidas con un pulso alterno.
+ */
+function ChatLegalAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  return (
+    <div
+      className="mt-4 flex flex-col items-center gap-3 rounded-xl border px-4 py-4"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      <motion.div
+        className="flex h-12 w-12 items-center justify-center rounded-full text-white"
+        style={{ background: 'var(--color-guinda-700)' }}
+        animate={reduce ? {} : {
+          scale: [1, 1.1, 1],
+          boxShadow: [
+            '0 0 0 0 rgba(107,21,48,0)',
+            '0 0 0 9px rgba(107,21,48,0.10)',
+            '0 0 0 0 rgba(107,21,48,0)',
+          ],
+        }}
+        transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+      >
+        <Lock size={22} />
+      </motion.div>
+      <div className="flex gap-2">
+        {['Registrada', 'Almacenada'].map((t, i) => (
+          <motion.span
+            key={t}
+            className="rounded-full px-3 py-1 text-[11px] font-bold text-white"
+            style={{ background: 'var(--color-guinda-700)' }}
+            animate={reduce ? {} : { opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 2.2, repeat: Infinity, delay: i * 1.1, ease: 'easeInOut' }}
+          >
+            {t}
+          </motion.span>
+        ))}
+      </div>
+      <p className="text-center text-[11px]" style={{ color: '#78716c' }}>
+        Por motivos legales y de privacidad de datos
+      </p>
+    </div>
+  );
+}
+
+function TypingDots() {
+  return (
+    <div className="flex justify-start">
+      <div
+        className="flex items-center gap-1 rounded-2xl rounded-bl-sm border px-3 py-2.5"
+        style={{ background: '#fff', borderColor: 'var(--color-crema-200)' }}
+      >
+        {[0, 1, 2].map((i) => (
+          <motion.span
+            key={i}
+            className="block h-1.5 w-1.5 rounded-full"
+            style={{ background: '#a8a29e' }}
+            animate={{ opacity: [0.3, 1, 0.3], y: [0, -2, 0] }}
+            transition={{ duration: 0.9, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Ejemplo de conversación animado: aparece tu mensaje, se marca "Leído", la
+ * Secretaría "escribe" y luego responde; hace una pausa y reinicia en bucle.
+ */
+function ChatDemoAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  // 0 vacío · 1 tu mensaje · 2 leído · 3 escribiendo · 4 respuesta · 5 pausa
+  const [fase, setFase] = useState(reduce ? 4 : 0);
+
+  useEffect(() => {
+    if (reduce) { setFase(4); return; }
+    const t = setInterval(() => setFase((f) => (f >= 5 ? 0 : f + 1)), 1150);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  return (
+    <div
+      className="mt-4 space-y-2 rounded-xl border p-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)', minHeight: 132 }}
+      aria-hidden
+    >
+      {fase >= 1 && (
+        <motion.div className="flex justify-end" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <div
+            className="max-w-[82%] rounded-2xl rounded-br-sm px-3 py-2 text-[12px] leading-snug text-white"
+            style={{ background: 'var(--color-guinda-700)' }}
+          >
+            Hola, ¿cuándo aparece mi calificación?
+          </div>
+        </motion.div>
+      )}
+      {fase >= 2 && (
+        <div className="flex items-center justify-end gap-1 pr-1 text-[9px] font-semibold" style={{ color: '#78716c' }}>
+          <CheckCheck size={11} style={{ color: 'var(--color-guinda-700)' }} /> Leído
+        </div>
+      )}
+      {fase === 3 && <TypingDots />}
+      {fase >= 4 && (
+        <motion.div className="flex justify-start" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }}>
+          <div
+            className="max-w-[82%] rounded-2xl rounded-bl-sm border px-3 py-2 text-[12px] leading-snug"
+            style={{ background: '#fff', borderColor: 'var(--color-crema-200)', color: '#44403c' }}
+          >
+            En 3 a 5 días hábiles aparece en tu sección de Calificaciones. 😊
+          </div>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
   pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
+  chatLegal: ChatLegalAnimation,
+  chatDemo: ChatDemoAnimation,
 };
