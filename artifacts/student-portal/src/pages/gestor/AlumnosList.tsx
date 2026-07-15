@@ -10,6 +10,8 @@ import { Search, Plus, Users, FileText, ChevronRight, X } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, type AlumnoListItem } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_ALUMNOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 
 // Estado del alumno en el proceso (pipeline), del más urgente al final.
 const ESTADO_PROCESO: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -109,7 +111,7 @@ export default function AlumnosList() {
       </div>
 
       {/* Filtro: búsqueda + chips por estado */}
-      <div className="bg-white border border-stone-200 rounded-md p-3 mb-4 space-y-3">
+      <div data-tour="g-alu-buscar" className="bg-white border border-stone-200 rounded-md p-3 mb-4 space-y-3">
         <div className="relative">
           <Search
             size={16}
@@ -152,7 +154,7 @@ export default function AlumnosList() {
       ) : filtered.length === 0 ? (
         <EmptyState />
       ) : (
-        <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
+        <div data-tour="g-alu-tabla" className="bg-white border border-stone-200 rounded-md overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-crema-100)] border-b border-stone-200">
               <tr className="text-left text-xs uppercase tracking-widest text-stone-600">
@@ -239,6 +241,13 @@ export default function AlumnosList() {
           </table>
         </div>
       )}
+
+      <SectionTour
+        steps={TOUR_G_ALUMNOS}
+        storageKey="edumich_sec_g_alumnos_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de alumnos"
+      />
     </GestorLayout>
   );
 }

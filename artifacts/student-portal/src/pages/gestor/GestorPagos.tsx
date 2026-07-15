@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { PagoStepper } from '../../components/PagoStepper';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_PAGOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import {
   api,
   type PagoExamenAlumno,
@@ -90,6 +92,15 @@ export default function GestorPagos() {
       {vista.t === 'detalle' && (
         <DetalleView id={vista.id} onBack={() => setVista({ t: 'lista' })} onToast={showToast} />
       )}
+
+      {vista.t === 'lista' && (
+        <SectionTour
+          steps={TOUR_G_PAGOS}
+          storageKey="edumich_sec_g_pagos_v1"
+          gateKey={GATE_GESTOR}
+          buttonLabel="Tutorial de pagos"
+        />
+      )}
     </GestorLayout>
   );
 }
@@ -121,7 +132,7 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
             <div className="text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">Tesorería del Estado</div>
             <h1 className="font-serif text-3xl font-bold text-stone-900">Pagos de exámenes</h1>
           </div>
-          <button onClick={onNuevo} className="gov-btn-primary inline-flex items-center gap-2 whitespace-nowrap">
+          <button data-tour="g-pag-solicitar" onClick={onNuevo} className="gov-btn-primary inline-flex items-center gap-2 whitespace-nowrap">
             <Plus size={16} /> Solicitar ficha
           </button>
         </div>
@@ -185,7 +196,7 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
           <p className="text-sm text-stone-500 max-w-md mx-auto">Solicita una ficha de pago para cubrir los exámenes de tus alumnos.</p>
         </div>
       ) : (
-        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div data-tour="g-pag-fichas" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
               <tr>

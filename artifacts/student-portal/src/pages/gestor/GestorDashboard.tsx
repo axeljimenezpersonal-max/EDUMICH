@@ -12,6 +12,8 @@ import { AvisosCalendario } from '../../components/AvisosCalendario';
 import { CalendarioOficial } from '../../components/CalendarioOficial';
 import { api, type DashboardGestor, type Convocatoria } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_INICIO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 
 interface AnuncioItem {
   id: number;
@@ -157,7 +159,7 @@ export default function GestorDashboard() {
       )}
 
       {/* Fechas del calendario oficial (ventana de solicitud/pago, examen) */}
-      <div className="mb-6"><AvisosCalendario examenGestor /></div>
+      <div className="mb-6"><AvisosCalendario examenGestor dataTour="g-ini-fechas" /></div>
 
       {/* Calendario oficial completo (colapsable) */}
       <div className="mb-6"><CalendarioOficial /></div>
@@ -250,7 +252,7 @@ export default function GestorDashboard() {
       )}
 
       {/* KPIs — cada tarjeta lleva a su lista filtrada */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div data-tour="g-ini-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <KpiCard
           icon={Users}
           label="Alumnos totales"
@@ -282,7 +284,7 @@ export default function GestorDashboard() {
       </div>
 
       {/* Accesos rápidos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div data-tour="g-ini-accesos" className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <ActionCard
           to="/gestor/alumnos/nuevo"
           icon={FilePlus2}
@@ -296,6 +298,13 @@ export default function GestorDashboard() {
           desc="Revisa el estado y los documentos de cada uno."
         />
       </div>
+
+      <SectionTour
+        steps={TOUR_G_INICIO}
+        storageKey="edumich_sec_g_inicio_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de inicio"
+      />
     </GestorLayout>
   );
 }

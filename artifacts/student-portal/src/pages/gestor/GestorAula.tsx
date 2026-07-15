@@ -18,6 +18,8 @@ import { api } from '../../lib/api';
 import { parseDbDate, fechaCorta, fechaHoraCorta, fechaVentana, esInicioDeDia, esFinDeDia, aInputFecha, aInputFechaHora } from '../../lib/fechas';
 import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 import { TextoRico, AreaConFormato } from '../../components/TextoRico';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_AULA, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -67,7 +69,7 @@ export default function GestorAula() {
   return (
     <GestorLayout>
       {/* Banner tipo curso */}
-      <div className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]"
+      <div data-tour="g-aula-tablero" className="rounded-2xl overflow-hidden mb-5 shadow-[0_10px_30px_-16px_rgba(74,14,32,0.55)]"
         style={{ background: 'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 60%, #7a1f3d 100%)' }}>
         <div className="relative px-6 py-6 text-white">
           <div className="absolute -right-8 -top-10 w-44 h-44 rounded-full" style={{ background: 'rgba(255,255,255,0.06)' }} />
@@ -97,6 +99,13 @@ export default function GestorAula() {
       </div>
 
       <ResumenSec abrirModulo={(id) => setLocation(`/gestor/aula?modulo=${id}`)} />
+
+      <SectionTour
+        steps={TOUR_G_AULA}
+        storageKey="edumich_sec_g_aula_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de Mi aula"
+      />
     </GestorLayout>
   );
 }
@@ -184,7 +193,7 @@ function ResumenSec({ abrirModulo }: { abrirModulo: (id: number) => void }) {
 
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div data-tour="g-aula-agregar" className="mb-4 flex items-start justify-between gap-3">
         <SecHeader icon={GraduationCap} titulo="Mis módulos de clase" sub="Organiza tu aula por módulo, como en Canvas. Elige qué módulos impartes y publica su contenido." />
         <button onClick={() => setAdmin((v) => !v)} className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg text-white transition-transform hover:-translate-y-0.5" style={{ background: G }}>
           {admin ? <X size={15} /> : <Plus size={15} />} {admin ? 'Cerrar' : 'Administrar módulos'}

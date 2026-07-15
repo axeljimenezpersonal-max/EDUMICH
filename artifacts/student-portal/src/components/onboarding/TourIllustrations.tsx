@@ -33,6 +33,13 @@ const PASOS_PRUEBA: Paso[] = [
   { Icon: GraduationCap, label: 'Llegas listo' },
 ];
 
+const PASOS_ALTA: Paso[] = [
+  { Icon: FileText, label: 'Datos' },
+  { Icon: Upload, label: 'Documentos' },
+  { Icon: ClipboardCheck, label: 'Revisión' },
+  { Icon: BadgeCheck, label: 'Aprobado' },
+];
+
 function usePrefiereMenosMovimiento(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
@@ -356,6 +363,7 @@ function AulaNavAnimation() {
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
   pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
+  altaFlow: () => <FlowAnimation pasos={PASOS_ALTA} />,
   chatLegal: ChatLegalAnimation,
   chatDemo: ChatDemoAnimation,
   aulaCard: AulaCardAnimation,

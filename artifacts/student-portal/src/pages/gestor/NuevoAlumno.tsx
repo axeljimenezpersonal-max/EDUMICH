@@ -18,6 +18,8 @@ import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api, type Convocatoria } from '../../lib/api';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_NUEVO_ALUMNO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -503,7 +505,7 @@ export default function NuevoAlumno() {
       {/* Convocatoria banner */}
       {!convCargando && (
         conv ? (
-          <div className="bg-[var(--color-crema-100)] border border-stone-200 rounded-md px-4 py-3 mb-5 text-sm flex items-center gap-2">
+          <div data-tour="g-alta-conv" className="bg-[var(--color-crema-100)] border border-stone-200 rounded-md px-4 py-3 mb-5 text-sm flex items-center gap-2">
             <span className="text-stone-500 uppercase tracking-widest text-xs font-semibold">
               Inscripción a:
             </span>
@@ -518,7 +520,7 @@ export default function NuevoAlumno() {
       )}
 
       {/* Step indicator */}
-      <div className="flex items-center gap-3 mb-6">
+      <div data-tour="g-alta-pasos" className="flex items-center gap-3 mb-6">
         <StepPill num={1} label="Datos personales" active={paso === 1} done={paso > 1} />
         <div className="h-px w-10 bg-stone-300" />
         <StepPill num={2} label="Documentos" active={paso === 2} done={false} />
@@ -526,7 +528,7 @@ export default function NuevoAlumno() {
 
       {/* ── PASO 1: Datos personales ─────────────────────────────────── */}
       {paso === 1 && (
-        <div className="gov-card p-6 max-w-3xl space-y-5">
+        <div data-tour="g-alta-datos" className="gov-card p-6 max-w-3xl space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="gov-label" htmlFor="nombres">
@@ -991,6 +993,13 @@ export default function NuevoAlumno() {
           </div>
         </div>
       )}
+
+      <SectionTour
+        steps={TOUR_G_NUEVO_ALUMNO}
+        storageKey="edumich_sec_g_nuevo_alumno_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de registro"
+      />
     </GestorLayout>
   );
 }

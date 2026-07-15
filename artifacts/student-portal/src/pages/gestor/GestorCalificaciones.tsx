@@ -19,6 +19,8 @@ import {
 import { GestorLayout } from './GestorLayout';
 import { api, calif10 } from '../../lib/api';
 import { RelacionCalificacionesPivote } from '../../components/RelacionCalificacionesPivote';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_CALIFICACIONES, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 
 // Calificación mínima aprobatoria de exámenes oficiales (la que aplica la
 // captura del admin: >= 60 aprueba).
@@ -124,7 +126,7 @@ export default function GestorCalificaciones() {
       </div>
 
       {/* Selector de vista */}
-      <div className="mb-5 flex gap-2">
+      <div data-tour="g-cal-vista" className="mb-5 flex gap-2">
         {([
           ['examenes', 'Exámenes oficiales', FileCheck2, 'Calificaciones de exámenes DGB'],
           ['evaluaciones', 'Evaluaciones de práctica', ClipboardList, 'Quizzes de módulo en la plataforma'],
@@ -150,6 +152,13 @@ export default function GestorCalificaciones() {
       </div>
 
       {vista === 'examenes' ? <ExamenesView /> : <EvaluacionesView />}
+
+      <SectionTour
+        steps={TOUR_G_CALIFICACIONES}
+        storageKey="edumich_sec_g_calificaciones_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de calificaciones"
+      />
     </GestorLayout>
   );
 }
@@ -229,7 +238,7 @@ function ExamenesView() {
       </div>
 
       {/* Barra de herramientas */}
-      <div className="mb-4 rounded-xl border border-stone-200 bg-white p-3">
+      <div data-tour="g-cal-toolbar" className="mb-4 rounded-xl border border-stone-200 bg-white p-3">
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative min-w-[200px] flex-1">
             <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
