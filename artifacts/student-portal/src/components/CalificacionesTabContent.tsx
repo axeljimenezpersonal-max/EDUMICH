@@ -83,6 +83,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
       <div className="flex items-center justify-between gap-3 mb-4">
         <h2 className="font-serif text-base font-bold text-stone-900">Calificaciones y pruebas</h2>
         <a
+          data-tour="calif-descargar"
           href={`/api/calificaciones/estudiantes/${estudianteId}/pdf`}
           download=""
           className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors shrink-0"
@@ -110,6 +111,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
           return (
             <button
               key={v}
+              data-tour={v === 'calificaciones' ? 'calif-tab-calif' : 'calif-tab-pruebas'}
               onClick={() => setVista(v)}
               className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 -mb-px transition-colors ${
                 active ? 'text-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'text-stone-500 border-transparent hover:text-stone-700'
