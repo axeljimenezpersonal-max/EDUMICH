@@ -20,6 +20,7 @@ import { ytEmbed, VideoFrame } from '../../components/VideoEmbed';
 import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_AULA, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -181,11 +182,23 @@ function ResumenSec({ abrirModulo }: { abrirModulo: (id: number) => void }) {
   const [mods, setMods] = useState<ModuloClase[]>([]);
   const [grupo, setGrupo] = useState<ModulosGrupo | null>(null);
   const [admin, setAdmin] = useState(false);
+  const [porQuitar, setPorQuitar] = useState<ModuloClase | null>(null);
+  const [quitando, setQuitando] = useState(false);
   const cargar = () => api.get<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase').then((r) => setMods(r.modulos)).catch(() => {});
   useEffect(() => { cargar(); api.get<ModulosGrupo>('/aula/gestor/modulos-grupo').then(setGrupo).catch(() => {}); }, []);
 
   async function agregar(moduloId: number) { const r = await api.post<{ modulos: ModuloClase[] }>('/aula/gestor/modulos-clase', { moduloId }); setMods(r.modulos); }
-  async function quitar(moduloId: number) { if (!confirm('¿Quitar este módulo del aula? El contenido no se borra, pero deja de mostrarse como clase.')) return; const r = await api.delete<{ modulos: ModuloClase[] }>(`/aula/gestor/modulos-clase/${moduloId}`); setMods(r.modulos); }
+  async function confirmarQuitar() {
+    if (!porQuitar) return;
+    setQuitando(true);
+    try {
+      const r = await api.delete<{ modulos: ModuloClase[] }>(`/aula/gestor/modulos-clase/${porQuitar.moduloId}`);
+      setMods(r.modulos);
+      setPorQuitar(null);
+    } finally {
+      setQuitando(false);
+    }
+  }
 
   const yaTiene = new Set(mods.map((m) => m.moduloId));
   const disponibles = (grupo?.todos ?? []).filter((m) => !yaTiene.has(m.id));
@@ -247,12 +260,32 @@ function ResumenSec({ abrirModulo }: { abrirModulo: (id: number) => void }) {
                 </button>
                 <div className="flex items-center justify-between border-t border-stone-100 px-4 py-2">
                   <button onClick={() => abrirModulo(m.moduloId)} className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: col }}>Abrir módulo <ChevronRight size={13} /></button>
-                  <button onClick={() => quitar(m.moduloId)} className="text-stone-300 hover:text-red-500" aria-label="Quitar módulo"><Trash2 size={14} /></button>
+                  <button onClick={() => setPorQuitar(m)} className="text-stone-300 hover:text-red-500" aria-label="Quitar módulo"><Trash2 size={14} /></button>
                 </div>
               </div>
             );
           })}
         </div>
+      )}
+
+      {porQuitar && (
+        <ConfirmModal
+          danger
+          icon={<Trash2 size={18} />}
+          title="¿Quitar este módulo del aula?"
+          confirmLabel={quitando ? 'Quitando…' : 'Sí, quitar del aula'}
+          onConfirm={confirmarQuitar}
+          onClose={() => { if (!quitando) setPorQuitar(null); }}
+          message={
+            <>
+              Vas a quitar <strong className="text-stone-800">M{porQuitar.numero} — {porQuitar.nombre}</strong> de tu aula.
+              <ul className="mt-2 space-y-1.5 text-[13px]">
+                <li className="flex gap-2"><span className="text-emerald-600">✓</span><span>Su contenido (foro, tareas, materiales y videos) <strong>no se borra</strong>: si lo vuelves a agregar, reaparece igual.</span></li>
+                <li className="flex gap-2"><span className="text-amber-600">!</span><span>Dejará de mostrarse como clase y <strong>tus {porQuitar.alumnos} alumno{porQuitar.alumnos === 1 ? '' : 's'} ya no lo verán</strong> hasta que lo agregues de nuevo.</span></li>
+              </ul>
+            </>
+          }
+        />
       )}
     </div>
   );
@@ -418,7 +451,14 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
     } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo guardar.'); }
     finally { setSaving(false); }
   }
-  async function borrar(id: number) { if (!confirm('¿Eliminar esta tarea?')) return; await api.delete(`/aula/gestor/tareas/${id}`); cargar(); onChange(); }
+  const [tareaBorrar, setTareaBorrar] = useState<number | null>(null);
+  const [borrandoTarea, setBorrandoTarea] = useState(false);
+  async function confirmarBorrarTarea() {
+    if (tareaBorrar == null) return;
+    setBorrandoTarea(true);
+    try { await api.delete(`/aula/gestor/tareas/${tareaBorrar}`); setTareaBorrar(null); cargar(); onChange(); }
+    finally { setBorrandoTarea(false); }
+  }
   async function verEntregas(id: number) { if (entregasDe === id) { setEntregasDe(null); return; } const r = await api.get<{ entregas: Entrega[] }>(`/aula/gestor/tareas/${id}/entregas`); setEntregas(r.entregas); setEntregasDe(id); }
   async function togglePublicada(id: number) {
     await api.patch(`/aula/gestor/tareas/${id}/publicar`, {});
@@ -603,7 +643,7 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
                     aria-label={it.publicada ? 'Ocultar tarea' : 'Mostrar tarea'}>
                     {it.publicada ? <Eye size={16} /> : <EyeOff size={16} />}
                   </button>
-                  <button onClick={() => borrar(it.id)} className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-500" aria-label="Eliminar tarea"><Trash2 size={15} /></button>
+                  <button onClick={() => setTareaBorrar(it.id)} className="p-1.5 rounded-lg text-stone-400 hover:bg-stone-100 hover:text-red-500" aria-label="Eliminar tarea"><Trash2 size={15} /></button>
                 </div>
               </div>
               {entregasDe === it.id && (
@@ -628,6 +668,18 @@ function TareasTab({ onChange, moduloId }: { onChange: () => void; moduloId?: nu
             </div>
           ); })}
         </div>
+      )}
+
+      {tareaBorrar != null && (
+        <ConfirmModal
+          danger
+          icon={<Trash2 size={18} />}
+          title="¿Eliminar esta tarea?"
+          confirmLabel={borrandoTarea ? 'Eliminando…' : 'Sí, eliminar tarea'}
+          onConfirm={confirmarBorrarTarea}
+          onClose={() => { if (!borrandoTarea) setTareaBorrar(null); }}
+          message={<>Se eliminará la tarea y las entregas que los alumnos hayan subido. <strong className="text-stone-800">Esta acción no se puede deshacer.</strong></>}
+        />
       )}
     </div>
   );
@@ -667,7 +719,14 @@ function MaterialesTab({ modo, onChange, moduloId }: { modo: 'materiales' | 'vid
     } catch (e) { setErr(e instanceof Error ? e.message : 'No se pudo publicar.'); }
     finally { setSaving(false); }
   }
-  async function borrar(id: number) { if (!confirm('¿Eliminar?')) return; await api.delete(`/aula/gestor/materiales/${id}`); cargar(); onChange(); }
+  const [matBorrar, setMatBorrar] = useState<number | null>(null);
+  const [borrandoMat, setBorrandoMat] = useState(false);
+  async function confirmarBorrarMat() {
+    if (matBorrar == null) return;
+    setBorrandoMat(true);
+    try { await api.delete(`/aula/gestor/materiales/${matBorrar}`); setMatBorrar(null); cargar(); onChange(); }
+    finally { setBorrandoMat(false); }
+  }
 
   const puedePublicar = !!m.titulo.trim() && (m.tipo !== 'archivo' || !!archivo);
 
@@ -720,15 +779,27 @@ function MaterialesTab({ modo, onChange, moduloId }: { modo: 'materiales' | 'vid
                 : <a href={it.url ?? '#'} target="_blank" rel="noreferrer" className="aspect-video flex items-center justify-center bg-stone-900 text-white"><PlayCircle size={40} /></a>}
               <div className="p-3 flex items-start justify-between gap-2">
                 <div className="min-w-0"><div className="font-semibold text-sm text-stone-900 truncate">{it.titulo}</div>{it.descripcion && <div className="text-xs text-stone-500 truncate">{it.descripcion}</div>}</div>
-                <button onClick={() => borrar(it.id)} className="shrink-0 text-stone-400 hover:text-red-500" aria-label="Eliminar video"><Trash2 size={14} /></button>
+                <button onClick={() => setMatBorrar(it.id)} className="shrink-0 text-stone-400 hover:text-red-500" aria-label="Eliminar video"><Trash2 size={14} /></button>
               </div>
             </div>
           ); })}
         </div>
       ) : (
         <div className="space-y-2.5">
-          {visibles.map((it) => <MaterialCard key={it.id} it={it} onBorrar={() => borrar(it.id)} />)}
+          {visibles.map((it) => <MaterialCard key={it.id} it={it} onBorrar={() => setMatBorrar(it.id)} />)}
         </div>
+      )}
+
+      {matBorrar != null && (
+        <ConfirmModal
+          danger
+          icon={<Trash2 size={18} />}
+          title={esVideo ? '¿Eliminar este video?' : '¿Eliminar este material?'}
+          confirmLabel={borrandoMat ? 'Eliminando…' : (esVideo ? 'Sí, eliminar video' : 'Sí, eliminar material')}
+          onConfirm={confirmarBorrarMat}
+          onClose={() => { if (!borrandoMat) setMatBorrar(null); }}
+          message={<>Se quitará de la clase y tus alumnos dejarán de verlo. <strong className="text-stone-800">Esta acción no se puede deshacer.</strong></>}
+        />
       )}
     </div>
   );
