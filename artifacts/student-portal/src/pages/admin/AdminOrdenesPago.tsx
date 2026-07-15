@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_PAGOS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PagoStepper } from '../../components/PagoStepper';
@@ -156,7 +158,7 @@ export default function AdminOrdenesPago() {
           </div>
 
           {/* Tabs internos */}
-          <div className="flex border-b-2 border-stone-200 mb-5 gap-0.5">
+          <div data-tour="a-pag-tabs" className="flex border-b-2 border-stone-200 mb-5 gap-0.5">
             {([['ordenes', 'Órdenes de pago', Landmark], ['contabilidad', 'Contabilidad de exámenes', ClipboardList]] as const).map(([key, label, Icon]) => {
               const active = seccion === key;
               return (
@@ -173,7 +175,7 @@ export default function AdminOrdenesPago() {
           ) : (
           <>
           {/* Filtros profesionales */}
-          <div className="bg-white border border-stone-200 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-2">
+          <div data-tour="a-pag-filtros" className="bg-white border border-stone-200 rounded-xl p-3 mb-4 flex flex-wrap items-center gap-2">
             <div className="relative flex-1 min-w-[200px]">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
               <input value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && cargar()}
@@ -216,7 +218,7 @@ export default function AdminOrdenesPago() {
               <div className="font-bold text-stone-900 mb-1">Sin órdenes con estos filtros</div>
             </div>
           ) : (
-            <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
+            <div data-tour="a-pag-tabla" className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
               <table className="w-full text-sm min-w-[760px]">
                 <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
                   <tr>
@@ -252,6 +254,13 @@ export default function AdminOrdenesPago() {
           )}
         </>
       )}
+
+      <SectionTour
+        steps={TOUR_A_PAGOS}
+        storageKey="edumich_sec_a_pagos_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de pagos"
+      />
     </AdminLayout>
   );
 }

@@ -17,6 +17,8 @@ import {
   FileText, Bell, ShieldCheck,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_CALIFICACIONES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api, calif10 } from '../../lib/api';
 import { RelacionCalificacionesPivote } from '../../components/RelacionCalificacionesPivote';
 
@@ -101,8 +103,15 @@ export default function AdminCalificaciones() {
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
       )}
 
-      <SubidaRelacionPdf onAplicado={cargar} />
-      <TablaGeneral rows={rows} />
+      <div data-tour="a-cal-cargar"><SubidaRelacionPdf onAplicado={cargar} /></div>
+      <div data-tour="a-cal-tabla"><TablaGeneral rows={rows} /></div>
+
+      <SectionTour
+        steps={TOUR_A_CALIFICACIONES}
+        storageKey="edumich_sec_a_calificaciones_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de calificaciones"
+      />
     </AdminLayout>
   );
 }

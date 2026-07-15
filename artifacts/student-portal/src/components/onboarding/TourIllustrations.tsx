@@ -13,6 +13,7 @@ import {
   FileText, Landmark, Banknote, Upload, BadgeCheck,
   LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
   MessageCircle, ClipboardList, BookOpen, PlayCircle,
+  Inbox, Search, UserCheck,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -38,6 +39,21 @@ const PASOS_ALTA: Paso[] = [
   { Icon: Upload, label: 'Documentos' },
   { Icon: ClipboardCheck, label: 'Revisión' },
   { Icon: BadgeCheck, label: 'Aprobado' },
+];
+
+// Ciclo completo que la administración habilita para que todo funcione.
+const PASOS_CICLO: Paso[] = [
+  { Icon: Inbox, label: 'Solicitud' },
+  { Icon: FileText, label: 'Documentos' },
+  { Icon: Banknote, label: 'Pago' },
+  { Icon: ClipboardCheck, label: 'Examen' },
+  { Icon: GraduationCap, label: 'Egreso' },
+];
+
+const PASOS_SOLICITUD: Paso[] = [
+  { Icon: Inbox, label: 'Solicita' },
+  { Icon: Search, label: 'Revisas' },
+  { Icon: UserCheck, label: 'Aprobada' },
 ];
 
 function usePrefiereMenosMovimiento(): boolean {
@@ -364,6 +380,8 @@ export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
   pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
   altaFlow: () => <FlowAnimation pasos={PASOS_ALTA} />,
+  cicloAdmin: () => <FlowAnimation pasos={PASOS_CICLO} />,
+  solicitudFlow: () => <FlowAnimation pasos={PASOS_SOLICITUD} />,
   chatLegal: ChatLegalAnimation,
   chatDemo: ChatDemoAnimation,
   aulaCard: AulaCardAnimation,

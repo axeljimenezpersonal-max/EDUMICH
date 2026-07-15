@@ -5,6 +5,8 @@ import {
   Plus, Search, X, RefreshCw, UserPlus, Eye, MoreHorizontal, UserX,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_GESTORES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
 
@@ -612,6 +614,7 @@ export default function GestoresLista() {
           </button>
           {esJefe && (
             <button
+              data-tour="a-ges-nuevo"
               className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white rounded-lg"
               style={{ background: 'var(--color-guinda-700)' }}
               onClick={() => setCrearOpen(true)}
@@ -624,7 +627,7 @@ export default function GestoresLista() {
 
       {/* Stats */}
       {resumen && (
-        <div className="flex gap-3 mb-5 flex-wrap">
+        <div data-tour="a-ges-stats" className="flex gap-3 mb-5 flex-wrap">
           <StatCard num={resumen.totalActivos} label="Total activos" />
           <StatCard num={`${resumen.tasaExitoPromedio}%`} label="Tasa de éxito" sub="Promedio general" />
           <StatCard num={resumen.alumnosPorGestor} label="Alumnos por gestor" sub="Promedio activos" />
@@ -709,6 +712,13 @@ export default function GestoresLista() {
           )}
         </>
       )}
+
+      <SectionTour
+        steps={TOUR_A_GESTORES}
+        storageKey="edumich_sec_a_gestores_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de gestores"
+      />
     </AdminLayout>
   );
 }

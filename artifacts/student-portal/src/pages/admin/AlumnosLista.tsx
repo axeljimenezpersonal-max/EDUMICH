@@ -5,6 +5,8 @@ import {
   Eye, UserCheck, MoreHorizontal, ChevronLeft,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_ALUMNOS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 
 // ─── Types ────────────────────────────────────────────────────────────────
@@ -413,7 +415,7 @@ export default function AlumnosLista() {
 
       {/* Stats bar */}
       {resumen && (
-        <div className="flex gap-3 mb-5 flex-wrap">
+        <div data-tour="a-alu-stats" className="flex gap-3 mb-5 flex-wrap">
           <StatCard label="Total alumnos" value={resumen.totalAlumnos} />
           <StatCard label="Expediente completo" value={resumen.expedienteCompleto} sub={`${resumen.totalAlumnos > 0 ? Math.round(resumen.expedienteCompleto / resumen.totalAlumnos * 100) : 0}% del total`} />
           <StatCard label="Pendientes" value={resumen.pendientes} sub="Con docs por completar" />
@@ -464,7 +466,7 @@ export default function AlumnosLista() {
       )}
 
       {/* Filter bar */}
-      <div className="flex items-center gap-1.5 mb-4 overflow-x-auto">
+      <div data-tour="a-alu-filtros" className="flex items-center gap-1.5 mb-4 overflow-x-auto">
         {/* Search */}
         <div className="relative flex-shrink-0">
           <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
@@ -547,7 +549,7 @@ export default function AlumnosLista() {
         <EmptyState hasFilters={hasAnyFilter} onClear={clearAllFilters} />
       ) : (
         <>
-          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div data-tour="a-alu-tabla" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
             {/* Table header */}
             <div
               className="grid px-5 py-3 border-b border-stone-100"
@@ -616,6 +618,13 @@ export default function AlumnosLista() {
           </div>
         </>
       )}
+
+      <SectionTour
+        steps={TOUR_A_ALUMNOS}
+        storageKey="edumich_sec_a_alumnos_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de alumnos"
+      />
     </AdminLayout>
   );
 }

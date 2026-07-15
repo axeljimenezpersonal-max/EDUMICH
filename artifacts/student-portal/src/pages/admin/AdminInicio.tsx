@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminLayout } from './AdminLayout';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_INICIO, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -167,6 +169,7 @@ export default function AdminInicio() {
           </div>
 
           {/* Convocatoria strip */}
+          <div data-tour="a-ini-convocatoria">
           {data?.convocatoriaActiva ? (
             <ConvocatoriaStrip conv={data.convocatoriaActiva} />
           ) : (
@@ -178,9 +181,10 @@ export default function AdminInicio() {
               <p className="text-sm" style={{ opacity: 0.9 }}>No hay convocatoria activa en este momento.</p>
             </div>
           )}
+          </div>
 
           {/* KPIs generales — Vista general del sistema */}
-          <div className="mb-8">
+          <div data-tour="a-ini-kpis" className="mb-8">
             <div
               className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
               style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
@@ -242,7 +246,7 @@ export default function AdminInicio() {
           </div>
 
           {/* Tareas pendientes */}
-          <div className="mb-8">
+          <div data-tour="a-ini-tareas" className="mb-8">
             <div
               className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
               style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
@@ -296,7 +300,7 @@ export default function AdminInicio() {
           </div>
 
           {/* Gráfica + Actividad reciente */}
-          <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: '1.6fr 1fr' }}>
+          <div data-tour="a-ini-actividad" className="grid gap-4 mb-8" style={{ gridTemplateColumns: '1.6fr 1fr' }}>
             <GraficaEtapas etapas={data?.graficaInscripciones.etapas ?? []} />
             <ActividadReciente actividad={data?.actividadReciente ?? []} />
           </div>
@@ -311,6 +315,13 @@ export default function AdminInicio() {
           </div>
         </>
       )}
+
+      <SectionTour
+        steps={TOUR_A_INICIO}
+        storageKey="edumich_sec_a_inicio_v1"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de inicio"
+      />
     </AdminLayout>
   );
 }
