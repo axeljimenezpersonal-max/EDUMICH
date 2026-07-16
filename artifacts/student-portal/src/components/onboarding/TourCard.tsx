@@ -11,6 +11,7 @@ import { X, ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import type { Placement } from './steps';
 import type { SpotRect } from './SpotlightOverlay';
 import { ILLUSTRATIONS } from './TourIllustrations';
+import { useEsTelefono } from '../../lib/useMedia';
 
 interface Props {
   icon?: string;
@@ -105,10 +106,15 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
   const Illustration = illustration ? ILLUSTRATIONS[illustration] : undefined;
   const cardRef = useRef<HTMLDivElement>(null);
   const nextBtnRef = useRef<HTMLButtonElement>(null);
+  // En teléfono la tarjeta es una HOJA INFERIOR a lo ancho (estilo app): no se
+  // posiciona junto al elemento —no cabría— sino anclada abajo, y el spotlight
+  // sigue iluminando el bloque del que se habla.
+  const esTelefono = useEsTelefono();
 
   const [pos, setPos] = useState(() => computePosition(rect, placement, CARD_W, 240));
 
   useEffect(() => {
+    if (esTelefono) return;
     const place = () => {
       const h = cardRef.current?.offsetHeight ?? 240;
       setPos(computePosition(rect, placement, CARD_W, h));
@@ -120,7 +126,7 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
     };
-  }, [rect, placement, index]);
+  }, [rect, placement, index, esTelefono]);
 
   // Foco en el botón principal al cambiar de paso (accesibilidad por teclado).
   useEffect(() => { nextBtnRef.current?.focus(); }, [index]);
@@ -133,7 +139,14 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
       aria-labelledby="tour-card-title"
       aria-describedby="tour-card-body"
       className="fixed z-[9999] bg-white rounded-2xl overflow-hidden"
-      style={{
+      style={esTelefono ? {
+        left: 8,
+        right: 8,
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+        maxHeight: 'calc(100dvh - 96px)',
+        overflowY: 'auto',
+        boxShadow: '0 -12px 50px -12px rgba(74,14,32,0.5)',
+      } : {
         width: CARD_W,
         maxWidth: 'calc(100vw - 24px)',
         top: pos.top,

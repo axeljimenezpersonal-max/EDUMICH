@@ -9,6 +9,7 @@ import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { BottomNav } from '../../components/BottomNav';
 import { demoActive, disableDemo } from '../../lib/demo';
 
 const NAV = [
@@ -37,12 +38,6 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [aula, setAula] = useState(false);
-  // Para la barra inferior móvil: plano — Herramientas antes que Aula.
-  const navItems = [
-    ...NAV,
-    ...NAV_HERRAMIENTAS,
-    { to: '/estudiante/aula', label: 'Aula', icon: School, tour: 'nav-aula' },
-  ];
 
   const onAula = location.startsWith('/estudiante/aula');
   function esActivo(to: string): boolean {
@@ -157,40 +152,23 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         <AppFooter />
       </div>
 
-      {/* Bottom tab bar — solo en móvil */}
-      <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-stone-200"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-      >
-        {/* 9 secciones: en móvil la barra se desliza horizontalmente */}
-        <div className="flex items-stretch overflow-x-auto scrollbar-none">
-          {navItems.map((item) => {
-            const active =
-              item.to === '/estudiante'
-                ? location === '/estudiante'
-                : location.startsWith(item.to);
-            return (
-              <Link key={item.to} href={item.to} className="flex-1 min-w-[68px]">
-                <div
-                  className={`flex flex-col items-center justify-center py-2 gap-0.5 transition-colors ${
-                    active
-                      ? 'text-[var(--color-guinda-700)]'
-                      : 'text-stone-400'
-                  }`}
-                >
-                  <item.icon size={20} />
-                  <span className="text-[9px] font-semibold tracking-wide leading-none whitespace-nowrap">
-                    {item.label}
-                  </span>
-                  {active && (
-                    <span className="absolute top-0 left-0 right-0 h-0.5 bg-[var(--color-guinda-700)]" />
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+      {/* Barra inferior móvil: 4 secciones fijas + hoja «Más» con el resto. */}
+      <BottomNav
+        base="/estudiante"
+        principales={[
+          { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
+          { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen },
+          { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar },
+          { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard },
+        ]}
+        extras={[
+          { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap },
+          { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen },
+          { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck },
+          { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare },
+          { to: '/estudiante/aula', label: 'Mi aula', icon: School, lock: !aula },
+        ]}
+      />
 
       <OnboardingTour
         rol={me?.rol}
@@ -200,7 +178,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
 
       {demoActive() && (
         <div
-          className="fixed left-3 bottom-20 md:bottom-3 z-[60] flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow-lg"
+          className="fixed left-3 bottom-20 md:bottom-3 z-[45] flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow-lg"
           style={{ background: 'var(--color-guinda-800)' }}
         >
           <Eye size={14} />

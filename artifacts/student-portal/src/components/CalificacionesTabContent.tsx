@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Lock, GraduationCap, Grid3x3, List, Download, Award, ClipboardCheck, Clock, Target, RotateCcw } from 'lucide-react';
 import { api, calif10, type CalificacionesResponse, type CalifRow, type CalificacionExamen } from '../lib/api';
+import { SoloEscritorio, SoloMovil, TablaScroll, ListaCards, FilaCard, DatoCard } from './ui/responsive';
 
 // Metas del Plan Modular por nivel (total 21)
 // Total 22 módulos del Plan 22, repartidos por nivel según la base (fuente de verdad).
@@ -13,6 +14,29 @@ interface Props {
 
 type SubTab = 'aprobados' | 'historial';
 type Vista = 'calificaciones' | 'evaluaciones';
+
+/** Etiqueta de estado de un examen oficial (compartida por tabla y tarjetas). */
+function EstadoCalifChip({ c }: { c: CalificacionExamen }) {
+  if (c.capturada) {
+    return (
+      <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+        {c.aprobado ? 'Aprobado' : 'No aprobado'}
+      </span>
+    );
+  }
+  if (c.enProceso) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">
+        <Clock size={11} /> Calificación en proceso
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">
+      <Clock size={11} /> Examen por presentar
+    </span>
+  );
+}
 
 export default function CalificacionesTabContent({ estudianteId, readOnly = true }: Props) {
   const [data, setData] = useState<CalificacionesResponse | null>(null);
@@ -136,42 +160,63 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
             <EmptyState icon={<Award size={22} />} title="Sin exámenes pagados aún"
               desc="Aquí aparecerán los exámenes pagados con su folio; la calificación se registra automáticamente al capturarla la administración." />
           ) : (
-            <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
-                  <tr>
-                    <th className="px-4 py-2.5 font-semibold">Folio</th>
-                    <th className="px-4 py-2.5 font-semibold">Módulo</th>
-                    <th className="px-4 py-2.5 font-semibold text-center">Calif.</th>
-                    <th className="px-4 py-2.5 font-semibold text-center">Aciertos</th>
-                    <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
+            <>
+              {/* Tabla en tablet/escritorio; tarjetas en teléfono. */}
+              <SoloEscritorio>
+                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+                  <TablaScroll>
+                    <table className="w-full text-sm">
+                      <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
+                        <tr>
+                          <th className="px-4 py-2.5 font-semibold">Folio</th>
+                          <th className="px-4 py-2.5 font-semibold">Módulo</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Calif.</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Aciertos</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {calificacionesExamen.map((c) => (
+                          <tr key={c.inscripcionId} className="border-b border-stone-100 last:border-0">
+                            <td className="px-4 py-2.5 font-mono text-xs text-stone-700">{c.folio}</td>
+                            <td className="px-4 py-2.5 text-stone-800">Módulo {c.moduloNumero} — {c.moduloNombre}</td>
+                            <td className="px-4 py-2.5 text-center">
+                              {c.capturada
+                                ? <span className={`font-bold ${c.aprobado ? 'text-emerald-700' : 'text-red-600'}`}>{calif10(c.calificacion)}</span>
+                                : <span className="text-stone-300">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-center font-mono text-stone-600">
+                              {c.capturada && c.aciertos != null ? c.aciertos : <span className="text-stone-300">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-right"><EstadoCalifChip c={c} /></td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TablaScroll>
+                </div>
+              </SoloEscritorio>
+              <SoloMovil>
+                <ListaCards>
                   {calificacionesExamen.map((c) => (
-                    <tr key={c.inscripcionId} className="border-b border-stone-100 last:border-0">
-                      <td className="px-4 py-2.5 font-mono text-xs text-stone-700">{c.folio}</td>
-                      <td className="px-4 py-2.5 text-stone-800">Módulo {c.moduloNumero} — {c.moduloNombre}</td>
-                      <td className="px-4 py-2.5 text-center">
-                        {c.capturada
-                          ? <span className={`font-bold ${c.aprobado ? 'text-emerald-700' : 'text-red-600'}`}>{calif10(c.calificacion)}</span>
-                          : <span className="text-stone-300">—</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-center font-mono text-stone-600">
-                        {c.capturada && c.aciertos != null ? c.aciertos : <span className="text-stone-300">—</span>}
-                      </td>
-                      <td className="px-4 py-2.5 text-right">
-                        {c.capturada
-                          ? <span className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full ${c.aprobado ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>{c.aprobado ? 'Aprobado' : 'No aprobado'}</span>
-                          : c.enProceso
-                          ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700"><Clock size={11} /> Calificación en proceso</span>
-                          : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500"><Clock size={11} /> Examen por presentar</span>}
-                      </td>
-                    </tr>
+                    <FilaCard
+                      key={c.inscripcionId}
+                      titulo={`M${c.moduloNumero} — ${c.moduloNombre}`}
+                      sub={<span className="font-mono">{c.folio}</span>}
+                      derecha={c.capturada
+                        ? <span className={`text-2xl font-bold leading-none ${c.aprobado ? 'text-emerald-700' : 'text-red-600'}`} style={{ fontFamily: "'Poppins', sans-serif" }}>{calif10(c.calificacion)}</span>
+                        : undefined}
+                      datos={
+                        <>
+                          <DatoCard label="Aciertos" mono>{c.capturada && c.aciertos != null ? c.aciertos : '—'}</DatoCard>
+                          <DatoCard label="Estado"><EstadoCalifChip c={c} /></DatoCard>
+                        </>
+                      }
+                    />
                   ))}
-                </tbody>
-              </table>
-            </div>
+                </ListaCards>
+              </SoloMovil>
+            </>
           )}
         </div>
       )}
@@ -183,8 +228,8 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
         className="rounded-xl p-5 mb-4 mt-6 text-white"
         style={{ background: 'linear-gradient(135deg, #2d7d46 0%, #1d5128 100%)' }}
       >
-        <div className="grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center">
-          <div>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-4 sm:grid sm:grid-cols-[1fr_auto_auto_auto]">
+          <div className="w-full sm:w-auto">
             <div className="text-[10px] font-bold uppercase tracking-widest opacity-80 mb-1">
               Avance académico
             </div>
@@ -196,7 +241,7 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
             </div>
             <div className="text-xs opacity-80 mt-1">de 22 del Plan Modular</div>
           </div>
-          <div className="h-14 w-px bg-white/20" />
+          <div className="hidden h-14 w-px bg-white/20 sm:block" />
           <div className="text-center">
             <div
               className="text-4xl font-bold leading-none"
@@ -450,47 +495,77 @@ export default function CalificacionesTabContent({ estudianteId, readOnly = true
                 <MiniStat label="Pruebas aprobadas" value={data.resumenPractica?.pruebasAprobadas ?? 0} tone="green" />
                 <MiniStat label="Intentos totales" value={evaluacionesPractica.reduce((s, e) => s + e.intentos, 0)} />
               </div>
-              <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
-                    <tr>
-                      <th className="px-4 py-2.5 font-semibold">Módulo</th>
-                      <th className="px-4 py-2.5 font-semibold text-center">Intentos</th>
-                      <th className="px-4 py-2.5 font-semibold text-center">Mejor</th>
-                      <th className="px-4 py-2.5 font-semibold">Temas a reforzar</th>
-                      <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {evaluacionesPractica.map((e) => (
-                      <tr key={e.moduloNumero} className="border-b border-stone-100 last:border-0">
-                        <td className="px-4 py-2.5 text-stone-800">
-                          <span className="inline-block bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] font-bold text-[11px] px-2 py-0.5 rounded mr-1.5">M{e.moduloNumero}</span>
-                          {e.moduloNombre}
-                        </td>
-                        <td className="px-4 py-2.5 text-center font-mono text-stone-600">
-                          <span className="inline-flex items-center gap-1"><RotateCcw size={11} className="text-stone-400" /> {e.intentos}</span>
-                        </td>
-                        <td className="px-4 py-2.5 text-center">
-                          {e.mejorCalificacion != null
-                            ? <span className={`font-bold ${e.aprobada ? 'text-emerald-700' : 'text-amber-600'}`}>{calif10(e.mejorCalificacion)}<span className="text-[10px] font-normal text-stone-400">/10</span></span>
-                            : <span className="text-stone-300">—</span>}
-                        </td>
-                        <td className="px-4 py-2.5 text-xs text-stone-500">
-                          {e.temasDebiles
-                            ? <span className="inline-flex items-center gap-1"><Target size={11} className="text-amber-500 shrink-0" /> {e.temasDebiles}</span>
-                            : <span className="text-stone-300">—</span>}
-                        </td>
-                        <td className="px-4 py-2.5 text-right">
-                          {e.aprobada
-                            ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aprobada</span>
-                            : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">En práctica</span>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <SoloEscritorio>
+                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+                  <TablaScroll>
+                    <table className="w-full text-sm">
+                      <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
+                        <tr>
+                          <th className="px-4 py-2.5 font-semibold">Módulo</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Intentos</th>
+                          <th className="px-4 py-2.5 font-semibold text-center">Mejor</th>
+                          <th className="px-4 py-2.5 font-semibold">Temas a reforzar</th>
+                          <th className="px-4 py-2.5 font-semibold text-right">Estado</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {evaluacionesPractica.map((e) => (
+                          <tr key={e.moduloNumero} className="border-b border-stone-100 last:border-0">
+                            <td className="px-4 py-2.5 text-stone-800">
+                              <span className="inline-block bg-[var(--color-crema-100)] text-[var(--color-guinda-700)] font-bold text-[11px] px-2 py-0.5 rounded mr-1.5">M{e.moduloNumero}</span>
+                              {e.moduloNombre}
+                            </td>
+                            <td className="px-4 py-2.5 text-center font-mono text-stone-600">
+                              <span className="inline-flex items-center gap-1"><RotateCcw size={11} className="text-stone-400" /> {e.intentos}</span>
+                            </td>
+                            <td className="px-4 py-2.5 text-center">
+                              {e.mejorCalificacion != null
+                                ? <span className={`font-bold ${e.aprobada ? 'text-emerald-700' : 'text-amber-600'}`}>{calif10(e.mejorCalificacion)}<span className="text-[10px] font-normal text-stone-400">/10</span></span>
+                                : <span className="text-stone-300">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-xs text-stone-500">
+                              {e.temasDebiles
+                                ? <span className="inline-flex items-center gap-1"><Target size={11} className="text-amber-500 shrink-0" /> {e.temasDebiles}</span>
+                                : <span className="text-stone-300">—</span>}
+                            </td>
+                            <td className="px-4 py-2.5 text-right">
+                              {e.aprobada
+                                ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aprobada</span>
+                                : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">En práctica</span>}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TablaScroll>
+                </div>
+              </SoloEscritorio>
+              <SoloMovil>
+                <ListaCards>
+                  {evaluacionesPractica.map((e) => (
+                    <FilaCard
+                      key={e.moduloNumero}
+                      titulo={`M${e.moduloNumero} — ${e.moduloNombre}`}
+                      derecha={e.mejorCalificacion != null
+                        ? <span className={`text-2xl font-bold leading-none ${e.aprobada ? 'text-emerald-700' : 'text-amber-600'}`} style={{ fontFamily: "'Poppins', sans-serif" }}>{calif10(e.mejorCalificacion)}</span>
+                        : undefined}
+                      datos={
+                        <>
+                          <DatoCard label="Intentos" mono>{e.intentos}</DatoCard>
+                          <DatoCard label="Estado">
+                            {e.aprobada
+                              ? <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Aprobada</span>
+                              : <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">En práctica</span>}
+                          </DatoCard>
+                        </>
+                      }
+                      pie={e.temasDebiles
+                        ? <span className="inline-flex items-start gap-1.5 text-xs text-stone-500"><Target size={12} className="mt-0.5 shrink-0 text-amber-500" /> {e.temasDebiles}</span>
+                        : undefined}
+                    />
+                  ))}
+                </ListaCards>
+              </SoloMovil>
             </>
           )}
         </div>
