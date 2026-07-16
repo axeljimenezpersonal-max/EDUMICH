@@ -155,7 +155,7 @@ export default function Reportes() {
           <div className="h-px flex-1 bg-stone-200" />
         </div>
 
-        <div data-tour="a-rep-descargas"><CentroDescargas /></div>
+        <CentroDescargas />
       </div>
 
       <SectionTour
@@ -617,11 +617,12 @@ function CentroDescargas() {
   return (
     <div>
       {/* Catálogo */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+      <div data-tour="a-rep-catalogo" className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         {REPORTES.map(({ tipo, label, desc, icon: Icon }) => {
           const on = selected === tipo;
           return (
-            <button key={tipo} onClick={() => { setSelected(on ? null : tipo); setPreview(null); }}
+            <button key={tipo} data-tour={tipo === 'relacion' ? 'a-rep-relacion' : undefined}
+              onClick={() => { setSelected(on ? null : tipo); setPreview(null); }}
               className="text-left p-4 rounded-2xl border transition-all hover:-translate-y-0.5"
               style={{ background: on ? '#eef2ff' : 'white', borderColor: on ? INDIGO : LINEA, borderWidth: on ? 2 : 1, boxShadow: on ? `0 0 0 3px ${INDIGO}1a` : '0 1px 3px rgba(15,23,42,.05)' }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-2.5" style={{ background: on ? INDIGO : '#f1f5f9', color: on ? 'white' : INDIGO }}>
@@ -649,7 +650,7 @@ function CentroDescargas() {
           </div>
 
           <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 items-end">
+          <div data-tour="a-rep-config" className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4 items-end">
             <Campo label="Convocatoria">
               <select className={selCls + ' w-full'}
                 value={filtros.etapaId} onChange={(e) => setFiltros((f) => ({ ...f, etapaId: e.target.value }))}>
@@ -671,7 +672,7 @@ function CentroDescargas() {
                 <option value="pdf">PDF</option>
               </select>
             </Campo>
-            <div className="flex gap-2">
+            <div data-tour="a-rep-acciones" className="flex gap-2">
               <button onClick={cargarPreview} disabled={loadingPreview}
                 className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold rounded-lg border transition-colors hover:bg-slate-50"
                 style={{ borderColor: '#cbd5e1', background: 'white', color: SLATE_900 }}>
@@ -732,7 +733,7 @@ function CentroDescargas() {
       )}
 
       {/* Historial / Programados (colapsables) */}
-      <div className="flex flex-wrap gap-2 mb-4">
+      <div data-tour="a-rep-programar" className="flex flex-wrap gap-2 mb-4">
         <button onClick={() => { const n = !showHistorial; setShowHistorial(n); if (n) cargarHistorial(); }}
           className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border" style={{ borderColor: '#ddd0c5', color: '#443e39', background: 'white' }}>
           <Clock size={14} /> Historial
