@@ -63,7 +63,7 @@ const ESTUDIANTE: TourStep[] = [
   },
   {
     id: 'est-calificaciones',
-    anchor: 'nav-calificaciones',
+    anchor: 'nav-calificaciones nav-mas',
     placement: 'right',
     icon: 'GraduationCap',
     title: 'Paso 4 · Tus resultados',
@@ -71,7 +71,7 @@ const ESTUDIANTE: TourStep[] = [
   },
   {
     id: 'est-modulos',
-    anchor: 'nav-modulos',
+    anchor: 'nav-modulos nav-mas',
     placement: 'right',
     icon: 'BookOpen',
     title: 'Practica antes del examen',
@@ -79,7 +79,7 @@ const ESTUDIANTE: TourStep[] = [
   },
   {
     id: 'est-aula',
-    anchor: 'nav-aula',
+    anchor: 'nav-aula nav-mas',
     placement: 'right',
     icon: 'School',
     title: 'Mi aula · clases en línea',
@@ -87,7 +87,7 @@ const ESTUDIANTE: TourStep[] = [
   },
   {
     id: 'est-identificacion',
-    anchor: 'nav-identificacion',
+    anchor: 'nav-identificacion nav-mas',
     placement: 'right',
     icon: 'BadgeCheck',
     title: 'Herramientas · ID y pase',
@@ -95,7 +95,7 @@ const ESTUDIANTE: TourStep[] = [
   },
   {
     id: 'est-mensajes',
-    anchor: 'nav-mensajes',
+    anchor: 'nav-mensajes nav-mas',
     placement: 'right',
     icon: 'MessageSquare',
     title: '¿Dudas? Escríbenos',
@@ -153,7 +153,7 @@ const GESTOR: TourStep[] = [
   },
   {
     id: 'ges-calificaciones',
-    anchor: 'nav-calificaciones',
+    anchor: 'nav-calificaciones nav-mas',
     placement: 'right',
     icon: 'GraduationCap',
     title: 'Calificaciones',
@@ -161,7 +161,7 @@ const GESTOR: TourStep[] = [
   },
   {
     id: 'ges-mensajes',
-    anchor: 'nav-mensajes',
+    anchor: 'nav-mensajes nav-mas',
     placement: 'right',
     icon: 'MessageSquare',
     title: 'Canal con la Secretaría',
@@ -187,7 +187,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-solicitudes',
-    anchor: 'nav-solicitudes',
+    anchor: 'nav-solicitudes nav-mas',
     placement: 'right',
     icon: 'Inbox',
     title: 'Solicitudes por revisar',
@@ -195,7 +195,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-alumnos',
-    anchor: 'nav-alumnos',
+    anchor: 'nav-alumnos nav-mas',
     placement: 'right',
     icon: 'Users',
     title: 'Alumnos de todo el estado',
@@ -203,7 +203,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-gestores',
-    anchor: 'nav-gestores',
+    anchor: 'nav-gestores nav-mas',
     placement: 'right',
     icon: 'UserCheck',
     title: 'Gestores municipales',
@@ -211,7 +211,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-pagos',
-    anchor: 'nav-pagos',
+    anchor: 'nav-pagos nav-mas',
     placement: 'right',
     icon: 'CreditCard',
     title: 'Pagos y órdenes',
@@ -219,7 +219,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-calificaciones',
-    anchor: 'nav-calificaciones',
+    anchor: 'nav-calificaciones nav-mas',
     placement: 'right',
     icon: 'GraduationCap',
     title: 'Carga de calificaciones',
@@ -227,7 +227,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-verificacion',
-    anchor: 'nav-verificacion',
+    anchor: 'nav-verificacion nav-mas',
     placement: 'right',
     icon: 'ScanLine',
     title: 'Verificación de pases',
@@ -235,7 +235,7 @@ const ADMIN: TourStep[] = [
   },
   {
     id: 'adm-chat',
-    anchor: 'nav-chat',
+    anchor: 'nav-chat nav-mas',
     placement: 'right',
     icon: 'MessageSquare',
     title: 'Chat en vivo',

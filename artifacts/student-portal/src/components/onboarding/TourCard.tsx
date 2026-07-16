@@ -139,14 +139,25 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
       aria-labelledby="tour-card-title"
       aria-describedby="tour-card-body"
       className="fixed z-[9999] bg-white rounded-2xl overflow-hidden"
-      style={esTelefono ? {
-        left: 8,
-        right: 8,
-        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
-        maxHeight: 'calc(100dvh - 96px)',
-        overflowY: 'auto',
-        boxShadow: '0 -12px 50px -12px rgba(74,14,32,0.5)',
-      } : {
+      style={esTelefono ? (
+        // Si el elemento iluminado vive en la zona BAJA de la pantalla (p. ej.
+        // la barra de navegación inferior), la hoja brinca arriba para no taparlo.
+        rect && rect.top > window.innerHeight * 0.6 ? {
+          left: 8,
+          right: 8,
+          top: 'calc(env(safe-area-inset-top, 0px) + 84px)',
+          maxHeight: 'calc(100dvh - 200px)',
+          overflowY: 'auto',
+          boxShadow: '0 18px 50px -12px rgba(74,14,32,0.5)',
+        } : {
+          left: 8,
+          right: 8,
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+          maxHeight: 'calc(100dvh - 96px)',
+          overflowY: 'auto',
+          boxShadow: '0 -12px 50px -12px rgba(74,14,32,0.5)',
+        }
+      ) : {
         width: CARD_W,
         maxWidth: 'calc(100vw - 24px)',
         top: pos.top,

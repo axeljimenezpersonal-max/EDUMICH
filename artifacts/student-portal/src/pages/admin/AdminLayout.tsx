@@ -431,6 +431,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setMenuAbierto(true)}
               aria-label="Abrir menú"
+              data-tour="nav-mas"
               className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border"
               style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-700)', background: '#faf6f0' }}
             >

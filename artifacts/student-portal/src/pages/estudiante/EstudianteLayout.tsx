@@ -156,17 +156,17 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
       <BottomNav
         base="/estudiante"
         principales={[
-          { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard },
-          { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen },
-          { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar },
-          { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard },
+          { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
+          { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen, tour: 'nav-expediente' },
+          { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
+          { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
         ]}
         extras={[
-          { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap },
-          { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen },
-          { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck },
-          { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare },
-          { to: '/estudiante/aula', label: 'Mi aula', icon: School, lock: !aula },
+          { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
+          { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
+          { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
+          { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
+          { to: '/estudiante/aula', label: 'Mi aula', icon: School, lock: !aula, tour: 'nav-aula' },
         ]}
       />
 

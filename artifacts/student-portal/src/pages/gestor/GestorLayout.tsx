@@ -124,15 +124,15 @@ export function GestorLayout({ children }: { children: ReactNode }) {
       <BottomNav
         base="/gestor"
         principales={[
-          { to: '/gestor', label: 'Inicio', icon: LayoutDashboard },
-          { to: '/gestor/alumnos/nuevo', label: 'Nuevo', icon: FilePlus2 },
-          { to: '/gestor/alumnos', label: 'Alumnos', icon: Users },
-          { to: '/gestor/pagos', label: 'Pagos', icon: CreditCard },
+          { to: '/gestor', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
+          { to: '/gestor/alumnos/nuevo', label: 'Nuevo', icon: FilePlus2, tour: 'nav-nuevo' },
+          { to: '/gestor/alumnos', label: 'Alumnos', icon: Users, tour: 'nav-alumnos' },
+          { to: '/gestor/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
         ]}
         extras={[
-          { to: '/gestor/calificaciones', label: 'Calificaciones', icon: GraduationCap },
-          { to: '/gestor/mensajes', label: 'Mensajes', icon: MessageSquare },
-          { to: '/gestor/aula', label: 'Mi aula', icon: School, lock: !aula },
+          { to: '/gestor/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
+          { to: '/gestor/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
+          { to: '/gestor/aula', label: 'Mi aula', icon: School, lock: !aula, tour: 'nav-aula' },
         ]}
       />
 

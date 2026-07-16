@@ -22,11 +22,30 @@ interface Props {
   onBackdropClick?: () => void;
 }
 
-/** Elige el elemento VISIBLE entre los que coincidan (evita duplicados sidebar/móvil). */
-function measure(anchor?: string): SpotRect | null {
+/**
+ * Resuelve el elemento objetivo de un paso. `anchor` acepta una LISTA de
+ * anclajes separados por espacios y gana el primero VISIBLE: así un paso puede
+ * apuntar a la barra lateral en escritorio y caer a la barra inferior o al
+ * botón de menú en teléfono (p. ej. "nav-calificaciones nav-mas").
+ */
+function resolver(anchor?: string): HTMLElement | null {
   if (!anchor) return null;
-  const els = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${anchor}"]`));
-  const el = els.find((e) => e.offsetParent !== null && e.getClientRects().length > 0) ?? els[0];
+  const nombres = anchor.split(/\s+/).filter(Boolean);
+  for (const nombre of nombres) {
+    const els = Array.from(document.querySelectorAll<HTMLElement>(`[data-tour="${nombre}"]`));
+    const visible = els.find((e) => e.offsetParent !== null && e.getClientRects().length > 0);
+    if (visible) return visible;
+  }
+  // Ninguno visible: el primero que al menos exista (la tarjeta se centrará).
+  for (const nombre of nombres) {
+    const el = document.querySelector<HTMLElement>(`[data-tour="${nombre}"]`);
+    if (el) return el;
+  }
+  return null;
+}
+
+function measure(anchor?: string): SpotRect | null {
+  const el = resolver(anchor);
   if (!el) return null;
   const r = el.getBoundingClientRect();
   if (r.width === 0 && r.height === 0) return null;
@@ -50,7 +69,7 @@ export function SpotlightOverlay({ anchor, padding = 8, onRectChange, onBackdrop
     // Scroll UNA sola vez al cambiar de paso: deja el bloque objetivo justo
     // debajo del header si no está cómodamente visible. Predecible y sin dejar
     // huecos (a diferencia de scrollIntoView 'center'/'nearest').
-    const el = anchor ? document.querySelector<HTMLElement>(`[data-tour="${anchor}"]`) : null;
+    const el = resolver(anchor);
     if (el) {
       const r = el.getBoundingClientRect();
       const topGap = 120;   // espacio bajo el header sticky

@@ -21,6 +21,8 @@ export interface BottomNavItem {
   icon: LucideIcon;
   /** Se muestra con candado (p. ej. aula sin contratar); navega igual, la página explica. */
   lock?: boolean;
+  /** Anclaje del tour (data-tour): en teléfono el spotlight ilumina esta pestaña. */
+  tour?: string;
 }
 
 export function BottomNav({
@@ -102,7 +104,7 @@ export function BottomNav({
                 {extras.map((item) => {
                   const activo = esActivo(item.to);
                   return (
-                    <Link key={item.to} href={item.to} className="block">
+                    <Link key={item.to} href={item.to} className="block" data-tour={item.tour}>
                       <div
                         className={`flex min-h-[72px] flex-col items-center justify-center gap-1.5 rounded-xl py-2.5 transition-colors ${
                           activo ? 'bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]' : 'text-stone-500 active:bg-stone-50'
@@ -137,7 +139,7 @@ export function BottomNav({
           {principales.map((item) => {
             const activo = esActivo(item.to);
             return (
-              <Link key={item.to} href={item.to} className="min-w-0 flex-1">
+              <Link key={item.to} href={item.to} className="min-w-0 flex-1" data-tour={item.tour}>
                 <div className={slot(activo)}>
                   {activo && <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--color-guinda-700)]" />}
                   <item.icon size={22} />
@@ -146,7 +148,9 @@ export function BottomNav({
               </Link>
             );
           })}
-          <button type="button" onClick={() => setAbierto(true)} className="min-w-0 flex-1" aria-label="Más secciones">
+          {/* «Más» es el respaldo de anclaje en teléfono para las secciones que
+              viven dentro de la hoja (los tours usan "nav-x nav-mas"). */}
+          <button type="button" onClick={() => setAbierto(true)} className="min-w-0 flex-1" aria-label="Más secciones" data-tour="nav-mas">
             <div className={slot(enExtras || abierto)}>
               {enExtras && <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-[var(--color-guinda-700)]" />}
               <MoreHorizontal size={22} />
