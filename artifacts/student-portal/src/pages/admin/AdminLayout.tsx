@@ -539,10 +539,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
         )}
 
-        {/* ── Sidebar (tablet/escritorio) ── */}
+        {/* ── Sidebar (tablet/escritorio) — con scroll interno propio para
+            pantallas bajitas (teléfono horizontal, laptops chicas). ── */}
         <aside
-          className="bg-white border border-stone-200 rounded-lg overflow-hidden sticky hidden md:block"
-          style={{ top: 96 }}
+          className="bg-white border border-stone-200 rounded-lg sticky hidden md:block overflow-y-auto"
+          style={{ top: 96, maxHeight: 'calc(100vh - 112px)' }}
         >
           {/* Header */}
           <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>

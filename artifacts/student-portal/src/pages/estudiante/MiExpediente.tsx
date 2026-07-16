@@ -370,7 +370,9 @@ export default function MiExpediente() {
 
             {/* Cédula de inscripción — solo consulta y descarga (la elabora la administración) */}
             <div id="cedula-inscripcion" className="mt-4 bg-white border border-stone-200 rounded-xl overflow-hidden scroll-mt-24">
-              <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between gap-3">
+              {/* En pantallas angostas los botones bajan a su propia fila para
+                  no recortarse ("Descarga…"); en sm+ vuelven al costado. */}
+              <div className="px-5 py-4 border-b border-stone-100 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
                     <ClipboardList size={18} />
@@ -382,7 +384,7 @@ export default function MiExpediente() {
                     </div>
                   </div>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="flex shrink-0 items-center gap-2 flex-wrap">
                   <button
                     type="button"
                     onClick={() => setMostrarCedula((v) => !v)}

@@ -126,7 +126,7 @@ export default function Configuracion() {
         {/* ── Config sidebar ── */}
         <aside
           data-tour="a-cfg-nav"
-          className="bg-white border border-stone-200 rounded-lg overflow-hidden flex-shrink-0 w-full md:w-[220px] md:sticky"
+          className="bg-white border border-stone-200 rounded-lg flex-shrink-0 w-full md:w-[220px] md:sticky md:overflow-y-auto md:max-h-[calc(100vh-112px)]"
           style={{ top: 96, alignSelf: 'start' }}
         >
           <div className="px-4 py-3" style={{ background: 'var(--color-guinda-700)' }}>
