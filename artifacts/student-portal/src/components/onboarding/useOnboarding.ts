@@ -44,7 +44,8 @@ export function useOnboarding(rol: Rol | null | undefined): UseOnboarding {
   useEffect(() => {
     if (!rol || total === 0) return;
     if (isDone(rol)) return;
-    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+    // En teléfono también auto-arranca: la tarjeta del tour es una hoja
+    // inferior (ver TourCard), pensada para uso móvil de primera clase.
     const t = setTimeout(() => { setIndex(0); setActive(true); }, 600);
     return () => clearTimeout(t);
   }, [rol, total]);

@@ -44,7 +44,8 @@ export function SectionTour({
       if (localStorage.getItem(storageKey)) return;              // ya visto
       if (gateKey && localStorage.getItem(gateKey) !== '1') return; // espera a la bienvenida
     } catch { /* ignore */ }
-    if (typeof window !== 'undefined' && window.innerWidth < 768) return;
+    // En teléfono también auto-arranca: la tarjeta es una hoja inferior (ver
+    // TourCard) y la experiencia móvil ya es de primera clase.
     const t = setTimeout(() => { setIndex(0); setActive(true); }, 700);
     return () => clearTimeout(t);
   }, [autoStart, total, storageKey, gateKey]);

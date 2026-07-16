@@ -16,6 +16,7 @@ import { GestorLayout } from './GestorLayout';
 import { PagoStepper } from '../../components/PagoStepper';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_PAGOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
+import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
 import {
   api,
   type PagoExamenAlumno,
@@ -196,7 +197,25 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
           <p className="text-sm text-stone-500 max-w-md mx-auto">Solicita una ficha de pago para cubrir los exámenes de tus alumnos.</p>
         </div>
       ) : (
-        <div data-tour="g-pag-fichas" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+        <div data-tour="g-pag-fichas">
+        <SoloMovil>
+          <ListaCards>
+            {fichasFiltradas.length === 0 ? (
+              <div className="rounded-xl border border-stone-200 bg-white px-4 py-8 text-center text-sm text-stone-400">Sin fichas en este estado.</div>
+            ) : fichasFiltradas.map((p) => (
+              <FilaCard
+                key={p.id}
+                onClick={() => onAbrir(p.id)}
+                titulo={<span className="font-mono text-[13px]">{p.folio ?? `#${p.id}`}</span>}
+                sub={`${p.cantidadExamenes} examen${p.cantidadExamenes === 1 ? '' : 'es'}`}
+                derecha={<EstadoChip estado={p.estado} />}
+                datos={<DatoCard label="Total"><span className="text-base font-bold text-stone-900">{fmtMoney(p.montoTotal)}</span></DatoCard>}
+              />
+            ))}
+          </ListaCards>
+        </SoloMovil>
+        <SoloEscritorio>
+        <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
               <tr>
@@ -221,6 +240,8 @@ function ListaView({ pagos, loading, onNuevo, onAbrir }: {
               ))}
             </tbody>
           </table>
+        </div>
+        </SoloEscritorio>
         </div>
       )}
     </>
@@ -554,7 +575,7 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
               <div>
                 <div className="flex items-center gap-2 mb-2"><span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">2</span><span className="text-sm font-bold text-stone-800">Indica cómo pagaste y sube el comprobante</span></div>
                 <div className="pl-8 space-y-3">
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {METODOS_PAGO.map((m) => (
                       <button key={m.value} onClick={() => setMetodo(m.value)}
                         className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodo === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>

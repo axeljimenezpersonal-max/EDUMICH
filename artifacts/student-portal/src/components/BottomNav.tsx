@@ -38,7 +38,14 @@ export function BottomNav({
   const [location] = useLocation();
   const [abierto, setAbierto] = useState(false);
 
-  const esActivo = (to: string) => (to === base ? location === base : location.startsWith(to));
+  // Activo = la coincidencia MÁS LARGA entre todos los ítems, para que rutas
+  // anidadas no enciendan dos pestañas (p. ej. /gestor/alumnos/nuevo debe
+  // encender «Nuevo», no también «Alumnos»). La raíz solo con match exacto.
+  const coincide = (to: string) => (to === base ? location === base : location.startsWith(to));
+  const mejor = [...principales, ...extras]
+    .filter((i) => coincide(i.to))
+    .sort((a, b) => b.to.length - a.to.length)[0]?.to;
+  const esActivo = (to: string) => to === mejor;
   const enExtras = extras.some((i) => esActivo(i.to));
 
   // Al navegar se cierra la hoja; y con la hoja abierta no se desplaza el fondo.

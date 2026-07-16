@@ -547,8 +547,8 @@ export default function AlumnoDetalle() {
         </div>
       </div>
 
-      {/* ── Tab bar ── */}
-      <div data-tour="g-ficha-tabs" className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5">
+      {/* ── Tab bar — en teléfono se desliza horizontalmente ── */}
+      <div data-tour="g-ficha-tabs" className="bg-white border border-stone-200 rounded-xl p-1.5 flex gap-0.5 mb-5 overflow-x-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {tabItems.map(({ key, label, icon, badge, badgeVariant }) => {
           const active = activeTab === key;
           const isWarn = !active && badgeVariant === 'warn';
@@ -557,7 +557,7 @@ export default function AlumnoDetalle() {
               key={key}
               data-tour={`g-ficha-tab-${key}`}
               onClick={() => setActiveTab(key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
+              className={`flex-1 shrink-0 flex items-center justify-center gap-2 py-2.5 px-3 sm:px-4 whitespace-nowrap rounded-lg text-sm font-semibold transition-colors cursor-pointer ${
                 active
                   ? 'bg-[var(--color-guinda-700)] text-white'
                   : 'text-stone-500 hover:bg-[var(--color-crema-50)] hover:text-stone-900'

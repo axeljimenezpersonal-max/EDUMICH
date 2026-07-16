@@ -13,6 +13,7 @@ import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { BottomNav } from '../../components/BottomNav';
 
 const NAV = [
   { to: '/gestor', icon: LayoutDashboard, label: 'Inicio', tour: 'nav-inicio' },
@@ -65,9 +66,9 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         onLogout={handleLogout}
       />
 
-      <div className="flex-1 max-w-7xl mx-auto px-4 py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 w-full">
-        {/* Sidebar */}
-        <nav className="md:sticky md:top-[114px] self-start">
+      <div className="flex-1 max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 w-full pb-20 md:pb-6">
+        {/* Sidebar — solo visible en md+; en teléfono navega la barra inferior */}
+        <nav className="hidden md:block md:sticky md:top-[114px] self-start">
           <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
             <div className="px-4 py-3 bg-[var(--color-guinda-700)] text-white">
               <div className="text-[10px] tracking-widest opacity-80">PANEL</div>
@@ -115,7 +116,25 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         <main className="min-w-0">{children}</main>
       </div>
 
-      <AppFooter />
+      <div className="hidden md:block">
+        <AppFooter />
+      </div>
+
+      {/* Barra inferior móvil: 4 secciones fijas + hoja «Más» con el resto. */}
+      <BottomNav
+        base="/gestor"
+        principales={[
+          { to: '/gestor', label: 'Inicio', icon: LayoutDashboard },
+          { to: '/gestor/alumnos/nuevo', label: 'Nuevo', icon: FilePlus2 },
+          { to: '/gestor/alumnos', label: 'Alumnos', icon: Users },
+          { to: '/gestor/pagos', label: 'Pagos', icon: CreditCard },
+        ]}
+        extras={[
+          { to: '/gestor/calificaciones', label: 'Calificaciones', icon: GraduationCap },
+          { to: '/gestor/mensajes', label: 'Mensajes', icon: MessageSquare },
+          { to: '/gestor/aula', label: 'Mi aula', icon: School, lock: !aula },
+        ]}
+      />
 
       <OnboardingTour
         rol={me?.rol}

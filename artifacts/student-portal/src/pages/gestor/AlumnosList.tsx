@@ -5,13 +5,14 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Search, Plus, Users, FileText, ChevronRight, X } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api, type AlumnoListItem } from '../../lib/api';
 import { StatusBadge } from '../../components/StatusBadge';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_ALUMNOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
+import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
 
 // Estado del alumno en el proceso (pipeline), del más urgente al final.
 const ESTADO_PROCESO: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -34,6 +35,7 @@ function estadoMatch(a: AlumnoListItem, val: string): boolean {
 }
 
 export default function AlumnosList() {
+  const [, setLocation] = useLocation();
   const [alumnos, setAlumnos] = useState<AlumnoListItem[] | null>(null);
   const [filtro, setFiltro] = useState('');
   const [toast, setToast] = useState<{ msg: string; type: string } | null>(null);
@@ -154,7 +156,44 @@ export default function AlumnosList() {
       ) : filtered.length === 0 ? (
         <EmptyState />
       ) : (
-        <div data-tour="g-alu-tabla" className="bg-white border border-stone-200 rounded-md overflow-hidden">
+        <div data-tour="g-alu-tabla">
+        {/* Teléfono: tarjetas táctiles; tablet/escritorio: la tabla de siempre. */}
+        <SoloMovil>
+          <ListaCards>
+            {filtered.map((a) => {
+              const cfg = ESTADO_PROCESO[a.estadoProceso] ?? ESTADO_PROCESO.faltan_documentos;
+              return (
+                <FilaCard
+                  key={a.userId}
+                  onClick={() => setLocation(`/gestor/alumnos/${a.userId}`)}
+                  titulo={a.nombreCompleto}
+                  sub={`${a.inscripcion?.convocatoriaNombre ?? 'Sin convocatoria'}${a.telefono ? ` · ${a.telefono}` : ''}`}
+                  derecha={
+                    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
+                      <span className="h-1.5 w-1.5 rounded-full" style={{ background: cfg.dot }} />
+                      {cfg.label}
+                    </span>
+                  }
+                  datos={
+                    <>
+                      <DatoCard label="CURP" mono>{a.curp}</DatoCard>
+                      <DatoCard label="Documentos">
+                        {a.obligAprobados < a.obligTotal
+                          ? <span className="font-semibold text-amber-700">{a.obligAprobados}/{a.obligTotal} · faltan {a.obligTotal - a.obligAprobados}</span>
+                          : <span className="font-semibold text-emerald-700">Obligatorios listos</span>}
+                      </DatoCard>
+                    </>
+                  }
+                  pie={a.estadoProceso === 'pago_pendiente' && a.modulosPorPagar > 0
+                    ? <span className="text-xs text-stone-500">Faltan {a.modulosPorPagar} de {a.modulosInscritos} módulo{a.modulosInscritos === 1 ? '' : 's'} por pagar</span>
+                    : undefined}
+                />
+              );
+            })}
+          </ListaCards>
+        </SoloMovil>
+        <SoloEscritorio>
+        <div className="bg-white border border-stone-200 rounded-md overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-[var(--color-crema-100)] border-b border-stone-200">
               <tr className="text-left text-xs uppercase tracking-widest text-stone-600">
@@ -239,6 +278,8 @@ export default function AlumnosList() {
               ))}
             </tbody>
           </table>
+        </div>
+        </SoloEscritorio>
         </div>
       )}
 
