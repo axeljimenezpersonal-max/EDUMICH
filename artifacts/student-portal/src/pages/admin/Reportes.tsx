@@ -513,7 +513,10 @@ function Vacio() {
 // ─────────────────────────────────────────────────────────────
 
 function CentroDescargas() {
-  const [selected, setSelected] = useState<ReporteTipo | null>(null);
+  // La Relación de exámenes viene preseleccionada: es el reporte que más se
+  // emite, así que su panel está listo al entrar sin un clic de más. Se puede
+  // deseleccionar tocando su tarjeta, igual que cualquier otra.
+  const [selected, setSelected] = useState<ReporteTipo | null>('relacion');
   const [formato, setFormato] = useState<Formato>('excel');
   const [filtros, setFiltros] = useState<Filtros>({ fechaInicio: '', fechaFin: '', municipioId: '', gestorId: '', etapaId: '' });
   const [preview, setPreview] = useState<Preview | null>(null);
