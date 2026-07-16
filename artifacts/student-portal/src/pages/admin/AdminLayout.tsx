@@ -4,7 +4,7 @@ import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
-  MessageSquare, GraduationCap, HelpCircle,
+  MessageSquare, GraduationCap, HelpCircle, Menu, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
@@ -274,9 +274,79 @@ function SidebarBadge({ count }: { count: number; muted?: boolean }) {
 
 // ── Main ──────────────────────────────────────────────────────────────────────
 
+/** Ítem del menú lateral del admin (compartido por sidebar y cajón móvil). */
+type ItemNav = {
+  href: string;
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+  badge?: number;
+  muted?: boolean;
+  tour?: string;
+};
+
+/**
+ * Las secciones del menú de administración (Inicio · PERSONAS · HERRAMIENTAS).
+ * Un solo origen para el sidebar de escritorio y el cajón móvil: si se agrega
+ * una sección, aparece en ambos sin duplicar nada.
+ */
+function SidebarSecciones({
+  linkStyle,
+  personasItems,
+  otrosItems,
+}: {
+  linkStyle: (href: string, exact?: boolean) => React.CSSProperties;
+  personasItems: ItemNav[];
+  otrosItems: ItemNav[];
+}) {
+  const link = 'flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline';
+  const grupo = 'text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5';
+  return (
+    <>
+      <div className="py-1.5 border-t border-stone-100">
+        <ul className="list-none">
+          <li>
+            <a href="/admin" className={link} style={linkStyle('/admin', true)}>
+              <Home size={14} /> Inicio
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <div className="py-1.5 border-t border-stone-100">
+        <div className={grupo} style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}>PERSONAS</div>
+        <ul className="list-none">
+          {personasItems.map(({ href, icon: Icon, label, badge, muted, tour }) => (
+            <li key={href}>
+              <a href={href} data-tour={tour} className={link} style={linkStyle(href)}>
+                <Icon size={14} /> {label}
+                <SidebarBadge count={badge ?? 0} muted={muted} />
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="py-1.5 border-t border-stone-100">
+        <div className={grupo} style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}>HERRAMIENTAS</div>
+        <ul className="list-none">
+          {otrosItems.map(({ href, icon: Icon, label, tour }) => (
+            <li key={href}>
+              <a href={href} data-tour={tour} className={link} style={linkStyle(href)}>
+                <Icon size={14} /> {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </>
+  );
+}
+
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const { esJefe } = useAdminPerfil();
+  // Cajón de navegación en móvil (el sidebar de siempre, deslizando desde la izquierda).
+  const [menuAbierto, setMenuAbierto] = useState(false);
   const [sidebar, setSidebar] = useState<SidebarSnapshot>({
     nombreAdmin: 'Administrador',
     totalAlumnos: 0,
@@ -353,21 +423,30 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
         className="bg-white sticky top-0 z-50"
         style={{ borderBottom: '4px solid var(--color-guinda-700)', padding: '16px 0' }}
       >
-        <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-between gap-6">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-3 sm:gap-6">
 
           {/* Brand */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+            {/* Menú (solo móvil): abre el cajón con las 12 secciones */}
+            <button
+              onClick={() => setMenuAbierto(true)}
+              aria-label="Abrir menú"
+              className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border"
+              style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-700)', background: '#faf6f0' }}
+            >
+              <Menu size={19} />
+            </button>
             <img
               src="/logo-see-michoacan-256.png"
               alt="Secretaría de Educación de Michoacán"
-              className="brand-logo-img flex-shrink-0"
+              className="brand-logo-img flex-shrink-0 hidden sm:block"
             />
-            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
+            <div className="hidden lg:block" style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-sm font-semibold" style={{ color: 'var(--color-guinda-800)' }}>Gobierno de Michoacán</div>
               <div className="text-[9px] uppercase tracking-widest" style={{ color: '#6b635e', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>
             </div>
-            <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
-            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
+            <div className="w-px h-9 hidden lg:block" style={{ background: '#ddd0c5' }} />
+            <div className="min-w-0" style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>EDUMICH</div>
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Sistema de Gestión · IEMSyS
@@ -384,8 +463,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Right actions */}
-          <div className="flex items-center gap-4">
-            <div className="relative">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <div className="relative hidden lg:block">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
               <input
                 className="pl-9 pr-3 py-2 text-[13px] rounded-lg border w-72"
@@ -404,7 +483,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </button>
             <NotifBell />
             <div className="flex items-center gap-2.5">
-              <div className="text-right" style={{ lineHeight: 1.2 }}>
+              <div className="text-right hidden sm:block" style={{ lineHeight: 1.2 }}>
                 <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a' }}>
                   {apellido(sidebar.nombreAdmin)}
                 </div>
@@ -430,13 +509,38 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Body: sidebar + content */}
-      <div
-        className="w-full max-w-[1400px] mx-auto px-6 py-6 grid gap-6 flex-1"
-        style={{ gridTemplateColumns: '240px 1fr', alignItems: 'start' }}
-      >
-        {/* ── Sidebar ── */}
+      <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6 grid gap-6 flex-1 grid-cols-1 md:grid-cols-[240px_1fr] items-start">
+        {/* ── Cajón móvil: mismo menú, deslizando desde la izquierda ── */}
+        {menuAbierto && (
+          <div className="fixed inset-0 z-[60] md:hidden">
+            <div
+              className="absolute inset-0"
+              style={{ background: 'rgba(28,10,18,0.5)' }}
+              onClick={() => setMenuAbierto(false)}
+            />
+            <div
+              className="absolute inset-y-0 left-0 w-[290px] max-w-[85vw] overflow-y-auto bg-white shadow-2xl"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+              role="dialog"
+              aria-label="Menú de administración"
+            >
+              <div className="flex items-center justify-between px-[18px] py-3.5" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
+                  <div className="text-[15px] font-bold">Administración</div>
+                </div>
+                <button onClick={() => setMenuAbierto(false)} aria-label="Cerrar menú" className="flex h-9 w-9 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+                  <X size={17} />
+                </button>
+              </div>
+              <SidebarSecciones linkStyle={linkStyle} personasItems={personasItems} otrosItems={otrosItems} />
+            </div>
+          </div>
+        )}
+
+        {/* ── Sidebar (tablet/escritorio) ── */}
         <aside
-          className="bg-white border border-stone-200 rounded-lg overflow-hidden sticky"
+          className="bg-white border border-stone-200 rounded-lg overflow-hidden sticky hidden md:block"
           style={{ top: 96 }}
         >
           {/* Header */}
@@ -447,69 +551,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          {/* Inicio */}
-          <div className="py-1.5 border-t border-stone-100">
-            <ul className="list-none">
-              <li>
-                <a
-                  href="/admin"
-                  className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
-                  style={linkStyle('/admin', true)}
-                >
-                  <Home size={14} /> Inicio
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* PERSONAS */}
-          <div className="py-1.5 border-t border-stone-100">
-            <div
-              className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
-              style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
-            >
-              PERSONAS
-            </div>
-            <ul className="list-none">
-              {personasItems.map(({ href, icon: Icon, label, badge, muted, tour }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    data-tour={tour}
-                    className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
-                    style={linkStyle(href)}
-                  >
-                    <Icon size={14} /> {label}
-                    <SidebarBadge count={badge ?? 0} muted={muted} />
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* HERRAMIENTAS */}
-          <div className="py-1.5 border-t border-stone-100">
-            <div
-              className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
-              style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
-            >
-              HERRAMIENTAS
-            </div>
-            <ul className="list-none">
-              {otrosItems.map(({ href, icon: Icon, label, tour }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    data-tour={tour}
-                    className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
-                    style={linkStyle(href)}
-                  >
-                    <Icon size={14} /> {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
+          <SidebarSecciones linkStyle={linkStyle} personasItems={personasItems} otrosItems={otrosItems} />
         </aside>
 
         {/* ── Page content ── */}

@@ -198,7 +198,7 @@ export default function AdminInicio() {
               Vista general del sistema
             </div>
 
-            <div className="grid grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
               <KpiCard
                 icon={<Users size={18} />}
                 num={data?.kpisGenerales.alumnosActivos.total ?? 0}
@@ -263,7 +263,7 @@ export default function AdminInicio() {
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
               <TareaCard
                 variant="revision"
                 icon={<Folder size={22} />}
@@ -300,13 +300,13 @@ export default function AdminInicio() {
           </div>
 
           {/* Gráfica + Actividad reciente */}
-          <div data-tour="a-ini-actividad" className="grid gap-4 mb-8" style={{ gridTemplateColumns: '1.6fr 1fr' }}>
+          <div data-tour="a-ini-actividad" className="grid gap-4 mb-8 grid-cols-1 lg:grid-cols-[1.6fr_1fr]">
             <GraficaEtapas etapas={data?.graficaInscripciones.etapas ?? []} />
             <ActividadReciente actividad={data?.actividadReciente ?? []} />
           </div>
 
           {/* Alumnos recientes + top municipios */}
-          <div className="grid gap-4 mb-8" style={{ gridTemplateColumns: '1.4fr 1fr' }}>
+          <div className="grid gap-4 mb-8 grid-cols-1 lg:grid-cols-[1.4fr_1fr]">
             <AlumnosRecientes
               alumnos={data?.alumnosRecientes ?? []}
               total={data?.kpisGenerales.alumnosActivos.total ?? 0}
