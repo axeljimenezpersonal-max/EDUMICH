@@ -121,14 +121,14 @@ function OpcionBtn({
   return (
     <button
       onClick={onClick}
-      className={`w-full flex items-center gap-4 px-5 sm:px-6 py-5 rounded-2xl border-2 text-left transition-all duration-150 ${
+      className={`w-full flex items-center gap-3 sm:gap-4 px-3.5 sm:px-6 py-3 sm:py-5 rounded-xl sm:rounded-2xl border-2 text-left transition-all duration-150 ${
         seleccionada
-          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-700)] text-white shadow-lg scale-[1.01]'
+          ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-700)] text-white shadow-lg sm:scale-[1.01]'
           : 'border-stone-300 bg-stone-50 text-stone-900 shadow-sm hover:border-[var(--color-guinda-500)] hover:bg-white hover:shadow-md'
       }`}
     >
       <span
-        className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold border-2 transition-colors ${
+        className={`shrink-0 w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-base font-bold border-2 transition-colors ${
           seleccionada
             ? 'border-white/50 bg-white/15 text-white'
             : 'border-stone-300 bg-white text-stone-600'
@@ -136,7 +136,7 @@ function OpcionBtn({
       >
         {letra}
       </span>
-      <span className="text-base sm:text-lg font-medium leading-relaxed">{texto}</span>
+      <span className="text-[15px] sm:text-lg font-medium leading-snug sm:leading-relaxed">{texto}</span>
     </button>
   );
 }
@@ -485,6 +485,9 @@ export default function EvaluacionPage() {
   const pregunta = preguntas[indice];
   if (!pregunta) return null;
   const respuestaSel = respuestas[pregunta.id] ?? null;
+  // El botón principal es "Enviar" en la última pregunta o en cuanto ya se
+  // contestaron todas (para poder enviar desde cualquier punto); si no, "Siguiente".
+  const mostrarEnviar = indice === total - 1 || todasContestadas;
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">
@@ -498,34 +501,34 @@ export default function EvaluacionPage() {
           />
         </div>
 
-        <div className="px-4 sm:px-6 py-3 flex items-center gap-3">
+        <div className="px-3 sm:px-6 py-2 sm:py-3 flex items-center gap-3">
           {/* Salir */}
           <Link href={`/estudiante/modulos/${moduloId}`}>
             <button className="flex items-center gap-1.5 text-sm text-stone-500 hover:text-[var(--color-guinda-700)] transition-colors shrink-0">
-              <ArrowLeft size={16} />
+              <ArrowLeft size={18} />
               <span className="hidden sm:inline text-xs">Salir</span>
             </button>
           </Link>
 
           {/* Módulo */}
           <div className="flex-1 min-w-0 text-center px-2">
-            <span className="text-base font-semibold text-stone-700 truncate block">
+            <span className="text-sm sm:text-base font-semibold text-stone-700 truncate block">
               {moduloInfo?.nombre}
             </span>
-            <span className="text-sm text-stone-400">
+            <span className="text-xs sm:text-sm text-stone-400">
               {contestadas} de {total} contestadas
             </span>
           </div>
 
           {/* Timer */}
-          <div className={`flex items-center gap-1.5 text-base shrink-0 ${timerColor} ${timerPulse}`}>
-            <Clock size={16} />
+          <div className={`flex items-center gap-1.5 text-sm sm:text-base shrink-0 ${timerColor} ${timerPulse}`}>
+            <Clock size={15} />
             {formatTimer(timerSecs)}
           </div>
         </div>
 
         {/* Mapa de puntos numerados — scroll horizontal en móvil si no caben */}
-        <div className="pb-3 flex items-center gap-2 overflow-x-auto px-4 sm:px-6 scrollbar-none justify-start sm:justify-center">
+        <div className="pb-2 sm:pb-3 flex items-center gap-1.5 sm:gap-2 overflow-x-auto px-3 sm:px-6 scrollbar-none justify-start sm:justify-center">
           {preguntas.map((p, i) => {
             const contestada = !!respuestas[p.id];
             const actual = i === indice;
@@ -534,7 +537,7 @@ export default function EvaluacionPage() {
                 key={p.id}
                 onClick={() => setIndice(i)}
                 aria-label={`Pregunta ${i + 1}${contestada ? ' (contestada)' : ''}`}
-                className={`shrink-0 w-9 h-9 rounded-full text-sm font-bold transition-all duration-150 ${
+                className={`shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full text-xs sm:text-sm font-bold transition-all duration-150 ${
                   actual
                     ? 'bg-[var(--color-guinda-700)] text-white ring-2 ring-[var(--color-guinda-300)] ring-offset-1 scale-110'
                     : contestada
@@ -549,13 +552,13 @@ export default function EvaluacionPage() {
         </div>
       </header>
 
-      {/* Área de pregunta */}
-      <main className="flex-1 flex items-start justify-center px-4 sm:px-6 py-8">
-        <div className="w-full max-w-3xl space-y-6">
+      {/* Área de pregunta — pb amplio en teléfono para no quedar bajo la barra fija */}
+      <main className="flex-1 flex items-start justify-center px-3 sm:px-6 py-4 sm:py-8 pb-28 sm:pb-8">
+        <div className="w-full max-w-3xl space-y-4 sm:space-y-6">
           {/* Tarjeta de pregunta */}
-          <div className="bg-white rounded-3xl border border-stone-200 shadow-sm p-6 sm:p-10">
+          <div className="bg-white rounded-2xl sm:rounded-3xl border border-stone-200 shadow-sm p-4 sm:p-10">
             {/* Meta */}
-            <div className="flex flex-wrap items-center gap-2.5 mb-6">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mb-3 sm:mb-6">
               <span className="text-sm font-semibold text-[var(--color-guinda-700)]">
                 Pregunta {indice + 1} de {total}
               </span>
@@ -572,12 +575,12 @@ export default function EvaluacionPage() {
             </div>
 
             {/* Texto de la pregunta */}
-            <p className="text-stone-900 font-bold text-2xl sm:text-3xl leading-snug mb-8">
+            <p className="text-stone-900 font-bold text-lg sm:text-3xl leading-snug mb-4 sm:mb-8">
               {pregunta.pregunta}
             </p>
 
             {/* Opciones */}
-            <div className="space-y-3.5">
+            <div className="space-y-2.5 sm:space-y-3.5">
               {OPCIONES.map((k) => (
                 <OpcionBtn
                   key={k}
@@ -590,60 +593,53 @@ export default function EvaluacionPage() {
             </div>
           </div>
 
-          {/* Navegación */}
-          <div className="flex items-center gap-3">
+          {/* Ayuda (solo escritorio; en teléfono los dots ya son evidentes) */}
+          <p className="hidden sm:block text-center text-sm text-stone-400">
+            Usa los puntos de arriba para navegar entre preguntas
+          </p>
+
+          {/* Navegación — barra FIJA abajo en teléfono para tener siempre a la
+              mano Anterior/Siguiente sin desplazarse; en la última pregunta (o
+              cuando ya contestaste todo) el botón principal pasa a Enviar. */}
+          <div
+            className="fixed inset-x-0 bottom-0 z-20 flex items-center gap-2.5 border-t border-stone-200 bg-white/95 px-3 py-2.5 backdrop-blur sm:static sm:border-0 sm:bg-transparent sm:px-0 sm:py-0 sm:backdrop-blur-none"
+            style={{ paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 10px)' }}
+          >
             <button
               onClick={() => setIndice((i) => Math.max(0, i - 1))}
               disabled={indice === 0}
-              className="flex items-center gap-2 px-6 py-4 rounded-2xl border-2 border-stone-200 text-base font-semibold text-stone-700 bg-white hover:bg-stone-50 hover:border-stone-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 sm:gap-2 px-4 py-3 sm:px-6 sm:py-4 rounded-xl sm:rounded-2xl border-2 border-stone-200 text-sm sm:text-base font-semibold text-stone-700 bg-white hover:bg-stone-50 hover:border-stone-300 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={18} />
               Anterior
             </button>
 
             <div className="flex-1" />
 
-            {indice < total - 1 ? (
-              <button
-                onClick={() => setIndice((i) => Math.min(total - 1, i + 1))}
-                className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-stone-800 text-white text-base font-semibold hover:bg-stone-700 shadow-sm hover:shadow transition-all"
-              >
-                Siguiente
-                <ChevronRight size={20} />
-              </button>
-            ) : (
+            {mostrarEnviar ? (
               <button
                 onClick={handleEnviar}
                 disabled={!todasContestadas}
                 title={!todasContestadas ? `Falta(n) ${total - contestadas} pregunta(s) por contestar` : ''}
-                className={`flex items-center gap-2 px-8 py-4 rounded-2xl text-base font-semibold transition-colors ${
+                className={`flex items-center gap-1.5 sm:gap-2 px-5 py-3 sm:px-8 sm:py-4 rounded-xl sm:rounded-2xl text-sm sm:text-base font-semibold transition-colors ${
                   todasContestadas
                     ? 'bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] shadow-md'
                     : 'bg-stone-100 text-stone-400 cursor-not-allowed'
                 }`}
               >
-                <Trophy size={18} />
-                Enviar evaluacion
+                <Trophy size={17} />
+                Enviar{todasContestadas ? ' evaluación' : ` · faltan ${total - contestadas}`}
+              </button>
+            ) : (
+              <button
+                onClick={() => setIndice((i) => Math.min(total - 1, i + 1))}
+                className="flex items-center gap-1.5 sm:gap-2 px-5 py-3 sm:px-8 sm:py-4 rounded-xl sm:rounded-2xl bg-stone-800 text-white text-sm sm:text-base font-semibold hover:bg-stone-700 shadow-sm hover:shadow transition-all"
+              >
+                Siguiente
+                <ChevronRight size={18} />
               </button>
             )}
           </div>
-
-          {/* Texto de ayuda bajo navegación */}
-          {!todasContestadas ? (
-            <p className="text-center text-sm text-stone-400">
-              Usa los puntos de arriba para navegar entre preguntas
-            </p>
-          ) : indice < total - 1 ? (
-            <div className="flex justify-center">
-              <button
-                onClick={handleEnviar}
-                className="flex items-center gap-2 px-8 py-4 rounded-2xl bg-[var(--color-guinda-700)] text-white text-base font-semibold hover:bg-[var(--color-guinda-800)] shadow-md transition-colors"
-              >
-                <Trophy size={18} />
-                Enviar evaluacion
-              </button>
-            </div>
-          ) : null}
         </div>
       </main>
     </div>
