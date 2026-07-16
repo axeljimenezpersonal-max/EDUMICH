@@ -848,6 +848,29 @@ export default function SolicitudesLista() {
   // Reset page when filters change
   useEffect(() => { setPage(1); }, [estadoParam, searchD, municipioId, urgencia, sortBy]);
 
+  /**
+   * Exporta a CSV lo que está EN PANTALLA (misma pestaña y mismos filtros), para
+   * que lo exportado coincida con lo que la persona está viendo.
+   */
+  function exportarCsv() {
+    if (solicitudes.length === 0) { showToast('No hay solicitudes que exportar', false); return; }
+    const esc = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const cols = ['Folio', 'Solicitante', 'CURP', 'Correo', 'Teléfono', 'Municipio', 'Fecha de solicitud', 'Días esperando', 'Estado', 'Gestor asignado', 'Motivo de rechazo'];
+    const filas = solicitudes.map((s) => [
+      s.folio, s.nombreCompleto, s.curp, s.email, s.telefono,
+      s.municipio?.nombre ?? '—', s.fechaTexto, s.diasDesdeCreacion,
+      s.estado, s.gestorAsignado?.nombreCorto ?? '—', s.motivoRechazo ?? '—',
+    ].map(esc).join(','));
+    const csv = '﻿' + [cols.map(esc).join(','), ...filas].join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `solicitudes-${estadoParam}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`${solicitudes.length} solicitud${solicitudes.length === 1 ? '' : 'es'} exportada${solicitudes.length === 1 ? '' : 's'}`, true);
+  }
+
   function handleApproveSuccess(email: string, cred?: string) {
     setModal(null);
     setSelectedId(null);
@@ -891,10 +914,13 @@ export default function SolicitudesLista() {
           </p>
         </div>
         <button
-          className="flex items-center gap-1.5 px-3 py-2 text-sm font-semibold border border-stone-200 rounded-lg hover:bg-stone-50"
-          style={{ color: '#443e39' }}
+          onClick={exportarCsv}
+          disabled={solicitudes.length === 0}
+          title={solicitudes.length === 0 ? 'No hay solicitudes que exportar' : 'Descarga en CSV lo que estás viendo'}
+          className="flex items-center gap-1.5 px-3.5 py-2 text-sm font-semibold rounded-lg border transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          style={{ borderColor: 'var(--color-crema-200)', color: 'var(--color-guinda-700)', background: '#fff' }}
         >
-          <Download size={13} /> Exportar
+          <Download size={14} /> Exportar
         </button>
       </div>
 
@@ -1351,24 +1377,46 @@ function ActionBtn({
 
 // ─── StatCard ─────────────────────────────────────────────────────────────
 
+/**
+ * Tarjeta de indicador con la identidad de EDUMICH: franja de acento a la
+ * izquierda (como los banners guinda) sobre blanco y cremas.
+ *
+ * Regla de diseño: si el contador está EN CERO la tarjeta se apaga a gris. No
+ * tiene sentido que "Más de 7 días: 0" grite en rojo — el color se reserva para
+ * cuando de verdad hay algo que atender.
+ */
 function StatCard({ icon, num, label, variant }: { icon: React.ReactNode; num: number | string | undefined; label: string; variant: string }) {
-  const cfg: Record<string, { iconBg: string; iconColor: string }> = {
-    warning:  { iconBg: '#fef9c3', iconColor: '#c77700' },
-    alert:    { iconBg: '#fee2e2', iconColor: '#b91c1c' },
-    success:  { iconBg: '#d1fae5', iconColor: '#2d7d46' },
-    rechazado:{ iconBg: '#fee2e2', iconColor: '#b91c1c' },
-    info:     { iconBg: '#dbeafe', iconColor: '#1d4ed8' },
+  const cfg: Record<string, { accent: string; tint: string }> = {
+    warning:  { accent: '#b45309', tint: '#fffbeb' },
+    alert:    { accent: '#be123c', tint: '#fff1f2' },
+    success:  { accent: '#15803d', tint: '#f0fdf4' },
+    rechazado:{ accent: '#be123c', tint: '#fff1f2' },
+    info:     { accent: 'var(--color-guinda-700)', tint: 'var(--color-crema-100)' },
   };
   const c = cfg[variant] ?? cfg.info;
+  const activo = typeof num === 'number' ? num > 0 : num != null && num !== '—' && num !== '0';
+  const accent = activo ? c.accent : '#a8a29e';
+  const tint = activo ? c.tint : 'var(--color-crema-100)';
 
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex items-center gap-3">
-      <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0" style={{ background: c.iconBg, color: c.iconColor }}>
+    <div
+      className="relative flex items-center gap-3 overflow-hidden rounded-xl border bg-white py-3.5 pl-5 pr-6"
+      style={{ borderColor: 'var(--color-crema-200)', minWidth: 186 }}
+    >
+      <span className="absolute inset-y-0 left-0 w-1" style={{ background: accent }} aria-hidden />
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: tint, color: accent }}>
         {icon}
       </div>
-      <div>
-        <div className="text-xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>{num ?? '—'}</div>
-        <div className="text-[11px] uppercase tracking-wide font-medium" style={{ color: '#6b635e' }}>{label}</div>
+      <div className="min-w-0">
+        <div
+          className="text-2xl font-bold leading-none"
+          style={{ fontFamily: "'Poppins', sans-serif", color: activo ? '#1a1a1a' : '#a8a29e' }}
+        >
+          {num ?? '—'}
+        </div>
+        <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em]" style={{ color: '#6b635e' }}>
+          {label}
+        </div>
       </div>
     </div>
   );
@@ -1377,19 +1425,24 @@ function StatCard({ icon, num, label, variant }: { icon: React.ReactNode; num: n
 // ─── EmptyState ───────────────────────────────────────────────────────────
 
 function EmptyState({ estado }: { estado: string }) {
+  // "Todo al día" es un logro (verde); "sin resultados" de un filtro es neutro
+  // (crema) — no merece el mismo festejo.
+  const alDia = estado === 'pendiente';
   return (
     <div className="py-16 text-center">
       <div
-        className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
-        style={{ background: '#d1fae5', color: '#2d7d46' }}
+        className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full"
+        style={alDia
+          ? { background: '#f0fdf4', color: '#15803d', boxShadow: '0 0 0 1px #bbf7d0' }
+          : { background: 'var(--color-crema-100)', color: '#a8a29e', boxShadow: '0 0 0 1px var(--color-crema-200)' }}
       >
-        <CheckCircle size={28} />
+        {alDia ? <CheckCircle size={28} /> : <Inbox size={26} />}
       </div>
-      <h3 className="text-lg font-bold mb-1" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>
-        {estado === 'pendiente' ? 'Todo al día ✓' : 'Sin resultados'}
+      <h3 className="mb-1 text-lg font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#1a1a1a' }}>
+        {alDia ? 'Todo al día' : 'Sin resultados'}
       </h3>
       <p className="text-sm" style={{ color: '#6b635e' }}>
-        {estado === 'pendiente'
+        {alDia
           ? 'No hay solicitudes pendientes de revisión por ahora.'
           : 'No hay solicitudes con los filtros seleccionados.'}
       </p>
