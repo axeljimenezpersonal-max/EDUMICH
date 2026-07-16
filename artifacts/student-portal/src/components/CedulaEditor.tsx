@@ -12,6 +12,56 @@ import FirmaPad from './FirmaPad';
  * `mostrarFirmaResponsable` muestra el pad de firma del responsable (admin) que
  * se estampa en la cédula del alumno.
  */
+/**
+ * Vista de la firma del responsable para quien NO puede firmar (admin
+ * operativo): informa el estado real y a quién pedírsela, en vez de ofrecer un
+ * pad que no serviría — su firma nunca se estampa como responsable.
+ */
+function FirmaResponsableSoloLectura({ nombre, registrada }: { nombre: string; registrada: boolean }) {
+  return (
+    <>
+      <p className="text-xs text-stone-500 mb-3">
+        Firmar como responsable es facultad de la persona titular. Tú puedes consultarla y descargar
+        la cédula, pero no registrarla ni cambiarla.
+      </p>
+      <div
+        className="flex items-start gap-3 rounded-xl border p-3.5"
+        style={
+          registrada
+            ? { background: '#f0fdf4', borderColor: '#bbf7d0' }
+            : { background: '#fffbeb', borderColor: '#fde68a' }
+        }
+      >
+        <div
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+          style={registrada ? { background: '#dcfce7', color: '#15803d' } : { background: '#fef3c7', color: '#b45309' }}
+        >
+          {registrada ? <CheckCircle2 size={17} /> : <AlertCircle size={17} />}
+        </div>
+        <div className="min-w-0 text-xs leading-relaxed">
+          {registrada ? (
+            <>
+              <div className="text-sm font-bold text-stone-900">Firma registrada</div>
+              <p className="mt-0.5 text-stone-600">
+                La cédula se estampa con la firma de <strong className="text-stone-800">{nombre}</strong>, la
+                persona titular. Puedes verla en la vista previa de la derecha.
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="text-sm font-bold text-stone-900">Falta la firma del responsable</div>
+              <p className="mt-0.5 text-stone-600">
+                La cédula se generará <strong className="text-stone-800">sin firma</strong>. Pídele por favor a{' '}
+                <strong className="text-stone-800">{nombre}</strong> que entre a su cuenta y la registre.
+              </p>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
 const EDITABLES: (keyof CedulaDatosEditable)[] = [
   'apellidoPaterno', 'apellidoMaterno', 'nombres', 'sexo', 'estadoCivil',
   'lugarNacimiento', 'entidadNacimiento', 'calleNumero', 'colonia', 'cp',
@@ -30,10 +80,18 @@ export function CedulaEditor({
   basePath,
   firmaSlot,
   mostrarFirmaResponsable,
+  puedeFirmar = true,
 }: {
   basePath: string;
   firmaSlot?: ReactNode;
   mostrarFirmaResponsable?: boolean;
+  /**
+   * Si la firma del responsable se puede REGISTRAR o solo consultar. Firmar como
+   * responsable es facultad de la titular (jefa): un admin operativo la ve, pero
+   * no la dibuja ni la borra. El backend ya lo respalda — la cédula siempre toma
+   * la firma de un admin jefe, sin importar quién la genere.
+   */
+  puedeFirmar?: boolean;
 }) {
   const [datos, setDatos] = useState<CedulaDatos | null>(null);
   const [form, setForm] = useState<CedulaDatosEditable | null>(null);
@@ -197,11 +255,20 @@ export function CedulaEditor({
               <PenLine size={15} className="text-[var(--color-guinda-700)]" />
               <h3 className="font-serif text-sm font-bold text-stone-900">Firma del responsable de la inscripción</h3>
             </div>
-            <p className="text-xs text-stone-500 mb-3">
-              Guarda hasta dos firmas y elige cuál se estampa como responsable en las cédulas de los
-              alumnos sin gestor. Para cambiar una firma, bórrala y vuelve a dibujarla.
-            </p>
-            <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
+            {puedeFirmar ? (
+              <>
+                <p className="text-xs text-stone-500 mb-3">
+                  Guarda hasta dos firmas y elige cuál se estampa como responsable en las cédulas de los
+                  alumnos sin gestor. Para cambiar una firma, bórrala y vuelve a dibujarla.
+                </p>
+                <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
+              </>
+            ) : (
+              <FirmaResponsableSoloLectura
+                nombre={datos.responsableNombre}
+                registrada={datos.tieneFirmaResponsable}
+              />
+            )}
           </div>
         )}
 

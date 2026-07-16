@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
+import { useAdminPerfil } from '../../lib/useAdmin';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { CedulaEditor } from '../../components/CedulaEditor';
@@ -874,6 +875,8 @@ export default function AdminAlumnoDetalle() {
   const [, setLocation] = useLocation();
   const [, params] = useRoute('/admin/alumnos/:id');
   const alumnoId = Number(params?.id);
+  // Firmar como responsable es facultad de la titular; el equipo operativo solo consulta.
+  const { esJefe, cargando: cargandoPerfil } = useAdminPerfil();
 
   const [data, setData] = useState<DetalleResp | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1414,7 +1417,13 @@ export default function AdminAlumnoDetalle() {
             <CalificacionesTabContent estudianteId={alumnoId} readOnly={false} />
           )}
           {activeTab === 'cedula' && (
-            <CedulaEditor basePath={`/admin/alumnos/${alumnoId}`} mostrarFirmaResponsable />
+            <CedulaEditor
+              basePath={`/admin/alumnos/${alumnoId}`}
+              // Se espera a saber el rol para no mostrar el pad de firma un
+              // instante a quien no puede firmar (ni al revés).
+              mostrarFirmaResponsable={!cargandoPerfil}
+              puedeFirmar={esJefe}
+            />
           )}
           {activeTab === 'modulos' && (
             <ModulosInscritos
