@@ -111,8 +111,10 @@ export default function Notificaciones() {
     <div style={{ minHeight: '100vh', background: '#f7f2ed', fontFamily: "'Poppins', sans-serif" }}>
       <div style={{ maxWidth: 760, margin: '0 auto', padding: '32px 16px' }}>
 
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        {/* Header — en teléfono los filtros bajan a su propio renglón en vez de
+            estrujar el título (con «Marcar todas leídas» visible no caben los
+            dos botones junto al encabezado en 375px). */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 24 }}>
           <div>
             <a
               href="javascript:history.back()"

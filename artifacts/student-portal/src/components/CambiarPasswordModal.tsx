@@ -10,6 +10,7 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { api } from '../lib/api';
+import { ModalHoja } from './ui/responsive';
 
 interface Props {
   open: boolean;
@@ -98,32 +99,86 @@ export default function CambiarPasswordModal({ open, onClose, onSuccess }: Props
 
   if (!open) return null;
 
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(42,42,42,0.7)' }}
-      onClick={handleClose}
-    >
-      <div
-        className="bg-white rounded-xl w-full max-w-[460px] max-h-[92vh] flex flex-col overflow-hidden shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Header */}
-        <div className="bg-[var(--color-guinda-700)] text-white px-5 py-4 flex items-center justify-between">
-          <h3 className="font-serif text-base font-semibold">
-            {paso === 'success' ? 'Contraseña actualizada' : 'Cambiar contraseña'}
-          </h3>
+  const titulo = paso === 'success' ? 'Contraseña actualizada' : 'Cambiar contraseña';
+
+  const pie = (
+    <div className="flex items-center justify-between gap-2 border-t border-stone-200 bg-white px-5 py-3">
+      {paso !== 'success' ? (
+        <span className="text-xs font-medium text-stone-400">Paso {paso} de 2</span>
+      ) : (
+        <span />
+      )}
+
+      <div className="flex items-center gap-2">
+        {paso === 1 && (
+          <>
+            <button
+              onClick={handleClose}
+              className="min-h-[44px] rounded-md border border-stone-300 px-4 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleContinuar}
+              className="flex min-h-[44px] items-center gap-1.5 rounded-md bg-[var(--color-guinda-700)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-guinda-800)]"
+            >
+              Continuar
+              <ArrowRight size={14} />
+            </button>
+          </>
+        )}
+
+        {paso === 2 && (
+          <>
+            <button
+              onClick={() => { setPaso(1); setErrorMsg(null); }}
+              className="flex min-h-[44px] items-center gap-1.5 rounded-md border border-stone-300 px-4 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50"
+            >
+              <ArrowLeft size={14} />
+              Atrás
+            </button>
+            <button
+              onClick={handleCambiar}
+              disabled={!todosRequisitos || loading}
+              className="flex min-h-[44px] items-center gap-1.5 rounded-md bg-[var(--color-guinda-700)] px-4 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-guinda-800)] disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Check size={14} />
+              {loading ? 'Guardando…' : 'Cambiar contraseña'}
+            </button>
+          </>
+        )}
+
+        {paso === 'success' && (
           <button
             onClick={handleClose}
-            className="w-7 h-7 rounded-full flex items-center justify-center transition-colors"
-            style={{ background: 'rgba(255,255,255,0.15)' }}
+            className="min-h-[44px] rounded-md bg-[var(--color-guinda-700)] px-5 text-sm font-semibold text-white transition-colors hover:bg-[var(--color-guinda-800)]"
           >
-            <X size={14} />
+            Entendido
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <ModalHoja onClose={handleClose} etiqueta={titulo} ancho="sm:max-w-[460px]" pie={pie}>
+      <div>
+        {/* Header — fijo mientras el cuerpo se desplaza. */}
+        <div className="bg-[var(--color-guinda-700)] text-white px-5 py-4 flex items-center justify-between sticky top-0 z-10">
+          <h3 className="font-serif text-base font-semibold">{titulo}</h3>
+          <button
+            onClick={handleClose}
+            aria-label="Cerrar"
+            className="w-11 h-11 -mr-2 rounded-full flex items-center justify-center transition-colors hover:bg-white/10"
+          >
+            <span className="flex h-7 w-7 items-center justify-center rounded-full" style={{ background: 'rgba(255,255,255,0.15)' }}>
+              <X size={14} />
+            </span>
           </button>
         </div>
 
         {/* Body */}
-        <div className="px-7 py-6 overflow-y-auto flex-1">
+        <div className="px-5 sm:px-7 py-6">
           {/* Stepper (pasos 1 y 2) */}
           {paso !== 'success' && (
             <div className="flex items-center justify-center gap-2 mb-6">
@@ -301,67 +356,7 @@ export default function CambiarPasswordModal({ open, onClose, onSuccess }: Props
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        <div className="border-t border-stone-200 px-5 py-3 flex items-center justify-between gap-2">
-          {paso !== 'success' ? (
-            <span className="text-xs text-stone-400 font-medium">
-              Paso {paso} de 2
-            </span>
-          ) : (
-            <span />
-          )}
-
-          <div className="flex items-center gap-2">
-            {paso === 1 && (
-              <>
-                <button
-                  onClick={handleClose}
-                  className="text-sm font-semibold px-4 py-2 rounded-md border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  onClick={handleContinuar}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
-                >
-                  Continuar
-                  <ArrowRight size={14} />
-                </button>
-              </>
-            )}
-
-            {paso === 2 && (
-              <>
-                <button
-                  onClick={() => { setPaso(1); setErrorMsg(null); }}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
-                >
-                  <ArrowLeft size={14} />
-                  Atrás
-                </button>
-                <button
-                  onClick={handleCambiar}
-                  disabled={!todosRequisitos || loading}
-                  className="flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-md bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                >
-                  <Check size={14} />
-                  {loading ? 'Guardando…' : 'Cambiar contraseña'}
-                </button>
-              </>
-            )}
-
-            {paso === 'success' && (
-              <button
-                onClick={handleClose}
-                className="text-sm font-semibold px-5 py-2 rounded-md bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
-              >
-                Entendido
-              </button>
-            )}
-          </div>
-        </div>
       </div>
-    </div>
+    </ModalHoja>
   );
 }

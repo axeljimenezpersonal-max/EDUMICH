@@ -1,13 +1,18 @@
 /**
  * Credencial digital — tarjeta RECTANGULAR (frente + reverso), diseño oficial.
  * - Admin / gestor: frente y reverso lado a lado (todo visible).
- * - Alumno (`flippable`): UNA sola tarjeta que se voltea (frente ↔ reverso/QR).
+ * - Alumno (`flippable`): UNA sola tarjeta que se voltea (frente ↔ reverso/QR),
+ *   con modo PRESENTAR a pantalla completa (ver `Presentacion` abajo).
  * Recibe `basePath` (p. ej. /admin/alumnos/25 o /estudiante) y consulta
  * `${basePath}/credencial`. SIEMPRE refleja la credencial realmente emitida.
+ *
+ * El DISEÑO de la tarjeta es fijo y no se toca: todo lo de aquí es tamaño y
+ * presentación, nunca maquetación de las caras.
  */
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { QRCodeSVG } from 'qrcode.react';
-import { ShieldCheck, ImageOff, RotateCcw } from 'lucide-react';
+import { ShieldCheck, ImageOff, RotateCcw, Maximize2, X } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface CredData {
@@ -107,10 +112,159 @@ function Reverso({ d, fill }: { d: CredData; fill?: boolean }) {
   );
 }
 
+/**
+ * Modo PRESENTAR — la credencial a pantalla completa, para enseñarla a alguien
+ * o que le escaneen el QR.
+ *
+ * El problema que resuelve es de aritmética, no de gusto: la tarjeta se diseña a
+ * 460px de ancho, y en un teléfono vertical solo hay ~347px útiles → escala 0.75
+ * y el QR (92px de diseño) aterriza en ~69px, casi inescaneable. Girada 90° la
+ * tarjeta dispone del ALTO de la pantalla (~780px) → escala ~1.6 y el QR sube a
+ * ~150px: más del doble.
+ *
+ * Por eso no se gira "porque sí en teléfono": se calculan las dos escalas
+ * posibles y gana la mayor. Así el iPad y el teléfono en horizontal —donde de
+ * frente ya cabe holgada— se muestran sin girar, y solo el teléfono vertical
+ * rota. Se adapta solo a cualquier pantalla, incluso al rotar el aparato.
+ *
+ * Notas de implementación:
+ *  - Va en un portal a <body> a la fuerza: la tarjeta vive dentro de un
+ *    contenedor con `transform`/`perspective`, y un ancestro transformado es
+ *    bloque contenedor de los `position: fixed` que cuelgan de él — sin portal
+ *    la capa se anclaría a la tarjeta en vez de a la pantalla.
+ *  - Wake Lock mantiene la pantalla encendida mientras se muestra. El brillo NO
+ *    se puede subir desde la web (no existe esa API); eso es exclusivo de una
+ *    app nativa o de un pase de Wallet.
+ */
+function Presentacion({
+  d, alto, flipped, onFlip, onClose,
+}: {
+  d: CredData;
+  alto: number;
+  flipped: boolean;
+  onFlip: () => void;
+  onClose: () => void;
+}) {
+  const [vp, setVp] = useState({ w: 0, h: 0 });
+
+  useEffect(() => {
+    const medir = () => setVp({ w: window.innerWidth, h: window.innerHeight });
+    medir();
+    window.addEventListener('resize', medir);
+    window.addEventListener('orientationchange', medir);
+    return () => {
+      window.removeEventListener('resize', medir);
+      window.removeEventListener('orientationchange', medir);
+    };
+  }, []);
+
+  // El fondo no se desplaza detrás de la credencial.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Escape cierra.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  // La pantalla no se apaga mientras enseñas la credencial (iOS 16.4+/Android).
+  // Si el navegador no lo soporta, simplemente no pasa nada.
+  useEffect(() => {
+    let lock: { release?: () => Promise<void> } | undefined;
+    const wl = (navigator as Navigator & { wakeLock?: { request: (t: string) => Promise<typeof lock> } }).wakeLock;
+    wl?.request('screen').then((l) => { lock = l; }).catch(() => {});
+    return () => { lock?.release?.().catch(() => {}); };
+  }, []);
+
+  if (!vp.w) return null;
+
+  const MARGEN = 28;
+  const dispW = Math.max(0, vp.w - MARGEN);
+  const dispH = Math.max(0, vp.h - MARGEN);
+  const escDerecha = Math.min(dispW / CARD_W, dispH / alto);
+  const escGirada = Math.min(dispW / alto, dispH / CARD_W);
+  // Girar es un RESCATE, no una optimización: solo cuando de frente la tarjeta
+  // saldría encogida (por debajo de su tamaño de diseño) y de lado sí crece.
+  // Ojo: maximizar a secas estaría mal. En un iPad vertical girada da MÁS escala
+  // que derecha (2.16 vs 1.61), pero ahí la tarjeta ya se lee holgada y nadie
+  // quiere ladear la cabeza; el giro solo se gana el estorbo en el teléfono
+  // vertical, donde de frente cabe apenas al 0.75.
+  const girar = escDerecha < 1 && escGirada > escDerecha;
+  const esc = girar ? escGirada : escDerecha;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[200] flex items-center justify-center overflow-hidden"
+      style={{ background: 'var(--color-guinda-900)' }}
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Credencial a pantalla completa"
+    >
+      <div
+        onClick={(e) => { e.stopPropagation(); onFlip(); }}
+        style={{
+          width: CARD_W,
+          // `flexShrink: 0` es obligatorio: la capa es flex y la tarjeta mide 460.
+          // En una pantalla más angosta flex la encogería por debajo de su ancho
+          // de DISEÑO, el texto se reacomodaría (el nombre parte en dos líneas) y
+          // además la escala partiría de una base falsa. La tarjeta debe medir
+          // siempre 460 y ser el `transform` —que no afecta al maquetado— quien
+          // la ajuste a la pantalla.
+          flexShrink: 0,
+          height: alto,
+          transform: `${girar ? 'rotate(90deg) ' : ''}scale(${esc})`,
+          transformOrigin: 'center center',
+          perspective: 1400,
+          cursor: 'pointer',
+        }}
+      >
+        <div
+          style={{
+            position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d',
+            transition: 'transform .6s cubic-bezier(.4,0,.2,1)',
+            transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+          }}
+        >
+          <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+            <Frente d={d} fill />
+          </div>
+          <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}>
+            <Reverso d={d} fill />
+          </div>
+        </div>
+      </div>
+
+      {/* Controles: fuera de la tarjeta girada, siempre derechos y legibles. */}
+      <button
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
+        aria-label="Cerrar"
+        className="absolute right-3 flex h-11 w-11 items-center justify-center rounded-full text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+        style={{ top: 'calc(env(safe-area-inset-top, 0px) + 12px)' }}
+      >
+        <X size={22} />
+      </button>
+      <div
+        className="pointer-events-none absolute inset-x-0 text-center text-[11px] font-semibold uppercase tracking-[0.15em] text-white/45"
+        style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 14px)' }}
+      >
+        Toca la credencial para girarla
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function CredencialPreview({ basePath, flippable = false }: { basePath: string; flippable?: boolean }) {
   const [d, setD] = useState<CredData | null>(null);
   const [err, setErr] = useState(false);
   const [flipped, setFlipped] = useState(false);
+  const [presentando, setPresentando] = useState(false);
   // Escala responsiva: la credencial volteable llena el ancho disponible
   // (hasta 1.6x) para verse GRANDE con el QR fácil de escanear.
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -182,13 +336,35 @@ export function CredencialPreview({ basePath, flippable = false }: { basePath: s
             </div>
           </div>
         </div>
-        <button
-          data-tour="id-voltear"
-          onClick={() => setFlipped((f) => !f)}
-          className="inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 transition-colors"
-        >
-          <RotateCcw size={14} /> {flipped ? 'Ver frente' : 'Ver reverso / QR'}
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button
+            data-tour="id-voltear"
+            onClick={() => setFlipped((f) => !f)}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg border border-stone-300 px-4 text-sm font-semibold text-stone-700 transition-colors hover:bg-stone-50"
+          >
+            <RotateCcw size={14} /> {flipped ? 'Ver frente' : 'Ver reverso / QR'}
+          </button>
+          {/* En teléfono la tarjeta cabe al 0.75 y el QR queda en ~69px: aquí se
+              ve al doble. Es la vía para que se la escaneen. */}
+          <button
+            data-tour="id-presentar"
+            onClick={() => setPresentando(true)}
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-lg px-4 text-sm font-semibold text-white transition-colors"
+            style={{ background: 'var(--color-guinda-700)' }}
+          >
+            <Maximize2 size={14} /> Ver en grande
+          </button>
+        </div>
+
+        {presentando && (
+          <Presentacion
+            d={d}
+            alto={H}
+            flipped={flipped}
+            onFlip={() => setFlipped((f) => !f)}
+            onClose={() => setPresentando(false)}
+          />
+        )}
       </div>
     );
   }

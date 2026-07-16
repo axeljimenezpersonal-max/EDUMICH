@@ -14,8 +14,12 @@
  *    patrón que usan las páginas importantes (listas de alumnos, pagos,
  *    calificaciones). `FilaCard` estandariza la tarjeta: título, subtítulo,
  *    pares etiqueta/valor y un extremo derecho (chip de estado, chevron…).
+ *
+ * Y para las ventanas: `ModalHoja` — hoja inferior en teléfono, tarjeta
+ * centrada en ≥sm. Todo modal del proyecto debe montarse dentro de una.
  */
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
+import { motion } from 'framer-motion';
 
 export function TablaScroll({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
@@ -98,4 +102,87 @@ export function FilaCard({
 /** Contenedor de la lista de FilaCards (separación uniforme). */
 export function ListaCards({ children, className = '' }: { children: ReactNode; className?: string }) {
   return <div className={`space-y-2.5 ${className}`}>{children}</div>;
+}
+
+/**
+ * Envoltura estándar de TODA ventana modal del proyecto.
+ *
+ * En teléfono se comporta como hoja inferior (pegada abajo, ancho completo,
+ * esquinas superiores redondeadas y asa) — el mismo gesto que la hoja «Más» de
+ * la barra inferior, y el lugar donde el pulgar ya está. En ≥sm vuelve a ser la
+ * tarjeta centrada de siempre.
+ *
+ * Resuelve de una vez tres fallas que cada modal repetía por su cuenta:
+ *  - los botones del pie caían bajo el indicador de inicio del iPhone
+ *    (`--sa-inferior`, ver index.css);
+ *  - el fondo seguía desplazándose detrás de la ventana;
+ *  - `100vh` miente en Safari móvil cuando aparece la barra del navegador, por
+ *    eso la altura máxima usa `dvh`.
+ *
+ * El pie se pasa aparte (`pie`) para que quede fijo mientras el cuerpo se
+ * desplaza: en teléfono con el teclado abierto, el botón de confirmar debe
+ * seguir visible.
+ */
+export function ModalHoja({
+  children,
+  pie,
+  onClose,
+  etiqueta,
+  ancho = 'sm:max-w-md',
+}: {
+  children: ReactNode;
+  /** Barra de acciones fija al fondo (botones). Opcional. */
+  pie?: ReactNode;
+  onClose: () => void;
+  /** Título accesible de la ventana. */
+  etiqueta: string;
+  /** Ancho máximo en ≥sm (clase Tailwind). En teléfono siempre es completo. */
+  ancho?: string;
+}) {
+  // Con la ventana abierta el fondo no se desplaza.
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, []);
+
+  // Escape cierra, como cualquier ventana del sistema.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
+      style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }}
+      onClick={onClose}
+    >
+      <motion.div
+        role="dialog"
+        aria-modal="true"
+        aria-label={etiqueta}
+        onClick={(e) => e.stopPropagation()}
+        className={`relative flex w-full flex-col overflow-hidden bg-white shadow-2xl rounded-t-2xl sm:rounded-2xl max-h-[92dvh] ${ancho}`}
+        style={{ fontFamily: "'Poppins', sans-serif" }}
+        initial={{ y: '100%', opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 380, damping: 38 }}
+      >
+        {/* Asa: solo en teléfono, donde esto es una hoja. Va superpuesta y no en
+            su propia franja, para no abrir una costura blanca sobre las ventanas
+            que traen su propio encabezado de color. El gris cálido a media
+            opacidad se lee tanto sobre blanco como sobre guinda. */}
+        <div
+          className="absolute left-1/2 top-2 z-20 h-1 w-10 -translate-x-1/2 rounded-full bg-stone-400/70 sm:hidden"
+          aria-hidden
+        />
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">{children}</div>
+
+        {pie && <div className="shrink-0 hoja-pie-seguro">{pie}</div>}
+      </motion.div>
+    </div>
+  );
 }

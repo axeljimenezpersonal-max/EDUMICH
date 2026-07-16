@@ -212,6 +212,16 @@ html, body {
 
 /* ── Responsive utilities ─────────────────────────────────────────────────── */
 
+/* Pie de una <ModalHoja>: en teléfono la hoja llega hasta el borde inferior de
+   la pantalla, así que los botones deben librar el indicador de inicio del
+   iPhone. En ≥sm la ventana vuelve a flotar centrada y el respiro sobra. */
+.hoja-pie-seguro {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (min-width: 640px) {
+  .hoja-pie-seguro { padding-bottom: 0; }
+}
+
 /* Ocultar scrollbar manteniendo funcionalidad */
 .scrollbar-none {
   -ms-overflow-style: none;
