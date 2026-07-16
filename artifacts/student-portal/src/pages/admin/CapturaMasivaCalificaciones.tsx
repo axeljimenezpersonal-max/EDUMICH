@@ -306,12 +306,12 @@ export default function CapturaMasivaCalificaciones() {
                 </button>
               </div>
 
-              <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+              <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
                 {/* Header */}
                 <div
                   className="grid text-[11px] font-semibold uppercase tracking-wide px-5 py-3 border-b border-stone-100"
                   style={{
-                    gridTemplateColumns: '100px 1fr 160px 120px 140px 160px',
+                    gridTemplateColumns: '100px 1fr 160px 120px 140px 160px', minWidth: 780,
                     gap: 12,
                     background: '#fafaf9',
                     color: '#6b635e',
@@ -340,7 +340,7 @@ export default function CapturaMasivaCalificaciones() {
                       key={ins.id}
                       className="grid items-center px-5 py-3 border-b border-stone-50 last:border-b-0"
                       style={{
-                        gridTemplateColumns: '100px 1fr 160px 120px 140px 160px',
+                        gridTemplateColumns: '100px 1fr 160px 120px 140px 160px', minWidth: 780,
                         gap: 12,
                         background: entrada.noPresento ? '#fafaf9' : 'white',
                       }}

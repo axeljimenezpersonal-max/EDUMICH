@@ -5,6 +5,7 @@ import {
   Eye, UserCheck, MoreHorizontal, ChevronLeft,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
+import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_ALUMNOS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
@@ -549,6 +550,41 @@ export default function AlumnosLista() {
         <EmptyState hasFilters={hasAnyFilter} onClear={clearAllFilters} />
       ) : (
         <>
+          {/* Teléfono: tarjetas táctiles con la misma información de la fila. */}
+          <SoloMovil>
+            <ListaCards>
+              {data.alumnos.map((alumno) => {
+                const est = ESTADO_CONFIG[alumno.estadoExpediente] ?? ESTADO_CONFIG.sin_documentos;
+                return (
+                  <FilaCard
+                    key={alumno.id}
+                    onClick={() => setLocation(`/admin/alumnos/${alumno.id}`)}
+                    titulo={alumno.nombreCompleto}
+                    sub={<span className="font-mono">{alumno.curp ?? alumno.email}</span>}
+                    derecha={
+                      <span className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded" style={{ background: est.bg, color: est.color }}>
+                        {est.label}
+                      </span>
+                    }
+                    datos={
+                      <>
+                        <DatoCard label="Municipio">{alumno.municipio?.nombre ?? '—'}</DatoCard>
+                        <DatoCard label="Gestor">{alumno.gestor?.nombreCompleto ?? 'Sin gestor'}</DatoCard>
+                      </>
+                    }
+                    pie={
+                      <span className="text-xs text-stone-500">
+                        Documentos: <strong className="text-stone-700">{alumno.docsAprobados}/{alumno.docsTotal}</strong>
+                        {' · '}Registro: {new Date(alumno.creadoEn).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: '2-digit' })}
+                      </span>
+                    }
+                  />
+                );
+              })}
+            </ListaCards>
+          </SoloMovil>
+
+          <SoloEscritorio>
           <div data-tour="a-alu-tabla" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
             {/* Table header */}
             <div
@@ -578,6 +614,7 @@ export default function AlumnosLista() {
               ))}
             </div>
           </div>
+          </SoloEscritorio>
 
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4 flex-wrap gap-3">

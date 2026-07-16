@@ -119,13 +119,15 @@ export default function Configuracion() {
 
   return (
     <AdminLayout>
-      <div className="flex gap-5" style={{ fontFamily: "'Poppins', sans-serif" }}>
+      {/* En teléfono el menú de configuración se apila arriba del contenido;
+          en md+ vuelve a ser la columna fija de 220px pegajosa. */}
+      <div className="flex flex-col gap-5 md:flex-row" style={{ fontFamily: "'Poppins', sans-serif" }}>
 
         {/* ── Config sidebar ── */}
         <aside
           data-tour="a-cfg-nav"
-          className="bg-white border border-stone-200 rounded-lg overflow-hidden flex-shrink-0 sticky"
-          style={{ width: 220, top: 96, alignSelf: 'start' }}
+          className="bg-white border border-stone-200 rounded-lg overflow-hidden flex-shrink-0 w-full md:w-[220px] md:sticky"
+          style={{ top: 96, alignSelf: 'start' }}
         >
           <div className="px-4 py-3" style={{ background: 'var(--color-guinda-700)' }}>
             <div className="text-[10px] uppercase tracking-widest text-white/70">PANEL</div>

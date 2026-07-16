@@ -250,7 +250,7 @@ export default function ConvocatoriaDetalle() {
           </div>
 
           {/* Stats row — las 3 de resultado filtran la lista al hacer clic */}
-          <div className="grid grid-cols-5 gap-3 mb-6">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
             <MiniStat
               num={data.stats.totalInscritos}
               label={filtroEstado === 'todos' ? 'Estudiantes' : 'Ver todos'}
@@ -339,12 +339,12 @@ export default function ConvocatoriaDetalle() {
                     : 'Sin resultados para la búsqueda'}
                 </div>
               ) : (
-                <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+                <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
                   {/* Table header */}
                   <div
                     className="grid text-[11px] font-semibold uppercase tracking-wide px-4 py-2.5 border-b border-stone-100"
                     style={{
-                      gridTemplateColumns: '28px 1fr 140px 90px 80px 32px',
+                      gridTemplateColumns: '28px 1fr 140px 90px 80px 32px', minWidth: 560,
                       gap: 12,
                       background: '#fafaf9',
                       color: '#6b635e',
@@ -373,7 +373,7 @@ export default function ConvocatoriaDetalle() {
                           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleExpand(insc.estudianteId); } }}
                           className="grid items-center px-4 py-3 hover:bg-stone-50 transition-colors cursor-pointer"
                           style={{
-                            gridTemplateColumns: '28px 1fr 140px 90px 80px 32px',
+                            gridTemplateColumns: '28px 1fr 140px 90px 80px 32px', minWidth: 560,
                             gap: 12,
                           }}
                         >

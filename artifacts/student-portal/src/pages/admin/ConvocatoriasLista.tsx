@@ -132,7 +132,7 @@ export default function ConvocatoriasLista() {
       )}
 
       {/* Stats row */}
-      <div data-tour="a-conv-stats" className="grid grid-cols-4 gap-3 mb-6">
+      <div data-tour="a-conv-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         <StatCard
           icon={<Calendar size={16} />}
           num={data?.stats.etapasTotal ?? 0}

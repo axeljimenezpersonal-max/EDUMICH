@@ -9,6 +9,7 @@ import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_SOLICITUDES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
+import { useEsMovil } from '../../lib/useMedia';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -887,6 +888,7 @@ export default function SolicitudesLista() {
   }
 
   const drawerOpen = selectedId !== null;
+  const esMovil = useEsMovil();
 
   // ── Render ──────────────────────────────────────────────────────────────
 
@@ -993,7 +995,7 @@ export default function SolicitudesLista() {
 
       {/* ── FILTROS ──────────────────────────────────────────────────── */}
       <div data-tour="a-sol-filtros" className="bg-white border border-stone-200 rounded-xl p-4 mb-4">
-        <div className="grid gap-3" style={{ gridTemplateColumns: '1.6fr 1fr 1fr 1fr' }}>
+        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-[1.6fr_1fr_1fr_1fr]">
           {/* Search */}
           <div>
             <label className="block text-[10px] uppercase tracking-widest font-semibold mb-1" style={{ color: '#6b635e' }}>Buscar</label>
@@ -1061,9 +1063,11 @@ export default function SolicitudesLista() {
       </div>
 
       {/* ── TABLE + DRAWER ────────────────────────────────────────────── */}
+      {/* En teléfono siempre una columna: el panel de detalle fluye completo
+          bajo la lista. En md+ conserva el layout lista + panel de 460px. */}
       <div
-        className="transition-all duration-300"
-        style={{ display: 'grid', gridTemplateColumns: drawerOpen ? '1fr 460px' : '1fr', gap: 16 }}
+        className="grid gap-4 transition-all duration-300"
+        style={{ gridTemplateColumns: drawerOpen && !esMovil ? '1fr 460px' : '1fr' }}
       >
         {/* TABLE */}
         <div data-tour="a-sol-lista" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
@@ -1085,7 +1089,7 @@ export default function SolicitudesLista() {
               <div
                 className="grid text-[10px] font-bold uppercase tracking-widest px-4 py-3 border-b border-stone-200"
                 style={{
-                  gridTemplateColumns: drawerOpen
+                  gridTemplateColumns: (drawerOpen || esMovil)
                     ? estadoParam === 'pendiente' ? '1fr 80px 80px' : '1fr 100px 100px'
                     : estadoParam === 'pendiente' ? '1.4fr 180px 140px 90px 90px 100px' : '1.4fr 180px 140px 120px 120px',
                   gap: 8,
@@ -1093,7 +1097,7 @@ export default function SolicitudesLista() {
                   color: '#6b635e',
                 }}
               >
-                {drawerOpen ? (
+                {(drawerOpen || esMovil) ? (
                   <>
                     <div>Solicitante</div>
                     <div>Municipio</div>
@@ -1133,7 +1137,7 @@ export default function SolicitudesLista() {
                   key={s.id}
                   solicitud={s}
                   estado={estadoParam}
-                  drawerOpen={drawerOpen}
+                  drawerOpen={drawerOpen || esMovil}
                   selected={s.id === selectedId}
                   onClick={() => setSelectedId(s.id === selectedId ? null : s.id)}
                   onApprove={(e) => { e.stopPropagation(); setSelectedId(s.id); setModal('aprobar'); }}
@@ -1264,7 +1268,7 @@ function SolicitudRow({
         </div>
       </div>
 
-      {/* Compact drawer mode */}
+      {/* Compact drawer mode (el prop ya llega combinado con "es móvil") */}
       {drawerOpen ? (
         <>
           <div>

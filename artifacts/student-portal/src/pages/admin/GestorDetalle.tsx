@@ -398,7 +398,7 @@ function AlumnoRow({ alumno, onNav }: { alumno: Alumno; onNav: () => void }) {
   return (
     <div
       className="grid items-center px-5 py-3 border-b border-stone-50 last:border-b-0 cursor-pointer transition-colors"
-      style={{ gridTemplateColumns: '40px 1fr 120px 140px 120px 40px', gap: 12 }}
+      style={{ gridTemplateColumns: '40px 1fr 120px 140px 120px 40px', gap: 12, minWidth: 640 }}
       onClick={onNav}
       onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.background = '#fafaf9'; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'white'; }}
@@ -945,7 +945,7 @@ export default function GestorDetalle() {
       </div>
 
       {/* ── ALUMNOS ASIGNADOS ─────────────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+      <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
         {/* Section header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
           <div>
@@ -979,7 +979,7 @@ export default function GestorDetalle() {
             {/* Table header */}
             <div
               className="grid text-[11px] font-semibold uppercase tracking-wide px-5 py-2.5 border-b border-stone-100"
-              style={{ gridTemplateColumns: '40px 1fr 120px 140px 120px 40px', gap: 12, background: '#fafaf9', color: '#6b635e' }}
+              style={{ gridTemplateColumns: '40px 1fr 120px 140px 120px 40px', gap: 12, background: '#fafaf9', color: '#6b635e', minWidth: 640 }}
             >
               <div />
               <div>Alumno</div>

@@ -16,6 +16,7 @@ import { Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_PAGOS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
+import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PagoStepper } from '../../components/PagoStepper';
@@ -218,7 +219,30 @@ export default function AdminOrdenesPago() {
               <div className="font-bold text-stone-900 mb-1">Sin órdenes con estos filtros</div>
             </div>
           ) : (
-            <div data-tour="a-pag-tabla" className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
+            <div data-tour="a-pag-tabla">
+            {/* Teléfono: tarjetas; tablet/escritorio: la tabla completa. */}
+            <SoloMovil>
+              <ListaCards>
+                {pagos.map((p) => (
+                  <FilaCard
+                    key={p.id}
+                    onClick={() => setSel(p.id)}
+                    titulo={p.alumno ?? `#${p.estudianteId}`}
+                    sub={<span className="font-mono">{p.folio ?? `#${p.id}`}{p.etapaClave ? ` · ${p.etapaClave}` : ''}</span>}
+                    derecha={<EstadoChip estado={p.estado} />}
+                    datos={
+                      <>
+                        <DatoCard label="Total"><span className="text-base font-bold text-stone-900">{fmtMoney(p.montoTotal)}</span></DatoCard>
+                        <DatoCard label="Exámenes" mono>{p.cantidadExamenes}</DatoCard>
+                      </>
+                    }
+                    pie={<span className="text-xs text-stone-500">Solicitó: {p.solicitante ?? (p.gestor ? `Gestor · ${p.gestor}` : 'Alumno')}</span>}
+                  />
+                ))}
+              </ListaCards>
+            </SoloMovil>
+            <SoloEscritorio>
+            <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
               <table className="w-full text-sm min-w-[760px]">
                 <thead className="bg-[var(--color-crema-100)] border-b border-stone-200 text-left text-xs uppercase tracking-widest text-stone-600">
                   <tr>
@@ -248,6 +272,8 @@ export default function AdminOrdenesPago() {
                   ))}
                 </tbody>
               </table>
+            </div>
+            </SoloEscritorio>
             </div>
           )}
           </>

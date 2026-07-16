@@ -450,7 +450,7 @@ function PagoRow({
   return (
     <div
       className="grid items-center px-5 py-3.5 border-b border-stone-50 last:border-b-0 hover:bg-stone-50 transition-colors cursor-pointer"
-      style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12 }}
+      style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12, minWidth: 680 }}
       onClick={onClick}
     >
       {/* Avatar */}
@@ -758,11 +758,11 @@ export default function PagosAdmin() {
         </div>
       ) : (
         <>
-          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
             {/* Table header */}
             <div
               className="grid px-5 py-3 border-b border-stone-100"
-              style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12, background: '#fafaf9' }}
+              style={{ gridTemplateColumns: '44px 1fr 130px 100px 90px 90px 44px', gap: 12, background: '#fafaf9', minWidth: 680 }}
             >
               <div />
               <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e' }}>Alumno</div>
