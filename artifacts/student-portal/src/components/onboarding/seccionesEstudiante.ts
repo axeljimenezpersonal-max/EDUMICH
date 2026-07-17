@@ -6,8 +6,11 @@
 
 import type { TourStep } from './steps';
 
-/** Clave del recorrido de bienvenida del estudiante (para no encimarse). */
-export const GATE_ESTUDIANTE = 'edumich_tour_v1_estudiante';
+/**
+ * Clave del recorrido de bienvenida del estudiante (para no encimarse, R5).
+ * Debe coincidir con `claveBienvenida('estudiante')` de useOnboarding.
+ */
+export const GATE_ESTUDIANTE = 'bienvenida_estudiante';
 
 // ── Inicio (dashboard) ─────────────────────────────────────────
 export const TOUR_INICIO: TourStep[] = [

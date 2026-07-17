@@ -11,7 +11,7 @@
 import type { TourStep } from './steps';
 
 /** El recorrido de bienvenida del admin marca esta clave al terminar. */
-export const GATE_ADMIN = 'edumich_tour_v1_admin';
+export const GATE_ADMIN = 'bienvenida_admin';
 
 // ── Inicio ─────────────────────────────────────────────────────
 export const TOUR_A_INICIO: TourStep[] = [

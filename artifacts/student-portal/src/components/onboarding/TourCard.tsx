@@ -25,7 +25,14 @@ interface Props {
   isFirst: boolean;
   onNext: () => void;
   onPrev: () => void;
+  /** «Ahora no»: cierra SIN marcar visto — se volverá a ofrecer (R1). */
   onSkip: () => void;
+  /**
+   * «No volver a mostrar»: silencia el auto-arranque para siempre. Necesario
+   * desde que saltar dejó de significar «nunca más»; sin esto, quien no quiere
+   * el tutorial no tendría forma de apagarlo. Ausente en la bienvenida del rol.
+   */
+  onNoMostrar?: () => void;
   illustration?: string;
 }
 
@@ -101,7 +108,7 @@ function computePosition(
   };
 }
 
-export function TourCard({ icon, title, body, index, total, rect, placement, isLast, isFirst, onNext, onPrev, onSkip, illustration }: Props) {
+export function TourCard({ icon, title, body, index, total, rect, placement, isLast, isFirst, onNext, onPrev, onSkip, onNoMostrar, illustration }: Props) {
   const Icon = useMemo(() => resolveIcon(icon), [icon]);
   const Illustration = illustration ? ILLUSTRATIONS[illustration] : undefined;
   const cardRef = useRef<HTMLDivElement>(null);
@@ -235,13 +242,26 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
         </div>
 
         <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={onSkip}
-            className="text-[13px] font-semibold text-stone-400 hover:text-[var(--color-guinda-700)] transition-colors"
-          >
-            {isLast ? 'Cerrar' : 'Saltar tutorial'}
-          </button>
+          {/* Salidas: «Saltar» solo aplaza (se vuelve a ofrecer); «No volver a
+              mostrar» es la única que apaga el tutorial de forma permanente. */}
+          <div className="flex min-w-0 flex-col items-start gap-0.5">
+            <button
+              type="button"
+              onClick={onSkip}
+              className="text-[13px] font-semibold text-stone-400 hover:text-[var(--color-guinda-700)] transition-colors"
+            >
+              {isLast ? 'Cerrar' : 'Saltar tutorial'}
+            </button>
+            {onNoMostrar && !isLast && (
+              <button
+                type="button"
+                onClick={onNoMostrar}
+                className="text-[11px] text-stone-300 underline underline-offset-2 hover:text-stone-500 transition-colors"
+              >
+                No volver a mostrar
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             {!isFirst && (

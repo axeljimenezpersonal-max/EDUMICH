@@ -1764,3 +1764,31 @@ export const aulaForoVotos = pgTable('aula_foro_votos', {
   unicoPorUsuario: uniqueIndex('aula_foro_votos_msg_user_uq').on(t.mensajeId, t.userId),
   mensajeIdx: index('aula_foro_votos_mensaje_idx').on(t.mensajeId),
 }));
+
+/**
+ * Tutoriales ya vistos, por usuario y por ETAPA del trámite.
+ *
+ * Antes esto vivía en localStorage, con dos consecuencias malas: el alumno que
+ * entraba desde otro teléfono o borraba los datos de Safari volvía a ver todos
+ * los tutoriales, y el que ya los había visto no podía comprobarse.
+ *
+ * La clave es (user_id, clave, etapa) — NO solo (user_id, clave):
+ * un tutorial enseña cosas distintas según el punto del trámite. El de
+ * Inscripción visto siendo `pre_registro` mostró la página bloqueada; cuando el
+ * alumno llega a `documentos_completos` hay contenido nuevo que nunca vio, así
+ * que esa etapa cuenta como no vista y el tutorial se ofrece de nuevo UNA vez.
+ *
+ * `etapa` guarda dos valores especiales:
+ *  - `''`  → el tutorial no depende de la etapa (se enseña igual siempre).
+ *  - `'*'` → el usuario pidió «no volver a mostrar»: silencia TODAS las etapas.
+ */
+export const tutorialesVistos = pgTable('tutoriales_vistos', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  clave: varchar('clave', { length: 80 }).notNull(),
+  etapa: varchar('etapa', { length: 60 }).notNull().default(''),
+  completadoEn: timestamp('completado_en').notNull().defaultNow(),
+}, (t) => ({
+  unicoPorEtapa: uniqueIndex('tutoriales_vistos_uq').on(t.userId, t.clave, t.etapa),
+  userIdx: index('tutoriales_vistos_user_idx').on(t.userId),
+}));

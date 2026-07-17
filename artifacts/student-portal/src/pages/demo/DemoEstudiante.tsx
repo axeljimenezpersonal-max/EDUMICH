@@ -10,16 +10,17 @@
 
 import { useState } from 'react';
 import { enableDemo } from '../../lib/demo';
+import { olvidarTutoriales } from '../../lib/tutoriales';
 import EstudianteDashboard from '../estudiante/EstudianteDashboard';
-
-const TOUR_KEY = 'edumich_tour_v1_estudiante';
 
 export default function DemoEstudiante() {
   // El inicializador de useState corre UNA vez, antes de montar los hijos
   // (cuyos efectos llaman a la API), de modo que el modo demo ya esté activo.
   useState(() => {
     enableDemo('estudiante');
-    try { localStorage.removeItem(TOUR_KEY); } catch { /* ignore */ }
+    // La demo es «un alumno que entra por primera vez»: sus tutoriales no
+    // pueden venir dados por vistos de una visita anterior.
+    olvidarTutoriales();
     return true;
   });
 

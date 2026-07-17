@@ -84,6 +84,18 @@ const migrations = [
      aceptado_en timestamp NOT NULL DEFAULT now(),
      ip varchar(60)
    )`,
+  // Tutoriales vistos por usuario y etapa (antes en localStorage: se perdían al
+  // cambiar de dispositivo o limpiar el navegador). Ver schema.tutorialesVistos
+  // para el porqué de la clave (user_id, clave, etapa).
+  `CREATE TABLE IF NOT EXISTS tutoriales_vistos (
+     id serial PRIMARY KEY,
+     user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     clave varchar(80) NOT NULL,
+     etapa varchar(60) NOT NULL DEFAULT '',
+     completado_en timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS tutoriales_vistos_uq ON tutoriales_vistos(user_id, clave, etapa)`,
+  `CREATE INDEX IF NOT EXISTS tutoriales_vistos_user_idx ON tutoriales_vistos(user_id)`,
 ];
 
 export async function runStartupMigrations() {

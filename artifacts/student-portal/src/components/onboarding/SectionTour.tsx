@@ -3,62 +3,128 @@
  *
  * Reutiliza el mismo motor pulido que el recorrido de bienvenida (spotlight
  * dorado + tarjeta con framer-motion + accesibilidad), pero se define por
- * página: recibe sus propios pasos y su clave de persistencia, y ofrece un
- * botón flotante para repetirlo.
+ * página: recibe sus propios pasos y su clave, y ofrece un botón flotante para
+ * repetirlo.
  *
- * Auto-inicia UNA sola vez por página (solo escritorio). Si se indica `gateKey`
- * (la clave del recorrido de bienvenida del rol), espera a que ese recorrido se
- * haya completado para no encimarse con él la primera vez.
+ * ── Reglas de los tutoriales (ver también lib/tutoriales.ts) ─────────────────
+ *
+ * R1. Saltar NO es haber visto. Solo llegar al final marca el tutorial como
+ *     completado; «Saltar» y el clic en el fondo significan «ahora no» y el
+ *     tutorial se vuelve a ofrecer. Para no volver a verlo está el botón
+ *     explícito «No volver a mostrar». Antes CUALQUIER salida lo marcaba visto
+ *     para siempre: un roce del dedo en el fondo mataba la ayuda de por vida.
+ *
+ * R2. Un paso cuyo bloque NO está en pantalla se omite. Antes se mostraba igual,
+ *     centrado y sin foco, explicando algo invisible — el alumno leía sobre
+ *     inscribirse mientras la página le decía «primero completa tu expediente».
+ *     Al omitirlos, el contador «Paso 3 de 7» tampoco miente.
+ *
+ * R3. El «visto» se guarda por ETAPA (`etapa`), no por página. Cuando el alumno
+ *     avanza y hay contenido nuevo que enseñar, el tutorial se ofrece una vez
+ *     más. Si en esa etapa no hay nada nuevo, no aparece.
+ *
+ * R4. `autoStart` es la ETAPA MÍNIMA: la página lo pone en false cuando su
+ *     contenido aún no existe (p. ej. Inscripción sin expediente). El tutorial
+ *     no auto-arranca —la página ya muestra su candado— pero el botón sigue ahí.
+ *
+ * R5. Un tutorial a la vez: `gateKey` espera a que termine la bienvenida del rol
+ *     para no encimarse con ella.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { HelpCircle } from 'lucide-react';
-import { SpotlightOverlay, type SpotRect } from './SpotlightOverlay';
+import { SpotlightOverlay, resolver, type SpotRect } from './SpotlightOverlay';
 import { TourCard } from './TourCard';
 import type { TourStep } from './steps';
+import { cargarTutoriales, estaVisto, marcarVisto, silenciar } from '../../lib/tutoriales';
 
 interface Props {
   steps: TourStep[];
+  /** Identidad del tutorial (p. ej. "sec_inscripcion"). Persistida en BD. */
   storageKey: string;
+  /**
+   * Punto del trámite que este tutorial está enseñando ahora mismo (R3).
+   * Al cambiar, el tutorial vuelve a ofrecerse UNA vez porque hay contenido
+   * nuevo. Omitir si el tutorial enseña lo mismo siempre.
+   */
+  etapa?: string;
+  /** Clave del recorrido de bienvenida del rol: espera a que termine (R5). */
   gateKey?: string;
   buttonLabel?: string;
+  /** false = la etapa mínima aún no se cumple: no auto-arranca (R4). */
   autoStart?: boolean;
 }
 
 export function SectionTour({
   steps,
   storageKey,
+  etapa = '',
   gateKey,
   buttonLabel = 'Tutorial de esta sección',
   autoStart = true,
 }: Props) {
-  const total = steps.length;
   const [active, setActive] = useState(false);
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<SpotRect | null>(null);
+  /** Pasos realmente mostrables: se fijan al arrancar (R2). */
+  const [visibles, setVisibles] = useState<TourStep[]>([]);
 
+  const total = visibles.length;
+
+  /**
+   * R2 — un paso se muestra si no apunta a nada (intro/cierre) o si su bloque
+   * existe en el DOM. Se evalúa al arrancar, no al definir los pasos: el mismo
+   * tutorial enseña más o menos según lo que la página esté pintando.
+   */
+  const calcularVisibles = useCallback(
+    () => steps.filter((s) => !s.anchor || resolver(s.anchor) !== null),
+    [steps],
+  );
+
+  const start = useCallback(() => {
+    const v = calcularVisibles();
+    if (v.length === 0) return;
+    setVisibles(v);
+    setIndex(0);
+    setActive(true);
+  }, [calcularVisibles]);
+
+  // Auto-arranque: una vez por (clave, etapa), y solo si la etapa mínima se
+  // cumple. Espera al registro de la BD para no repetir lo ya visto.
   useEffect(() => {
-    if (!autoStart || total === 0) return;
-    try {
-      if (localStorage.getItem(storageKey)) return;              // ya visto
-      if (gateKey && localStorage.getItem(gateKey) !== '1') return; // espera a la bienvenida
-    } catch { /* ignore */ }
-    // En teléfono también auto-arranca: la tarjeta es una hoja inferior (ver
-    // TourCard) y la experiencia móvil ya es de primera clase.
-    const t = setTimeout(() => { setIndex(0); setActive(true); }, 700);
-    return () => clearTimeout(t);
-  }, [autoStart, total, storageKey, gateKey]);
+    if (!autoStart || steps.length === 0) return;
+    let vivo = true;
+    let t: ReturnType<typeof setTimeout> | undefined;
 
-  const close = useCallback((done: boolean) => {
+    cargarTutoriales().then(() => {
+      if (!vivo) return;
+      if (estaVisto(storageKey, etapa)) return;
+      if (gateKey && !estaVisto(gateKey)) return; // R5: la bienvenida va primero
+      // Margen para que la página termine de pintar: R2 mide el DOM real.
+      t = setTimeout(() => { if (vivo) start(); }, 700);
+    });
+
+    return () => { vivo = false; if (t) clearTimeout(t); };
+  }, [autoStart, steps.length, storageKey, etapa, gateKey, start]);
+
+  /** R1: solo `completado` registra. Salir sin terminar = «ahora no». */
+  const cerrar = useCallback((completado: boolean) => {
     setActive(false);
-    if (done) { try { localStorage.setItem(storageKey, '1'); } catch { /* ignore */ } }
-  }, [storageKey]);
+    if (completado) marcarVisto(storageKey, etapa);
+  }, [storageKey, etapa]);
 
-  const start = useCallback(() => { if (total > 0) { setIndex(0); setActive(true); } }, [total]);
-  const next = useCallback(() => setIndex((i) => (i >= total - 1 ? (close(true), i) : i + 1)), [total, close]);
+  const next = useCallback(() => {
+    setIndex((i) => (i >= total - 1 ? (cerrar(true), i) : i + 1));
+  }, [total, cerrar]);
   const prev = useCallback(() => setIndex((i) => (i > 0 ? i - 1 : 0)), []);
-  const skip = useCallback(() => close(true), [close]);
+  /** Saltar / clic fuera: NO marca visto (R1). */
+  const skip = useCallback(() => cerrar(false), [cerrar]);
+  /** «No volver a mostrar»: silencia el auto-arranque en todas las etapas. */
+  const noMostrar = useCallback(() => {
+    setActive(false);
+    silenciar(storageKey);
+  }, [storageKey]);
 
   useEffect(() => {
     if (!active) return;
@@ -74,7 +140,10 @@ export function SectionTour({
   useEffect(() => { if (!active) setRect(null); }, [active]);
   const handleRect = useCallback((r: SpotRect | null) => setRect(r), []);
 
-  const step = active ? steps[Math.min(index, total - 1)] : undefined;
+  const step = active ? visibles[Math.min(index, total - 1)] : undefined;
+
+  // El botón sobra si la página no tiene ni un bloque que enseñar.
+  const hayAlgoQueEnsenar = useMemo(() => steps.length > 0, [steps.length]);
 
   return (
     <>
@@ -101,20 +170,23 @@ export function SectionTour({
             onNext={next}
             onPrev={prev}
             onSkip={skip}
+            onNoMostrar={noMostrar}
           />
         </AnimatePresence>
       )}
 
-      <button
-        type="button"
-        data-tour="btn-seccion-tutorial"
-        onClick={start}
-        className="fixed right-4 bottom-20 md:bottom-5 z-40 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-crema-200)] bg-white px-3.5 py-2 text-xs font-semibold shadow-md hover:bg-stone-50"
-        style={{ color: 'var(--color-guinda-700)' }}
-        title="Ver el tutorial de esta sección"
-      >
-        <HelpCircle size={15} /> {buttonLabel}
-      </button>
+      {hayAlgoQueEnsenar && (
+        <button
+          type="button"
+          data-tour="btn-seccion-tutorial"
+          onClick={start}
+          className="fixed right-4 bottom-20 md:bottom-5 z-40 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-crema-200)] bg-white px-3.5 py-2 text-xs font-semibold shadow-md hover:bg-stone-50"
+          style={{ color: 'var(--color-guinda-700)' }}
+          title="Ver el tutorial de esta sección"
+        >
+          <HelpCircle size={15} /> {buttonLabel}
+        </button>
+      )}
     </>
   );
 }

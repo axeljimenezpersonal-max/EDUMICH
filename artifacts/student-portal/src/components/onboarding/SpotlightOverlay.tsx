@@ -28,7 +28,7 @@ interface Props {
  * apuntar a la barra lateral en escritorio y caer a la barra inferior o al
  * botón de menú en teléfono (p. ej. "nav-calificaciones nav-mas").
  */
-function resolver(anchor?: string): HTMLElement | null {
+export function resolver(anchor?: string): HTMLElement | null {
   if (!anchor) return null;
   const nombres = anchor.split(/\s+/).filter(Boolean);
   for (const nombre of nombres) {

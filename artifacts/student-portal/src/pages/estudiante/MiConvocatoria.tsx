@@ -679,8 +679,22 @@ export default function MiConvocatoria() {
   // la pantalla real); si aún no puede inscribirse, el recorrido de requisitos.
   const inscripcionEnCurso = (requisitos.puedeInscribirse && !!etapaActiva) || tieneExamenes;
   const tourSteps = inscripcionEnCurso ? TOUR_INSCRIPCION_ACTIVA : TOUR_INSCRIPCION;
-  const tourKey = inscripcionEnCurso ? 'edumich_sec_inscripcion_activa_v1' : 'edumich_sec_inscripcion_v1';
   const tourLabel = inscripcionEnCurso ? 'Tutorial de mi inscripción' : 'Tutorial de Inscripción';
+
+  /**
+   * Etapa que el tutorial está enseñando ahora (R3). Esta pantalla cambia por
+   * completo a lo largo del trámite, así que un solo «visto» no alcanza: quien
+   * vio el tutorial sin expediente solo conoció la lista de requisitos y jamás
+   * volvería a ver cómo inscribirse de verdad. Al cambiar de etapa hay contenido
+   * nuevo y el tutorial se ofrece una vez más.
+   */
+  const etapaInscripcion = !requisitos.expedienteCompleto
+    ? 'sin_expediente'          // la pantalla solo lista los documentos que faltan
+    : !requisitos.tieneMatricula
+      ? 'sin_matricula'         // expediente listo; esperando validación de la DGB
+      : inscripcionEnCurso
+        ? 'inscrito'            // ya con exámenes: el recorrido de su inscripción
+        : 'puede_inscribirse';  // ventana abierta: aquí se enseña a inscribirse
 
   return (
     <EstudianteLayout>
@@ -990,7 +1004,8 @@ export default function MiConvocatoria() {
 
           <SectionTour
             steps={tourSteps}
-            storageKey={tourKey}
+            storageKey="sec_inscripcion"
+            etapa={etapaInscripcion}
             gateKey={GATE_ESTUDIANTE}
             buttonLabel={tourLabel}
           />
