@@ -55,6 +55,7 @@ import GestorDetalle from './pages/admin/GestorDetalle';
 import AdminAlumnoDetalle from './pages/admin/AdminAlumnoDetalle';
 import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
+import SedesLista from './pages/admin/SedesLista';
 import AnunciosLista from './pages/admin/AnunciosLista';
 import AdminChat from './pages/admin/AdminChat';
 import AdminCalificaciones from './pages/admin/AdminCalificaciones';
@@ -138,6 +139,7 @@ export default function App() {
       <Route path="/admin/gestores" component={GestoresLista} />
       <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
       <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
+      <Route path="/admin/sedes" component={SedesLista} />
       <Route path="/admin/anuncios" component={AnunciosLista} />
       <Route path="/admin/chat" component={AdminChat} />
       <Route path="/admin/verificacion-pase" component={VerificacionPase} />

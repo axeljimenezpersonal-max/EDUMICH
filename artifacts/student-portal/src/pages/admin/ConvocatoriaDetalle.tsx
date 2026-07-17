@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useRoute, Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
+import { SedesEtapaEditor } from './SedesEtapaEditor';
 import { api, calif10 } from '../../lib/api';
 import {
   ArrowLeft, Download, Users, GraduationCap, CheckCircle, XCircle,
@@ -294,6 +295,9 @@ export default function ConvocatoriaDetalle() {
               dimmed={filtroEstado !== 'todos' && filtroEstado !== 'pendientes'}
             />
           </div>
+
+          {/* Sedes habilitadas para esta etapa (el alumno elige una al inscribirse) */}
+          {etapaId != null && <SedesEtapaEditor etapaId={etapaId} />}
 
           {/* Encabezado de la lista */}
           <div className="flex items-center gap-2 border-b border-stone-200 mb-5 pb-2.5">
