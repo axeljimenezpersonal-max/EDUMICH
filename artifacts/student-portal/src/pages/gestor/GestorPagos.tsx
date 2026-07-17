@@ -97,7 +97,7 @@ export default function GestorPagos() {
       {vista.t === 'lista' && (
         <SectionTour
           steps={TOUR_G_PAGOS}
-          storageKey="edumich_sec_g_pagos_v1"
+          storageKey="modula_sec_g_pagos_v1"
           gateKey={GATE_GESTOR}
           buttonLabel="Tutorial de pagos"
         />

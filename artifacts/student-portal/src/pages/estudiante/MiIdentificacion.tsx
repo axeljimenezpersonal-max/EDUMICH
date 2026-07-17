@@ -208,7 +208,7 @@ function CredFront({ id, tieneFoto, onFlip }: { id: IdentificacionData; tieneFot
       {/* Microtexto de seguridad */}
       <div style={{ padding: '2px 18px 4px', overflow: 'hidden', height: 12 }}>
         <div style={{ fontSize: 5, letterSpacing: '0.15em', color: G.g600, opacity: 0.4, whiteSpace: 'nowrap', fontWeight: 700 }}>
-          {'PREPARATORIA ABIERTA · MICHOACÁN · SEE · EDUMICH · IEMSyS · '.repeat(8)}
+          {'PREPARATORIA ABIERTA · MICHOACÁN · SEE · Modula · IEMSyS · '.repeat(8)}
         </div>
       </div>
 
@@ -421,7 +421,7 @@ export default function MiIdentificacion() {
 
         <SectionTour
           steps={TOUR_IDENTIFICACION}
-          storageKey="edumich_sec_identificacion_v1"
+          storageKey="modula_sec_identificacion_v1"
           gateKey={GATE_ESTUDIANTE}
           buttonLabel="Tutorial de Identificación"
         />
@@ -540,7 +540,7 @@ export default function MiIdentificacion() {
       </div>
       <SectionTour
         steps={TOUR_IDENTIFICACION}
-        storageKey="edumich_sec_identificacion_v1"
+        storageKey="modula_sec_identificacion_v1"
         gateKey={GATE_ESTUDIANTE}
         buttonLabel="Tutorial de Identificación"
       />

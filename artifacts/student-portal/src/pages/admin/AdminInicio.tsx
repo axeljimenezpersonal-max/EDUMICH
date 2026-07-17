@@ -318,7 +318,7 @@ export default function AdminInicio() {
 
       <SectionTour
         steps={TOUR_A_INICIO}
-        storageKey="edumich_sec_a_inicio_v1"
+        storageKey="modula_sec_a_inicio_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de inicio"
       />

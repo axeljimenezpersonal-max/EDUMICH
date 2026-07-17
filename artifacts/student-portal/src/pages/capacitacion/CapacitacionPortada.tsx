@@ -1,5 +1,5 @@
 /**
- * CapacitacionPortada — portada del Centro de capacitación EDUMICH (/capacitacion).
+ * CapacitacionPortada — portada del Centro de capacitación Modula (/capacitacion).
  *
  * Hero guinda centrado con un mini-demo del reproductor que rota entre vistas de
  * los tres perfiles, y tres tarjetas (Alumno, Gestor, Administrador) que enlazan
@@ -18,7 +18,7 @@ export default function CapacitacionPortada() {
       {/* ── Hero ───────────────────────────────────────────── */}
       <header className="hero">
         <div className="wrap">
-          <div className="eyebrow">Centro de capacitación · EDUMICH</div>
+          <div className="eyebrow">Centro de capacitación · Modula</div>
           <h1>
             Tres perfiles.
             <br />
@@ -163,9 +163,9 @@ export default function CapacitacionPortada() {
       </section>
 
       <footer className="footer">
-        <div className="bs">EDUMICH</div>
+        <div className="bs">Modula</div>
         Centro de capacitación · Preparatoria Abierta
-        <div className="hier">EDUMICH · Preparatoria Abierta · IEMSyS · Gobierno de Michoacán</div>
+        <div className="hier">Modula · Preparatoria Abierta · IEMSyS · Gobierno de Michoacán</div>
       </footer>
     </div>
   );

@@ -259,7 +259,7 @@ export default function MisPagos() {
 
       <SectionTour
         steps={TOUR_PAGOS}
-        storageKey="edumich_sec_pagos_v1"
+        storageKey="modula_sec_pagos_v1"
         gateKey={GATE_ESTUDIANTE}
         buttonLabel="Tutorial de Pagos"
       />

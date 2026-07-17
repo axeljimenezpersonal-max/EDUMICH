@@ -1,5 +1,5 @@
 /**
- * Registro de tutoriales vistos — reglas de EDUMICH.
+ * Registro de tutoriales vistos — reglas de Modula.
  *
  * Fuente de verdad: la BD (`GET/POST /tutoriales`), para que el avance viaje con
  * la cuenta y no con el navegador. Se mantiene un espejo en localStorage con dos
@@ -27,7 +27,7 @@ import { demoActive } from './demo';
 /** Silencia todas las etapas de una clave. Coincide con el backend. */
 const SILENCIADO = '*';
 
-const ESPEJO = 'edumich_tut_v2';
+const ESPEJO = 'modula_tut_v2';
 
 type Visto = { clave: string; etapa: string };
 

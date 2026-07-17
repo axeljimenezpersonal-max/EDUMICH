@@ -232,7 +232,7 @@ export default function EstudianteDashboard() {
               <p className="mt-2.5 max-w-xl text-sm leading-relaxed text-stone-500">{faseCfg.nudge}</p>
             </div>
             <button
-              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              onClick={() => window.dispatchEvent(new Event('modula:start-tour'))}
               className="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-xs font-semibold hover:bg-stone-50"
               style={{ color: 'var(--color-guinda-700)' }}
             >
@@ -979,7 +979,7 @@ export default function EstudianteDashboard() {
 
       <SectionTour
         steps={TOUR_INICIO}
-        storageKey="edumich_sec_inicio_v1"
+        storageKey="modula_sec_inicio_v1"
         gateKey={GATE_ESTUDIANTE}
         buttonLabel="Tutorial de Inicio"
       />

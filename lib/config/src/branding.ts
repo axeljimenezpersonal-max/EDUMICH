@@ -1,13 +1,15 @@
 export const BRANDING = {
   proyecto: {
-    nombre: 'EDUMICH',
-    nombreCompleto: 'EDUMICH · Sistema Educativo Digital de Michoacán',
-    tagline: 'Plataforma educativa del Estado',
-    descripcion: 'Sistema institucional de gestión educativa del Estado de Michoacán',
+    nombre: 'Modula',
+    // Wordmark completo (identidad): úsese en títulos, insignias y encabezados.
+    // En prosa corrida usar solo `nombre` ('Modula') para que lea natural.
+    nombreCompleto: 'Modula · Plan 22',
+    tagline: 'Preparatoria Abierta · Plan 22',
+    descripcion: 'Plataforma de gestión de Preparatoria Abierta (Plan 22) del IEMSyS, Gobierno de Michoacán',
   },
   modulo: {
     nombre: 'Preparatoria Abierta',
-    nombreCompleto: 'Preparatoria Abierta · Plan Modular',
+    nombreCompleto: 'Preparatoria Abierta · Plan 22',
     descripcion: 'Sistema de gestión institucional de Preparatoria Abierta',
   },
   institucion: {

@@ -161,7 +161,7 @@ function ModulosGridAlumno({ d, abrirModulo }: { d: MiAula; abrirModulo: (id: nu
         </div>
       )}
 
-      <SectionTour steps={TOUR_AULA_HOME} storageKey="edumich_sec_aula_home_v1" gateKey={GATE_ESTUDIANTE} buttonLabel="Tutorial de Mi aula" />
+      <SectionTour steps={TOUR_AULA_HOME} storageKey="modula_sec_aula_home_v1" gateKey={GATE_ESTUDIANTE} buttonLabel="Tutorial de Mi aula" />
     </div>
   );
 }
@@ -260,7 +260,7 @@ function ModuloDetalleAlumno({ moduloId, volver, onRecargar }: { moduloId: numbe
         </main>
       </div>
 
-      <SectionTour steps={TOUR_AULA_MODULO} storageKey="edumich_sec_aula_modulo_v1" gateKey={GATE_ESTUDIANTE} buttonLabel="Tutorial de la clase" />
+      <SectionTour steps={TOUR_AULA_MODULO} storageKey="modula_sec_aula_modulo_v1" gateKey={GATE_ESTUDIANTE} buttonLabel="Tutorial de la clase" />
     </div>
   );
 }

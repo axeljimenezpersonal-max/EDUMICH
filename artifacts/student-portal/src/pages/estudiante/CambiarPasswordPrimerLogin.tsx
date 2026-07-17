@@ -59,16 +59,16 @@ export default function CambiarPasswordPrimerLogin() {
 
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-md">
-          {/* Bienvenida EDUMICH */}
+          {/* Bienvenida Modula */}
           <div className="text-center mb-5">
             <div style={{
               fontFamily: "'Poppins', sans-serif",
               fontWeight: 900, fontSize: 24, letterSpacing: '-0.03em',
               color: 'var(--color-guinda-700)', marginBottom: 4,
             }}>
-              EDUMICH
+              Modula
             </div>
-            <div className="text-sm font-medium text-stone-700 mb-0.5">Bienvenido a EDUMICH</div>
+            <div className="text-sm font-medium text-stone-700 mb-0.5">Bienvenido a Modula</div>
             <div className="text-xs text-stone-500">
               La plataforma educativa digital del Gobierno de Michoacán.<br />
               Aquí podrás gestionar tu inscripción a Preparatoria Abierta del IEMSyS.

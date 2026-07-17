@@ -10,7 +10,7 @@
 
 @theme {
   /* ── Paleta institucional guinda ─────────────────────────────────────
-     Re-entonada a partir de los manuales EDUMICH (más fiel y con más tono):
+     Re-entonada a partir de los manuales Modula (más fiel y con más tono):
      guinda #6B1530 · guinda profundo #4A0E20 · guinda2 #7C1839. */
   --color-guinda-50: #fbf1f4;
   --color-guinda-100: #f6dee6;
@@ -57,7 +57,7 @@
   --color-rechazado: #b91c1c;
 
   /* ── Tipografía ──────────────────────────────────────────
-     Poppins en todo, como los manuales EDUMICH: títulos con peso 600 y
+     Poppins en todo, como los manuales Modula: títulos con peso 600 y
      cuerpo ligero. (Plus Jakarta Sans e Inter quedan de respaldo.) */
   --font-serif: "Poppins", "Plus Jakarta Sans", system-ui, sans-serif;
   --font-sans: "Poppins", "Inter", system-ui, sans-serif;   /* cuerpo */

@@ -1,5 +1,5 @@
 /**
- * BottomNav — navegación inferior móvil estilo app (patrón oficial EDUMICH).
+ * BottomNav — navegación inferior móvil estilo app (patrón oficial Modula).
  *
  * 4 secciones principales SIEMPRE visibles + botón «Más» que abre una hoja
  * inferior con el resto. Sustituye a la barra deslizable de 9 ítems: lo más

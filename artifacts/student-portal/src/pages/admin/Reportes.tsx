@@ -160,7 +160,7 @@ export default function Reportes() {
 
       <SectionTour
         steps={TOUR_A_REPORTES}
-        storageKey="edumich_sec_a_reportes_v1"
+        storageKey="modula_sec_a_reportes_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de reportes"
       />

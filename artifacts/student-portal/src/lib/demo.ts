@@ -10,7 +10,7 @@
  * mientras dure la pestaña (para que la navegación no rebote a /login).
  */
 
-const FLAG = 'edumich_demo_rol';
+const FLAG = 'modula_demo_rol';
 
 export function enableDemo(rol: 'estudiante'): void {
   try { sessionStorage.setItem(FLAG, rol); } catch { /* sin persistencia */ }
@@ -144,7 +144,7 @@ const DEMO_CONTACTOS = {
     municipio: 'Morelia',
   },
   admin: {
-    nombreCompleto: 'Coordinación Estatal EDUMICH',
+    nombreCompleto: 'Coordinación Estatal Modula',
     puesto: 'Administración de Preparatoria Abierta',
     emailPublico: 'contacto@edumich.mx',
     telefonoPublico: '443 111 1111',

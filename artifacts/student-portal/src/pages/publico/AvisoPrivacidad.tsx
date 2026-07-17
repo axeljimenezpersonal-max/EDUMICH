@@ -57,7 +57,7 @@ const SECCIONES: Seccion[] = [
             </strong>{' '}
             (en adelante, "el Responsable"), a través de la Coordinación Estatal de Preparatoria
             Abierta, es el responsable del tratamiento de los datos personales que se recaban a
-            través de la plataforma <strong>EDUMICH</strong>, con domicilio en{' '}
+            través de la plataforma <strong>Modula</strong>, con domicilio en{' '}
             <strong>
               Av. Lázaro Cárdenas 1775, Col. Chapultepec Norte, C.P. 58260, Morelia, Michoacán
             </strong>
@@ -66,7 +66,7 @@ const SECCIONES: Seccion[] = [
         </P>
         <P>
           <>
-            EDUMICH es el sistema tecnológico mediante el cual se gestiona el servicio educativo de
+            Modula es el sistema tecnológico mediante el cual se gestiona el servicio educativo de
             Preparatoria Abierta. Su operación técnica está a cargo de un proveedor que actúa como{' '}
             <strong>encargado del tratamiento</strong>, en virtud de una licencia de uso de la
             plataforma, y que trata los datos personales únicamente por cuenta y bajo instrucciones
@@ -259,7 +259,7 @@ const SECCIONES: Seccion[] = [
     titulo: 'Uso de tecnologías de rastreo en la plataforma',
     content: (
       <P>
-        La plataforma EDUMICH utiliza cookies y tecnologías análogas estrictamente necesarias para
+        La plataforma Modula utiliza cookies y tecnologías análogas estrictamente necesarias para
         mantener la sesión iniciada y garantizar la seguridad del acceso. No se utilizan para fines
         publicitarios ni de elaboración de perfiles comerciales.
       </P>
@@ -272,7 +272,7 @@ const SECCIONES: Seccion[] = [
       <P>
         El presente aviso podrá ser modificado. Cualquier cambio se hará de su conocimiento a través
         del portal institucional del Responsable (iemsysem.michoacan.gob.mx) y de la propia
-        plataforma EDUMICH, así como, en su caso, de la sección de avisos de privacidad de la
+        plataforma Modula, así como, en su caso, de la sección de avisos de privacidad de la
         Plataforma Nacional de Transparencia.
       </P>
     ),
@@ -333,7 +333,7 @@ export default function AvisoPrivacidad() {
             Aviso de Privacidad Integral
           </h1>
           <p className="text-white/75 text-sm mt-1">
-            Plataforma EDUMICH &middot; Preparatoria Abierta &middot; Plan 22 Modular
+            Plataforma Modula &middot; Preparatoria Abierta &middot; Plan 22 Modular
           </p>
         </div>
       </div>

@@ -2,7 +2,7 @@
  * Pagos de examen — orden de pago vía Tesorería del Estado (SFA Michoacán).
  *
  * REGLAS DE ORO (no negociables):
- *  - EDUMICH NO cobra, NO integra pasarelas, NO genera líneas de captura.
+ *  - Modula NO cobra, NO integra pasarelas, NO genera líneas de captura.
  *  - La orden de pago con línea de captura la emite la plataforma del Estado;
  *    aquí SOLO se almacena (la captura un admin/enlace) y se sirve.
  *  - 'pagado' SOLO se setea por conciliación/verificación de un admin.

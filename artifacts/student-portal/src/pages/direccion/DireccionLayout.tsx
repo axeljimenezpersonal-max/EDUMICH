@@ -81,7 +81,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
             <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
-              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>EDUMICH</div>
+              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Modula · Plan 22</div>
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Preparatoria Abierta · Dirección de Programa
                 <span style={{
@@ -115,7 +115,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </div>
             <button
               data-tour="help-button"
-              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              onClick={() => window.dispatchEvent(new Event('modula:start-tour'))}
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}
               aria-label="Ver tutorial guiado"
               title="Ver tutorial guiado"

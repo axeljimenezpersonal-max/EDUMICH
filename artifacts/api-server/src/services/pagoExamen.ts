@@ -1,7 +1,7 @@
 /**
  * Máquina de estados del "pago de examen" (orden de pago vía Tesorería del Estado).
  *
- * REGLA DE ORO: EDUMICH no cobra ni genera líneas de captura. El estado 'pagado'
+ * REGLA DE ORO: Modula no cobra ni genera líneas de captura. El estado 'pagado'
  * SOLO se alcanza por conciliación / verificación de un admin — nunca de forma
  * automática porque el alumno subió un comprobante.
  *

@@ -13,7 +13,7 @@ export default function GestorMensajes() {
       <CitizenChat />
       <SectionTour
         steps={TOUR_G_MENSAJES}
-        storageKey="edumich_sec_g_mensajes_v1"
+        storageKey="modula_sec_g_mensajes_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de mensajes"
       />

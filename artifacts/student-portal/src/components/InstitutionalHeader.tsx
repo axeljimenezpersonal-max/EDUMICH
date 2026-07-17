@@ -276,7 +276,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
             {/* Mobile: solo nombre corto */}
             <div className="sm:hidden leading-tight">
               <div className="font-serif text-xs font-bold text-[var(--color-guinda-800)]">Preparatoria Abierta</div>
-              <div className="text-[9px] text-stone-500">EDUMICH · IEMSyS</div>
+              <div className="text-[9px] text-stone-500">Modula · IEMSyS</div>
             </div>
           </div>
 
@@ -296,7 +296,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
                 border: '1px solid #e8c4d4', borderRadius: 4,
                 padding: '1px 5px', fontSize: 9, fontWeight: 800, letterSpacing: '0.06em',
               }}>
-                EDUMICH
+                Modula · Plan 22
               </span>
             </div>
           </div>
@@ -331,7 +331,7 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
                 El evento lo escucha <OnboardingTour/> montado en cada layout. */}
             <button
               data-tour="help-button"
-              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              onClick={() => window.dispatchEvent(new Event('modula:start-tour'))}
               className="p-2 rounded-md text-stone-500 hover:text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] transition-colors"
               aria-label="Ver tutorial guiado"
               title="Ver tutorial guiado"

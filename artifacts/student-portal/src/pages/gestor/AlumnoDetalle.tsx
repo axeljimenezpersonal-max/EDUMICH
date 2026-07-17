@@ -963,7 +963,7 @@ export default function AlumnoDetalle() {
 
       <SectionTour
         steps={TOUR_G_FICHA}
-        storageKey="edumich_sec_g_ficha_v1"
+        storageKey="modula_sec_g_ficha_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de la ficha"
       />

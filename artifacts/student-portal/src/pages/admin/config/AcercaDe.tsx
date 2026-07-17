@@ -3,7 +3,7 @@ import { BookOpen, Cpu, MapPin, Users, ShieldCheck, Zap } from 'lucide-react';
 export default function AcercaDe() {
   return (
     <div style={{ maxWidth: 700 }}>
-      {/* Hero EDUMICH */}
+      {/* Hero Modula */}
       <div
         style={{
           background: 'linear-gradient(135deg, #f8e8ef 0%, #fdf4f8 60%, #fff 100%)',
@@ -28,13 +28,13 @@ export default function AcercaDe() {
             lineHeight: 1,
           }}
         >
-          EDUMICH
+          Modula · Plan 22
         </div>
         <h1 style={{ fontSize: 18, fontWeight: 700, color: '#2a2a2a', margin: '0 0 12px', letterSpacing: '-0.01em' }}>
-          Plataforma Educativa Digital del Estado de Michoacán
+          Preparatoria Abierta · Gobierno de Michoacán
         </h1>
         <p style={{ fontSize: 14, color: '#6b635e', lineHeight: 1.6, margin: '0 auto', maxWidth: 480 }}>
-          EDUMICH es la iniciativa tecnológica del Gobierno de Michoacán para digitalizar y
+          Modula es la iniciativa tecnológica del Gobierno de Michoacán para digitalizar y
           modernizar la gestión educativa del estado, comenzando con el sistema de Preparatoria
           Abierta del IEMSyS.
         </p>
@@ -46,17 +46,17 @@ export default function AcercaDe() {
           {
             icon: Zap,
             titulo: 'La plataforma',
-            desc: 'EDUMICH es la capa tecnológica que integra y moderniza los procesos institucionales del IEMSyS, comenzando por la gestión de Preparatoria Abierta.',
+            desc: 'Modula es la capa tecnológica que integra y moderniza los procesos institucionales del IEMSyS, comenzando por la gestión de Preparatoria Abierta.',
           },
           {
             icon: BookOpen,
             titulo: 'Preparatoria Abierta',
-            desc: 'El módulo activo de EDUMICH gestiona las inscripciones, expedientes, calificaciones y comunicación del Plan Modular de Preparatoria Abierta.',
+            desc: 'El módulo activo de Modula gestiona las inscripciones, expedientes, calificaciones y comunicación del Plan Modular de Preparatoria Abierta.',
           },
           {
             icon: Users,
             titulo: 'Gestores municipales',
-            desc: 'Los gestores son el puente entre la institución y los aspirantes en cada municipio de Michoacán. EDUMICH facilita su trabajo diario.',
+            desc: 'Los gestores son el puente entre la institución y los aspirantes en cada municipio de Michoacán. Modula facilita su trabajo diario.',
           },
           {
             icon: MapPin,
@@ -66,7 +66,7 @@ export default function AcercaDe() {
           {
             icon: Cpu,
             titulo: 'Tecnología',
-            desc: 'EDUMICH está construido con tecnología moderna: Node.js, PostgreSQL, React y pnpm workspaces para garantizar rendimiento y escalabilidad.',
+            desc: 'Modula está construido con tecnología moderna: Node.js, PostgreSQL, React y pnpm workspaces para garantizar rendimiento y escalabilidad.',
           },
           {
             icon: ShieldCheck,
@@ -100,7 +100,7 @@ export default function AcercaDe() {
 
       {/* Version info */}
       <div style={{ fontSize: 11, color: '#a89a8e', textAlign: 'center', lineHeight: 1.6 }}>
-        EDUMICH v0.1 (demo) · Módulo Preparatoria Abierta · {new Date().getFullYear()}<br />
+        Modula v0.1 (demo) · Módulo Preparatoria Abierta · {new Date().getFullYear()}<br />
         Gobierno del Estado de Michoacán · Instituto de Educación Media Superior y Superior
       </div>
     </div>

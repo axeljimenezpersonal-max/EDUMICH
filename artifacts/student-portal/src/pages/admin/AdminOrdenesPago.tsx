@@ -1,7 +1,7 @@
 /**
  * Órdenes de pago de examen (admin / enlace de tesorería).
  *
- * EDUMICH no cobra ni genera líneas de captura: aquí el enlace CARGA la orden de
+ * Modula no cobra ni genera líneas de captura: aquí el enlace CARGA la orden de
  * pago (línea de captura + PDF + vencimiento) que emitió la plataforma del Estado,
  * y CONCILIA los pagos (marca 'pagado' solo tras verificar). Incluye el reporte
  * de ingresos por examen (órdenes conciliadas).
@@ -283,7 +283,7 @@ export default function AdminOrdenesPago() {
 
       <SectionTour
         steps={TOUR_A_PAGOS}
-        storageKey="edumich_sec_a_pagos_v1"
+        storageKey="modula_sec_a_pagos_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de pagos"
       />
@@ -921,7 +921,7 @@ function NuevaOrden({ onBack, onCreada, onToast }: { onBack: () => void; onCread
               className="mt-2 w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-40">
               {creando ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />} Crear orden de pago
             </button>
-            <p className="text-[11px] text-stone-400 leading-relaxed">La línea de captura la emite Tesorería del Estado. EDUMICH solo genera y concilia la orden.</p>
+            <p className="text-[11px] text-stone-400 leading-relaxed">La línea de captura la emite Tesorería del Estado. Modula solo genera y concilia la orden.</p>
           </div>
         </div>
       </div>

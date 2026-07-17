@@ -1219,7 +1219,7 @@ export default function SolicitudesLista() {
 
       <SectionTour
         steps={TOUR_A_SOLICITUDES}
-        storageKey="edumich_sec_a_solicitudes_v1"
+        storageKey="modula_sec_a_solicitudes_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de solicitudes"
       />
@@ -1382,7 +1382,7 @@ function ActionBtn({
 // ─── StatCard ─────────────────────────────────────────────────────────────
 
 /**
- * Tarjeta de indicador con la identidad de EDUMICH: franja de acento a la
+ * Tarjeta de indicador con la identidad de Modula: franja de acento a la
  * izquierda (como los banners guinda) sobre blanco y cremas.
  *
  * Regla de diseño: si el contador está EN CERO la tarjeta se apaga a gris. No

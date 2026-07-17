@@ -57,7 +57,7 @@ function addFooter(page: PDFPage, regularFont: PDFFont, generadoEn: Date) {
   drawRect(page, 0, 0, PAGE_W, footerY + 10, GUINDA);
   const dateStr = generadoEn.toLocaleString('es-MX');
   drawText(page, `Generado: ${dateStr}`, MARGIN, footerY, regularFont, 7, WHITE);
-  const disclaimer = 'EDUMICH · Preparatoria Abierta · IEMSyS Michoacan';
+  const disclaimer = 'Modula · Preparatoria Abierta · IEMSyS Michoacan';
   const dw = regularFont.widthOfTextAtSize(disclaimer, 7);
   drawText(page, disclaimer, PAGE_W - MARGIN - dw, footerY, regularFont, 7, GOLD);
 }
@@ -81,7 +81,7 @@ export async function generarPDFReporte(data: ReporteData): Promise<Buffer> {
   drawRect(portada, 0, PAGE_H - 220, PAGE_W, 220, GUINDA);
 
   // Institution name
-  drawText(portada, 'EDUMICH · Preparatoria Abierta', MARGIN, PAGE_H - 80, boldFont, 22, WHITE);
+  drawText(portada, 'Modula · Preparatoria Abierta', MARGIN, PAGE_H - 80, boldFont, 22, WHITE);
   drawText(portada, 'Sistema de Gestion Escolar — IEMSyS Michoacan', MARGIN, PAGE_H - 105, regularFont, 13, GOLD);
 
   // Gold divider

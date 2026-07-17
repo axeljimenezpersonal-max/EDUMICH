@@ -66,7 +66,7 @@ function navGroups(esJefe: boolean): NavGroup[] {
     {
       label: 'SISTEMA',
       items: [
-        { id: 'acerca-de', label: 'Acerca de EDUMICH', icon: Info },
+        { id: 'acerca-de', label: 'Acerca de Modula', icon: Info },
       ],
     },
   ];
@@ -190,7 +190,7 @@ export default function Configuracion() {
 
       <SectionTour
         steps={TOUR_A_CONFIGURACION}
-        storageKey="edumich_sec_a_configuracion_v1"
+        storageKey="modula_sec_a_configuracion_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de configuración"
       />

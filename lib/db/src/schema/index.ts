@@ -552,7 +552,7 @@ export const pagosGrupalesExamenes = pgTable(
 
 // ─────────────────────────────────────────────────────────────────────────
 // Pagos de examen (Tesorería del Estado) — modelo canónico "orden de pago con
-// línea de captura". EDUMICH NO cobra ni genera líneas de captura: la orden la
+// línea de captura". Modula NO cobra ni genera líneas de captura: la orden la
 // emite la plataforma del Estado (SFA); aquí solo se ALMACENA y se SIRVE.
 // El estado 'pagado' solo se setea por conciliación/verificación de un admin.
 // ─────────────────────────────────────────────────────────────────────────

@@ -108,7 +108,7 @@ export default function AdminCalificaciones() {
 
       <SectionTour
         steps={TOUR_A_CALIFICACIONES}
-        storageKey="edumich_sec_a_calificaciones_v1"
+        storageKey="modula_sec_a_calificaciones_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de calificaciones"
       />

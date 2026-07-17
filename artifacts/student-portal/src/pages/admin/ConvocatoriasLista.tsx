@@ -349,7 +349,7 @@ export default function ConvocatoriasLista() {
 
       <SectionTour
         steps={TOUR_A_CONVOCATORIAS}
-        storageKey="edumich_sec_a_convocatorias_v1"
+        storageKey="modula_sec_a_convocatorias_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de convocatorias"
       />

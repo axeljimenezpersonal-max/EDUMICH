@@ -797,7 +797,7 @@ router.get('/verificar/:folio', async (req, res) => {
   <div class="card">
     <div class="header">
       <div class="header-logo">Gobierno del Estado de Michoacán</div>
-      <div class="header-title">EDUMICH · Sistema de Verificación de Documentos</div>
+      <div class="header-title">Modula · Sistema de Verificación de Documentos</div>
       <div class="header-sub">Plataforma Educativa Digital · Preparatoria Abierta · IEMSyS Michoacán</div>
     </div>
     <div class="body">
@@ -841,7 +841,7 @@ router.get('/verificar/:folio', async (req, res) => {
       </div>
 
       <div class="footer">
-        EDUMICH &mdash; Plataforma Educativa Digital · Gobierno del Estado de Michoacán<br>
+        Modula &mdash; Plataforma Educativa Digital · Gobierno del Estado de Michoacán<br>
         Este documento es válido únicamente como comprobante de pre-registro.
       </div>
     </div>

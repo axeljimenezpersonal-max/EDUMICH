@@ -82,7 +82,7 @@ export default function Login() {
             className="relative"
             style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 20, paddingBottom: 20 }}
           >
-            {/* Preparatoria Abierta pill (programa) — EDUMICH es la marca principal */}
+            {/* Preparatoria Abierta pill (programa) — Modula es la marca principal */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -98,13 +98,13 @@ export default function Login() {
               </div>
             </div>
             <h1 className="font-serif font-bold" style={{ fontSize: 52, lineHeight: 1.1, marginBottom: 8, textAlign: 'center' }}>
-              EDUMICH
+              Modula
             </h1>
             <div style={{
               fontSize: 13, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase',
               textAlign: 'center', marginBottom: 16, color: 'var(--color-dorado-soft)',
             }}>
-              Plataforma Educativa Digital
+              Plan 22 · Preparatoria Abierta
             </div>
             <p style={{ fontSize: 14.5, lineHeight: 1.55, opacity: 0.88, marginBottom: 20, textAlign: 'center' }}>
               Sistema de gestión institucional para la coordinación, gestores municipales y
@@ -134,7 +134,7 @@ export default function Login() {
               Una plataforma para acompañar tu camino al bachillerato.
             </div>
             <div style={{ fontSize: 10, opacity: 0.5, letterSpacing: '0.06em' }}>
-              Powered by <strong>EDUMICH</strong> · Plataforma Educativa Digital
+              Powered by <strong>Modula</strong> · Plataforma Educativa Digital
             </div>
           </div>
         </div>

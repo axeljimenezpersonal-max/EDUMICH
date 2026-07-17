@@ -635,7 +635,7 @@ export default function AnunciosLista() {
 
       <SectionTour
         steps={TOUR_A_ANUNCIOS}
-        storageKey="edumich_sec_a_anuncios_v1"
+        storageKey="modula_sec_a_anuncios_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de anuncios"
       />

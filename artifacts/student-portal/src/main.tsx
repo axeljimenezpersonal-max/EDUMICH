@@ -25,7 +25,7 @@ function Root() {
             justifyContent: 'center',
             zIndex: 9999,
             color: 'white',
-            animation: 'edumich-fade-out 0.4s 0.85s forwards',
+            animation: 'modula-fade-out 0.4s 0.85s forwards',
           }}
         >
           <div
@@ -38,7 +38,7 @@ function Root() {
               lineHeight: 1,
             }}
           >
-            EDUMICH
+            Modula
           </div>
           <div
             style={{
@@ -58,7 +58,7 @@ function Root() {
               border: '3px solid rgba(255,255,255,0.2)',
               borderTopColor: 'white',
               borderRadius: '50%',
-              animation: 'edumich-spin 0.8s linear infinite',
+              animation: 'modula-spin 0.8s linear infinite',
             }}
           />
           <div
@@ -73,8 +73,8 @@ function Root() {
             Gobierno del Estado de Michoacán · IEMSyS
           </div>
           <style>{`
-            @keyframes edumich-fade-out { to { opacity: 0; visibility: hidden; } }
-            @keyframes edumich-spin { to { transform: rotate(360deg); } }
+            @keyframes modula-fade-out { to { opacity: 0; visibility: hidden; } }
+            @keyframes modula-spin { to { transform: rotate(360deg); } }
           `}</style>
         </div>
       )}

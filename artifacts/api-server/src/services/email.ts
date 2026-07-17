@@ -298,7 +298,7 @@ function getRecuperarPasswordHTML(data: RecuperarPasswordData): string {
           </td></tr></table>
         </td></tr>
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-          <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">EDUMICH · Plataforma Educativa Digital · Gobierno de Michoacán</p>
+          <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">Modula · Plan 22 · Preparatoria Abierta · Gobierno de Michoacán</p>
         </td></tr>
       </table>
     </td></tr>
@@ -342,7 +342,7 @@ function getAvisoEliminacionHTML(data: AvisoEliminacionData): string {
         </td></tr>
         ${gestorSection}
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-          <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">EDUMICH · Plataforma Educativa Digital · Gobierno de Michoacán</p>
+          <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;line-height:1.5;">Modula · Plan 22 · Preparatoria Abierta · Gobierno de Michoacán</p>
         </td></tr>
       </table>
     </td></tr>
@@ -375,7 +375,7 @@ function getVerificationEmailHTML(codigo: string): string {
           <p style="color:#78716c;font-size:12px;line-height:1.5;border-top:1px solid #e2d9d0;padding-top:16px;margin:0;">Si no solicitaste crear una cuenta, puedes ignorar este correo.</p>
         </td></tr>
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-          <p style="color:#78716c;font-size:11px;margin:0;text-align:center;">EDUMICH · Plataforma Educativa Digital · Gobierno de Michoacán</p>
+          <p style="color:#78716c;font-size:11px;margin:0;text-align:center;">Modula · Plan 22 · Preparatoria Abierta · Gobierno de Michoacán</p>
         </td></tr>
       </table>
     </td></tr>

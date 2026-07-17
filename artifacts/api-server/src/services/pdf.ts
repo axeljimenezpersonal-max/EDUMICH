@@ -155,7 +155,7 @@ function drawFooter(page: PDFPage, regular: PDFFont, folio: string, extra?: stri
   drawLine(page, MARGIN, y + 10, PAGE_W - MARGIN, y + 10);
   drawText(page, folio, MARGIN, y - 2, regular, 7.5, GRIS);
   if (extra) drawText(page, extra, MARGIN + 200, y - 2, regular, 7.5, GRIS);
-  drawText(page, 'EDUMICH · Preparatoria Abierta · IEMSyS Michoacán', PAGE_W / 2 - 100, y - 2, regular, 7.5, GRIS);
+  drawText(page, 'Modula · Preparatoria Abierta · IEMSyS Michoacán', PAGE_W / 2 - 100, y - 2, regular, 7.5, GRIS);
   drawText(page, 'edumich.michoacan.gob.mx', PAGE_W - MARGIN - 120, y - 2, regular, 7.5, GRIS);
 }
 

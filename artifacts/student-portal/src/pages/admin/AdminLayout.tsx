@@ -448,7 +448,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="w-px h-9 hidden lg:block" style={{ background: '#ddd0c5' }} />
             <div className="min-w-0" style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
-              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>EDUMICH</div>
+              <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Modula · Plan 22</div>
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 Sistema de Gestión · IEMSyS
                 <span style={{
@@ -475,7 +475,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             </div>
             <button
               data-tour="help-button"
-              onClick={() => window.dispatchEvent(new Event('edumich:start-tour'))}
+              onClick={() => window.dispatchEvent(new Event('modula:start-tour'))}
               aria-label="Ver tutorial guiado"
               title="Ver tutorial guiado"
               style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b635e', padding: 6 }}

@@ -155,7 +155,7 @@ export default function GestorCalificaciones() {
 
       <SectionTour
         steps={TOUR_G_CALIFICACIONES}
-        storageKey="edumich_sec_g_calificaciones_v1"
+        storageKey="modula_sec_g_calificaciones_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de calificaciones"
       />

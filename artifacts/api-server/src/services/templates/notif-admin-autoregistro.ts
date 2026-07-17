@@ -24,7 +24,7 @@ export function notifAdminAutoregistroTemplate(data: NotifAdminAutoregistroData)
     <tr><td align="center">
       <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
         <tr><td style="background:#6b1530;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">EDUMICH · Panel de Administración</div>
+          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Modula · Panel de Administración</div>
           <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Notificación del sistema</div>
         </td></tr>
         <tr><td style="padding:32px 32px 20px 32px;">
@@ -55,7 +55,7 @@ export function notifAdminAutoregistroTemplate(data: NotifAdminAutoregistroData)
           <a href="${data.panelUrl}" style="display:inline-block;background:#6b1530;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;">Revisar en el panel</a>
         </td></tr>
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-          <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;">EDUMICH · Plataforma Educativa Digital · Gobierno de Michoacán</p>
+          <p style="color:#a8a29e;font-size:10px;margin:0;text-align:center;">Modula · Plataforma Educativa Digital · Gobierno de Michoacán</p>
         </td></tr>
       </table>
     </td></tr>

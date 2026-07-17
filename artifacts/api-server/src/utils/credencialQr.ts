@@ -4,7 +4,7 @@
  * El QR es una URL pública `…/c/<folio>?t=<firma>` donde <firma> es un HMAC-SHA256
  * (con QR_SECRET) del folio. Como el folio es legible/secuencial, la FIRMA es lo
  * que hace al QR infalsificable: sin QR_SECRET no se puede producir un token
- * válido, así que un QR "auténtico" sólo lo pudo emitir EDUMICH.
+ * válido, así que un QR "auténtico" sólo lo pudo emitir Modula.
  *
  * La verificación recomputa el HMAC y lo compara en tiempo constante.
  */

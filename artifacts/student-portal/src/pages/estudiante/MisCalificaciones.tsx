@@ -50,7 +50,7 @@ export default function MisCalificaciones() {
 
       <SectionTour
         steps={TOUR_CALIFICACIONES}
-        storageKey="edumich_sec_calificaciones_v1"
+        storageKey="modula_sec_calificaciones_v1"
         gateKey={GATE_ESTUDIANTE}
         buttonLabel="Tutorial de Calificaciones"
       />

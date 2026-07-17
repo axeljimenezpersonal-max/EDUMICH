@@ -301,7 +301,7 @@ export default function GestorDashboard() {
 
       <SectionTour
         steps={TOUR_G_INICIO}
-        storageKey="edumich_sec_g_inicio_v1"
+        storageKey="modula_sec_g_inicio_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de inicio"
       />

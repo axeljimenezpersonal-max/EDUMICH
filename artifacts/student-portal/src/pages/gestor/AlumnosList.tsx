@@ -285,7 +285,7 @@ export default function AlumnosList() {
 
       <SectionTour
         steps={TOUR_G_ALUMNOS}
-        storageKey="edumich_sec_g_alumnos_v1"
+        storageKey="modula_sec_g_alumnos_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de alumnos"
       />

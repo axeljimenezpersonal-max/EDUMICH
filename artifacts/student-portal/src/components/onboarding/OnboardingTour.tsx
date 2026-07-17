@@ -1,7 +1,7 @@
 /**
  * Orquesta el recorrido de bienvenida de un rol: overlay + spotlight + tarjeta.
  * Se monta una vez dentro de cada layout. El botón de ayuda "?" del header lo
- * relanza disparando el evento `edumich:start-tour`.
+ * relanza disparando el evento `modula:start-tour`.
  */
 
 import { useCallback, useEffect, useState } from 'react';
@@ -12,7 +12,7 @@ import { TourCard } from './TourCard';
 import { useOnboarding } from './useOnboarding';
 
 /** Evento global para relanzar el tour desde cualquier parte (p. ej. el header). */
-export const START_TOUR_EVENT = 'edumich:start-tour';
+export const START_TOUR_EVENT = 'modula:start-tour';
 
 interface Props {
   rol: Rol | null | undefined;

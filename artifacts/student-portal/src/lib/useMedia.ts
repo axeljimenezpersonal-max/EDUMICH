@@ -1,5 +1,5 @@
 /**
- * Breakpoints canónicos de EDUMICH (mismos que Tailwind, en JS).
+ * Breakpoints canónicos de Modula (mismos que Tailwind, en JS).
  *
  * REGLA DE ORO responsive del proyecto:
  *  - `< 640px`  → teléfono (una columna, tarjetas, barra inferior)

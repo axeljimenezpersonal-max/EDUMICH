@@ -103,7 +103,7 @@ export default function GestorAula() {
 
       <SectionTour
         steps={TOUR_G_AULA}
-        storageKey="edumich_sec_g_aula_v1"
+        storageKey="modula_sec_g_aula_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de Mi aula"
       />

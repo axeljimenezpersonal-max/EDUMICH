@@ -115,7 +115,7 @@ export function CalendarioOficial() {
       if (e.examenSabado) push(`exs-${e.clave}`, `Examen · Etapa ${e.clave} (sábado)`, dt(e.examenSabado), nextDay(e.examenSabado));
       if (e.examenDomingo) push(`exd-${e.clave}`, `Examen · Etapa ${e.clave} (domingo)`, dt(e.examenDomingo), nextDay(e.examenDomingo));
     }
-    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//EDUMICH//Calendario//ES', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
+    const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Modula//Calendario//ES', 'CALSCALE:GREGORIAN', ...ev, 'END:VCALENDAR'].join('\r\n');
     const url = URL.createObjectURL(new Blob([ics], { type: 'text/calendar' }));
     const a = document.createElement('a'); a.href = url; a.download = 'calendario-preparatoria-abierta.ics';
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);

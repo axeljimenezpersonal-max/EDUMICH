@@ -715,7 +715,7 @@ export default function GestoresLista() {
 
       <SectionTour
         steps={TOUR_A_GESTORES}
-        storageKey="edumich_sec_a_gestores_v1"
+        storageKey="modula_sec_a_gestores_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de gestores"
       />

@@ -450,7 +450,7 @@ export default function MiExpediente() {
 
       <SectionTour
         steps={TOUR_EXPEDIENTE}
-        storageKey="edumich_sec_expediente_v1"
+        storageKey="modula_sec_expediente_v1"
         gateKey={GATE_ESTUDIANTE}
         buttonLabel="Tutorial de Expediente"
       />

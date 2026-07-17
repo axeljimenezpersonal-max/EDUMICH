@@ -62,7 +62,7 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
         </td></tr>
         <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
           <p style="color:#78716c;font-size:11px;margin:0;text-align:center;"><strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong></p>
-          <p style="color:#a8a29e;font-size:10px;margin:6px 0 0 0;text-align:center;line-height:1.5;">Este correo fue enviado desde <strong>EDUMICH</strong> · Mensaje generado automáticamente.</p>
+          <p style="color:#a8a29e;font-size:10px;margin:6px 0 0 0;text-align:center;line-height:1.5;">Este correo fue enviado desde <strong>Modula</strong> · Mensaje generado automáticamente.</p>
         </td></tr>
       </table>
     </td></tr>

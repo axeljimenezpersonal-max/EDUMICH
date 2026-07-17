@@ -1,5 +1,5 @@
 /**
- * Reglas de negocio configurables de la plataforma EDUMICH.
+ * Reglas de negocio configurables de la plataforma Modula.
  *
  * Centralizadas aquí para que un cambio de política se haga en un solo lugar.
  */

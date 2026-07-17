@@ -334,7 +334,7 @@ export default function MisModulos() {
       </div>
       <SectionTour
         steps={TOUR_MODULOS}
-        storageKey="edumich_sec_modulos_v1"
+        storageKey="modula_sec_modulos_v1"
         gateKey={GATE_ESTUDIANTE}
         buttonLabel="Tutorial de Pruebas"
       />

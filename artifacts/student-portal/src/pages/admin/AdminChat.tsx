@@ -319,7 +319,7 @@ export default function AdminChat() {
 
       <SectionTour
         steps={TOUR_A_CHAT}
-        storageKey="edumich_sec_a_chat_v1"
+        storageKey="modula_sec_a_chat_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial del chat"
       />

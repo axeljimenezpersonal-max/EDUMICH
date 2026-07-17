@@ -450,7 +450,7 @@ export default function VerificacionPase() {
               >
                 <ShieldCheck size={15} className="shrink-0" />
                 {state.data.firmaValida
-                  ? 'Firma digital auténtica — este QR fue emitido por EDUMICH.'
+                  ? 'Firma digital auténtica — este QR fue emitido por Modula.'
                   : 'QR sin firma verificable. Revisa que sea la credencial oficial vigente del alumno.'}
               </div>
             </div>
@@ -529,7 +529,7 @@ export default function VerificacionPase() {
 
       <SectionTour
         steps={TOUR_A_VERIFICACION}
-        storageKey="edumich_sec_a_verificacion_v1"
+        storageKey="modula_sec_a_verificacion_v1"
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de verificación"
       />

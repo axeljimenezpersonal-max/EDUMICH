@@ -1,5 +1,5 @@
 /**
- * Primitivas responsive de EDUMICH — el patrón oficial para que NINGUNA tabla
+ * Primitivas responsive de Modula — el patrón oficial para que NINGUNA tabla
  * quede ilegible en teléfono.
  *
  * Dos niveles, del piso al ideal:

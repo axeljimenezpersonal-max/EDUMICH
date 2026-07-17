@@ -996,7 +996,7 @@ export default function NuevoAlumno() {
 
       <SectionTour
         steps={TOUR_G_NUEVO_ALUMNO}
-        storageKey="edumich_sec_g_nuevo_alumno_v1"
+        storageKey="modula_sec_g_nuevo_alumno_v1"
         gateKey={GATE_GESTOR}
         buttonLabel="Tutorial de registro"
       />

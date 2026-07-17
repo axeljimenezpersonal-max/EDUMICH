@@ -1,6 +1,6 @@
 /**
  * RELACIÓN DE CALIFICACIONES Y ACIERTOS — reporte descargable (PDF).
- * Replica el formato oficial de Preparatoria Abierta / EDUMICH que emite la SEP:
+ * Replica el formato oficial de Preparatoria Abierta / Modula que emite la SEP:
  * encabezado institucional + tabla NÚM · NOMBRE · MATRÍCULA · (MÓD · C · A)…
  *
  * Un renglón por alumno, sus módulos en horizontal. La "C" es la calificación en

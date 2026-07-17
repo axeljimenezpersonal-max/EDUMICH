@@ -1,5 +1,5 @@
 /**
- * Shell compartido para los correos de EDUMICH.
+ * Shell compartido para los correos de Modula.
  * Da una estética cálida y consistente (guinda con degradado, acento dorado,
  * tarjetas suaves) en vez del look de "tabla robótica". Compatible con clientes
  * de correo: layout con tablas + estilos inline + fallbacks por bgcolor.
@@ -48,7 +48,7 @@ export function emailLayout(opts: { preheader?: string; contenido: string }): st
             </td>
             <td style="vertical-align:middle;">
               <div style="color:#ffffff;font-family:Georgia,serif;font-size:19px;font-weight:bold;line-height:1.2;">Preparatoria Abierta</div>
-              <div style="color:rgba(255,255,255,0.72);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;margin-top:2px;">EDUMICH · IEMSyS · Gobierno de Michoacán</div>
+              <div style="color:rgba(255,255,255,0.72);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;margin-top:2px;">Modula · Plan 22 · IEMSyS · Gobierno de Michoacán</div>
             </td>
           </tr></table>
         </td></tr>
@@ -62,7 +62,7 @@ export function emailLayout(opts: { preheader?: string; contenido: string }): st
             <strong style="color:${guinda};">Preparatoria Abierta Michoacán</strong><br/>
             Instituto de Educación Media Superior y Superior — Gobierno de Michoacán
           </div>
-          <div style="color:#b6ad9f;font-size:10px;text-align:center;margin-top:8px;">Este mensaje se envió automáticamente desde EDUMICH.</div>
+          <div style="color:#b6ad9f;font-size:10px;text-align:center;margin-top:8px;">Este mensaje se envió automáticamente desde Modula.</div>
         </td></tr>
       </table>
       <div style="color:#c4bcae;font-size:10px;margin-top:14px;">© ${'2026'} Gobierno del Estado de Michoacán · Honestidad y Trabajo</div>
