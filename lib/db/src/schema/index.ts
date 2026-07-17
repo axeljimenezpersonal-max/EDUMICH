@@ -1002,6 +1002,40 @@ export const examenesInscripciones = pgTable(
   })
 );
 
+/**
+ * Sedes habilitadas por etapa de convocatoria.
+ *
+ * El modelo canónico: la CONVOCATORIA (etapa) define en qué sedes se puede
+ * presentar; al inscribirse, el alumno ELIGE una de esas. Antes la sede se
+ * deducía del municipio del alumno con un respaldo «primera de la tabla» que
+ * podía mostrar una sede equivocada — eso se elimina.
+ *
+ * `cupo` es opcional (null = sin límite). Se reserva para cuando se controle
+ * aforo por sede; hoy no se aplica, pero la columna queda lista.
+ *
+ * Si una etapa NO tiene filas aquí, se considera «sin sedes configuradas» y el
+ * backend cae al comportamiento anterior por municipio (transición sin romper).
+ */
+export const convocatoriasEtapasSedes = pgTable(
+  'convocatorias_etapas_sedes',
+  {
+    id: serial('id').primaryKey(),
+    etapaId: integer('etapa_id')
+      .notNull()
+      .references(() => convocatoriasEtapas.id, { onDelete: 'cascade' }),
+    sedeId: integer('sede_id')
+      .notNull()
+      .references(() => sedes.id, { onDelete: 'cascade' }),
+    cupo: integer('cupo'), // null = sin límite
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    // Una sede no se habilita dos veces en la misma etapa.
+    etapaSedeUq: uniqueIndex('convocatorias_etapas_sedes_uq').on(t.etapaId, t.sedeId),
+    etapaIdx: index('convocatorias_etapas_sedes_etapa_idx').on(t.etapaId),
+  })
+);
+
 // ─────────────────────────────────────────────────────────────────────────
 // Relaciones (Drizzle)
 // ─────────────────────────────────────────────────────────────────────────

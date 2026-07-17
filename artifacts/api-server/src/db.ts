@@ -96,6 +96,17 @@ const migrations = [
    )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS tutoriales_vistos_uq ON tutoriales_vistos(user_id, clave, etapa)`,
   `CREATE INDEX IF NOT EXISTS tutoriales_vistos_user_idx ON tutoriales_vistos(user_id)`,
+  // Sedes habilitadas por etapa: la convocatoria define dónde se puede presentar
+  // y el alumno elige una al inscribirse. Ver schema.convocatoriasEtapasSedes.
+  `CREATE TABLE IF NOT EXISTS convocatorias_etapas_sedes (
+     id serial PRIMARY KEY,
+     etapa_id integer NOT NULL REFERENCES convocatorias_etapas(id) ON DELETE CASCADE,
+     sede_id integer NOT NULL REFERENCES sedes(id) ON DELETE CASCADE,
+     cupo integer,
+     created_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS convocatorias_etapas_sedes_uq ON convocatorias_etapas_sedes(etapa_id, sede_id)`,
+  `CREATE INDEX IF NOT EXISTS convocatorias_etapas_sedes_etapa_idx ON convocatorias_etapas_sedes(etapa_id)`,
 ];
 
 export async function runStartupMigrations() {

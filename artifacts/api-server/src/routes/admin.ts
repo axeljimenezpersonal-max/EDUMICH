@@ -52,6 +52,7 @@ import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } fro
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
 import { tryAuditLog } from '../utils/audit';
+import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
   obtenerDatosCedula,
@@ -1707,13 +1708,14 @@ router.get('/estudiantes/:id/convocatoria/:etapaId/modulos', async (req, res) =>
 const adminInscribirSchema = z.object({
   etapaId: z.number().int().positive(),
   modulosIds: z.array(z.number().int().positive()).min(1),
+  sedeId: z.number().int().positive().optional(),
 });
 router.post('/estudiantes/:id/inscribir-examen', async (req, res) => {
   const alumnoId = Number(req.params.id);
   if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
   const parse = adminInscribirSchema.safeParse(req.body);
   if (!parse.success) { res.status(400).json({ error: 'Datos inválidos', detalle: parse.error.errors }); return; }
-  const { etapaId, modulosIds } = parse.data;
+  const { etapaId, modulosIds, sedeId: sedeElegida } = parse.data;
   try {
     const [alumno] = await db
       .select({ userId: estudiantes.userId, municipioId: estudiantes.municipioId })
@@ -1740,13 +1742,15 @@ router.post('/estudiantes/:id/inscribir-examen', async (req, res) => {
     const existingSlots = new Set(existentes.map((i) => `${i.dia}-${i.hora}`));
     let activos = inscritosModuloIds.size;
 
-    let sedeId: number | null = null;
-    if (alumno.municipioId) {
-      const [s] = await db.select({ id: sedes.id }).from(sedes).where(eq(sedes.municipioId, alumno.municipioId)).limit(1);
-      if (s) sedeId = s.id;
-    }
-    if (!sedeId) { const [s] = await db.select({ id: sedes.id }).from(sedes).limit(1); if (s) sedeId = s.id; }
-    if (!sedeId) { res.status(500).json({ error: 'No hay sedes configuradas' }); return; }
+    // Sede: valida la elegida contra las que la etapa habilita (o respaldo por
+    // municipio). Fuente única compartida con el alumno y el gestor.
+    const resSede = await resolverSedeParaInscripcion({
+      etapaId,
+      sedeIdElegida: sedeElegida ?? null,
+      municipioId: alumno.municipioId ?? null,
+    });
+    if ('error' in resSede) { res.status(400).json({ error: resSede.error }); return; }
+    const sedeId = resSede.sedeId;
 
     const modulosRows = await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(inArray(modulos.id, modulosIds));
     const modulosById = new Map(modulosRows.map((m) => [m.id, m]));

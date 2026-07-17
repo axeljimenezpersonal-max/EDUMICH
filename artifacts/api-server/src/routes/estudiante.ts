@@ -46,6 +46,7 @@ import {
   expedienteDocumentos,
   sedes,
   convocatoriasEtapas,
+  convocatoriasEtapasSedes,
   convocatoriasModulosHorarios,
   examenesInscripciones,
   inscripcionModulos,
@@ -64,6 +65,7 @@ import { authRequired, requireRol } from '../middleware/auth';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
+import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import {
   obtenerDatosCedula,
   guardarDatosCedula,
@@ -1247,6 +1249,7 @@ router.get('/convocatoria', async (req, res) => {
       hora: convocatoriasModulosHorarios.hora,
       sedeNombre: sedes.nombre,
       sedeDireccion: sedes.direccion,
+      sedeTelefono: sedes.telefono,
       sedeLatitud: sedes.latitud,
       sedeLongitud: sedes.longitud,
     })
@@ -1303,7 +1306,10 @@ router.get('/convocatoria', async (req, res) => {
     },
   }));
 
-  // Sede asignada por municipio
+  // Sede asignada = la que el alumno ELIGIÓ al inscribirse (queda congelada en
+  // su inscripción). Si aún no se inscribe, es null y la tarjeta muestra «se
+  // asignará al inscribirte». Ya NO se deduce por municipio ni se toma «la
+  // primera de la tabla» — eso mandaba a la sede equivocada.
   let sedeAsignada: {
     nombre: string;
     direccion: string;
@@ -1312,33 +1318,15 @@ router.get('/convocatoria', async (req, res) => {
     longitud: number | null;
   } | null = null;
 
-  if (est.municipioId) {
-    const [sd] = await db
-      .select()
-      .from(sedes)
-      .where(eq(sedes.municipioId, est.municipioId))
-      .limit(1);
-    if (sd) {
-      sedeAsignada = {
-        nombre: sd.nombre,
-        direccion: sd.direccion,
-        telefono: sd.telefono ?? null,
-        latitud: sd.latitud ? parseFloat(sd.latitud) : null,
-        longitud: sd.longitud ? parseFloat(sd.longitud) : null,
-      };
-    }
-  }
-  if (!sedeAsignada) {
-    const [sd] = await db.select().from(sedes).limit(1);
-    if (sd) {
-      sedeAsignada = {
-        nombre: sd.nombre,
-        direccion: sd.direccion,
-        telefono: sd.telefono ?? null,
-        latitud: sd.latitud ? parseFloat(sd.latitud) : null,
-        longitud: sd.longitud ? parseFloat(sd.longitud) : null,
-      };
-    }
+  const sedeElegida = misExamenesRaw[0];
+  if (sedeElegida) {
+    sedeAsignada = {
+      nombre: sedeElegida.sedeNombre,
+      direccion: sedeElegida.sedeDireccion,
+      telefono: sedeElegida.sedeTelefono ?? null,
+      latitud: sedeElegida.sedeLatitud ? parseFloat(sedeElegida.sedeLatitud) : null,
+      longitud: sedeElegida.sedeLongitud ? parseFloat(sedeElegida.sedeLongitud) : null,
+    };
   }
 
   // Próximas etapas (next 3)
@@ -1496,9 +1484,62 @@ router.get('/convocatoria/calendario', async (req, res) => {
 });
 
 // ─── POST /estudiante/convocatoria/inscribirme ────────────────────────────
+// ─── GET /convocatoria/sedes/:etapaId ────────────────────────────────────────
+// Sedes que la etapa habilita, para que el alumno elija al inscribirse. Si la
+// etapa no tiene sedes configuradas, devuelve lista vacía (el frontend no
+// muestra selector y el backend resuelve por municipio). `sugerida` marca la del
+// municipio del alumno para preseleccionarla.
+router.get('/convocatoria/sedes/:etapaId', async (req, res) => {
+  const userId = req.user!.userId;
+  const etapaId = Number(req.params.etapaId);
+  if (!Number.isInteger(etapaId)) {
+    res.status(400).json({ error: 'Etapa inválida' });
+    return;
+  }
+
+  const [est] = await db
+    .select({ municipioId: estudiantes.municipioId })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, userId));
+
+  const rows = await db
+    .select({
+      id: sedes.id,
+      nombre: sedes.nombre,
+      direccion: sedes.direccion,
+      telefono: sedes.telefono,
+      municipioId: sedes.municipioId,
+      municipio: municipios.nombre,
+      latitud: sedes.latitud,
+      longitud: sedes.longitud,
+    })
+    .from(convocatoriasEtapasSedes)
+    .innerJoin(sedes, eq(convocatoriasEtapasSedes.sedeId, sedes.id))
+    .innerJoin(municipios, eq(sedes.municipioId, municipios.id))
+    .where(eq(convocatoriasEtapasSedes.etapaId, etapaId))
+    .orderBy(municipios.nombre, sedes.nombre);
+
+  res.json({
+    sedes: rows.map((r) => ({
+      id: r.id,
+      nombre: r.nombre,
+      direccion: r.direccion,
+      telefono: r.telefono,
+      municipio: r.municipio,
+      latitud: r.latitud ? parseFloat(r.latitud) : null,
+      longitud: r.longitud ? parseFloat(r.longitud) : null,
+      sugerida: est?.municipioId != null && r.municipioId === est.municipioId,
+    })),
+  });
+});
+
 const inscribirmeSchema = z.object({
   etapaId: z.number().int().positive(),
   modulosIds: z.array(z.number().int().positive()).min(1),
+  // Sede elegida por el alumno entre las que la etapa habilita. Opcional por
+  // compatibilidad: si la etapa tiene una sola sede o coincide con su municipio,
+  // el backend la resuelve. Ver utils/sedeInscripcion.
+  sedeId: z.number().int().positive().optional(),
 });
 
 router.post('/convocatoria/inscribirme', async (req, res) => {
@@ -1509,7 +1550,7 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
     res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
     return;
   }
-  const { etapaId, modulosIds } = parse.data;
+  const { etapaId, modulosIds, sedeId: sedeElegida } = parse.data;
 
   // a. Etapa exists and open
   const [etapa] = await db
@@ -1657,29 +1698,24 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
     newSlots.add(slotKey);
   }
 
-  // Get sede by student's municipio
+  // Sede: la elige el alumno entre las que la etapa habilita. El helper valida
+  // la elección y resuelve el respaldo (municipio / sede única) sin caer nunca
+  // en la «primera sede de la tabla».
   const [est] = await db
     .select({ municipioId: estudiantes.municipioId })
     .from(estudiantes)
     .where(eq(estudiantes.userId, userId));
 
-  let sedeId: number;
-  if (est?.municipioId) {
-    const [sd] = await db
-      .select({ id: sedes.id })
-      .from(sedes)
-      .where(eq(sedes.municipioId, est.municipioId))
-      .limit(1);
-    if (sd) {
-      sedeId = sd.id;
-    } else {
-      const [defaultSede] = await db.select({ id: sedes.id }).from(sedes).limit(1);
-      sedeId = defaultSede.id;
-    }
-  } else {
-    const [defaultSede] = await db.select({ id: sedes.id }).from(sedes).limit(1);
-    sedeId = defaultSede.id;
+  const resSede = await resolverSedeParaInscripcion({
+    etapaId,
+    sedeIdElegida: sedeElegida ?? null,
+    municipioId: est?.municipioId ?? null,
+  });
+  if ('error' in resSede) {
+    res.status(400).json({ error: resSede.error });
+    return;
   }
+  const sedeId = resSede.sedeId;
 
   // Insert inscriptions
   const inscripcionesResult: Array<{ id: number; folio: string; moduloNombre: string; fecha: string; hora: string }> = [];
