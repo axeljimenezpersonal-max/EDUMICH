@@ -168,6 +168,39 @@ const migrations = [
   // El folio de credencial es único (parcial: muchos alumnos aún no tienen).
   `CREATE UNIQUE INDEX IF NOT EXISTS estudiantes_licencia_digital_uq
      ON estudiantes(licencia_digital) WHERE licencia_digital IS NOT NULL`,
+
+  // Telemetría de uso: contadores por (día, rol, tipo, clave). Sin user_id
+  // a propósito — ver el comentario de la tabla en el esquema.
+  `CREATE TABLE IF NOT EXISTS uso_diario (
+     id serial PRIMARY KEY,
+     dia date NOT NULL,
+     rol varchar(20) NOT NULL,
+     tipo varchar(12) NOT NULL,
+     clave varchar(80) NOT NULL,
+     conteo integer NOT NULL DEFAULT 0,
+     actualizado_en timestamp NOT NULL DEFAULT now()
+   )`,
+  // El ON CONFLICT de la ingesta depende de este índice único.
+  `CREATE UNIQUE INDEX IF NOT EXISTS uso_diario_unico_idx
+     ON uso_diario(dia, rol, tipo, clave)`,
+  `CREATE INDEX IF NOT EXISTS uso_diario_consulta_idx ON uso_diario(dia, rol)`,
+
+  // Accesos rápidos del inicio, aprobados a mano a partir de lo que sugiere
+  // la telemetría.
+  `CREATE TABLE IF NOT EXISTS accesos_rapidos (
+     id serial PRIMARY KEY,
+     rol varchar(20) NOT NULL,
+     clave varchar(80) NOT NULL,
+     etiqueta varchar(60) NOT NULL,
+     orden integer NOT NULL DEFAULT 0,
+     activo boolean NOT NULL DEFAULT true,
+     creado_por integer REFERENCES users(id) ON DELETE SET NULL,
+     created_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS accesos_rapidos_rol_clave_idx
+     ON accesos_rapidos(rol, clave)`,
+  `CREATE INDEX IF NOT EXISTS accesos_rapidos_rol_orden_idx
+     ON accesos_rapidos(rol, orden)`,
 ];
 
 export async function runStartupMigrations() {

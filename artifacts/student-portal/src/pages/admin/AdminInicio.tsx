@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AccesosRapidos } from '../../components/AccesosRapidos';
 import { useLocation } from 'wouter';
 import {
   Home, Users, UserCheck,
@@ -132,6 +133,7 @@ export default function AdminInicio() {
 
   return (
     <AdminLayout>
+      <AccesosRapidos className="mb-5" />
       {loading ? (
         <div className="flex items-center justify-center py-24 text-stone-400 text-sm">
           Cargando panel...

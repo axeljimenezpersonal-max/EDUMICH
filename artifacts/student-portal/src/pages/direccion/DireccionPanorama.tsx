@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { AccesosRapidos } from '../../components/AccesosRapidos';
 import { Loader2 } from 'lucide-react';
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Cell,
@@ -61,6 +62,7 @@ export default function DireccionPanorama() {
 
   return (
     <DireccionLayout>
+      <AccesosRapidos className="mb-5" />
       <div className="mb-5">
         <h1 className="font-bold" style={{ fontSize: 22, fontFamily: "'Poppins', sans-serif" }}>
           Panorama del programa

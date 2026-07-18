@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { AccesosRapidos } from '../../components/AccesosRapidos';
 import { Link } from 'wouter';
 import { safeUrl } from '../../lib/safeUrl';
 import {
@@ -194,6 +195,7 @@ export default function EstudianteDashboard() {
 
   return (
     <EstudianteLayout>
+      <AccesosRapidos className="mb-5" />
       <div className="space-y-6">
         {/* ── 1. SALUDO (siempre primero) ── */}
         <div className="overflow-hidden rounded-xl border border-stone-200/80 bg-white p-5 sm:p-6 shadow-[0_1px_2px_rgba(74,14,32,0.04),0_10px_28px_-14px_rgba(74,14,32,0.12)]">

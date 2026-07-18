@@ -1960,3 +1960,55 @@ export const credencialesVerificacionesRelations = relations(credencialesVerific
     references: [users.id],
   }),
 }));
+
+// ── Telemetría de uso ────────────────────────────────────────────────────
+// Contadores, NO expedientes. Se guarda "el 12 de agosto el rol gestor abrió
+// /gestor/alumnos 47 veces", nunca "quién" ni "cuándo exactamente". No hay
+// user_id a propósito: así es imposible reconstruir la sesión de una persona
+// aunque alguien entre a la base, y el aviso de privacidad vigente ya lo
+// ampara como estadística disociada para mejora del servicio.
+//
+// Es una tabla APARTE de audit_log: esa es bitácora legal de mutaciones
+// (crear alumno, aprobar documento) con lectura restringida a la admin
+// titular. Mezclarle navegación le arruinaría el propósito de gobierno.
+export const usoDiario = pgTable(
+  'uso_diario',
+  {
+    id: serial('id').primaryKey(),
+    dia: date('dia').notNull(),
+    rol: varchar('rol', { length: 20 }).notNull(),
+    // 'pantalla' (ruta normalizada) o 'accion' (botón con data-uso)
+    tipo: varchar('tipo', { length: 12 }).notNull(),
+    // Ruta normalizada (/gestor/alumnos/:id) o slug de acción (pago.subir)
+    clave: varchar('clave', { length: 80 }).notNull(),
+    conteo: integer('conteo').notNull().default(0),
+    actualizadoEn: timestamp('actualizado_en').notNull().defaultNow(),
+  },
+  (t) => ({
+    // El upsert de la ingesta depende de este único: ON CONFLICT lo usa.
+    unicoIdx: uniqueIndex('uso_diario_unico_idx').on(t.dia, t.rol, t.tipo, t.clave),
+    // El tablero siempre consulta por rango de días y rol.
+    consultaIdx: index('uso_diario_consulta_idx').on(t.dia, t.rol),
+  })
+);
+
+// Accesos rápidos del inicio de cada rol. La telemetría SUGIERE, un humano
+// APRUEBA, y lo aprobado vive aquí. No se reordena solo: un menú que se mueve
+// bajo el dedo del usuario es peor que uno imperfecto pero estable.
+export const accesosRapidos = pgTable(
+  'accesos_rapidos',
+  {
+    id: serial('id').primaryKey(),
+    rol: varchar('rol', { length: 20 }).notNull(),
+    clave: varchar('clave', { length: 80 }).notNull(),
+    etiqueta: varchar('etiqueta', { length: 60 }).notNull(),
+    orden: integer('orden').notNull().default(0),
+    activo: boolean('activo').notNull().default(true),
+    creadoPor: integer('creado_por').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    rolClaveIdx: uniqueIndex('accesos_rapidos_rol_clave_idx').on(t.rol, t.clave),
+    rolOrdenIdx: index('accesos_rapidos_rol_orden_idx').on(t.rol, t.orden),
+  })
+);

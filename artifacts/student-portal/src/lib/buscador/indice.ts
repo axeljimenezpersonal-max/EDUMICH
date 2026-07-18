@@ -23,7 +23,10 @@ import type { EntradaIndice } from './tipos';
 
 const ALUMNO = ['estudiante'] as const;
 const GESTOR = ['gestor'] as const;
+const ADMIN = ['admin'] as const;
+const DIRECCION = ['direccion'] as const;
 const AMBOS = ['estudiante', 'gestor'] as const;
+const TODOS = ['estudiante', 'gestor', 'admin', 'direccion'] as const;
 
 // ── Secciones del alumno ────────────────────────────────────────────────────
 

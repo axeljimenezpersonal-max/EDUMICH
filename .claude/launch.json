@@ -4,14 +4,24 @@
     {
       "name": "student-portal",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--config.verify-deps-before-run=false", "--filter", "@workspace/student-portal", "dev"],
+      "runtimeArgs": [
+        "--config.verify-deps-before-run=false",
+        "--filter",
+        "@workspace/student-portal",
+        "dev"
+      ],
       "port": 5173,
       "autoPort": true
     },
     {
       "name": "api-server",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@workspace/api-server", "dev"],
+      "runtimeArgs": [
+        "--config.verify-deps-before-run=false",
+        "--filter",
+        "@workspace/api-server",
+        "dev"
+      ],
       "port": 3001
     }
   ]

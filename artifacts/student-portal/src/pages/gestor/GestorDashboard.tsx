@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useState } from 'react';
+import { AccesosRapidos } from '../../components/AccesosRapidos';
 import { Link } from 'wouter';
 import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X, CreditCard, ChevronRight } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
@@ -88,6 +89,7 @@ export default function GestorDashboard() {
 
   return (
     <GestorLayout>
+      <AccesosRapidos className="mb-5" />
       {/* Encabezado de página */}
       <div className="mb-6">
         <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-[var(--color-guinda-700)] font-semibold mb-1">

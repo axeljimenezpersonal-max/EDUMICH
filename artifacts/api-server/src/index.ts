@@ -37,6 +37,7 @@ import bancoRoutes from './routes/banco';
 import firmaRoutes from './routes/firma';
 import chatRoutes, { adminChatRouter } from './routes/chat';
 import aulaRoutes from './routes/aula';
+import usoRoutes from './routes/uso';
 import busquedaRoutes from './routes/busqueda';
 import devRoutes from './routes/dev';
 import verificacionRoutes from './routes/verificacion';
@@ -131,6 +132,8 @@ app.use('/api/busqueda', busquedaRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin/chat', adminChatRouter);
 app.use('/api/aula', aulaRoutes);
+// Telemetría de uso: ingesta de contadores + tablero + accesos rápidos.
+app.use('/api/uso', usoRoutes);
 // Rutas de mantenimiento/dev: NUNCA se montan en producción (defensa en
 // profundidad, además del propio gate interno por NODE_ENV).
 if (process.env.NODE_ENV !== 'production') {

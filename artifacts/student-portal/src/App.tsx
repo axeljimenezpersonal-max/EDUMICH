@@ -5,7 +5,10 @@
  * Ubicación destino: artifacts/student-portal/src/App.tsx
  */
 
-import { Switch, Route, Redirect } from 'wouter';
+import { useEffect } from 'react';
+import { Switch, Route, Redirect, useLocation } from 'wouter';
+import { iniciarTelemetria, registrarPantalla } from './lib/uso';
+import { demoActive } from './lib/demo';
 import Login from './pages/Login';
 import GestorDashboard from './pages/gestor/GestorDashboard';
 import AlumnosList from './pages/gestor/AlumnosList';
@@ -71,11 +74,38 @@ import DireccionOperacion from './pages/direccion/DireccionOperacion';
 import DireccionSalud from './pages/direccion/DireccionSalud';
 import DireccionProyecciones from './pages/direccion/DireccionProyecciones';
 import DireccionReportes from './pages/direccion/DireccionReportes';
+import DireccionUso from './pages/direccion/DireccionUso';
 import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
 import ManualAdmin from './pages/capacitacion/ManualAdmin';
 import DemoEstudiante from './pages/demo/DemoEstudiante';
+
+/**
+ * Telemetría de uso: cuenta qué pantallas se abren, por rol.
+ *
+ * Va aquí y no en cada página porque el cambio de ruta es el único punto por
+ * el que pasan todas. La ruta se normaliza antes de mandarse
+ * (`/gestor/alumnos/123` → `/gestor/alumnos/:id`), así que no viaja ningún
+ * identificador de persona. Ver `lib/uso.ts`.
+ */
+function TelemetriaDeUso() {
+  const [ruta] = useLocation();
+
+  useEffect(() => {
+    iniciarTelemetria({ demo: demoActive() });
+  }, []);
+
+  useEffect(() => {
+    // Las pantallas públicas (login, registro, aviso de privacidad) no se
+    // cuentan: no hay sesión, así que el servidor no sabría a qué rol
+    // atribuirlas y las descartaría de todos modos.
+    if (ruta.startsWith('/login') || ruta.startsWith('/registro')) return;
+    registrarPantalla(ruta);
+  }, [ruta]);
+
+  return null;
+}
 
 export default function App() {
   return (
@@ -84,6 +114,7 @@ export default function App() {
         navegador). Se montan una sola vez para toda la app. */}
     <Avisador />
     <Confirmador />
+    <TelemetriaDeUso />
     <Switch>
       <Route path="/login" component={Login} />
 
@@ -164,6 +195,7 @@ export default function App() {
       <Route path="/direccion/salud" component={DireccionSalud} />
       <Route path="/direccion/proyecciones" component={DireccionProyecciones} />
       <Route path="/direccion/reportes" component={DireccionReportes} />
+      <Route path="/direccion/uso" component={DireccionUso} />
       <Route path="/direccion" component={DireccionPanorama} />
 
       {/* Notificaciones — accesible desde todos los perfiles */}
