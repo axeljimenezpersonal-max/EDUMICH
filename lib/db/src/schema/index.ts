@@ -1842,6 +1842,79 @@ export const tutorialesVistos = pgTable('tutoriales_vistos', {
 }));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// CREDENCIAL DIGITAL — historial de emisiones
+//
+// El flujo es: el administrador autoriza → se emite la credencial → se genera un
+// folio de seguimiento. Cada emisión es una FILA NUEVA, nunca un UPDATE sobre la
+// anterior: así un folio viejo (una credencial impresa que alguien conserva)
+// sigue resolviendo al escanearse, pero informando que fue repuesta.
+//
+// `estudiantes.licencia_digital` se conserva como espejo del folio ACTIVO (lo
+// leen el PDF y varias vistas); la fuente de verdad del historial es esta tabla.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const credencialEstadoEnum = pgEnum('credencial_estado', [
+  'activa',    // es la credencial vigente del alumno
+  'repuesta',  // se emitió otra en su lugar (pérdida, robo, deterioro)
+  'cancelada', // anulada sin reemplazo (baja del alumno, emisión por error)
+]);
+
+export const credencialMotivoEnum = pgEnum('credencial_motivo', [
+  'emision',     // primera credencial del alumno
+  'reposicion',  // pérdida/robo de la anterior — genera folio nuevo
+  'vencimiento', // renovación por vigencia
+  'correccion',  // se emitió con datos mal capturados
+]);
+
+export const credenciales = pgTable(
+  'credenciales',
+  {
+    id: serial('id').primaryKey(),
+    estudianteId: integer('estudiante_id')
+      .notNull()
+      .references(() => estudiantes.userId, { onDelete: 'cascade' }),
+    // El folio de seguimiento: LIC-2026-MICH-000001. Es lo que viaja en el QR.
+    folio: varchar('folio', { length: 40 }).notNull(),
+    estado: credencialEstadoEnum('estado').notNull().default('activa'),
+    motivo: credencialMotivoEnum('motivo').notNull().default('emision'),
+    emitidaEn: timestamp('emitida_en').notNull().defaultNow(),
+    // Quién la autorizó. Nullable solo para las filas migradas del esquema viejo,
+    // donde ese dato pudo perderse.
+    emitidaPor: integer('emitida_por').references(() => users.id, { onDelete: 'set null' }),
+    vigenteHasta: timestamp('vigente_hasta'),
+    // Cuando se repone, apunta a la credencial que la sustituyó: permite explicar
+    // al que escanea el folio viejo qué pasó, sin adivinar.
+    reemplazadaPorId: integer('reemplazada_por_id').references((): AnyPgColumn => credenciales.id, {
+      onDelete: 'set null',
+    }),
+    notas: text('notas'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    folioUq: uniqueIndex('credenciales_folio_uq').on(t.folio),
+    estudianteIdx: index('credenciales_estudiante_idx').on(t.estudianteId, t.emitidaEn),
+    // Un alumno no puede tener dos credenciales activas a la vez. Índice PARCIAL:
+    // sí puede acumular varias 'repuesta'/'cancelada'.
+    unaActivaPorAlumno: uniqueIndex('credenciales_una_activa_uq')
+      .on(t.estudianteId)
+      .where(sql`${t.estado} = 'activa'`),
+  })
+);
+
+export const credencialesRelations = relations(credenciales, ({ one, many }) => ({
+  estudiante: one(estudiantes, {
+    fields: [credenciales.estudianteId],
+    references: [estudiantes.userId],
+  }),
+  emisor: one(users, {
+    fields: [credenciales.emitidaPor],
+    references: [users.id],
+  }),
+  verificaciones: many(credencialesVerificaciones),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CREDENCIAL DIGITAL — traqueo de escaneos del QR
 //
 // La tabla ya existía en la base, pero NO estaba declarada aquí: se usaba con

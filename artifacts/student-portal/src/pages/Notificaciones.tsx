@@ -43,6 +43,11 @@ const TIPO_ICONO: Record<string, React.ComponentType<{ size?: number }>> = {
   anuncio_dirigido: Megaphone,
   mi_alumno_subio_documento: FileText,
   mi_alumno_subio_pago: CreditCard,
+  // Ciclo de la orden de pago (ver utils/notificarPago.ts en el backend).
+  pago_por_emitir: CreditCard,
+  orden_pago_emitida: CreditCard,
+  pago_rechazado: XCircle,
+  pago_vencido: XCircle,
 };
 
 function NotifIcon({ tipo }: { tipo: string }) {

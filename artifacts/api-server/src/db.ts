@@ -107,6 +107,67 @@ const migrations = [
    )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS convocatorias_etapas_sedes_uq ON convocatorias_etapas_sedes(etapa_id, sede_id)`,
   `CREATE INDEX IF NOT EXISTS convocatorias_etapas_sedes_etapa_idx ON convocatorias_etapas_sedes(etapa_id)`,
+  // Avisos del ciclo de la orden de pago. Ver utils/notificarPago.ts.
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'pago_por_emitir'`,
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'orden_pago_emitida'`,
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'pago_rechazado'`,
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'pago_vencido'`,
+
+  // ── Credencial digital: historial de emisiones ────────────────────────────
+  // Antes el folio vivía como columna suelta en `estudiantes` y la reposición lo
+  // SOBRESCRIBÍA: el folio viejo desaparecía y una credencial impresa dejaba de
+  // resolver sin que nadie pudiera explicar por qué. Ahora cada emisión es una
+  // fila y la reposición es baja lógica + alta. Ver schema.credenciales.
+  `DO $$ BEGIN
+     CREATE TYPE credencial_estado AS ENUM ('activa','repuesta','cancelada');
+   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN
+     CREATE TYPE credencial_motivo AS ENUM ('emision','reposicion','vencimiento','correccion');
+   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `CREATE TABLE IF NOT EXISTS credenciales (
+     id serial PRIMARY KEY,
+     estudiante_id integer NOT NULL REFERENCES estudiantes(user_id) ON DELETE CASCADE,
+     folio varchar(40) NOT NULL,
+     estado credencial_estado NOT NULL DEFAULT 'activa',
+     motivo credencial_motivo NOT NULL DEFAULT 'emision',
+     emitida_en timestamp NOT NULL DEFAULT now(),
+     emitida_por integer REFERENCES users(id) ON DELETE SET NULL,
+     vigente_hasta timestamp,
+     reemplazada_por_id integer REFERENCES credenciales(id) ON DELETE SET NULL,
+     notas text,
+     created_at timestamp NOT NULL DEFAULT now(),
+     updated_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS credenciales_folio_uq ON credenciales(folio)`,
+  `CREATE INDEX IF NOT EXISTS credenciales_estudiante_idx ON credenciales(estudiante_id, emitida_en)`,
+  // Un alumno no puede tener dos credenciales activas al mismo tiempo.
+  `CREATE UNIQUE INDEX IF NOT EXISTS credenciales_una_activa_uq
+     ON credenciales(estudiante_id) WHERE estado = 'activa'`,
+  // Backfill idempotente: las credenciales ya emitidas viven hoy solo como
+  // columnas en `estudiantes`. Se traen como la fila 'activa' de cada alumno.
+  `INSERT INTO credenciales (estudiante_id, folio, estado, motivo, emitida_en, emitida_por)
+     SELECT e.user_id, e.licencia_digital, 'activa', 'emision',
+            COALESCE(e.licencia_emitida_en, now()), e.licencia_emitida_por
+       FROM estudiantes e
+      WHERE e.licencia_digital IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM credenciales c WHERE c.folio = e.licencia_digital)`,
+
+  // La tabla de verificaciones existía a mano en la base: sin esto, un entorno
+  // nuevo (AWS) no la creaba y el traqueo de escaneos se perdía en silencio.
+  `CREATE TABLE IF NOT EXISTS credenciales_verificaciones (
+     id serial PRIMARY KEY,
+     estudiante_id integer REFERENCES estudiantes(user_id) ON DELETE SET NULL,
+     folio varchar(60) NOT NULL,
+     firma_valida boolean NOT NULL DEFAULT false,
+     resultado varchar(30) NOT NULL,
+     verificado_por integer REFERENCES users(id) ON DELETE SET NULL,
+     created_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE INDEX IF NOT EXISTS credverif_estudiante_idx ON credenciales_verificaciones(estudiante_id, created_at DESC)`,
+  `CREATE INDEX IF NOT EXISTS credverif_folio_idx ON credenciales_verificaciones(folio, created_at)`,
+  // El folio de credencial es único (parcial: muchos alumnos aún no tienen).
+  `CREATE UNIQUE INDEX IF NOT EXISTS estudiantes_licencia_digital_uq
+     ON estudiantes(licencia_digital) WHERE licencia_digital IS NOT NULL`,
 ];
 
 export async function runStartupMigrations() {

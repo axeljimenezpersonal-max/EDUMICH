@@ -33,6 +33,16 @@ import { nombreArchivoUtf8 } from '../utils/archivo';
 import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen';
 import { DIAS_ANTES_EXAMEN_VENCE_PAGO } from '../config/reglas';
 import { STORAGE_ES_EFIMERO, guardarSubida, archivoStream, archivoExiste } from '../services/storage';
+import { hoyEnMexico } from '../utils/fechas';
+import {
+  avisarOrdenPorEmitir,
+  avisarComprobanteRecibido,
+  avisarOrdenEmitida,
+  avisarPagoVerificado,
+  avisarPagoRechazado,
+  avisarPagoVencido,
+  avisarPagoCancelado,
+} from '../utils/notificarPago';
 
 // Mensaje claro cuando un archivo (orden/comprobante) figura en la BD pero su
 // archivo físico ya no existe (almacenamiento efímero de Railway hasta migrar a S3).
@@ -306,6 +316,8 @@ router.post('/:id/comprobante', subirComprobanteMw, async (req, res) => {
       })
       .where(eq(pagosExamen.id, id));
 
+    await avisarComprobanteRecibido(p);
+
     return res.json({ ok: true });
   } catch (e) {
     console.error('[pagos-examen/comprobante] error:', e);
@@ -469,6 +481,11 @@ router.post('/solicitar', async (req, res) => {
     await db.insert(pagosExamenInscripciones).values(
       ids.map((iid) => ({ pagoExamenId: nuevo.id, examenInscripcionId: iid }))
     );
+
+    // La ficha nace esperando que la coordinación capture la línea de captura:
+    // sin este aviso, nadie en administración sabía que había trabajo pendiente.
+    const [ficha] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, nuevo.id)).limit(1);
+    if (ficha) await avisarOrdenPorEmitir(ficha);
 
     return res.json({ id: nuevo.id, folio });
   } catch {
@@ -813,6 +830,13 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
       })
       .where(eq(pagosExamen.id, id));
 
+    // Avisar SOLO en la primera emisión: re-emitir corrige datos de una orden que
+    // el alumno ya conocía, y repetir «ya puedes pagar» cada vez sería ruido.
+    if (!yaEmitida) {
+      const [actualizado] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, id)).limit(1);
+      if (actualizado) await avisarOrdenEmitida(actualizado);
+    }
+
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ error: 'Error al emitir la orden' });
@@ -852,6 +876,8 @@ router.post('/:id/conciliar', async (req, res) => {
       })
       .where(eq(pagosExamen.id, id));
 
+    await avisarPagoVerificado(p);
+
     return res.json({ ok: true });
   } catch {
     return res.status(500).json({ error: 'Error al conciliar' });
@@ -873,10 +899,15 @@ router.post('/:id/rechazar-comprobante', async (req, res) => {
     }
 
     const { motivo } = req.body as { motivo?: string };
+    const motivoFinal = motivo || 'Comprobante no válido';
     await db
       .update(pagosExamen)
-      .set({ estado: 'emitida', motivoRechazo: motivo || 'Comprobante no válido', updatedAt: new Date() })
+      .set({ estado: 'emitida', motivoRechazo: motivoFinal, updatedAt: new Date() })
       .where(eq(pagosExamen.id, id));
+
+    // El motivo viaja en el aviso: si no, el alumno solo ve que algo falló y no
+    // sabe qué corregir.
+    await avisarPagoRechazado(p, motivoFinal);
 
     return res.json({ ok: true });
   } catch {
@@ -902,6 +933,8 @@ router.post('/:id/cancelar', async (req, res) => {
       .update(pagosExamen)
       .set({ estado: 'cancelado', updatedAt: new Date() })
       .where(eq(pagosExamen.id, id));
+
+    await avisarPagoCancelado(p);
 
     return res.json({ ok: true });
   } catch {
@@ -1040,7 +1073,10 @@ router.get('/contabilidad', async (req, res) => {
  *      'en_revision' se excluye: ya tiene comprobante, lo verifica la administración.
  */
 export async function vencerPagosExamen(): Promise<number> {
-  const hoy = new Date().toISOString().slice(0, 10);
+  // El día se toma en horario de Michoacán, NO en UTC: con `toISOString()` el
+  // corte se adelantaba después de las 18:00 locales y podía vencer una orden
+  // un día antes de tiempo, dejando al alumno fuera del examen sin deberla.
+  const hoy = hoyEnMexico();
   const res = await db
     .update(pagosExamen)
     .set({ estado: 'vencido', updatedAt: new Date() })
@@ -1060,6 +1096,14 @@ export async function vencerPagosExamen(): Promise<number> {
       AND pe.estado IN ('pendiente_emision', 'emitida')
       AND ce.solicitud_fin < ${hoy}
     RETURNING pe.id`);
+
+  // Avisar a cada afectado. Vencer en silencio era lo peor del ciclo: el alumno
+  // se enteraba el día del examen, cuando ya no había nada que hacer.
+  const vencidos = [...res.map((r) => r.id), ...porVentana.rows.map((r) => Number(r.id))];
+  if (vencidos.length > 0) {
+    const fichas = await db.select().from(pagosExamen).where(inArray(pagosExamen.id, vencidos));
+    await Promise.all(fichas.map((f) => avisarPagoVencido(f)));
+  }
 
   return res.length + porVentana.rows.length;
 }

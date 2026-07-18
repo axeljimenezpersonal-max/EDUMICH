@@ -42,6 +42,7 @@ import {
   outbox,
   pagosGrupales,
   pagosGrupalesExamenes,
+  credenciales,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
@@ -4873,13 +4874,31 @@ router.post('/alumnos/:id/licencia', async (req, res) => {
   }
 
   const licencia = await generarFolioLicencia();
+  const emitidaEn = new Date();
+  const vigenteHasta = new Date(emitidaEn.getTime());
+  vigenteHasta.setMonth(vigenteHasta.getMonth() + VIGENCIA_CREDENCIAL_MESES);
 
-  await db.update(estudiantes).set({
-    licenciaDigital: licencia,
-    licenciaEmitidaEn: new Date(),
-    licenciaEmitidaPor: adminId,
-    updatedAt: new Date(),
-  }).where(eq(estudiantes.userId, alumnoId));
+  // El folio en `estudiantes` es solo el espejo del folio ACTIVO; la fila de
+  // `credenciales` es el historial. Ambos escriben en la misma transacción para
+  // que nunca quede un espejo sin su fila de historial.
+  await db.transaction(async (tx) => {
+    await tx.insert(credenciales).values({
+      estudianteId: alumnoId,
+      folio: licencia,
+      estado: 'activa',
+      motivo: 'emision',
+      emitidaEn,
+      emitidaPor: adminId,
+      vigenteHasta,
+    });
+
+    await tx.update(estudiantes).set({
+      licenciaDigital: licencia,
+      licenciaEmitidaEn: emitidaEn,
+      licenciaEmitidaPor: adminId,
+      updatedAt: new Date(),
+    }).where(eq(estudiantes.userId, alumnoId));
+  });
 
   await tryAuditLog({
     userId: adminId,
