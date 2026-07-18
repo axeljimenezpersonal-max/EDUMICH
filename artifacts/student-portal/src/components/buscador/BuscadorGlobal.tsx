@@ -24,6 +24,7 @@ import type { LucideProps } from 'lucide-react';
 import { Search, CornerDownLeft, X } from 'lucide-react';
 import { buscar } from '../../lib/buscador/motor';
 import { INDICE } from '../../lib/buscador/indice';
+import { useEntidades } from '../../lib/buscador/useEntidades';
 import type { Resultado, RolBuscador, TipoResultado } from '../../lib/buscador/tipos';
 import { useEsTelefono } from '../../lib/useMedia';
 
@@ -94,16 +95,23 @@ export function BuscadorGlobal({ rol, datos }: Props) {
     if (!abierto) setConsulta('');
   }, [abierto]);
 
+  // Las entidades vienen del servidor y NO pasan por el motor de puntaje: el
+  // servidor ya decidió que casan, y ordenarlas contra respuestas escritas a
+  // mano sería comparar cosas distintas. Se muestran en su propio grupo.
+  const entidades = useEntidades(rol, consulta);
+
   const resultados = useMemo(
     () => (consulta.trim() ? buscar(consulta, INDICE, { rol, datos }, { limite: 14 }) : []),
     [consulta, rol, datos],
   );
 
+  const todos = useMemo(() => [...resultados, ...entidades], [resultados, entidades]);
+
   // Los resultados se muestran agrupados, pero el teclado los recorre como una
   // sola lista plana: para quien navega con flechas, los encabezados no existen.
   const planos = useMemo(
-    () => GRUPOS.flatMap(({ tipo }) => resultados.filter((r) => r.tipo === tipo)),
-    [resultados],
+    () => GRUPOS.flatMap(({ tipo }) => todos.filter((r) => r.tipo === tipo)),
+    [todos],
   );
 
   const [activo, setActivo] = useState(0);
@@ -195,7 +203,7 @@ export function BuscadorGlobal({ rol, datos }: Props) {
                   />
                 )}
 
-                {consulta.trim() && resultados.length === 0 && (
+                {consulta.trim() && todos.length === 0 && (
                   <SinResultados rol={rol} onIrAMensajes={() => {
                     setLocation(rol === 'gestor' ? '/gestor/mensajes' : '/estudiante/mensajes');
                     setAbierto(false);
@@ -203,7 +211,7 @@ export function BuscadorGlobal({ rol, datos }: Props) {
                 )}
 
                 {GRUPOS.map(({ tipo, titulo }) => {
-                  const items = resultados.filter((r) => r.tipo === tipo);
+                  const items = todos.filter((r) => r.tipo === tipo);
                   if (items.length === 0) return null;
                   return (
                     <div key={tipo} role="group" aria-label={titulo}>

@@ -37,6 +37,7 @@ import bancoRoutes from './routes/banco';
 import firmaRoutes from './routes/firma';
 import chatRoutes, { adminChatRouter } from './routes/chat';
 import aulaRoutes from './routes/aula';
+import busquedaRoutes from './routes/busqueda';
 import devRoutes from './routes/dev';
 import verificacionRoutes from './routes/verificacion';
 import cron from 'node-cron';
@@ -124,6 +125,9 @@ app.use('/api/admin/configuracion', configuracionRoutes);
 app.use('/api/admin/depuracion', depuracionRoutes);
 app.use('/api/banco', bancoRoutes);
 app.use('/api/firma', firmaRoutes);
+// Búsqueda transversal del buscador global. Va en su propio prefijo, sin
+// pasar por adminRoutes, porque la usan gestor y admin (valida rol adentro).
+app.use('/api/busqueda', busquedaRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/admin/chat', adminChatRouter);
 app.use('/api/aula', aulaRoutes);
