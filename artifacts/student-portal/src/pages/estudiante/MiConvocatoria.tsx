@@ -206,6 +206,18 @@ function SedeCard({ sede }: { sede: NonNullable<ConvocatoriaResponse['sedeAsigna
 // Selector inline de módulos para la etapa activa
 
 type ModItem = { id: number; numero: number; nombre: string };
+/** Sede habilitada por la convocatoria para esta etapa (GET convocatoria/sedes). */
+type SedeDisponible = {
+  id: number;
+  nombre: string;
+  direccion: string;
+  telefono: string | null;
+  municipio: string;
+  latitud: number | null;
+  longitud: number | null;
+  /** Es la del municipio del alumno: viene preseleccionada. */
+  sugerida: boolean;
+};
 type Horariso = CalendarioMes['etapas'][0]['horariosDisponibles'];
 
 function ModulosInscripcion({
@@ -231,6 +243,30 @@ function ModulosInscripcion({
   const [inscribiendo, setInscribiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exito, setExito] = useState(false);
+
+  // Sedes que la convocatoria habilita para esta etapa. Si viene más de una, el
+  // alumno DEBE elegir dónde presenta; con una sola (o ninguna configurada) el
+  // backend la resuelve y no mostramos selector.
+  const [sedes, setSedes] = useState<SedeDisponible[]>([]);
+  const [sedeElegida, setSedeElegida] = useState<number | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    api.get<{ sedes: SedeDisponible[] }>(`/estudiante/convocatoria/sedes/${etapa.id}`)
+      .then((r) => {
+        if (!vivo) return;
+        setSedes(r.sedes);
+        // Preselecciona la de su municipio: es la que le queda cerca.
+        const sugerida = r.sedes.find((s) => s.sugerida);
+        if (sugerida) setSedeElegida(sugerida.id);
+        else if (r.sedes.length === 1) setSedeElegida(r.sedes[0].id);
+      })
+      .catch(() => { /* sin sedes configuradas: el backend resuelve */ });
+    return () => { vivo = false; };
+  }, [etapa.id]);
+
+  /** Con varias sedes hay que elegir una antes de poder continuar. */
+  const faltaElegirSede = sedes.length > 1 && sedeElegida == null;
 
   if (!calendarioEtapa) {
     return (
@@ -287,13 +323,21 @@ function ModulosInscripcion({
 
   async function handleInscribir() {
     if (seleccion.size === 0) return;
+    if (faltaElegirSede) {
+      setError('Elige la sede donde vas a presentar tu examen.');
+      return;
+    }
     setInscribiendo(true);
     setError(null);
     try {
-      // 1) Pre-inscribir los módulos seleccionados
+      // 1) Pre-inscribir los módulos seleccionados (con la sede elegida)
       const resp = await api.post<{ ok: boolean; inscripciones: { id: number }[] }>(
         '/estudiante/convocatoria/inscribirme',
-        { etapaId: etapa.id, modulosIds: Array.from(seleccion) },
+        {
+          etapaId: etapa.id,
+          modulosIds: Array.from(seleccion),
+          ...(sedeElegida != null ? { sedeId: sedeElegida } : {}),
+        },
       );
       // 2) Solicitar la ficha de pago para esas mismas inscripciones (mismo paso).
       const ids = (resp?.inscripciones ?? []).map((i) => i.id).filter(Boolean);
@@ -488,6 +532,54 @@ function ModulosInscripcion({
               </div>
             </div>
 
+            {/* Sede: solo cuando la convocatoria abrió varias y hay que elegir */}
+            {sedes.length > 1 && (
+              <div data-tour="insc-sede-elegir" className="pt-4 border-t border-stone-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin size={15} className="text-[var(--color-guinda-700)]" />
+                  <h3 className="text-sm font-bold text-stone-900">¿Dónde vas a presentar?</h3>
+                </div>
+                <p className="text-xs text-stone-500 mb-3">
+                  Elige tu sede. Es donde presentarás todos los módulos de esta convocatoria.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {sedes.map((s) => {
+                    const activa = sedeElegida === s.id;
+                    return (
+                      <button
+                        key={s.id}
+                        type="button"
+                        onClick={() => { setSedeElegida(s.id); setError(null); }}
+                        className="flex items-start gap-2.5 rounded-xl border p-3 text-left transition-colors"
+                        style={{
+                          borderColor: activa ? 'var(--color-guinda-700)' : '#eadfd7',
+                          background: activa ? '#fdf6f0' : 'white',
+                        }}
+                      >
+                        <span
+                          className="mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border"
+                          style={{
+                            borderColor: activa ? 'var(--color-guinda-700)' : '#ddd0c5',
+                            borderWidth: activa ? 5 : 1,
+                          }}
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-stone-900">{s.nombre}</span>
+                          <span className="block text-xs text-stone-500 mt-0.5">{s.direccion}</span>
+                          {s.sugerida && (
+                            <span className="mt-1 inline-block rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide"
+                              style={{ background: '#efe7d6', color: 'var(--color-guinda-700)' }}>
+                              Tu municipio
+                            </span>
+                          )}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Footer: conteo + total + solicitar */}
             <div className="flex items-center justify-between pt-4 border-t border-stone-200 flex-wrap gap-3">
               <div className="text-sm text-stone-500">
@@ -501,7 +593,8 @@ function ModulosInscripcion({
               </div>
               <button
                 onClick={handleInscribir}
-                disabled={seleccion.size === 0 || inscribiendo}
+                disabled={seleccion.size === 0 || inscribiendo || faltaElegirSede}
+                title={faltaElegirSede ? 'Primero elige tu sede' : undefined}
                 className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
               >
                 {inscribiendo ? <Loader2 size={14} className="animate-spin" /> : <FileCheck size={14} />}
@@ -891,14 +984,33 @@ export default function MiConvocatoria() {
           );
         })()}
 
-        {/* Sede asignada */}
-        {sedeAsignada && (
+        {/* Sede: la que el alumno eligió al inscribirse. Mientras no se inscriba
+            no hay sede que mostrar — antes se deducía una por municipio y podía
+            ser la equivocada, así que ahora lo decimos con claridad. */}
+        {(sedeAsignada || inscripcionEnCurso) && (
           <div data-tour="insc-sede">
             <h2 className="font-semibold text-stone-800 mb-3 flex items-center gap-2">
               <MapPin className="w-4 h-4 text-[var(--color-guinda-700)]" />
-              Sede asignada
+              {sedeAsignada ? 'Tu sede' : 'Sede'}
             </h2>
-            <SedeCard sede={sedeAsignada} />
+            {sedeAsignada ? (
+              <SedeCard sede={sedeAsignada} />
+            ) : (
+              <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="bg-[var(--color-crema-100)] rounded-lg p-2">
+                    <MapPin className="w-5 h-5 text-stone-400" />
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-semibold text-stone-700">Se asignará al inscribirte</p>
+                    <p className="text-sm text-stone-500 mt-0.5">
+                      Cuando elijas tus módulos podrás escoger la sede donde presentas. Aquí verás su
+                      dirección y el mapa.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

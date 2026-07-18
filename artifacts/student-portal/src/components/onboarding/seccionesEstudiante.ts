@@ -206,6 +206,16 @@ export const TOUR_INSCRIPCION_ACTIVA: TourStep[] = [
     body: 'Estos son los módulos que puedes presentar en esta convocatoria. Elige los que quieras (hasta 4) y confírmalos: con eso quedas pre-inscrito y se genera tu ficha de pago.',
   },
   {
+    // Solo aparece si la convocatoria abrió VARIAS sedes: con una sola no hay
+    // nada que elegir y el motor omite este paso (no existe el anclaje).
+    id: 'insc-act-sede-elegir',
+    anchor: 'insc-sede-elegir',
+    placement: 'top',
+    icon: 'MapPin',
+    title: 'Elige dónde presentas',
+    body: 'Esta convocatoria abrió varias sedes. Escoge en cuál quieres presentar: será la misma para todos los módulos que inscribas ahora. Te marcamos la de tu municipio, pero puedes elegir otra si te queda mejor.',
+  },
+  {
     id: 'insc-act-examenes',
     anchor: 'insc-examenes',
     placement: 'top',
@@ -219,7 +229,7 @@ export const TOUR_INSCRIPCION_ACTIVA: TourStep[] = [
     placement: 'top',
     icon: 'MapPin',
     title: 'Tu sede de examen',
-    body: 'Aquí verás la sede donde presentarás. Se asigna más adelante, cuando la coordinación la publique — si todavía no aparece, es normal: te avisaremos en cuanto se sepa.',
+    body: 'Aquí queda la sede que elegiste al inscribirte, con su dirección y el botón para verla en el mapa. Es donde presentas todos los módulos de esta convocatoria. Si aún no te inscribes, dirá que se asignará al hacerlo.',
   },
   {
     id: 'insc-act-pasos',
