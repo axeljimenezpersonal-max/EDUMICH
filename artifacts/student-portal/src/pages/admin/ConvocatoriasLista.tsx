@@ -429,11 +429,28 @@ function parsearEtapas(texto: string, clavesExistentes: Set<string>): FilaPrevie
 const EJEMPLO_PRECARGA = `2608-A  2026-08-03  2026-08-24  2026-09-05  2026-09-06
 2609-B  2026-09-07  2026-09-28  2026-10-10  2026-10-11`;
 
+/** Una etapa tal como la leyó el PDF, más si ya existe en la plataforma. */
+type EtapaLeida = {
+  clave: string; etapa: string; fase: string; anio: number;
+  solicitudInicio: string; solicitudFin: string;
+  examenSabado: string; examenDomingo: string;
+  horarios: Array<{ moduloNumero: number; dia: 'sabado' | 'domingo'; hora: string }>;
+  yaExiste: boolean;
+};
+
 function PrecargarEtapasModal({ etapasExistentes, onClose, onDone }: {
   etapasExistentes: Etapa[];
   onClose: () => void;
   onDone: () => void;
 }) {
+  // Dos caminos: el PDF oficial (lo normal) y pegar texto (respaldo, por si el
+  // documento de un ciclo trae un formato que el lector no entiende).
+  const [modo, setModo] = useState<'pdf' | 'texto'>('pdf');
+  const [leyendo, setLeyendo] = useState(false);
+  const [leidas, setLeidas] = useState<EtapaLeida[] | null>(null);
+  const [advertencias, setAdvertencias] = useState<string[]>([]);
+  const [excluidas, setExcluidas] = useState<Set<string>>(new Set());
+
   const [texto, setTexto] = useState('');
   const [copiarHorariosDe, setCopiarHorariosDe] = useState<number | ''>('');
   const [guardando, setGuardando] = useState(false);
@@ -446,19 +463,60 @@ function PrecargarEtapasModal({ etapasExistentes, onClose, onDone }: {
   const conError = filas.filter((f) => f.estado === 'error').length;
   const yaExisten = filas.filter((f) => f.estado === 'existe').length;
 
+  /** Etapas del PDF que sí se van a crear: nuevas y no descartadas a mano. */
+  const aCrearDelPdf = (leidas ?? []).filter((e) => !e.yaExiste && !excluidas.has(e.clave));
+
+  async function leerPdf(archivo: File) {
+    setLeyendo(true); setError(null); setLeidas(null);
+    try {
+      const fd = new FormData();
+      fd.append('archivo', archivo);
+      const r = await api.post<{ anio: number; advertencias: string[]; etapas: EtapaLeida[] }>(
+        '/admin/convocatorias/leer-pdf', fd,
+      );
+      setLeidas(r.etapas);
+      setAdvertencias(r.advertencias ?? []);
+      setExcluidas(new Set());
+      if (r.etapas.length === 0) setError('El documento no contiene etapas legibles.');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo leer el calendario');
+    } finally {
+      setLeyendo(false);
+    }
+  }
+
+  function alternar(clave: string) {
+    setExcluidas((prev) => {
+      const n = new Set(prev);
+      if (n.has(clave)) n.delete(clave); else n.add(clave);
+      return n;
+    });
+  }
+
   async function guardar() {
-    if (nuevas.length === 0) return;
+    const desdePdf = modo === 'pdf' && leidas;
+    const lista = desdePdf
+      ? aCrearDelPdf.map((e) => ({
+          clave: e.clave, etapa: e.etapa, fase: e.fase, anio: e.anio,
+          solicitudInicio: e.solicitudInicio, solicitudFin: e.solicitudFin,
+          examenSabado: e.examenSabado, examenDomingo: e.examenDomingo,
+          horarios: e.horarios,
+        }))
+      : nuevas.map((f) => ({
+          clave: f.clave, etapa: f.etapa, fase: f.fase, anio: f.anio,
+          solicitudInicio: f.solicitudInicio, solicitudFin: f.solicitudFin,
+          examenSabado: f.examenSabado, examenDomingo: f.examenDomingo,
+        }));
+    if (lista.length === 0) return;
+
     setGuardando(true); setError(null);
     try {
       const r = await api.post<{ creadas: string[]; omitidas: string[]; errores: { clave: string; motivo: string }[] }>(
         '/admin/convocatorias/precargar',
         {
-          etapas: nuevas.map((f) => ({
-            clave: f.clave, etapa: f.etapa, fase: f.fase,
-            solicitudInicio: f.solicitudInicio, solicitudFin: f.solicitudFin,
-            examenSabado: f.examenSabado, examenDomingo: f.examenDomingo, anio: f.anio,
-          })),
-          copiarHorariosDe: copiarHorariosDe === '' ? null : Number(copiarHorariosDe),
+          etapas: lista,
+          // Con horarios del PDF no hay nada que copiar de otra etapa.
+          copiarHorariosDe: desdePdf ? null : (copiarHorariosDe === '' ? null : Number(copiarHorariosDe)),
         }
       );
       setResultado(r);
@@ -480,7 +538,7 @@ function PrecargarEtapasModal({ etapasExistentes, onClose, onDone }: {
         <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
           <div>
             <h3 className="font-serif text-lg font-bold text-stone-900">Precargar etapas del ciclo</h3>
-            <p className="text-xs text-stone-500">Pega el calendario oficial; se crean todas de un jalón. Solo tú (admin) puedes hacerlo.</p>
+            <p className="text-xs text-stone-500">Sube el PDF oficial de la DGB: se leen las etapas con sus fechas y horarios. Revisas y confirmas antes de crear.</p>
           </div>
           <button onClick={() => !guardando && onClose()} className="text-stone-400 hover:text-stone-600"><X size={18} /></button>
         </div>
@@ -498,35 +556,150 @@ function PrecargarEtapasModal({ etapasExistentes, onClose, onDone }: {
         ) : (
           <>
             <div className="p-6 space-y-4">
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-stone-600">Calendario (una etapa por renglón)</label>
-                <p className="mb-2 text-[11px] text-stone-500">
-                  Formato: <span className="font-mono">CLAVE  inicio-solicitud  fin-solicitud  examen-sábado  examen-domingo</span> (fechas AAAA-MM-DD). La etapa, fase y año se deducen solos.
-                </p>
-                <textarea
-                  value={texto}
-                  onChange={(e) => setTexto(e.target.value)}
-                  placeholder={EJEMPLO_PRECARGA}
-                  rows={6}
-                  spellCheck={false}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                />
+              {/* Selector de camino */}
+              <div className="flex gap-1 rounded-lg bg-stone-100 p-1">
+                {([['pdf', 'Subir el PDF oficial'], ['texto', 'Pegar texto']] as const).map(([k, l]) => (
+                  <button
+                    key={k}
+                    onClick={() => { setModo(k); setError(null); }}
+                    className="flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors"
+                    style={modo === k
+                      ? { background: 'white', color: '#2a2a2a', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }
+                      : { background: 'transparent', color: '#6b635e' }}
+                  >
+                    {l}
+                  </button>
+                ))}
               </div>
 
-              <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-stone-600">Copiar horarios de módulos desde</label>
-                <select
-                  value={String(copiarHorariosDe)}
-                  onChange={(e) => setCopiarHorariosDe(e.target.value ? Number(e.target.value) : '')}
-                  className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-                >
-                  <option value="">Sin horarios (agregarlos después)</option>
-                  {etapasExistentes.map((e) => <option key={e.id} value={e.id}>{e.clave} · {e.anio}</option>)}
-                </select>
-                <p className="mt-1 text-[11px] text-stone-500">Recomendado: copia los horarios de una etapa previa para que los alumnos puedan inscribirse desde el día 1.</p>
-              </div>
+              {modo === 'pdf' ? (
+                <>
+                  {!leidas && (
+                    <label
+                      className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors hover:bg-stone-50"
+                      style={{ borderColor: 'var(--color-crema-200)' }}
+                    >
+                      <input
+                        type="file"
+                        accept="application/pdf"
+                        className="hidden"
+                        disabled={leyendo}
+                        onChange={(e) => { const f = e.target.files?.[0]; if (f) leerPdf(f); e.target.value = ''; }}
+                      />
+                      {leyendo ? (
+                        <><Loader2 size={22} className="animate-spin" style={{ color: 'var(--color-guinda-700)' }} />
+                        <span className="text-sm font-semibold text-stone-700">Leyendo el calendario…</span></>
+                      ) : (
+                        <>
+                          <Upload size={22} style={{ color: 'var(--color-guinda-700)' }} />
+                          <span className="text-sm font-semibold text-stone-700">Elige el calendario de exámenes ordinarios (PDF)</span>
+                          <span className="text-[11px] text-stone-500">
+                            Se leen las etapas, sus fechas y el horario de cada módulo. Nada se crea hasta que lo revises.
+                          </span>
+                        </>
+                      )}
+                    </label>
+                  )}
 
-              {filas.length > 0 && (
+                  {leidas && (
+                    <>
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="text-xs text-stone-600">
+                          Se leyeron <strong>{leidas.length}</strong> etapa(s) del ciclo{' '}
+                          <strong>{leidas[0]?.anio}</strong>. Desmarca las que no quieras crear.
+                        </div>
+                        <button onClick={() => { setLeidas(null); setAdvertencias([]); }} className="shrink-0 text-xs font-semibold text-stone-500 underline hover:text-stone-700">
+                          Elegir otro archivo
+                        </button>
+                      </div>
+
+                      {advertencias.length > 0 && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] text-amber-900">
+                          <div className="mb-1 flex items-center gap-1.5 font-semibold"><AlertTriangle size={13} /> Revisa antes de crear</div>
+                          <ul className="list-disc space-y-0.5 pl-4">
+                            {advertencias.map((a) => <li key={a}>{a}</li>)}
+                          </ul>
+                        </div>
+                      )}
+
+                      <div className="max-h-72 overflow-auto rounded-lg border border-stone-200">
+                        <table className="w-full text-xs">
+                          <thead className="sticky top-0 bg-stone-100 text-left uppercase tracking-wide text-stone-500">
+                            <tr>
+                              <th className="px-3 py-2 w-8"></th>
+                              <th className="px-3 py-2">Clave</th>
+                              <th className="px-3 py-2">Solicitud y pago</th>
+                              <th className="px-3 py-2">Examen</th>
+                              <th className="px-3 py-2">Horarios</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {leidas.map((e) => {
+                              const incluida = !e.yaExiste && !excluidas.has(e.clave);
+                              return (
+                                <tr key={e.clave} className={`border-t border-stone-100 ${e.yaExiste ? 'bg-stone-50 text-stone-400' : ''}`}>
+                                  <td className="px-3 py-1.5">
+                                    <input
+                                      type="checkbox"
+                                      checked={incluida}
+                                      disabled={e.yaExiste}
+                                      onChange={() => alternar(e.clave)}
+                                      className="h-3.5 w-3.5 accent-[var(--color-guinda-700)]"
+                                    />
+                                  </td>
+                                  <td className="px-3 py-1.5 font-mono font-semibold">
+                                    {e.clave}
+                                    {e.yaExiste && <span className="ml-2 rounded-full bg-stone-200 px-1.5 py-0.5 text-[9px] font-bold text-stone-600">YA EXISTE</span>}
+                                  </td>
+                                  <td className="px-3 py-1.5">{e.solicitudInicio} → {e.solicitudFin}</td>
+                                  <td className="px-3 py-1.5">{e.examenSabado} / {e.examenDomingo}</td>
+                                  <td className="px-3 py-1.5">
+                                    {e.horarios.length > 0
+                                      ? <span className="font-semibold" style={{ color: 'var(--color-aprobado)' }}>{e.horarios.length} módulos</span>
+                                      : <span className="text-stone-400">—</span>}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-stone-600">Calendario (una etapa por renglón)</label>
+                    <p className="mb-2 text-[11px] text-stone-500">
+                      Formato: <span className="font-mono">CLAVE  inicio-solicitud  fin-solicitud  examen-sábado  examen-domingo</span> (fechas AAAA-MM-DD). La etapa, fase y año se deducen solos.
+                    </p>
+                    <textarea
+                      value={texto}
+                      onChange={(e) => setTexto(e.target.value)}
+                      placeholder={EJEMPLO_PRECARGA}
+                      rows={6}
+                      spellCheck={false}
+                      className="w-full rounded-lg border border-stone-300 px-3 py-2 font-mono text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-stone-600">Copiar horarios de módulos desde</label>
+                    <select
+                      value={String(copiarHorariosDe)}
+                      onChange={(e) => setCopiarHorariosDe(e.target.value ? Number(e.target.value) : '')}
+                      className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
+                    >
+                      <option value="">Sin horarios (agregarlos después)</option>
+                      {etapasExistentes.map((e) => <option key={e.id} value={e.id}>{e.clave} · {e.anio}</option>)}
+                    </select>
+                    <p className="mt-1 text-[11px] text-stone-500">Con el PDF los horarios vienen incluidos; esto solo hace falta al pegar texto.</p>
+                  </div>
+                </>
+              )}
+
+              {modo === 'texto' && filas.length > 0 && (
                 <div className="max-h-56 overflow-auto rounded-lg border border-stone-200">
                   <table className="w-full text-xs">
                     <thead className="sticky top-0 bg-stone-100 text-left uppercase tracking-wide text-stone-500">
@@ -549,22 +722,40 @@ function PrecargarEtapasModal({ etapasExistentes, onClose, onDone }: {
               {error && <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-800"><AlertTriangle size={14} /> {error}</div>}
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-stone-100 px-6 py-4">
-              <div className="text-xs text-stone-500">
-                {filas.length > 0 && <><span className="font-semibold text-emerald-700">{nuevas.length} nuevas</span>{yaExisten > 0 && <> · {yaExisten} ya existen</>}{conError > 0 && <> · <span className="text-red-700">{conError} con error</span></>}</>}
-              </div>
-              <div className="flex gap-2">
-                <button onClick={() => !guardando && onClose()} className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50">Cancelar</button>
-                <button
-                  onClick={guardar}
-                  disabled={guardando || nuevas.length === 0}
-                  className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
-                  style={{ background: 'var(--color-guinda-700)' }}
-                >
-                  {guardando ? <><Loader2 size={14} className="animate-spin" /> Creando…</> : <>Crear {nuevas.length > 0 ? `${nuevas.length} etapa${nuevas.length === 1 ? '' : 's'}` : 'etapas'}</>}
-                </button>
-              </div>
-            </div>
+            {(() => {
+              const total = modo === 'pdf' ? aCrearDelPdf.length : nuevas.length;
+              const conHorarios = modo === 'pdf' ? aCrearDelPdf.filter((e) => e.horarios.length > 0).length : 0;
+              return (
+                <div className="flex items-center justify-between gap-3 border-t border-stone-100 px-6 py-4">
+                  <div className="text-xs text-stone-500">
+                    {modo === 'pdf' && leidas ? (
+                      <>
+                        <span className="font-semibold text-emerald-700">{total} por crear</span>
+                        {conHorarios > 0 && <> · {conHorarios} con sus horarios</>}
+                        {leidas.filter((e) => e.yaExiste).length > 0 && <> · {leidas.filter((e) => e.yaExiste).length} ya existen</>}
+                      </>
+                    ) : modo === 'texto' && filas.length > 0 ? (
+                      <>
+                        <span className="font-semibold text-emerald-700">{nuevas.length} nuevas</span>
+                        {yaExisten > 0 && <> · {yaExisten} ya existen</>}
+                        {conError > 0 && <> · <span className="text-red-700">{conError} con error</span></>}
+                      </>
+                    ) : null}
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => !guardando && onClose()} className="rounded-lg border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-600 hover:bg-stone-50">Cancelar</button>
+                    <button
+                      onClick={guardar}
+                      disabled={guardando || total === 0}
+                      className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-40"
+                      style={{ background: 'var(--color-guinda-700)' }}
+                    >
+                      {guardando ? <><Loader2 size={14} className="animate-spin" /> Creando…</> : <>Crear {total > 0 ? `${total} etapa${total === 1 ? '' : 's'}` : 'etapas'}</>}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
           </>
         )}
       </div>

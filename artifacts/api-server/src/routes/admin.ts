@@ -56,6 +56,7 @@ import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
 import { avisarSiExpedienteQuedoCompleto } from '../utils/notificarExpediente';
+import { parsearCalendarioPdf } from '../services/calendarioPdf';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
   obtenerDatosCedula,
@@ -3768,10 +3769,61 @@ const etapaInputSchema = z.object({
   examenSabado: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   examenDomingo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   anio: z.number().int().min(2020).max(2100),
+  // Horarios propios de la etapa (los trae el calendario en PDF). Si vienen, se
+  // usan estos en vez de copiarlos de otra etapa.
+  horarios: z
+    .array(
+      z.object({
+        moduloNumero: z.number().int().min(1).max(99),
+        dia: z.enum(['sabado', 'domingo']),
+        hora: z.string().regex(/^\d{1,2}:\d{2}$/),
+      }),
+    )
+    .max(60)
+    .optional(),
 });
 const precargarSchema = z.object({
   etapas: z.array(etapaInputSchema).min(1).max(60),
   copiarHorariosDe: z.number().int().positive().nullable().optional(),
+});
+
+// ─── POST /admin/convocatorias/leer-pdf ─────────────────────────────────────
+// Lee el calendario oficial de la DGB y devuelve lo que entendió. NO crea nada:
+// el admin revisa la vista previa, corrige si hace falta y recién entonces
+// confirma con /precargar. Un lector de PDF depende del formato del documento, y
+// crear a ciegas sería la peor forma de enterarse de que cambió.
+const uploadCalendario = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 15 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') { cb(new Error('Solo se acepta PDF')); return; }
+    cb(null, true);
+  },
+});
+
+router.post('/convocatorias/leer-pdf', uploadCalendario.single('archivo'), async (req, res) => {
+  try {
+    if (!req.file) { res.status(400).json({ error: 'Adjunta el PDF del calendario' }); return; }
+    const leido = await parsearCalendarioPdf(req.file.buffer);
+
+    // Se marca cuáles ya existen para que el admin no cree duplicados sin saberlo.
+    const claves = leido.etapas.map((e) => e.clave);
+    const existentes = new Set(
+      (await db
+        .select({ clave: convocatoriasEtapas.clave })
+        .from(convocatoriasEtapas)
+        .where(inArray(convocatoriasEtapas.clave, claves))
+      ).map((r) => r.clave)
+    );
+
+    res.json({
+      anio: leido.anio,
+      advertencias: leido.advertencias,
+      etapas: leido.etapas.map((e) => ({ ...e, yaExiste: existentes.has(e.clave) })),
+    });
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : 'No se pudo leer el calendario' });
+  }
 });
 
 router.post('/convocatorias/precargar', async (req, res) => {
@@ -3810,7 +3862,25 @@ router.post('/convocatorias/precargar', async (req, res) => {
         examenSabado: e.examenSabado, examenDomingo: e.examenDomingo,
         anio: e.anio, estado: 'programada',
       }).returning({ id: convocatoriasEtapas.id });
-      if (plantilla.length && nueva) {
+      // Los horarios propios (leídos del PDF) mandan sobre la plantilla copiada.
+      // Vienen por NÚMERO de módulo, que es como los identifica el calendario
+      // oficial; aquí se traducen al id interno.
+      if (nueva && e.horarios?.length) {
+        const numeros = [...new Set(e.horarios.map((h) => h.moduloNumero))];
+        const mods = await db
+          .select({ id: modulos.id, numero: modulos.numero })
+          .from(modulos)
+          .where(inArray(modulos.numero, numeros));
+        const idPorNumero = new Map(mods.map((m) => [m.numero, m.id]));
+        const filas = e.horarios
+          .filter((h) => idPorNumero.has(h.moduloNumero))
+          .map((h) => ({ etapaId: nueva.id, moduloId: idPorNumero.get(h.moduloNumero)!, dia: h.dia, hora: h.hora }));
+        if (filas.length) await db.insert(convocatoriasModulosHorarios).values(filas).onConflictDoNothing();
+        const faltantes = numeros.filter((n) => !idPorNumero.has(n));
+        if (faltantes.length) {
+          errores.push({ clave: e.clave, motivo: `Módulos no encontrados en la plataforma: ${faltantes.join(', ')}` });
+        }
+      } else if (plantilla.length && nueva) {
         await db.insert(convocatoriasModulosHorarios).values(
           plantilla.map((h) => ({ etapaId: nueva.id, moduloId: h.moduloId, dia: h.dia, hora: h.hora }))
         );
