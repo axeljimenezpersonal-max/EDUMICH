@@ -59,7 +59,7 @@ export default function DireccionAcademico() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <TarjetaKPI etiqueta="Promedio global" valor={data.resumen.promedioGlobal ? calif10(data.resumen.promedioGlobal) : '—'} sub="calificación promedio DGB (0–10)" acento={GUINDA} />
         <TarjetaKPI etiqueta="Exámenes capturados" valor={data.resumen.examenesTotales.toLocaleString('es-MX')} sub="histórico" />
         <TarjetaKPI etiqueta="Tasa de aprobación" valor={`${data.resumen.tasaAprobacion}%`} sub="de exámenes presentados" acento="#166534" />
@@ -109,8 +109,8 @@ export default function DireccionAcademico() {
       </div>
 
       <SeccionCard titulo="Desempeño por módulo" sub="Exámenes DGB presentados, aprobación y promedio por módulo del plan">
-        <div style={{ overflowX: 'auto' }}>
-          <table className="w-full text-[12px]">
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <table className="w-full text-[12px] min-w-[760px]">
             <thead>
               <tr className="text-left" style={{ color: '#6b635e' }}>
                 <th className="py-2 pr-3 font-semibold">#</th>

@@ -71,7 +71,7 @@ export default function DireccionPanorama() {
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <TarjetaKPI
           etiqueta="Alumnos activos"
           valor={data.kpis.alumnosActivos.total.toLocaleString('es-MX')}
@@ -172,7 +172,7 @@ export default function DireccionPanorama() {
               const max = data.municipiosTop[0]?.total ?? 1;
               return (
                 <div key={m.nombre} className="flex items-center gap-3">
-                  <div className="text-[12px] w-32 truncate" style={{ color: '#443e39' }}>{m.nombre}</div>
+                  <div className="text-[12px] w-20 sm:w-32 truncate" style={{ color: '#443e39' }}>{m.nombre}</div>
                   <div className="flex-1 h-[8px] rounded-full" style={{ background: '#f7f2ed' }}>
                     <div
                       className="h-full rounded-full"

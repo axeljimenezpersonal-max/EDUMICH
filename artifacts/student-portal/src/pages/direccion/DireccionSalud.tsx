@@ -9,6 +9,7 @@ import {
   ResponsiveContainer, ComposedChart, Bar, Line, XAxis, YAxis, Tooltip, CartesianGrid,
 } from 'recharts';
 import { api } from '../../lib/api';
+import { useEsTelefono } from '../../lib/useMedia';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
 
 const GUINDA = '#6B1530';
@@ -49,6 +50,7 @@ function uptimeLegible(seg: number): string {
 }
 
 export default function DireccionSalud() {
+  const esTelefono = useEsTelefono();
   const [data, setData] = useState<Salud | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actualizando, setActualizando] = useState(false);
@@ -109,7 +111,7 @@ export default function DireccionSalud() {
       </div>
 
       {/* Golden signals (última hora) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <TarjetaKPI
           etiqueta="Latencia p95 (1 h)"
           valor={`${h1.latenciaP95Ms} ms`}
@@ -141,8 +143,10 @@ export default function DireccionSalud() {
               <ComposedChart data={serie}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f7f2ed" />
                 <XAxis dataKey="hora" tick={{ fontSize: 10 }} minTickGap={30} />
+                {/* En teléfono los dos ejes se comen el área de trazado: se
+                    oculta el secundario y la latencia se lee en el tooltip. */}
                 <YAxis yAxisId="req" allowDecimals={false} tick={{ fontSize: 11 }} width={32} />
-                <YAxis yAxisId="ms" orientation="right" tick={{ fontSize: 11 }} width={40} />
+                <YAxis yAxisId="ms" orientation="right" tick={{ fontSize: 11 }} width={40} hide={esTelefono} />
                 <Tooltip />
                 <Bar yAxisId="req" dataKey="requests" fill="#d6cfc0" radius={[2, 2, 0, 0]} name="Requests" />
                 <Line yAxisId="ms" type="monotone" dataKey="promedioMs" stroke={GUINDA} strokeWidth={2} dot={false} name="Latencia (ms)" />
@@ -206,7 +210,8 @@ export default function DireccionSalud() {
       </div>
 
       <SeccionCard titulo="Tráfico por área del API" sub="Últimas 24 horas, agrupado por prefijo de ruta">
-        <table className="w-full text-[12px]">
+        <div className="overflow-x-auto -mx-1 px-1 pb-1">
+        <table className="w-full text-[12px] min-w-[480px]">
           <thead>
             <tr className="text-left" style={{ color: '#6b635e' }}>
               <th className="py-2 pr-3 font-semibold">Área</th>
@@ -231,6 +236,7 @@ export default function DireccionSalud() {
             )}
           </tbody>
         </table>
+        </div>
       </SeccionCard>
     </DireccionLayout>
   );

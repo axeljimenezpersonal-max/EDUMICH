@@ -135,7 +135,7 @@ export default function DireccionReportes() {
       </div>
 
       {/* Selección de tipo */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
         {REPORTES.map(({ tipo, label, desc, icon: Icon }) => {
           const activo = selected === tipo;
           return (
@@ -161,29 +161,31 @@ export default function DireccionReportes() {
 
       {selected && (
         <SeccionCard titulo={`Generar: ${REPORTES.find((r) => r.tipo === selected)?.label}`} sub="Filtra por rango de fechas si lo necesitas">
+          {/* En móvil los campos ocupan el ancho completo y los dos botones
+              comparten la última fila; en pantalla ancha vuelve a ser una barra. */}
           <div className="flex flex-wrap items-end gap-3 mb-4">
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="text-[11px] font-semibold block mb-1" style={{ color: '#6b635e' }}>Desde</label>
               <input
                 type="date" value={filtros.fechaInicio}
                 onChange={(e) => setFiltros((f) => ({ ...f, fechaInicio: e.target.value }))}
-                className="border border-stone-200 rounded-lg px-3 py-2 text-[13px]"
+                className="border border-stone-200 rounded-lg px-3 py-2 text-[13px] w-full"
               />
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="text-[11px] font-semibold block mb-1" style={{ color: '#6b635e' }}>Hasta</label>
               <input
                 type="date" value={filtros.fechaFin}
                 onChange={(e) => setFiltros((f) => ({ ...f, fechaFin: e.target.value }))}
-                className="border border-stone-200 rounded-lg px-3 py-2 text-[13px]"
+                className="border border-stone-200 rounded-lg px-3 py-2 text-[13px] w-full"
               />
             </div>
-            <div>
+            <div className="w-full sm:w-auto">
               <label className="text-[11px] font-semibold block mb-1" style={{ color: '#6b635e' }}>Formato</label>
               <select
                 value={formato}
                 onChange={(e) => setFormato(e.target.value as Formato)}
-                className="border border-stone-200 rounded-lg px-3 py-2 text-[13px] bg-white"
+                className="border border-stone-200 rounded-lg px-3 py-2 text-[13px] bg-white w-full"
               >
                 <option value="excel">Excel (.xlsx)</option>
                 <option value="pdf">PDF</option>
@@ -192,14 +194,14 @@ export default function DireccionReportes() {
             <button
               onClick={cargarPreview}
               disabled={loadingPreview}
-              className="flex items-center gap-2 text-[12px] font-semibold px-3.5 py-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-60"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-[12px] font-semibold px-3.5 py-2 rounded-lg border border-stone-200 bg-white hover:bg-stone-50 disabled:opacity-60"
             >
               {loadingPreview ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />} Vista previa
             </button>
             <button
               onClick={descargar}
               disabled={loadingDescarga}
-              className="flex items-center gap-2 text-[12px] font-semibold px-3.5 py-2 rounded-lg text-white disabled:opacity-60"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 text-[12px] font-semibold px-3.5 py-2 rounded-lg text-white disabled:opacity-60"
               style={{ background: GUINDA }}
             >
               {loadingDescarga ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />} Descargar
@@ -253,7 +255,8 @@ export default function DireccionReportes() {
       {/* Historial */}
       <div className="mt-6">
         <SeccionCard titulo="Historial de reportes generados" sub="Últimos 20 del sistema (todos los perfiles)">
-          <table className="w-full text-[12px]">
+          <div className="overflow-x-auto -mx-1 px-1 pb-1">
+          <table className="w-full text-[12px] min-w-[480px]">
             <thead>
               <tr className="text-left" style={{ color: '#6b635e' }}>
                 <th className="py-2 pr-3 font-semibold">Reporte</th>
@@ -276,6 +279,7 @@ export default function DireccionReportes() {
               )}
             </tbody>
           </table>
+          </div>
         </SeccionCard>
       </div>
     </DireccionLayout>

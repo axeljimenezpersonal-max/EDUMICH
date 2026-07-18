@@ -9,7 +9,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   LogOut, LayoutDashboard, GraduationCap, Activity, TrendingUp,
-  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle,
+  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle, Menu, X,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AppFooter } from '../../components/AppFooter';
@@ -23,6 +23,11 @@ function apellido(nombre: string): string {
 export function DireccionLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [nombre, setNombre] = useState('Dirección');
+  const [menuAbierto, setMenuAbierto] = useState(false);
+
+  // Al navegar, el cajón móvil se cierra solo: los enlaces son <a> y en móvil
+  // el usuario espera que la pantalla nueva llegue sin el menú encima.
+  useEffect(() => { setMenuAbierto(false); }, [location]);
 
   useEffect(() => {
     api.get<{ perfil?: { nombreCompleto?: string } }>('/auth/me')
@@ -68,22 +73,33 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
         className="bg-white sticky top-0 z-50"
         style={{ borderBottom: '4px solid var(--color-guinda-700)', padding: '16px 0' }}
       >
-        <div className="max-w-[1400px] mx-auto px-6 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-6 flex items-center justify-between gap-3 sm:gap-6">
+          <div className="flex items-center gap-2.5 sm:gap-4 min-w-0">
+            {/* Menú (solo móvil): abre el cajón con las 6 secciones */}
+            <button
+              onClick={() => setMenuAbierto(true)}
+              aria-label="Abrir menú"
+              className="md:hidden flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border"
+              style={{ borderColor: '#eadfd7', color: 'var(--color-guinda-700)', background: '#faf6f0' }}
+            >
+              <Menu size={19} />
+            </button>
             <img
               src="/logo-see-michoacan-256.png"
               alt="Secretaría de Educación de Michoacán"
-              className="brand-logo-img flex-shrink-0"
+              className="brand-logo-img flex-shrink-0 hidden sm:block"
             />
-            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
+            <div className="hidden lg:block" style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-sm font-semibold" style={{ color: 'var(--color-guinda-800)' }}>Gobierno de Michoacán</div>
               <div className="text-[9px] uppercase tracking-widest" style={{ color: '#6b635e', marginTop: 2 }}>HONESTIDAD Y TRABAJO</div>
             </div>
-            <div className="w-px h-9" style={{ background: '#ddd0c5' }} />
-            <div style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
+            <div className="w-px h-9 hidden lg:block" style={{ background: '#ddd0c5' }} />
+            <div className="min-w-0" style={{ fontFamily: "'Poppins', sans-serif", lineHeight: 1.15 }}>
               <div className="text-base font-bold tracking-tight" style={{ color: '#2a2a2a' }}>Modula · Plan 22</div>
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
-                Preparatoria Abierta · Dirección de Programa
+                {/* En móvil sobra la prosa, pero el sello de SOLO LECTURA no:
+                    es lo que le recuerda al titular que aquí no puede tocar nada. */}
+                <span className="hidden sm:inline">Preparatoria Abierta · Dirección de Programa</span>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   background: '#eef4ee', color: '#166534',
@@ -96,9 +112,9 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <div className="flex items-center gap-2.5">
-              <div className="text-right" style={{ lineHeight: 1.2 }}>
+              <div className="text-right hidden sm:block" style={{ lineHeight: 1.2 }}>
                 <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a' }}>
                   {apellido(nombre)}
                 </div>
@@ -134,13 +150,45 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Body */}
-      <div
-        className="w-full max-w-[1400px] mx-auto px-6 py-6 grid gap-6 flex-1"
-        style={{ gridTemplateColumns: '240px 1fr', alignItems: 'start' }}
-      >
+      <div className="w-full max-w-[1400px] mx-auto px-3 sm:px-6 py-4 sm:py-6 grid gap-6 flex-1 grid-cols-1 md:grid-cols-[240px_1fr] items-start">
+
+        {/* ── Cajón móvil: las mismas 6 secciones, deslizando desde la izquierda ── */}
+        {menuAbierto && (
+          <div className="fixed inset-0 z-[60] md:hidden">
+            <div
+              className="absolute inset-0"
+              style={{ background: 'rgba(28,10,18,0.5)' }}
+              onClick={() => setMenuAbierto(false)}
+            />
+            <div
+              className="absolute inset-y-0 left-0 w-[290px] max-w-[85vw] overflow-y-auto bg-white shadow-2xl"
+              style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+              role="dialog"
+              aria-label="Menú de dirección"
+            >
+              <div className="flex items-center justify-between px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
+                <div>
+                  <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
+                  <div className="text-[15px] font-bold">Dirección</div>
+                </div>
+                <button
+                  onClick={() => setMenuAbierto(false)}
+                  aria-label="Cerrar menú"
+                  className="flex h-9 w-9 items-center justify-center rounded-full"
+                  style={{ background: 'rgba(255,255,255,0.15)', border: 'none', color: 'white', cursor: 'pointer' }}
+                >
+                  <X size={17} />
+                </button>
+              </div>
+              <SeccionesDireccion items={items} linkStyle={linkStyle} />
+            </div>
+          </div>
+        )}
+
+        {/* ── Sidebar (tablet/escritorio) — con scroll propio para pantallas bajitas ── */}
         <aside
-          className="bg-white border border-stone-200 rounded-lg overflow-hidden sticky"
-          style={{ top: 96 }}
+          className="bg-white border border-stone-200 rounded-lg sticky hidden md:block overflow-y-auto"
+          style={{ top: 96, maxHeight: 'calc(100vh - 112px)' }}
         >
           <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
             <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
@@ -149,33 +197,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="py-1.5 border-t border-stone-100">
-            <div
-              className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
-              style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
-            >
-              INDICADORES
-            </div>
-            <ul className="list-none">
-              {items.map(({ href, icon: Icon, label, tour }) => (
-                <li key={href}>
-                  <a
-                    href={href}
-                    data-tour={tour}
-                    className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
-                    style={linkStyle(href)}
-                  >
-                    <Icon size={14} /> {label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="px-[18px] py-3 border-t border-stone-100" style={{ fontSize: 10.5, color: '#6b635e', lineHeight: 1.5 }}>
-            Este perfil muestra únicamente datos agregados del programa. No da
-            acceso a expedientes ni datos personales de alumnos.
-          </div>
+          <SeccionesDireccion items={items} linkStyle={linkStyle} />
         </aside>
 
         <main style={{ minWidth: 0 }}>
@@ -191,6 +213,53 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
 }
 
 // ── Piezas compartidas del portal de dirección ──────────────────────────────
+
+type ItemNav = {
+  href: string;
+  icon: React.ComponentType<{ size?: number }>;
+  label: string;
+  tour: string;
+};
+
+/**
+ * Las secciones del panel. Una sola definición que sirve a la sidebar de
+ * escritorio y al cajón móvil — si se separan, se desincronizan.
+ */
+function SeccionesDireccion({
+  items, linkStyle,
+}: { items: ItemNav[]; linkStyle: (href: string) => React.CSSProperties }) {
+  return (
+    <>
+      <div className="py-1.5 border-t border-stone-100">
+        <div
+          className="text-[10px] uppercase tracking-widest font-bold px-[18px] pt-2 pb-1.5"
+          style={{ color: 'var(--color-dorado)', letterSpacing: '0.14em' }}
+        >
+          INDICADORES
+        </div>
+        <ul className="list-none">
+          {items.map(({ href, icon: Icon, label, tour }) => (
+            <li key={href}>
+              <a
+                href={href}
+                data-tour={tour}
+                className="flex items-center gap-2.5 px-[18px] py-2.5 text-[13px] border-l-[3px] no-underline"
+                style={linkStyle(href)}
+              >
+                <Icon size={14} /> {label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="px-[18px] py-3 border-t border-stone-100" style={{ fontSize: 10.5, color: '#6b635e', lineHeight: 1.5 }}>
+        Este perfil muestra únicamente datos agregados del programa. No da
+        acceso a expedientes ni datos personales de alumnos.
+      </div>
+    </>
+  );
+}
 
 export function TarjetaKPI({
   etiqueta, valor, sub, acento,

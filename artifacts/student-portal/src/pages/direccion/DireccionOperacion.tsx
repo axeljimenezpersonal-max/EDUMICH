@@ -81,7 +81,7 @@ export default function DireccionOperacion() {
       </div>
 
       {/* Backlog */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {backlogItems.map(({ icon: Icon, label, valor }) => (
           <div key={label} className="bg-white border border-stone-200 rounded-lg p-4 flex items-center gap-3">
             <div
@@ -119,7 +119,8 @@ export default function DireccionOperacion() {
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
           <SeccionCard titulo="Productividad de gestores" sub="Top 10 por alumnos activos asignados">
-            <table className="w-full text-[12px]">
+            <div className="overflow-x-auto -mx-1 px-1 pb-1">
+            <table className="w-full text-[12px] min-w-[560px]">
               <thead>
                 <tr className="text-left" style={{ color: '#6b635e' }}>
                   <th className="py-2 pr-3 font-semibold">Gestor</th>
@@ -153,6 +154,7 @@ export default function DireccionOperacion() {
                 )}
               </tbody>
             </table>
+            </div>
           </SeccionCard>
         </div>
 
