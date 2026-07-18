@@ -1,17 +1,19 @@
 {
-  "name": "Modula · Plan 22 · Preparatoria Abierta",
-  "short_name": "Modula",
-  "description": "Sistema de Gestión de Preparatoria Abierta Michoacán · IEMSyS",
+  "name": "Módula 22 · Preparatoria Abierta",
+  "short_name": "Módula 22",
+  "description": "Plataforma de Preparatoria Abierta del IEMSyS en Michoacán. Tu avance por los 22 módulos del Plan 22, tus pagos y tus calificaciones.",
   "lang": "es-MX",
+  "dir": "ltr",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f7f2ed",
+  "background_color": "#4a0e20",
   "theme_color": "#6b1530",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "/logo-see-michoacan-256.png", "sizes": "256x256", "type": "image/png", "purpose": "any" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

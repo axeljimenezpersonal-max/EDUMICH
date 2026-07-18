@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import ModulaLogo from './components/ModulaLogo';
 import './index.css';
 
 function Root() {
@@ -28,28 +29,24 @@ function Root() {
             animation: 'modula-fade-out 0.4s 0.85s forwards',
           }}
         >
+          {/* La marca vectorizada, no texto: el splash aparece antes de que
+              termine de cargar cualquier fuente, y con texto se veía primero en
+              la tipografía de respaldo y luego saltaba. */}
+          <ModulaLogo
+            titulo="Módula 22"
+            style={{ width: 'min(72vw, 320px)', height: 'auto', marginBottom: 14 }}
+          />
           <div
             style={{
-              fontFamily: "'Poppins', sans-serif",
-              fontWeight: 900,
-              fontSize: 64,
-              letterSpacing: '-0.05em',
-              marginBottom: 6,
-              lineHeight: 1,
-            }}
-          >
-            Modula
-          </div>
-          <div
-            style={{
-              fontSize: 13,
-              opacity: 0.8,
-              letterSpacing: '0.12em',
+              fontSize: 12,
+              opacity: 0.75,
+              letterSpacing: '0.16em',
               textTransform: 'uppercase',
               marginBottom: 32,
+              color: 'var(--color-dorado-soft)',
             }}
           >
-            Plataforma Educativa Digital
+            Plan 22 · Preparatoria Abierta
           </div>
           <div
             style={{
