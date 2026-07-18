@@ -197,6 +197,11 @@ export const users = pgTable(
     privacidadAceptadaEn: timestamp('privacidad_aceptada_en'),
     ultimoLogin: timestamp('ultimo_login'),
     passwordCambiadoEn: timestamp('password_cambiado_en'),
+    // Corte de sesiones: cualquier cookie emitida ANTES de esta marca deja de
+    // valer. Se pone al cambiar o restablecer la contraseña y al desactivar la
+    // cuenta. Es lo que permite revocar de verdad una sesión sin consultar la
+    // base en cada petición (ver utils/revocacion.ts).
+    sesionesInvalidadasEn: timestamp('sesiones_invalidadas_en'),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

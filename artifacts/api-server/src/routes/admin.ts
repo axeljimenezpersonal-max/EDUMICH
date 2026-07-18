@@ -3109,7 +3109,7 @@ router.post('/gestores/:gestorId/desactivar', soloJefe, async (req, res) => {
         .where(eq(gestores.userId, gestorId));
 
       await tx.update(users)
-        .set({ activo: false, updatedAt: new Date() })
+        .set({ activo: false, updatedAt: new Date(), sesionesInvalidadasEn: new Date() })
         .where(eq(users.id, gestorId));
 
       if (reasignarAGestorId) {

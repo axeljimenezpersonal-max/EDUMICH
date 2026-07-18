@@ -48,6 +48,7 @@ import { iniciarCronDepuracion } from './services/depuracion';
 import { recordarCierreDeVentana } from './utils/recordarCierreVentana';
 import { runStartupMigrations } from './db';
 import { metricsMiddleware } from './middleware/metrics';
+import { iniciarRevocacion } from './utils/revocacion';
 
 const app = express();
 
@@ -237,6 +238,10 @@ app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Preparatoria Abierta Michoacán API escuchando en :${PORT}`);
   await runStartupMigrations();
   console.log('✅ Migraciones de arranque completadas');
+
+  // Lista de sesiones revocadas: se carga y se refresca cada minuto. Va DESPUÉS
+  // de las migraciones porque depende de la columna sesiones_invalidadas_en.
+  iniciarRevocacion();
   await sincronizarEstadosEtapas()
     .then((n) => console.log(`✅ Estados de etapas sincronizados (${n} cambios)`))
     .catch((e) => console.error('[Etapas] Error al sincronizar:', e));

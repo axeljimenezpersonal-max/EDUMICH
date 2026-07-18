@@ -21,6 +21,7 @@ import {
 import { sendAvisoEliminacion } from './email';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 import { archivoEliminar } from './storage';
+import { registrarCorteLocal } from '../utils/revocacion';
 
 // ── Registrar actividad ───────────────────────────────────────────────────
 
@@ -288,7 +289,12 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
       .where(eq(estudiantes.userId, est.userId));
 
     // Deshabilitar acceso
-    await db.update(users).set({ activo: false }).where(eq(users.id, est.userId));
+    // Desactivar no bastaba: la cookie ya emitida seguía valiendo hasta 7 días.
+    await db
+      .update(users)
+      .set({ activo: false, sesionesInvalidadasEn: new Date() })
+      .where(eq(users.id, est.userId));
+    registrarCorteLocal(est.userId);
 
     softDeletedCount++;
     console.log(`[DEPURACION] Soft delete: ${est.nombreCompleto} (#${est.userId})`);

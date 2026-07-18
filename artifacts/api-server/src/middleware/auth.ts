@@ -11,6 +11,7 @@ import type { Request, Response, NextFunction } from 'express';
 import crypto from 'node:crypto';
 import { SESSION_SECRET as SECRET } from '../config/env';
 import { tryAuditLog } from '../utils/audit';
+import { sesionRevocada } from '../utils/revocacion';
 
 const COOKIE_NAME = 'pa_session';
 
@@ -51,6 +52,12 @@ export function decodeSession(cookie: string): SessionUser | null {
     const data = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
     // Rechaza sesiones sin marca de tiempo o expiradas (expiración server-side).
     if (typeof data?.iat !== 'number' || Date.now() - data.iat > MAX_SESSION_AGE_MS) {
+      return null;
+    }
+    // Y las revocadas: cookies emitidas antes de que el usuario cambiara su
+    // contraseña o de que se diera de baja su cuenta. La comprobación es en
+    // memoria (ver utils/revocacion.ts), sin consulta por petición.
+    if (sesionRevocada(data.userId, data.iat)) {
       return null;
     }
     return { userId: data.userId, rol: data.rol };

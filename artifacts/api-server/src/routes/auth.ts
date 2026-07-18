@@ -24,6 +24,7 @@ import {
 import { sendRecuperarPassword } from '../services/email';
 import { tryAuditLog } from '../utils/audit';
 import { bloqueoDeCuenta, registrarFalloDeCuenta, limpiarFallosDeCuenta } from '../utils/bloqueoCuenta';
+import { registrarCorteLocal } from '../utils/revocacion';
 
 const router = Router();
 
@@ -299,9 +300,17 @@ router.post('/cambiar-password', authRequired, async (req, res) => {
       passwordHash: nuevoHash,
       passwordTemporal: false,
       passwordCambiadoEn: new Date(),
+      // Cambiar la contraseña CIERRA las sesiones abiertas. Antes no lo hacía:
+      // si te robaban la cookie y hacías lo correcto, el atacante seguía
+      // dentro una semana.
+      sesionesInvalidadasEn: new Date(),
       updatedAt: new Date(),
     })
     .where(eq(users.id, userId));
+
+  // La caché de revocación se entera en el acto; si no, esta misma instancia
+  // seguiría aceptando la cookie vieja hasta el próximo refresco.
+  registrarCorteLocal(userId);
 
   await tryAuditLog({
     userId,

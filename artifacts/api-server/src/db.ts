@@ -7,6 +7,9 @@ export { db };
 // sin depender de drizzle-kit push en producción.
 
 const migrations = [
+  // Corte de sesiones por usuario (revocación real sin consultar por petición)
+  `ALTER TABLE users
+     ADD COLUMN IF NOT EXISTS sesiones_invalidadas_en timestamp`,
   `ALTER TABLE estudiantes_modulos_progreso
      ADD COLUMN IF NOT EXISTS temas_debiles jsonb`,
   // Búsqueda de cuenta por nombre sin sensibilidad a acentos
