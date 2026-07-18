@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, type PagoGrupalResumen, type PagoGrupalDetalle, type PagoGrupalEstado } from '../../lib/api';
+import { confirmar } from '../../components/Confirmador';
 
 const FILTROS: { key: string; label: string }[] = [
   { key: '', label: 'Todos' },
@@ -173,7 +174,11 @@ function DetalleAdmin({ id, onBack, onToast }: {
   }, [id]);
 
   async function verificar() {
-    if (!confirm(`¿Verificar el pago ${pg?.folio}? Todos los alumnos incluidos quedarán con su pago cubierto.`)) return;
+    if (!(await confirmar({
+      title: 'Verificar pago grupal',
+      message: <>Al verificar <strong>{pg?.folio}</strong>, todos los alumnos incluidos quedarán con su pago cubierto.</>,
+      confirmLabel: 'Verificar',
+    }))) return;
     setAccion(true);
     try {
       const r = await api.post<{ alumnosCubiertos: number }>(`/admin/pagos-grupales/${id}/verificar`, {});

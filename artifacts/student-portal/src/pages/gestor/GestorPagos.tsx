@@ -17,6 +17,7 @@ import { PagoStepper } from '../../components/PagoStepper';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_PAGOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
+import { confirmar } from '../../components/Confirmador';
 import {
   api,
   type PagoExamenAlumno,
@@ -454,13 +455,23 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
   }
 
   async function cancelarFicha() {
-    if (!confirm('¿Cancelar esta ficha de pago? Los exámenes quedarán libres para solicitarse de nuevo.')) return;
+    if (!(await confirmar({
+      title: 'Cancelar ficha de pago',
+      message: 'Los exámenes de esta ficha quedarán libres para solicitarse de nuevo.',
+      confirmLabel: 'Cancelar ficha',
+      danger: true,
+    }))) return;
     try { await api.post(`/pagos-examen/${id}/cancelar-mia`, {}); onToast('Ficha cancelada'); onBack(); }
     catch (e) { onToast(e instanceof Error ? e.message : 'Error', false); }
   }
 
   async function quitarExamen(inscripcionId: number) {
-    if (!confirm('¿Quitar este examen de la ficha?')) return;
+    if (!(await confirmar({
+      title: 'Quitar examen de la ficha',
+      message: 'El examen saldrá de esta ficha y podrá solicitarse de nuevo más adelante.',
+      confirmLabel: 'Quitar',
+      danger: true,
+    }))) return;
     try {
       const r = await api.post<{ reemitir?: boolean }>(`/pagos-examen/${id}/quitar-examen`, { examenInscripcionId: inscripcionId });
       onToast(r.reemitir ? 'Examen quitado — la coordinación debe re-emitir la ficha' : 'Examen quitado');

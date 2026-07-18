@@ -8,6 +8,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { TOUR_IDENTIFICACION, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
+import { avisar } from '../../components/Avisador';
 
 // ── Paleta institucional (espejo del template) ──────────────────────────
 const G = {
@@ -330,7 +331,7 @@ export default function MiIdentificacion() {
       if (!res.ok) throw new Error();
       setSolicitOk(true); setMostrarRenovar(false);
     } catch {
-      alert('No se pudo enviar la solicitud. Intenta de nuevo.');
+      avisar('No se pudo enviar la solicitud. Intenta de nuevo.', 'error');
     } finally { setSolicitando(false); }
   }
 
@@ -356,7 +357,7 @@ export default function MiIdentificacion() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      alert('No se pudo descargar la credencial. Intenta de nuevo.');
+      avisar('No se pudo descargar la credencial. Intenta de nuevo.', 'error');
     } finally {
       setDescargando(false);
     }

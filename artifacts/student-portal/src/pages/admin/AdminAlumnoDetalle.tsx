@@ -14,6 +14,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import CalificacionesTabContent from '../../components/CalificacionesTabContent';
 import { CedulaEditor } from '../../components/CedulaEditor';
 import { CredencialPreview } from '../../components/CredencialPreview';
+import { confirmar } from '../../components/Confirmador';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -956,7 +957,11 @@ export default function AdminAlumnoDetalle() {
 
   async function handleResetPassword() {
     if (!data) return;
-    if (!confirm(`¿Enviar contraseña temporal a ${data.alumno.email}?`)) return;
+    if (!(await confirmar({
+      title: 'Enviar contraseña temporal',
+      message: <>Se enviará una contraseña temporal a <strong>{data.alumno.email}</strong>. La actual dejará de funcionar.</>,
+      confirmLabel: 'Enviar',
+    }))) return;
     setResettingPwd(true);
     try {
       await api.post(`/admin/gestores/${alumnoId}/reset-password`, {});
@@ -1012,7 +1017,11 @@ export default function AdminAlumnoDetalle() {
   }
 
   async function handleRenovarPreregistro() {
-    if (!confirm('¿Renovar la ficha de pre-registro? Se extenderá 15 días hábiles desde hoy.')) return;
+    if (!(await confirmar({
+      title: 'Renovar ficha de pre-registro',
+      message: 'La vigencia se extenderá 15 días hábiles contados desde hoy.',
+      confirmLabel: 'Renovar',
+    }))) return;
     setRenovando(true);
     try {
       await api.post(`/admin/alumnos/${alumnoId}/renovar-preregistro`, {});

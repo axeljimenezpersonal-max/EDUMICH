@@ -8,6 +8,8 @@ import {
   AlertTriangle, Info, AlertCircle, X, Loader2,
   Users, UserCheck, Globe, MapPin, Calendar,
 } from 'lucide-react';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { avisar } from '../../components/Avisador';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -490,6 +492,8 @@ export default function AnunciosLista() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<null | { form: typeof EMPTY_FORM & { id?: number } }>(null);
   const [actionLoading, setActionLoading] = useState<number | null>(null);
+  /** Anuncio pendiente de confirmar borrado (sustituye al confirm() del navegador). */
+  const [aBorrar, setABorrar] = useState<Anuncio | null>(null);
 
   async function load() {
     setLoading(true);
@@ -527,9 +531,9 @@ export default function AnunciosLista() {
   }
 
   async function handleDelete(id: number) {
-    if (!confirm('¿Eliminar este anuncio? Esta acción no se puede deshacer.')) return;
     setActionLoading(id);
-    try { await api.delete(`/admin/anuncios/${id}`); await load(); } catch {}
+    try { await api.delete(`/admin/anuncios/${id}`); await load(); }
+    catch (e) { avisar(e instanceof Error ? e.message : 'No se pudo eliminar el anuncio.', 'error'); }
     setActionLoading(null);
   }
 
@@ -616,7 +620,7 @@ export default function AnunciosLista() {
                   onEdit={() => setModal({ form: { id: a.id, titulo: a.titulo, contenido: a.contenido, prioridad: a.prioridad, audiencia: a.audiencia, audienciaParam: a.audienciaParam ?? '', estado: a.estado, ctaTexto: a.ctaTexto ?? '', ctaUrl: a.ctaUrl ?? '', activoHasta: a.activoHasta ? new Date(a.activoHasta).toISOString().slice(0, 16) : '' } })}
                   onArchive={() => handleArchive(a.id)}
                   onUnarchive={() => handleUnarchive(a.id)}
-                  onDelete={() => handleDelete(a.id)}
+                  onDelete={() => setABorrar(a)}
                 />
               </div>
             ))}
@@ -639,6 +643,18 @@ export default function AnunciosLista() {
         gateKey={GATE_ADMIN}
         buttonLabel="Tutorial de anuncios"
       />
+
+      {aBorrar && (
+        <ConfirmModal
+          icon={<Trash2 size={18} />}
+          danger
+          title="Eliminar anuncio"
+          message={<>¿Eliminar «<strong>{aBorrar.titulo}</strong>»? Esta acción no se puede deshacer.</>}
+          confirmLabel="Eliminar"
+          onConfirm={() => { const id = aBorrar.id; setABorrar(null); handleDelete(id); }}
+          onClose={() => setABorrar(null)}
+        />
+      )}
     </AdminLayout>
   );
 }

@@ -13,6 +13,8 @@ import {
 import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_REPORTES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
+import { avisar } from '../../components/Avisador';
+import { confirmar } from '../../components/Confirmador';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -549,7 +551,7 @@ function CentroDescargas() {
       });
       if (!res.ok) throw new Error(await res.text());
       setPreview(await res.json());
-    } catch (e) { alert('Error al cargar vista previa: ' + String(e)); } finally { setLoadingPreview(false); }
+    } catch (e) { avisar('Error al cargar vista previa: ' + String(e), 'error'); } finally { setLoadingPreview(false); }
   }, [selected, filtros]);
 
   const cargarHistorial = useCallback(async () => {
@@ -560,7 +562,7 @@ function CentroDescargas() {
     if (!selected) return;
     // Relación en PDF = documento oficial IEMSyS (requiere convocatoria y centro).
     if (selected === 'relacion' && formato === 'pdf') {
-      if (!filtros.etapaId || !filtros.gestorId) { alert('Para el PDF oficial elige una convocatoria y un centro.'); return; }
+      if (!filtros.etapaId || !filtros.gestorId) { avisar('Para el PDF oficial elige una convocatoria y un centro.', 'error'); return; }
       window.open(`/api/admin/relacion-examenes/pdf?etapaId=${filtros.etapaId}&gestorId=${filtros.gestorId}`, '_blank');
       return;
     }
@@ -578,7 +580,7 @@ function CentroDescargas() {
       a.href = url; a.download = `${selected}_${new Date().toISOString().slice(0, 10)}.${ext}`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
       cargarHistorial();
-    } catch (e) { alert('Error al generar reporte: ' + String(e)); } finally { setLoadingDescarga(false); }
+    } catch (e) { avisar('Error al generar reporte: ' + String(e), 'error'); } finally { setLoadingDescarga(false); }
   }, [selected, formato, filtros, cargarHistorial]);
 
   const cargarProgramados = useCallback(async () => {
@@ -595,7 +597,12 @@ function CentroDescargas() {
     } catch {}
   };
   const eliminarProgramado = async (id: number) => {
-    if (!confirm('¿Eliminar reporte programado?')) return;
+    if (!(await confirmar({
+      title: 'Eliminar reporte programado',
+      message: 'Dejará de generarse y enviarse automáticamente. Esta acción no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      danger: true,
+    }))) return;
     await fetch(`/api/admin/reportes/programados/${id}`, { method: 'DELETE', credentials: 'include' });
     setProgramados((prev) => prev.filter((p) => p.id !== id));
   };
@@ -610,7 +617,7 @@ function CentroDescargas() {
       const nuevo = await res.json();
       setProgramados((prev) => [nuevo, ...prev]);
       setShowModalProgramar(false);
-    } catch (e) { alert('Error: ' + String(e)); } finally { setSavingProg(false); }
+    } catch (e) { avisar('Error: ' + String(e), 'error'); } finally { setSavingProg(false); }
   };
 
   const sel = REPORTES.find((r) => r.tipo === selected);

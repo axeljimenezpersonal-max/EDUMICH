@@ -9,6 +9,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_CONFIGURACION, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { SaveBar } from '../../components/SaveBar';
 import { useAdminPerfil } from '../../lib/useAdmin';
+import { confirmar } from '../../components/Confirmador';
 
 // ─────────────────────────────────────────────────────────────
 // Lazy-load section components
@@ -88,9 +89,14 @@ export default function Configuracion() {
   const saveRef = useRef<(() => Promise<void>) | null>(null);
   const discardRef = useRef<(() => void) | null>(null);
 
-  function handleNavClick(id: Seccion) {
+  async function handleNavClick(id: Seccion) {
     if (isDirty) {
-      if (!confirm('Tienes cambios sin guardar. ¿Descartar y continuar?')) return;
+      if (!(await confirmar({
+        title: 'Cambios sin guardar',
+        message: 'Si continúas se perderán los cambios que hiciste en esta sección.',
+        confirmLabel: 'Descartar y continuar',
+        danger: true,
+      }))) return;
       discardRef.current?.();
       setIsDirty(false);
     }

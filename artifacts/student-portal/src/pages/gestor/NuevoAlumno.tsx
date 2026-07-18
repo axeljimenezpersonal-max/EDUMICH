@@ -20,6 +20,7 @@ import { api, type Convocatoria } from '../../lib/api';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_NUEVO_ALUMNO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
+import { confirmar } from '../../components/Confirmador';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -233,11 +234,14 @@ export default function NuevoAlumno() {
   }, [hayProgreso]);
 
   // ── Navigation guard ─────────────────────────────────────────────────
-  function handleSalir() {
+  async function handleSalir() {
     if (hayProgreso) {
-      const ok = window.confirm(
-        '¿Salir sin guardar? Se perderá toda la información capturada y el alumno NO quedará registrado.'
-      );
+      const ok = await confirmar({
+        title: 'Salir sin guardar',
+        message: 'Se perderá toda la información capturada y el alumno NO quedará registrado.',
+        confirmLabel: 'Salir sin guardar',
+        danger: true,
+      });
       if (!ok) return;
     }
     setLocation('/gestor/alumnos');

@@ -15,6 +15,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_CHAT, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 import { parseDbDate } from '../../lib/fechas';
+import { avisar } from '../../components/Avisador';
 
 interface Conv {
   id: number;
@@ -114,7 +115,7 @@ export default function AdminChat() {
       setTimeout(() => finRef.current?.scrollIntoView({ behavior: 'smooth' }), 40);
       cargarConvs();
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'No se pudo enviar el mensaje');
+      avisar(e instanceof Error ? e.message : 'No se pudo enviar el mensaje', 'error');
     } finally {
       setEnviando(false);
     }

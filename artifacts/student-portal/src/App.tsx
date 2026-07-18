@@ -56,6 +56,8 @@ import AdminAlumnoDetalle from './pages/admin/AdminAlumnoDetalle';
 import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import SedesLista from './pages/admin/SedesLista';
+import { Avisador } from './components/Avisador';
+import { Confirmador } from './components/Confirmador';
 import AnunciosLista from './pages/admin/AnunciosLista';
 import AdminChat from './pages/admin/AdminChat';
 import AdminCalificaciones from './pages/admin/AdminCalificaciones';
@@ -77,6 +79,11 @@ import DemoEstudiante from './pages/demo/DemoEstudiante';
 
 export default function App() {
   return (
+    <>
+    {/* Avisos breves y confirmaciones (reemplazan alert() y confirm() del
+        navegador). Se montan una sola vez para toda la app. */}
+    <Avisador />
+    <Confirmador />
     <Switch>
       <Route path="/login" component={Login} />
 
@@ -173,6 +180,7 @@ export default function App() {
         <Redirect to="/login" />
       </Route>
     </Switch>
+    </>
   );
 }
 

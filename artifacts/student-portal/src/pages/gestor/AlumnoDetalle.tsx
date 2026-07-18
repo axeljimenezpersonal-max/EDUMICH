@@ -58,6 +58,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_FICHA, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { CampoCopiable } from '../../components/CampoCopiable';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { avisar } from '../../components/Avisador';
 
 interface AlumnoConMatricula {
   userId: number;
@@ -1008,7 +1009,7 @@ function PlanDeEstudiosTab({
       await api.delete(`/gestor/alumnos/${alumnoId}/examenes/${inscId}`);
       await onReload();
     } catch (e) {
-      window.alert((e as Error).message || 'No se pudo quitar el módulo.');
+      avisar((e as Error).message || 'No se pudo quitar el módulo.', 'error');
     } finally {
       setQuitando(null);
     }

@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { api } from '../lib/api';
 import { horaCorta, diaLargo } from '../lib/fechas';
+import { confirmar } from './Confirmador';
 
 interface Voto { opcion: number; n: number; mio: boolean }
 interface Msg {
@@ -139,7 +140,12 @@ export function ForoAula({ hrefTareas = '/estudiante/aula?sec=tareas', moduloId,
     try { await api.post(`/aula/foro/${msgId}/votar`, { opcion }); await cargar(); } catch { /* silencioso */ }
   }
   async function borrar(msgId: number) {
-    if (!confirm('¿Borrar este mensaje?')) return;
+    if (!(await confirmar({
+      title: 'Borrar mensaje',
+      message: 'El mensaje se quitará del foro para todos. Esta acción no se puede deshacer.',
+      confirmLabel: 'Borrar',
+      danger: true,
+    }))) return;
     try { await api.delete(`/aula/foro/${msgId}`); await cargar(); } catch { /* silencioso */ }
   }
   async function toggleBloqueo() {

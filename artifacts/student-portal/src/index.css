@@ -222,6 +222,16 @@ html, body {
   .hoja-pie-seguro { padding-bottom: 0; }
 }
 
+/* Posición del <Avisador>: en teléfono los avisos deben quedar POR ENCIMA de la
+   barra de navegación inferior (52px + safe-area) para no taparla; en ≥sm esa
+   barra no existe y basta un margen normal. */
+.avisador-pos {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 5.5rem);
+}
+@media (min-width: 640px) {
+  .avisador-pos { padding-bottom: 1.25rem; }
+}
+
 /* Ocultar scrollbar manteniendo funcionalidad */
 .scrollbar-none {
   -ms-overflow-style: none;

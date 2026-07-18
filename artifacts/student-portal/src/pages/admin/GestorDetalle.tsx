@@ -8,6 +8,7 @@ import {
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
+import { confirmar } from '../../components/Confirmador';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -517,7 +518,11 @@ export default function GestorDetalle() {
 
   async function handleResetPassword() {
     if (!gestor) return;
-    if (!confirm(`¿Enviar nueva contraseña temporal a ${gestor.email}?`)) return;
+    if (!(await confirmar({
+      title: 'Enviar contraseña temporal',
+      message: <>Se enviará una contraseña temporal a <strong>{gestor.email}</strong>. La actual dejará de funcionar.</>,
+      confirmLabel: 'Enviar',
+    }))) return;
     setResettingPwd(true);
     try {
       await api.post(`/admin/gestores/${gestor.id}/reset-password`, {});
@@ -532,7 +537,11 @@ export default function GestorDetalle() {
   const [reenviando, setReenviando] = useState(false);
   async function handleReenviarCredenciales() {
     if (!gestor) return;
-    if (!confirm(`¿Reenviar las credenciales de acceso al correo ${gestor.email}? Se generará una nueva contraseña temporal.`)) return;
+    if (!(await confirmar({
+      title: 'Reenviar credenciales',
+      message: <>Se reenviarán los datos de acceso a <strong>{gestor.email}</strong> con una contraseña temporal nueva.</>,
+      confirmLabel: 'Reenviar',
+    }))) return;
     setReenviando(true);
     try {
       await api.post(`/admin/gestores/${gestor.id}/reset-password`, {});
