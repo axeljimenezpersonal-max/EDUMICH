@@ -1,8 +1,11 @@
 /**
- * Layout del portal de DIRECCIÓN DE PROGRAMA.
+ * Layout del panel del CREADOR de la plataforma (Synapsis).
  *
- * Perfil ejecutivo de solo lectura: indicadores, proyecciones, salud del
- * sistema y reportes. No expone acciones operativas ni datos personales.
+ * Ojo con el nombre: el rol en la base sigue siendo `direccion` —cambiarlo
+ * implica tocar el enum y las sesiones vivas—, pero de cara al usuario este
+ * perfil es el de quien construye y opera Módula 22, no una dirección de
+ * gobierno. Es solo lectura: indicadores, proyecciones, salud del sistema,
+ * reportes y uso de la plataforma. No expone datos personales de alumnos.
  */
 
 import { useEffect, useState } from 'react';
@@ -23,7 +26,7 @@ function apellido(nombre: string): string {
 
 export function DireccionLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const [nombre, setNombre] = useState('Dirección');
+  const [nombre, setNombre] = useState('Creador');
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   // Al navegar, el cajón móvil se cierra solo: los enlaces son <a> y en móvil
@@ -32,7 +35,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     api.get<{ perfil?: { nombreCompleto?: string } }>('/auth/me')
-      .then((r) => setNombre(r.perfil?.nombreCompleto ?? 'Dirección'))
+      .then((r) => setNombre(r.perfil?.nombreCompleto ?? 'Creador'))
       .catch(() => {});
   }, []);
 
@@ -101,7 +104,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
               <div className="text-xs" style={{ color: '#6b635e', display: 'flex', alignItems: 'center', gap: 6 }}>
                 {/* En móvil sobra la prosa, pero el sello de SOLO LECTURA no:
                     es lo que le recuerda al titular que aquí no puede tocar nada. */}
-                <span className="hidden sm:inline">Preparatoria Abierta · Dirección de Programa</span>
+                <span className="hidden sm:inline">Preparatoria Abierta · Panel del creador</span>
                 <span style={{
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                   background: '#eef4ee', color: '#166534',
@@ -124,7 +127,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
                   {apellido(nombre)}
                 </div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)', letterSpacing: '0.1em' }}>
-                  Dirección
+                  Creador
                 </div>
               </div>
               <div
@@ -169,12 +172,12 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
               className="absolute inset-y-0 left-0 w-[290px] max-w-[85vw] overflow-y-auto bg-white shadow-2xl"
               style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
               role="dialog"
-              aria-label="Menú de dirección"
+              aria-label="Menú del creador"
             >
               <div className="flex items-center justify-between px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
                 <div>
                   <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
-                  <div className="text-[15px] font-bold">Dirección</div>
+                  <div className="text-[15px] font-bold">Creador</div>
                 </div>
                 <button
                   onClick={() => setMenuAbierto(false)}
@@ -198,7 +201,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
           <div className="px-[18px] py-3.5" style={{ background: 'var(--color-guinda-800)', color: 'white' }}>
             <div className="text-[10px] uppercase tracking-widest" style={{ opacity: 0.8 }}>PANEL</div>
             <div className="text-[15px] font-bold" style={{ fontFamily: "'Poppins', sans-serif" }}>
-              Dirección
+              Creador
             </div>
           </div>
 
@@ -259,8 +262,9 @@ function SeccionesDireccion({
       </div>
 
       <div className="px-[18px] py-3 border-t border-stone-100" style={{ fontSize: 10.5, color: '#6b635e', lineHeight: 1.5 }}>
-        Este perfil muestra únicamente datos agregados del programa. No da
-        acceso a expedientes ni datos personales de alumnos.
+        Panel de quien desarrolla y opera la plataforma. Muestra únicamente
+        datos agregados: no da acceso a expedientes ni a datos personales de
+        alumnos.
       </div>
     </>
   );

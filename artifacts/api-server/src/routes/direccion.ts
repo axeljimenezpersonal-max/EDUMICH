@@ -25,6 +25,7 @@ import {
   solicitudesCuenta,
   expedienteDocumentos,
   pagos,
+  pagosExamen,
   examenesInscripciones,
   convocatoriasEtapas,
   outbox,
@@ -322,10 +323,15 @@ router.get('/operacion', async (_req, res) => {
       .select({ cnt: count() })
       .from(expedienteDocumentos)
       .where(eq(expedienteDocumentos.estado, 'pendiente_revision'));
+    // OJO: este indicador leía la tabla `pagos`, que tiene 0 filas desde que
+    // el modelo real pasó a ser `pagos_examen`. Marcaba 0 pasara lo que
+    // pasara — un indicador que no puede subir no informa, tranquiliza.
+    // 'en_revision' = el alumno subió comprobante y falta verificarlo;
+    // 'pagado' ya está conciliado y por eso no cuenta aquí.
     const [{ cnt: pagosPendientes }] = await db
       .select({ cnt: count() })
-      .from(pagos)
-      .where(eq(pagos.estado, 'pendiente'));
+      .from(pagosExamen)
+      .where(eq(pagosExamen.estado, 'en_revision'));
     const [{ cnt: solicitudesPendientes }] = await db
       .select({ cnt: count() })
       .from(solicitudesCuenta)
@@ -342,7 +348,7 @@ router.get('/operacion', async (_req, res) => {
            FROM expediente_documentos
            WHERE revisado_en IS NOT NULL AND subido_en >= NOW() - INTERVAL '90 days') AS docs_horas,
         (SELECT round(avg(EXTRACT(EPOCH FROM (verificado_en - created_at)) / 3600))
-           FROM pagos
+           FROM pagos_examen
            WHERE verificado_en IS NOT NULL AND created_at >= NOW() - INTERVAL '90 days') AS pagos_horas,
         (SELECT round(avg(EXTRACT(EPOCH FROM (procesada_en - created_at)) / 3600))
            FROM solicitudes_cuenta

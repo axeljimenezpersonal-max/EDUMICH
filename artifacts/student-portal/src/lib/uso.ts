@@ -38,10 +38,18 @@ export function normalizarRuta(ruta: string): string {
       .split('#')[0]
       .replace(/\/+$/, '')
       .toLowerCase()
-      // ids numéricos
-      .replace(/\/\d+/g, '/:id')
-      // folios y tokens (mezcla de letras y números, largos)
-      .replace(/\/[a-z0-9]{8,}(?=\/|$)/g, '/:cod') || '/'
+      // ids numéricos: /gestor/alumnos/4821 → /gestor/alumnos/:id
+      .replace(/\/\d+(?=\/|$)/g, '/:id')
+      // Folios y tokens: /c/FP-2026-000007 → /c/:cod
+      //
+      // Exige que el segmento MEZCLE letras y dígitos. Sin esa condición la
+      // regla se comía palabras largas del propio idioma —"direccion",
+      // "estudiante", "calificaciones"— y guardaba /:cod/:cod, que es
+      // justamente lo que no queremos saber. Pasó en producción.
+      .replace(
+        /\/(?=[a-z0-9-]*[a-z])(?=[a-z0-9-]*\d)[a-z0-9-]{10,}(?=\/|$)/g,
+        '/:cod'
+      ) || '/'
   );
 }
 

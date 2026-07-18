@@ -76,7 +76,7 @@ export const NOMBRE_ROL: Record<Rol, string> = {
   estudiante: 'Alumno',
   gestor: 'Gestor',
   admin: 'Administración',
-  direccion: 'Dirección',
+  direccion: 'Creador',
 };
 
 /** Nombre legible de una clave; si no está en el catálogo, la clave cruda. */
