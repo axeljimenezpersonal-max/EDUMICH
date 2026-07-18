@@ -4,7 +4,7 @@
     {
       "name": "student-portal",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@workspace/student-portal", "dev"],
+      "runtimeArgs": ["--config.verify-deps-before-run=false", "--filter", "@workspace/student-portal", "dev"],
       "port": 5173,
       "autoPort": true
     },

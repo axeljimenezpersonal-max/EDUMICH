@@ -107,6 +107,64 @@ html, body {
   .font-serif {
     letter-spacing: -0.02em;
   }
+
+  /* Piso de accesibilidad: foco de teclado visible en TODO elemento
+     interactivo, sin depender del anillo que ponga cada navegador (que
+     cambia de color y grosor entre Chrome, Safari y Firefox).
+     Solo :focus-visible — el clic con ratón no dispara el anillo.
+     Los .gov-input traen el suyo propio más abajo y se respeta. */
+  a:focus-visible,
+  button:focus-visible,
+  [role='button']:focus-visible,
+  summary:focus-visible,
+  select:focus-visible,
+  [tabindex]:not([tabindex='-1']):focus-visible {
+    outline: 2px solid var(--color-guinda-600);
+    outline-offset: 2px;
+    border-radius: 3px;
+  }
+
+  /* Sobre fondo guinda el anillo guinda desaparece: ahí va en dorado. */
+  .sobre-guinda a:focus-visible,
+  .sobre-guinda button:focus-visible {
+    outline-color: var(--color-dorado-soft);
+  }
+}
+
+/* ── Entrada del logo Módula 22 ───────────────────────────
+   Los 22 arcos de la Ó aparecen uno por uno y el acento cae al final.
+   Menos de un segundo, una sola vez.
+
+   Va en CSS y no en JS a propósito: las animaciones por
+   requestAnimationFrame se congelan en pestañas de segundo plano y
+   dejarían la Ó invisible (la palabra se leería "M DULA"). Una animación
+   CSS avanza con el reloj, así que en el peor caso el alumno se pierde el
+   movimiento pero la marca siempre termina completa. */
+@keyframes modula-arco {
+  from { opacity: 0; transform: scale(0.82); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes modula-acento {
+  from { opacity: 0; transform: translateY(-70px); }
+  to   { opacity: 1; transform: none; }
+}
+.modula-arco {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: modula-arco 0.24s ease-out both;
+}
+.modula-acento {
+  transform-box: fill-box;
+  animation: modula-acento 0.3s ease-out 0.44s both;
+}
+/* Con movimiento reducido el logo aparece ya completo, no roto. */
+@media (prefers-reduced-motion: reduce) {
+  .modula-arco,
+  .modula-acento {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 /* ── Componentes utilitarios ──────────────────────────── */

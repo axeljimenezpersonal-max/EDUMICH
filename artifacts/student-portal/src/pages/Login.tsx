@@ -8,6 +8,8 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
 import { GraduationCap, Lock, Mail, Loader2, Edit3, HelpCircle } from 'lucide-react';
+import { BrandLogo } from '../components/BrandLogo';
+import ModulaLogo from '../components/ModulaLogo';
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -49,77 +51,73 @@ export default function Login() {
           sola pantalla; el sello de gobierno vive en la columna izquierda. */}
       <div className="flex-1 grid md:grid-cols-2">
 
-        {/* Columna izquierda: branding — oculta en móvil */}
+        {/* Banda de marca en teléfono. La columna de la izquierda no cabe, pero
+            dejar al alumno sin marca tampoco es opción: la mayoría entra desde
+            aquí. Va la versión sólida porque a este ancho la Ó queda por debajo
+            de 32px y los cortes se cerrarían. */}
+        {/* El layout va en clases, no en `style`: un `display` inline le gana a
+            `md:hidden` y la banda se colaba también en escritorio. */}
         <div
-          className="hidden md:flex bg-[var(--color-guinda-800)] text-white relative overflow-hidden"
+          className="sobre-guinda md:hidden flex flex-col gap-3.5 bg-[var(--color-guinda-800)] text-white px-6 pt-[22px] pb-5"
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
+            <BrandLogo variante="blanco" className="w-8 h-8 object-contain shrink-0" />
+            <div style={{ fontSize: 10, letterSpacing: '0.12em', opacity: 0.8 }}>
+              GOBIERNO DE MICHOACÁN
+            </div>
+          </div>
+          <div>
+            <ModulaLogo solido titulo="Módula 22" acento="var(--color-dorado-soft)"
+                        style={{ width: 190, height: 'auto', display: 'block' }} />
+            <div style={{
+              fontSize: 10, fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase',
+              marginTop: 10, color: 'var(--color-dorado-soft)',
+            }}>
+              Plan 22 · Preparatoria Abierta
+            </div>
+          </div>
+        </div>
+
+        {/* Columna izquierda: marca — oculta en móvil, donde va la banda compacta */}
+        <div
+          className="sobre-guinda hidden md:flex bg-[var(--color-guinda-800)] text-white relative overflow-hidden"
           style={{ flexDirection: 'column', padding: '36px 60px 28px' }}
         >
-          {/* Patrón decorativo sutil */}
-          <div
-            className="absolute inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage:
-                'radial-gradient(circle at 20% 30%, rgba(255,255,255,0.4) 0%, transparent 40%), radial-gradient(circle at 80% 70%, rgba(255,255,255,0.2) 0%, transparent 40%)',
-            }}
-          />
-
           {/* Brand — siempre arriba */}
           <div className="relative" style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 0 }}>
-            <img
-              src="/logo-see-blanco-256.png"
-              alt="Secretaría de Educación de Michoacán"
-              style={{ width: 48, height: 48, objectFit: 'contain', display: 'block', flexShrink: 0 }}
-              onError={(e) => { e.currentTarget.style.display = 'none'; }}
-            />
+            <BrandLogo variante="blanco" className="w-12 h-12 object-contain shrink-0" />
             <div style={{ lineHeight: 1.25 }}>
               <div className="font-serif" style={{ fontSize: 15, fontWeight: 600 }}>Gobierno de Michoacán</div>
               <div style={{ fontSize: 9, letterSpacing: '0.14em', opacity: 0.75 }}>HONESTIDAD Y TRABAJO</div>
             </div>
           </div>
 
-          {/* Centro — crece para llenar espacio, centra su contenido */}
+          {/* Centro — la marca es el ancla, no un logo tímido en la esquina */}
           <div
             className="relative"
             style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', paddingTop: 20, paddingBottom: 20 }}
           >
-            {/* Preparatoria Abierta pill (programa) — Modula es la marca principal */}
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
-              <div style={{
-                display: 'inline-flex', alignItems: 'center', gap: 8,
-                background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.18)',
-                borderRadius: 999, padding: '6px 14px',
-                fontSize: 10.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: 'white', opacity: 0.9,
-              }}>
-                <GraduationCap size={10} />
-                Preparatoria Abierta
-                <span style={{ opacity: 0.5 }}>·</span>
-                Michoacán
-              </div>
-            </div>
-            <h1 className="font-serif font-bold" style={{ fontSize: 52, lineHeight: 1.1, marginBottom: 8, textAlign: 'center' }}>
-              Modula
-            </h1>
+            {/* El wordmark viene vectorizado: no depende de que cargue ninguna
+                fuente. Los 22 arcos de la Ó se dibujan uno por uno al entrar. */}
+            <ModulaLogo
+              animar
+              acento="var(--color-dorado-soft)"
+              titulo="Módula 22"
+              style={{ width: '100%', maxWidth: 420, margin: '0 auto', display: 'block' }}
+            />
             <div style={{
-              fontSize: 13, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase',
-              textAlign: 'center', marginBottom: 16, color: 'var(--color-dorado-soft)',
+              fontSize: 12, fontWeight: 600, letterSpacing: '0.18em', textTransform: 'uppercase',
+              textAlign: 'center', marginTop: 22, marginBottom: 14, color: 'var(--color-dorado-soft)',
             }}>
               Plan 22 · Preparatoria Abierta
             </div>
-            <p style={{ fontSize: 14.5, lineHeight: 1.55, opacity: 0.88, marginBottom: 20, textAlign: 'center' }}>
-              Sistema de gestión institucional para la coordinación, gestores municipales y
-              estudiantes del Plan Modular del Instituto de Educación Media Superior y Superior.
+            <p style={{
+              fontSize: 14.5, lineHeight: 1.6, opacity: 0.85, textAlign: 'center',
+              maxWidth: 380, marginInline: 'auto',
+            }}>
+              Veintidós módulos, uno a la vez, hasta tu certificado de bachillerato.
+              Aquí llevas tu avance, tus pagos y tus calificaciones.
             </p>
-
-            {/* Ilustración centrada — compacta para que el login quepa en una pantalla */}
-            <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <img
-                src="/ilustracion-login.svg"
-                alt=""
-                style={{ width: '100%', maxWidth: 340, height: 'auto', opacity: 0.88, display: 'block' }}
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-            </div>
           </div>
 
           {/* Footer — siempre abajo */}
@@ -134,15 +132,14 @@ export default function Login() {
               Una plataforma para acompañar tu camino al bachillerato.
             </div>
             <div style={{ fontSize: 10, opacity: 0.5, letterSpacing: '0.06em' }}>
-              Powered by <strong>Modula</strong> · Plataforma Educativa Digital
+              Powered by <strong>Módula 22</strong> · Plataforma Educativa Digital
             </div>
           </div>
         </div>
 
         {/* Columna derecha: formulario */}
         <div
-          className="flex items-center justify-center bg-[var(--color-crema-100)]"
-          style={{ padding: '40px 60px' }}
+          className="flex items-center justify-center bg-[var(--color-crema-100)] px-5 py-8 sm:px-10 md:px-[60px] md:py-10"
         >
           <div className="w-full max-w-md">
             <div className="flex items-center gap-2 text-[var(--color-guinda-700)] mb-1.5">
