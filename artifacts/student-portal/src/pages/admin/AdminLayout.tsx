@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
-  Home, Bell, Search, Megaphone, FileText, CreditCard, UserPlus,
+  Home, Bell, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
   MessageSquare, GraduationCap, HelpCircle, Menu, X, MapPin,
 } from 'lucide-react';
@@ -11,6 +11,7 @@ import { useAdminPerfil } from '../../lib/useAdmin';
 import { safeUrl } from '../../lib/safeUrl';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -466,14 +467,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
           {/* Right actions */}
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-            <div className="relative hidden lg:block">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: '#6b635e' }} />
-              <input
-                className="pl-9 pr-3 py-2 text-[13px] rounded-lg border w-72"
-                style={{ background: '#f8f4ec', borderColor: '#eadfd7', color: '#443e39' }}
-                placeholder="Buscar alumno, gestor, folio..."
-              />
-            </div>
+            <BuscadorGlobal rol="admin" />
             <button
               data-tour="help-button"
               onClick={() => window.dispatchEvent(new Event('modula:start-tour'))}

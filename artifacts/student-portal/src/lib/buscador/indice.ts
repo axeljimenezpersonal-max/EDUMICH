@@ -266,6 +266,266 @@ const SECCIONES_GESTOR: EntradaIndice[] = [
   },
 ];
 
+// ── Secciones del administrador ─────────────────────────────────────────────
+
+const SECCIONES_ADMIN: EntradaIndice[] = [
+  {
+    id: 'sec-adm-inicio',
+    tipo: 'seccion',
+    titulo: 'Inicio',
+    cuerpo: 'Lo que depende de ti hoy: documentos por revisar, pagos por emitir.',
+    ruta: '/admin',
+    icono: 'LayoutDashboard',
+    roles: [...ADMIN],
+    terminos: ['inicio', 'tablero', 'principal', 'dashboard', 'pendientes', 'hoy'],
+  },
+  {
+    id: 'sec-adm-solicitudes',
+    tipo: 'seccion',
+    titulo: 'Solicitudes de cuenta',
+    cuerpo: 'Peticiones de alta pendientes de aprobar o rechazar.',
+    ruta: '/admin/solicitudes',
+    icono: 'UserPlus',
+    roles: [...ADMIN],
+    terminos: [
+      'solicitudes', 'solicitud', 'altas', 'aprobar', 'rechazar', 'cuentas nuevas',
+      'peticiones', 'registros pendientes',
+    ],
+  },
+  {
+    id: 'sec-adm-alumnos',
+    tipo: 'seccion',
+    titulo: 'Alumnos',
+    cuerpo: 'Padrón completo, expedientes y estado de cada trámite.',
+    ruta: '/admin/alumnos',
+    icono: 'Users',
+    roles: [...ADMIN],
+    terminos: [
+      'alumnos', 'alumno', 'estudiantes', 'padron', 'expedientes', 'buscar alumno',
+      'documentos', 'revisar documentos', 'curp', 'matricula',
+    ],
+  },
+  {
+    id: 'sec-adm-gestores',
+    tipo: 'seccion',
+    titulo: 'Gestores',
+    cuerpo: 'Centros de asesoría, su gente y su capacidad.',
+    ruta: '/admin/gestores',
+    icono: 'Building2',
+    roles: [...ADMIN],
+    terminos: ['gestores', 'gestor', 'centros', 'centro de asesoria', 'asesores', 'plantel'],
+  },
+  {
+    id: 'sec-adm-pagos',
+    tipo: 'seccion',
+    titulo: 'Pagos',
+    cuerpo: 'Pagos de examen, su conciliación y su estado.',
+    ruta: '/admin/pagos',
+    icono: 'CreditCard',
+    roles: [...ADMIN],
+    terminos: ['pagos', 'pago', 'conciliacion', 'conciliar', 'tesoreria', 'cobros', 'ingresos'],
+  },
+  {
+    id: 'sec-adm-ordenes',
+    tipo: 'seccion',
+    titulo: 'Órdenes de pago',
+    cuerpo: 'Órdenes emitidas con su línea de captura y su vencimiento.',
+    ruta: '/admin/ordenes-pago',
+    icono: 'FileText',
+    roles: [...ADMIN],
+    terminos: [
+      'ordenes de pago', 'orden', 'linea de captura', 'referencia', 'emitir',
+      'emision', 'folio de pago', 'vencidas',
+    ],
+  },
+  {
+    id: 'sec-adm-pagos-grupales',
+    tipo: 'seccion',
+    titulo: 'Pagos grupales',
+    cuerpo: 'Comprobantes con los que un gestor cubre varios exámenes de una vez.',
+    ruta: '/admin/pagos-grupales',
+    icono: 'Layers',
+    roles: [...ADMIN],
+    terminos: [
+      'pagos grupales', 'pago grupal', 'grupal', 'verificar comprobante', 'bloque',
+      'varios examenes', 'folio pg',
+    ],
+  },
+  {
+    id: 'sec-adm-calificaciones',
+    tipo: 'seccion',
+    titulo: 'Calificaciones',
+    cuerpo: 'Resultados oficiales cargados y su tabla general.',
+    ruta: '/admin/calificaciones',
+    icono: 'GraduationCap',
+    roles: [...ADMIN],
+    terminos: ['calificaciones', 'notas', 'resultados', 'boletas', 'promedios'],
+  },
+  {
+    id: 'sec-adm-captura',
+    tipo: 'seccion',
+    titulo: 'Cargar calificaciones',
+    cuerpo: 'Carga masiva desde el PDF oficial de la SEP o desde Excel.',
+    ruta: '/admin/captura-masiva-calificaciones',
+    icono: 'Upload',
+    roles: [...ADMIN],
+    terminos: [
+      'cargar calificaciones', 'captura masiva', 'subir calificaciones', 'excel',
+      'pdf', 'relacion de calificaciones', 'importar', 'lote',
+    ],
+  },
+  {
+    id: 'sec-adm-convocatorias',
+    tipo: 'seccion',
+    titulo: 'Convocatorias',
+    cuerpo: 'Etapas del año, sus fechas, sus sedes y sus candados.',
+    ruta: '/admin/convocatorias',
+    icono: 'CalendarClock',
+    roles: [...ADMIN],
+    terminos: [
+      'convocatorias', 'convocatoria', 'etapas', 'etapa', 'fechas', 'calendario',
+      'periodo', 'abrir inscripcion', 'cerrar',
+    ],
+  },
+  {
+    id: 'sec-adm-sedes',
+    tipo: 'seccion',
+    titulo: 'Sedes',
+    cuerpo: 'Lugares donde se presentan los exámenes.',
+    ruta: '/admin/sedes',
+    icono: 'MapPin',
+    roles: [...ADMIN],
+    terminos: ['sedes', 'sede', 'lugares', 'planteles', 'donde se aplica', 'aplicacion'],
+  },
+  {
+    id: 'sec-adm-verificacion',
+    tipo: 'seccion',
+    titulo: 'Verificar pase de examen',
+    cuerpo: 'Escanea el QR de una credencial para validarla el día del examen.',
+    ruta: '/admin/verificacion-pase',
+    icono: 'ScanLine',
+    roles: [...ADMIN],
+    terminos: [
+      'verificar', 'verificacion', 'pase', 'qr', 'escanear', 'validar credencial',
+      'acceso al examen', 'checar',
+    ],
+  },
+  {
+    id: 'sec-adm-anuncios',
+    tipo: 'seccion',
+    titulo: 'Anuncios',
+    cuerpo: 'Comunicados que ven alumnos y gestores.',
+    ruta: '/admin/anuncios',
+    icono: 'Megaphone',
+    roles: [...ADMIN],
+    terminos: ['anuncios', 'anuncio', 'avisos', 'comunicados', 'publicar', 'noticia'],
+  },
+  {
+    id: 'sec-adm-chat',
+    tipo: 'seccion',
+    titulo: 'Chat',
+    cuerpo: 'Conversaciones con alumnos y gestores.',
+    ruta: '/admin/chat',
+    icono: 'MessageSquare',
+    roles: [...ADMIN],
+    terminos: ['chat', 'mensajes', 'conversaciones', 'responder', 'dudas', 'atencion'],
+  },
+  {
+    id: 'sec-adm-reportes',
+    tipo: 'seccion',
+    titulo: 'Reportes',
+    cuerpo: 'Descargas en Excel y PDF de la información del programa.',
+    ruta: '/admin/reportes',
+    icono: 'BarChart2',
+    roles: [...ADMIN],
+    terminos: ['reportes', 'reporte', 'descargar', 'excel', 'exportar', 'estadisticas'],
+  },
+  {
+    id: 'sec-adm-configuracion',
+    tipo: 'seccion',
+    titulo: 'Configuración',
+    cuerpo: 'Tu cuenta y los ajustes del sistema.',
+    ruta: '/admin/configuracion',
+    icono: 'Settings',
+    roles: [...ADMIN],
+    terminos: [
+      'configuracion', 'ajustes', 'mi cuenta', 'contrasena', 'preferencias',
+      'opciones', 'sistema',
+    ],
+  },
+];
+
+// ── Secciones de dirección (solo lectura, sin datos personales) ─────────────
+
+const SECCIONES_DIRECCION: EntradaIndice[] = [
+  {
+    id: 'sec-dir-panorama',
+    tipo: 'seccion',
+    titulo: 'Panorama',
+    cuerpo: 'Indicadores generales del programa en todo el estado.',
+    ruta: '/direccion',
+    icono: 'LayoutDashboard',
+    roles: [...DIRECCION],
+    terminos: ['panorama', 'inicio', 'tablero', 'indicadores', 'kpis', 'resumen', 'general'],
+  },
+  {
+    id: 'sec-dir-academico',
+    tipo: 'seccion',
+    titulo: 'Académico',
+    cuerpo: 'Desempeño por módulo: presentados, aprobación y promedio.',
+    ruta: '/direccion/academico',
+    icono: 'GraduationCap',
+    roles: [...DIRECCION],
+    terminos: [
+      'academico', 'modulos', 'aprobacion', 'desempeno', 'promedio', 'calificaciones',
+      'resultados', 'reprobacion',
+    ],
+  },
+  {
+    id: 'sec-dir-operacion',
+    tipo: 'seccion',
+    titulo: 'Operación',
+    cuerpo: 'Productividad de gestores y tiempos del trámite.',
+    ruta: '/direccion/operacion',
+    icono: 'Activity',
+    roles: [...DIRECCION],
+    terminos: ['operacion', 'gestores', 'productividad', 'tiempos', 'municipios', 'correo'],
+  },
+  {
+    id: 'sec-dir-salud',
+    tipo: 'seccion',
+    titulo: 'Salud del sistema',
+    cuerpo: 'Estado del servidor, la base de datos y el tráfico del API.',
+    ruta: '/direccion/salud',
+    icono: 'HeartPulse',
+    roles: [...DIRECCION],
+    terminos: [
+      'salud', 'sistema', 'servidor', 'base de datos', 'latencia', 'errores',
+      'trafico', 'caidas', 'disponibilidad',
+    ],
+  },
+  {
+    id: 'sec-dir-proyecciones',
+    tipo: 'seccion',
+    titulo: 'Proyecciones',
+    cuerpo: 'Tendencias y estimaciones a futuro del programa.',
+    ruta: '/direccion/proyecciones',
+    icono: 'TrendingUp',
+    roles: [...DIRECCION],
+    terminos: ['proyecciones', 'tendencia', 'estimacion', 'futuro', 'crecimiento', 'pronostico'],
+  },
+  {
+    id: 'sec-dir-reportes',
+    tipo: 'seccion',
+    titulo: 'Reportes',
+    cuerpo: 'Descargas ejecutivas en Excel y PDF.',
+    ruta: '/direccion/reportes',
+    icono: 'BarChart2',
+    roles: [...DIRECCION],
+    terminos: ['reportes', 'descargar', 'excel', 'pdf', 'exportar', 'informe'],
+  },
+];
+
 // ── Secciones compartidas ───────────────────────────────────────────────────
 
 const SECCIONES_COMUNES: EntradaIndice[] = [
@@ -276,7 +536,7 @@ const SECCIONES_COMUNES: EntradaIndice[] = [
     cuerpo: 'Todo lo que el sistema te ha avisado.',
     ruta: '/notificaciones',
     icono: 'Bell',
-    roles: [...AMBOS],
+    roles: [...TODOS],
     terminos: ['notificaciones', 'alertas', 'campana', 'avisos del sistema'],
   },
   {
@@ -286,7 +546,8 @@ const SECCIONES_COMUNES: EntradaIndice[] = [
     cuerpo: 'Manuales paso a paso para aprender a usar la plataforma.',
     ruta: '/capacitacion',
     icono: 'BookMarked',
-    roles: [...AMBOS],
+    // Los manuales existen para alumno, gestor y admin; dirección no tiene uno.
+    roles: ['estudiante', 'gestor', 'admin'],
     terminos: [
       'capacitacion', 'manual', 'manuales', 'tutorial', 'guia', 'como se usa',
       'aprender', 'curso', 'instrucciones',
@@ -512,11 +773,92 @@ const RESPUESTAS_GESTOR: EntradaIndice[] = [
   },
 ];
 
+const RESPUESTAS_ADMIN: EntradaIndice[] = [
+  {
+    id: 'res-adm-emitir-orden',
+    tipo: 'respuesta',
+    titulo: '¿Cómo se emite una orden de pago?',
+    cuerpo:
+      'La orden se genera al inscribirse el alumno y queda en pendiente de emisión hasta que se le carga la línea de captura que emite el Estado. Modula no genera la línea: la almacena, la sirve al alumno y concilia el pago después.',
+    ruta: '/admin/ordenes-pago',
+    icono: 'HelpCircle',
+    pista: 'Órdenes de pago',
+    roles: [...ADMIN],
+    terminos: [
+      'emitir orden', 'orden de pago', 'linea de captura', 'como emito', 'generar orden',
+      'referencia de pago', 'pendiente de emision',
+    ],
+  },
+  {
+    id: 'res-adm-verificar-grupal',
+    tipo: 'respuesta',
+    titulo: '¿Cómo verifico un pago grupal?',
+    cuerpo:
+      'En Pagos grupales revisas el comprobante que subió el gestor y confirmas cuántos exámenes cubre. Al verificarlo se generan los pagos individuales de cada alumno, con la referencia del folio grupal.',
+    ruta: '/admin/pagos-grupales',
+    icono: 'HelpCircle',
+    pista: 'Pagos grupales',
+    roles: [...ADMIN],
+    terminos: [
+      'verificar pago grupal', 'pago grupal', 'comprobante del gestor', 'validar comprobante',
+      'folio pg', 'pago en bloque',
+    ],
+  },
+  {
+    id: 'res-adm-cargar-calificaciones',
+    tipo: 'respuesta',
+    titulo: '¿Cómo cargo las calificaciones oficiales?',
+    cuerpo:
+      'Sube el PDF oficial de la SEP en Cargar calificaciones: se lee solo y te muestra una previa por semáforos antes de aplicar nada. Al confirmar se aplican y se notifica a cada alumno. Acredita con 60 o más.',
+    ruta: '/admin/captura-masiva-calificaciones',
+    icono: 'HelpCircle',
+    pista: 'Carga masiva',
+    roles: [...ADMIN],
+    terminos: [
+      'cargar calificaciones', 'subir calificaciones', 'pdf de la sep', 'relacion de calificaciones',
+      'captura masiva', 'importar notas', 'excel de calificaciones',
+    ],
+  },
+  {
+    id: 'res-adm-alta-gestor',
+    tipo: 'respuesta',
+    titulo: '¿Quién puede dar de alta a un gestor?',
+    cuerpo:
+      'Sólo la administradora titular. Las cuentas administrativas operativas no pueden dar de alta ni de baja gestores, ni firmar la cédula de inscripción. Si te aparece un aviso de permiso al intentarlo, es por eso.',
+    ruta: '/admin/gestores',
+    icono: 'HelpCircle',
+    pista: 'Sólo titular',
+    roles: [...ADMIN],
+    terminos: [
+      'alta de gestor', 'dar de alta gestor', 'nuevo gestor', 'no me deja', 'permisos',
+      'reservado', 'titular', 'no autorizado', 'baja de gestor',
+    ],
+  },
+  {
+    id: 'res-adm-sedes-etapa',
+    tipo: 'respuesta',
+    titulo: 'Un alumno no puede elegir sede',
+    cuerpo:
+      'Las sedes las define la convocatoria, no el municipio del alumno. Si una etapa no tiene sedes cargadas, el alumno recibe un error al inscribirse — es intencional. Carga las sedes de esa etapa en Convocatorias.',
+    ruta: '/admin/convocatorias',
+    icono: 'HelpCircle',
+    pista: 'Convocatorias',
+    roles: [...ADMIN],
+    terminos: [
+      'no puede elegir sede', 'sin sedes', 'error al inscribirse', 'sedes de la etapa',
+      'cargar sedes', 'no aparece la sede', 'sede',
+    ],
+  },
+];
+
 /** Índice completo. El motor filtra por rol; aquí van todas las entradas. */
 export const INDICE: EntradaIndice[] = [
   ...SECCIONES_ALUMNO,
   ...SECCIONES_GESTOR,
+  ...SECCIONES_ADMIN,
+  ...SECCIONES_DIRECCION,
   ...SECCIONES_COMUNES,
   ...RESPUESTAS_ALUMNO,
   ...RESPUESTAS_GESTOR,
+  ...RESPUESTAS_ADMIN,
 ];

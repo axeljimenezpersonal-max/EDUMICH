@@ -14,6 +14,7 @@ import {
 import { api } from '../../lib/api';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
 
 function apellido(nombre: string): string {
   const parts = nombre.trim().split(/\s+/);
@@ -114,6 +115,9 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            {/* Dirección busca secciones, nunca personas: el endpoint
+                transversal le está negado por ser un perfil de agregados. */}
+            <BuscadorGlobal rol="direccion" />
             <div className="flex items-center gap-2.5">
               <div className="text-right hidden sm:block" style={{ lineHeight: 1.2 }}>
                 <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a' }}>

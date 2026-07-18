@@ -50,8 +50,8 @@ const GRUPOS: { tipo: TipoResultado; titulo: string }[] = [
 const SUGERENCIAS: Record<RolBuscador, string[]> = {
   estudiante: ['inscripción', 'ya pagué', 'qué documentos necesito', 'dónde presento mi examen'],
   gestor: ['dar de alta un alumno', 'pago grupal', 'documento rechazado', 'calificaciones'],
-  admin: ['solicitudes', 'pagos', 'convocatorias'],
-  direccion: ['panorama', 'reportes', 'salud'],
+  admin: ['solicitudes', 'cargar calificaciones', 'pago grupal', 'verificar pase'],
+  direccion: ['panorama', 'aprobación por módulo', 'salud del sistema', 'reportes'],
 };
 
 interface Props {
