@@ -5,7 +5,7 @@
  * Ubicación destino en Replit: artifacts/student-portal/src/components/InstitutionalHeader.tsx
  */
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { LogOut, User, Bell, ChevronRight, X, Check, HelpCircle } from 'lucide-react';
 import { api } from '../lib/api';
 import { safeUrl } from '../lib/safeUrl';
@@ -16,6 +16,12 @@ interface Props {
   userRole?: string;
   userPhotoUrl?: string;
   onLogout?: () => void;
+  /**
+   * Acciones a la izquierda del bloque de usuario (hoy: el buscador global).
+   * Va aquí y no dentro del header para que cada rol decida qué ofrece, sin
+   * que este componente tenga que saber de buscadores ni de roles.
+   */
+  acciones?: ReactNode;
 }
 
 type Notif = {
@@ -250,7 +256,7 @@ function HeaderNotifBell() {
   );
 }
 
-export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout }: Props) {
+export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout, acciones }: Props) {
   return (
     <header className="border-b-4 border-[var(--color-guinda-700)] bg-white sticky top-0 z-50 shadow-sm">
       {/* Cabecera con logos y branding */}
@@ -304,7 +310,8 @@ export function InstitutionalHeader({ userName, userRole, userPhotoUrl, onLogout
 
         {/* Usuario / sesión */}
         {userName && (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            {acciones}
             <div className="hidden md:block text-right leading-tight">
               <div className="text-sm font-medium text-stone-800">{userName}</div>
               {userRole && (
