@@ -7,6 +7,7 @@ import {
 } from '@workspace/db/schema';
 import { eq, desc, and, like, gte, lte, count, sql } from 'drizzle-orm';
 import { authRequired, requireRol } from '../middleware/auth';
+import { patronLike } from '../utils/like';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
@@ -480,7 +481,7 @@ router.get('/bitacora', soloJefeBitacora, async (req, res) => {
   if (accion) conditions.push(eq(auditLog.accion, accion));
   if (entidad) conditions.push(eq(auditLog.entidad, entidad));
   if (usuarioId) conditions.push(eq(auditLog.userId, Number(usuarioId)));
-  if (buscar) conditions.push(like(auditLog.detalle, `%${buscar}%`));
+  if (buscar) conditions.push(like(auditLog.detalle, patronLike(buscar)));
   if (fechaInicio) conditions.push(gte(auditLog.createdAt, new Date(fechaInicio)));
   if (fechaFin) conditions.push(lte(auditLog.createdAt, new Date(fechaFin + 'T23:59:59')));
 

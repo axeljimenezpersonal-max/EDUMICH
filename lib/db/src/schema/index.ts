@@ -2012,3 +2012,22 @@ export const accesosRapidos = pgTable(
     rolOrdenIdx: index('accesos_rapidos_rol_orden_idx').on(t.rol, t.orden),
   })
 );
+
+// Instantáneas diarias de métricas. Existe porque los indicadores se calculan
+// del estado actual y ese estado se sobrescribe: sin una foto por día no hay
+// historia, y la historia NO se puede reconstruir hacia atrás.
+// Formato clave-valor a propósito: agregar una métrica nueva no exige migrar.
+export const metricasDiarias = pgTable(
+  'metricas_diarias',
+  {
+    id: serial('id').primaryKey(),
+    dia: date('dia').notNull(),
+    clave: varchar('clave', { length: 60 }).notNull(),
+    valor: numeric('valor', { precision: 14, scale: 2 }).notNull(),
+    actualizadoEn: timestamp('actualizado_en').notNull().defaultNow(),
+  },
+  (t) => ({
+    unicoIdx: uniqueIndex('metricas_diarias_unico_idx').on(t.dia, t.clave),
+    claveIdx: index('metricas_diarias_clave_idx').on(t.clave, t.dia),
+  })
+);

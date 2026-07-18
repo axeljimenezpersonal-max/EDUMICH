@@ -21,6 +21,7 @@ import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_AULA, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { safeUrl } from '../../lib/safeUrl';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -822,7 +823,7 @@ function MaterialCard({ it, onBorrar }: { it: Material; onBorrar?: () => void })
           <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded" style={{ background: meta.bg, color: meta.color }}>{meta.chip}</span>
         </div>
         {it.descripcion && <div className="text-sm text-stone-600 mt-0.5">{it.descripcion}</div>}
-        {it.tipo === 'enlace' && it.url && <a href={it.url} target="_blank" rel="noreferrer" className="text-xs font-semibold break-all" style={{ color: G }}>{it.url}</a>}
+        {it.tipo === 'enlace' && it.url && <a href={safeUrl(it.url)} target="_blank" rel="noreferrer" className="text-xs font-semibold break-all" style={{ color: G }}>{it.url}</a>}
         {it.tipo === 'archivo' && it.archivoNombre && (
           <a href={`/api/aula/materiales/${it.id}/archivo`} className="mt-1 inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: G }}>
             <Download size={13} /> {it.archivoNombre}

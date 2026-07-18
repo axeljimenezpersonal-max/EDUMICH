@@ -340,7 +340,17 @@ const materialSchema = z.object({
   titulo: z.string().trim().min(1).max(200),
   descripcion: z.string().trim().max(2000).optional().or(z.literal('')),
   tipo: z.enum(['enlace', 'texto', 'video', 'archivo']),
-  url: z.string().trim().max(1000).optional().or(z.literal('')),
+  // Sólo http(s). Sin esto, un gestor podía publicar un material con
+  // `javascript:...` y, al tocarlo el alumno, ejecutar código en el origen del
+  // portal — peticiones a la API como ese alumno y lectura de lo visible. El
+  // portal además pasa la URL por safeUrl() al pintarla: candado en los dos lados.
+  url: z
+    .string()
+    .trim()
+    .max(1000)
+    .refine((v) => v === '' || /^https?:\/\//i.test(v), 'El enlace debe empezar con http:// o https://')
+    .optional()
+    .or(z.literal('')),
   contenido: z.string().trim().max(10000).optional().or(z.literal('')),
   moduloId: z.string().trim().regex(/^\d*$/, 'Módulo inválido').optional(),
 });

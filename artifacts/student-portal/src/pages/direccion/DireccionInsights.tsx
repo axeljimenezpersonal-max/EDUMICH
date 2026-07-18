@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, AlertTriangle, TrendingUp, MapPin, Users } from 'lucide-react';
 import { api } from '../../lib/api';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
+import { Tendencias } from './Tendencias';
 
 const GUINDA = '#6B1530';
 const DORADO = '#8a6f3f';
@@ -126,6 +127,10 @@ export default function DireccionInsights() {
           </div>
         </div>
       )}
+
+      <div className="mb-4">
+        <Tendencias />
+      </div>
 
       <div className="grid lg:grid-cols-2 gap-4 mb-4">
         {/* ── Embudo ─────────────────────────────────────── */}

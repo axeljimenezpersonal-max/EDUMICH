@@ -21,6 +21,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_AULA_HOME, TOUR_AULA_MODULO, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { TextoRico, AreaConFormato } from '../../components/TextoRico';
 import { DocPreview } from '../../components/DocPreview';
+import { safeUrl } from '../../lib/safeUrl';
 
 interface Tarea {
   id: number; titulo: string; instrucciones: string | null; fechaEntrega: string | null;
@@ -444,7 +445,7 @@ function MaterialAlumno({ m }: { m: Material }) {
           <span className="text-[9px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded" style={{ background: meta.bg, color: meta.color }}>{meta.chip}</span>
         </div>
         {m.descripcion && <div className="text-sm text-stone-600 mt-0.5">{m.descripcion}</div>}
-        {m.tipo === 'enlace' && m.url && <a href={m.url} target="_blank" rel="noreferrer" className="text-xs font-semibold" style={{ color: G }}>Abrir enlace →</a>}
+        {m.tipo === 'enlace' && m.url && <a href={safeUrl(m.url)} target="_blank" rel="noreferrer" className="text-xs font-semibold" style={{ color: G }}>Abrir enlace →</a>}
         {m.tipo === 'archivo' && m.archivoNombre && (
           <div className="mt-2">
             <DocPreview url={`/api/aula/materiales/${m.id}/archivo`} nombre={m.archivoNombre} />

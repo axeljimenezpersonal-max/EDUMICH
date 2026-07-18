@@ -191,7 +191,12 @@ export async function generarExcelReporte(data: ReporteData): Promise<Buffer> {
     wsGrafica.columns = [{ width: 32 }, { width: 16 }];
 
     for (const fila of data.filas) {
-      wsGrafica.addRow([fila[chartLabelIdx], fila[chartValIdx]]);
+      // Estas celdas también se sanean, no sólo las de la hoja de datos: son las
+      // MISMAS filas, y la primera columna suele ser el nombre del alumno, que
+      // es texto libre. Sin esto, alguien podía autoregistrarse con un nombre
+      // que empieza en "=" y la fórmula se ejecutaba al abrir el reporte en la
+      // computadora de quien lo descarga.
+      wsGrafica.addRow([sanitizarCelda(fila[chartLabelIdx]), sanitizarCelda(fila[chartValIdx])]);
     }
   }
 

@@ -76,6 +76,22 @@ const PAGOS_EXAMEN_DIR = process.env.STORAGE_DIR
   ? path.join(process.env.STORAGE_DIR, 'pagos-examen')
   : path.join(process.cwd(), 'storage', 'pagos-examen');
 
+/**
+ * Tipos aceptados como orden o comprobante de pago.
+ *
+ * Antes no había filtro alguno: se aceptaba cualquier archivo. Combinado con
+ * que al servir se forzaba `inline` sin declarar `Content-Type`, un alumno o un
+ * gestor podía subir como "comprobante" un HTML o un SVG con script, y ese
+ * código se ejecutaba **en la sesión del administrador** que lo abría para
+ * revisarlo. Desde ahí se podía aprobar pagos o leer el padrón.
+ *
+ * Se comprueba tanto el tipo declarado como la extensión: el tipo lo pone el
+ * cliente y es falsificable, pero la extensión es la que decide con qué
+ * `Content-Type` se sirve después, así que acotar ambas cierra el círculo.
+ */
+const MIMES_PAGO = new Set(['application/pdf', 'image/jpeg', 'image/png', 'image/webp']);
+const EXTS_PAGO = new Set(['.pdf', '.jpg', '.jpeg', '.png', '.webp']);
+
 const upload = multer({
   storage: multer.diskStorage({
     destination: async (_req, _file, cb) => {
@@ -83,12 +99,42 @@ const upload = multer({
       cb(null, PAGOS_EXAMEN_DIR);
     },
     filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname) || '';
+      const ext = path.extname(file.originalname).toLowerCase() || '';
       cb(null, `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`);
     },
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (MIMES_PAGO.has(file.mimetype) && EXTS_PAGO.has(ext)) {
+      cb(null, true);
+      return;
+    }
+    cb(new Error('Sólo se aceptan archivos PDF, JPG, PNG o WEBP.'));
+  },
 });
+
+/**
+ * Sirve un archivo de pago declarando su tipo real y forzando la descarga de
+ * todo lo que no sea imagen. Mismo criterio que `routes/pagos.ts`.
+ *
+ * La clave es no dejar que el navegador adivine: sin `Content-Type` explícito,
+ * `inline` invita a interpretar el archivo como documento.
+ */
+function servirArchivoPago(res: import('express').Response, ref: string, nombre: string) {
+  const ext = path.extname(ref).toLowerCase();
+  const mime =
+    ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+    : ext === '.png' ? 'image/png'
+    : ext === '.webp' ? 'image/webp'
+    : 'application/pdf';
+  const esImagen = mime.startsWith('image/');
+  const seguro = nombre.replace(/[^a-zA-Z0-9._-]/g, '_');
+  res.setHeader('Content-Type', mime);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Disposition', `${esImagen ? 'inline' : 'attachment'}; filename="${seguro}"`);
+  return archivoStream(ref).pipe(res);
+}
 
 const esAdmin = (rol?: string) => rol === 'admin';
 
@@ -244,8 +290,7 @@ router.get('/:id/orden', async (req, res) => {
     if (!(await archivoExiste(p.ordenPagoPath))) {
       return res.status(404).json({ error: MSG_ARCHIVO_PERDIDO });
     }
-    res.setHeader('Content-Disposition', `inline; filename="${p.ordenPagoNombre ?? 'orden-de-pago.pdf'}"`);
-    return archivoStream(p.ordenPagoPath).pipe(res);
+    return servirArchivoPago(res, p.ordenPagoPath, p.ordenPagoNombre ?? 'orden-de-pago.pdf');
   } catch {
     return res.status(500).json({ error: 'Error al descargar la orden' });
   }
@@ -341,8 +386,7 @@ router.get('/:id/comprobante', async (req, res) => {
     if (!(await archivoExiste(p.comprobantePath))) {
       return res.status(404).json({ error: MSG_ARCHIVO_PERDIDO });
     }
-    res.setHeader('Content-Disposition', `inline; filename="${p.comprobanteNombre ?? 'comprobante'}"`);
-    return archivoStream(p.comprobantePath).pipe(res);
+    return servirArchivoPago(res, p.comprobantePath, p.comprobanteNombre ?? 'comprobante');
   } catch {
     return res.status(500).json({ error: 'Error al descargar el comprobante' });
   }
