@@ -45,6 +45,7 @@ import {
   credenciales,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
+import { idsAlumnosConExamenPagado, sqlTieneExamenPagado } from '../utils/pagoAlumno';
 import { sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
@@ -1532,6 +1533,12 @@ router.get('/dashboard', async (req, res) => {
         .orderBy(desc(estudiantes.createdAt))
         .limit(5);
 
+      // Quién tiene pagado se resuelve de una sola vez, contra el modelo real
+      // (`pagos_examen`). Antes se preguntaba alumno por alumno dentro del map
+      // —una consulta por fila— y encima contra la tabla `pagos`, que está
+      // vacía: ningún alumno salía nunca de "pago pendiente".
+      const idsConPago = await idsAlumnosConExamenPagado();
+
       alumnosRecientes = await Promise.all(
         (alumnoRows as AlumnoRow[]).map(async (alumno) => {
           const palabras = alumno.nombreCompleto.trim().split(/\s+/);
@@ -1541,11 +1548,10 @@ router.get('/dashboard', async (req, res) => {
           let estadoTexto = 'Sin docs';
 
           try {
-            const [docsResult, pagosVerif] = await Promise.all([
-              db.select({ estado: expedienteDocumentos.estado, tipo: expedienteDocumentos.tipo }).from(expedienteDocumentos).where(eq(expedienteDocumentos.estudianteId, alumno.userId)),
-              db.select({ id: pagos.id }).from(pagos).where(and(eq(pagos.estudianteId, alumno.userId), eq(pagos.estado, 'verificado'))).limit(1),
-            ]);
-            const docs = docsResult;
+            const docs = await db
+              .select({ estado: expedienteDocumentos.estado, tipo: expedienteDocumentos.tipo })
+              .from(expedienteDocumentos)
+              .where(eq(expedienteDocumentos.estudianteId, alumno.userId));
             const OBLIGATORIOS = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
             const aprobados = docs.filter((d) => d.estado === 'aprobado' && OBLIGATORIOS.includes(d.tipo));
             const rechazados = docs.filter((d) => d.estado === 'rechazado');
@@ -1559,7 +1565,7 @@ router.get('/dashboard', async (req, res) => {
             } else if (aprobados.length < 5) {
               estadoExpediente = 'en_proceso';
               estadoTexto = `${aprobados.length}/5 docs`;
-            } else if (pagosVerif.length === 0) {
+            } else if (!idsConPago.has(alumno.userId)) {
               estadoExpediente = 'pago_pendiente';
               estadoTexto = 'Pago pendiente';
             } else if (!alumno.matriculaOficialDGB) {
@@ -1997,7 +2003,7 @@ router.get('/alumnos', async (req, res) => {
   const filterSqlSnippets: Record<FiltroAlumnos, string> = {
     docs_en_revision: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'pendiente_revision')`,
     docs_rechazados: `AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado')`,
-    pagos_pendientes: `AND EXISTS (SELECT 1 FROM pagos p WHERE p.estudiante_id = e.user_id AND p.estado = 'pendiente')`,
+    pagos_pendientes: `AND NOT ${sqlTieneExamenPagado('e.user_id')}`,
     calif_pendientes: `AND EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = e.user_id AND ei.estado = 'presentado' AND ei.calificacion IS NULL)`,
     expediente_completo: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) = 5`,
     expediente_incompleto: `AND (SELECT count(DISTINCT tipo) FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'aprobado' AND tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')) < 5`,

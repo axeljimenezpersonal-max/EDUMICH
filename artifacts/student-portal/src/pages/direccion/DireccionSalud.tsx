@@ -11,6 +11,7 @@ import {
 import { api } from '../../lib/api';
 import { useEsTelefono } from '../../lib/useMedia';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
+import { IntegridadDatos } from './IntegridadDatos';
 
 const GUINDA = '#6B1530';
 
@@ -98,7 +99,7 @@ export default function DireccionSalud() {
             Salud del sistema
           </h1>
           <p className="text-[13px]" style={{ color: '#6b635e' }}>
-            Latencia, tráfico y errores del API (golden signals) · se actualiza cada 30 s
+            Integridad de los datos y señales del API · se actualiza cada 30 s
           </p>
         </div>
         <button
@@ -108,6 +109,12 @@ export default function DireccionSalud() {
         >
           <RefreshCw size={13} className={actualizando ? 'animate-spin' : ''} /> Actualizar
         </button>
+      </div>
+
+      {/* La integridad de los datos va antes que la latencia: un servidor
+          rápido sirviendo números falsos es peor que uno lento. */}
+      <div className="mb-6">
+        <IntegridadDatos />
       </div>
 
       {/* Golden signals (última hora) */}

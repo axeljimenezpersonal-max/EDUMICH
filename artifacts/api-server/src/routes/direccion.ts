@@ -32,6 +32,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { resumenMetricas, serieMetricas, PROCESS_START } from '../middleware/metrics';
+import { correrChequeos } from '../utils/chequeosIntegridad';
 
 const router = Router();
 router.use(authRequired, requireRol('direccion'));
@@ -552,6 +553,30 @@ router.get('/proyecciones', async (_req, res) => {
   } catch (e) {
     console.error('[direccion/proyecciones]', e);
     res.status(500).json({ error: 'Error al calcular proyecciones' });
+  }
+});
+
+/**
+ * GET /integridad — estado de salud de los DATOS (no del servidor).
+ *
+ * Responde la lista completa de chequeos, sanos incluidos: ver que algo se
+ * está vigilando vale tanto como ver la alarma. Un chequeo que no se pudo
+ * ejecutar viene con `hallazgos: null` y su error, en vez de desaparecer.
+ */
+router.get('/integridad', async (_req, res) => {
+  try {
+    const chequeos = await correrChequeos();
+    const criticos = chequeos.filter((c) => c.nivel === 'critico' && (c.hallazgos ?? 0) > 0).length;
+    const avisos = chequeos.filter((c) => c.nivel === 'aviso' && (c.hallazgos ?? 0) > 0).length;
+    const rotos = chequeos.filter((c) => c.hallazgos === null).length;
+    res.json({
+      revisadoEn: new Date().toISOString(),
+      resumen: { total: chequeos.length, criticos, avisos, rotos },
+      chequeos,
+    });
+  } catch (e) {
+    console.error('[direccion/integridad]', e);
+    res.status(500).json({ error: 'No se pudo revisar la integridad de los datos' });
   }
 });
 
