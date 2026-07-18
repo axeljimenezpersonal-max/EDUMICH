@@ -9,6 +9,7 @@ import { api } from '../../lib/api';
 import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_INICIO, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
+import { fechaCorta } from '../../lib/fechas';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -26,6 +27,13 @@ type DashboardData = {
     inscritos: number;
     diasParaCierre: number;
     fase: string;
+    // Ventana completa: solicitud y pago comparten fechas; el examen va después.
+    solicitudInicio: string;
+    solicitudFin: string;
+    examenSabado: string;
+    examenDomingo: string;
+    diasDesdeApertura: number;
+    duracionVentana: number;
   } | null;
   tareasPendientes: {
     documentosPorRevisar: number;
@@ -329,47 +337,125 @@ export default function AdminInicio() {
 // ── Convocatoria strip ─────────────────────────────────────────────────────────
 
 function ConvocatoriaStrip({ conv }: { conv: NonNullable<DashboardData['convocatoriaActiva']> }) {
+  // Posición de hoy dentro de la ventana de solicitud (0–1), para la barra.
+  const avance = conv.duracionVentana > 0
+    ? Math.min(1, Math.max(0, conv.diasDesdeApertura / conv.duracionVentana))
+    : 0;
+  const cierraHoy = conv.diasParaCierre === 0;
+  const urgente = conv.diasParaCierre <= 3;
+
   return (
     <div
-      className="rounded-xl text-white px-7 py-5 mb-6 relative overflow-hidden"
-      style={{
-        background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)',
-        display: 'grid',
-        gridTemplateColumns: 'auto 1fr auto auto',
-        gap: 24,
-        alignItems: 'center',
-      }}
+      className="rounded-xl text-white px-5 sm:px-7 py-5 mb-6 relative overflow-hidden"
+      style={{ background: 'linear-gradient(135deg, #6B1530 0%, #4a0e20 100%)' }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{ background: 'radial-gradient(circle at 90% 30%, rgba(255,255,255,0.15) 0%, transparent 50%)' }}
       />
-      <div
-        className="w-14 h-14 rounded-xl flex items-center justify-center relative"
-        style={{ background: 'rgba(255,255,255,0.15)' }}
-      >
-        <Flag size={28} />
-      </div>
+
+      {/* Encabezado. En pantalla angosta el botón baja a su propio renglón:
+          si comparte fila con el título, lo estruja hasta partirlo en 4 líneas. */}
       <div className="relative">
-        <div className="text-[11px] uppercase font-semibold tracking-widest mb-0.5" style={{ opacity: 0.85 }}>CONVOCATORIA ACTIVA</div>
-        <h3 className="text-[22px] font-bold tracking-tight mt-0.5" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {conv.titulo}
-        </h3>
-        <div className="text-[13px] mt-1" style={{ opacity: 0.9 }}>{conv.inscritos} alumnos inscritos</div>
-      </div>
-      <div className="relative text-center border-l border-white/20 pl-6">
-        <div className="text-[36px] font-bold leading-none tracking-tight" style={{ fontFamily: "'Poppins', sans-serif" }}>
-          {conv.diasParaCierre}
+        <div className="flex items-start gap-4">
+          <div
+            className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: 'rgba(255,255,255,0.15)' }}
+          >
+            <Flag size={24} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-[11px] uppercase font-semibold tracking-widest mb-0.5" style={{ opacity: 0.85 }}>
+              Convocatoria activa
+            </div>
+            <h3 className="text-[19px] sm:text-[22px] font-bold tracking-tight leading-snug" style={{ fontFamily: "'Poppins', sans-serif" }}>
+              {conv.titulo}
+            </h3>
+            <div className="text-[13px] mt-0.5" style={{ opacity: 0.9 }}>{conv.inscritos} alumnos inscritos</div>
+          </div>
+          <a
+            href="/admin/convocatorias"
+            className="hidden sm:flex items-center gap-1.5 px-4 py-2.5 font-bold text-[13px] rounded-lg no-underline shrink-0"
+            style={{ background: 'white', color: 'var(--color-guinda-700)' }}
+          >
+            Ver detalle <ArrowRight size={14} />
+          </a>
         </div>
-        <div className="text-[11px] uppercase tracking-wide mt-1" style={{ opacity: 0.85 }}>Días para cierre</div>
+        <a
+          href="/admin/convocatorias"
+          className="sm:hidden mt-3 flex items-center justify-center gap-1.5 px-4 py-2.5 font-bold text-[13px] rounded-lg no-underline"
+          style={{ background: 'white', color: 'var(--color-guinda-700)' }}
+        >
+          Ver detalle <ArrowRight size={14} />
+        </a>
       </div>
-      <a
-        href="/admin/convocatorias"
-        className="relative flex items-center gap-1.5 px-4 py-2.5 font-bold text-[13px] rounded-lg no-underline"
-        style={{ background: 'white', color: 'var(--color-guinda-700)' }}
+
+      {/* Línea de tiempo del trámite. Solicitud y pago comparten ventana; el
+          examen viene después. La barra marca dónde estamos hoy. */}
+      <div className="relative mt-5 pt-4" style={{ borderTop: '1px solid rgba(255,255,255,0.18)' }}>
+        <div className="flex items-end justify-between gap-3 mb-2">
+          <Hito etiqueta="Abrió" valor={fechaCorta(conv.solicitudInicio)} />
+          <Hito
+            etiqueta="Cierra solicitud y pago"
+            valor={fechaCorta(conv.solicitudFin)}
+            centro
+            destacado={urgente}
+          />
+          <Hito etiqueta="Examen" valor={rangoExamen(conv.examenSabado, conv.examenDomingo)} derecha />
+        </div>
+
+        <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.2)' }}>
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${Math.round(avance * 100)}%`,
+              background: urgente ? '#f5c26b' : 'rgba(255,255,255,0.85)',
+            }}
+          />
+        </div>
+
+        <div className="mt-2 text-[12px] font-semibold" style={{ color: urgente ? '#f5c26b' : 'rgba(255,255,255,0.9)' }}>
+          {cierraHoy
+            ? 'Último día para solicitar y pagar'
+            : `Faltan ${conv.diasParaCierre} día${conv.diasParaCierre === 1 ? '' : 's'} para el cierre`}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Los dos días de examen como un rango legible. Si caen en el mismo mes —lo
+ * normal, sábado y domingo seguidos— el mes no se repite: «01 y 02 ago 2026»
+ * en vez de «01 ago 2026 y 02 ago 2026», que en pantalla angosta ocupaba dos
+ * renglones para decir lo mismo.
+ */
+function rangoExamen(sabado: string, domingo: string): string {
+  const a = fechaCorta(sabado);
+  const b = fechaCorta(domingo);
+  if (!a) return b;
+  if (!b) return a;
+  const colaA = a.slice(a.indexOf(' ') + 1);   // «ago 2026»
+  const colaB = b.slice(b.indexOf(' ') + 1);
+  if (colaA === colaB) return `${a.slice(0, a.indexOf(' '))} y ${b}`;
+  return `${a} y ${b}`;
+}
+
+/** Un extremo de la línea de tiempo: etiqueta chica arriba, fecha abajo. */
+function Hito({
+  etiqueta, valor, centro, derecha, destacado,
+}: { etiqueta: string; valor: string; centro?: boolean; derecha?: boolean; destacado?: boolean }) {
+  return (
+    <div className={`min-w-0 ${centro ? 'text-center' : derecha ? 'text-right' : ''}`}>
+      <div className="text-[9.5px] uppercase tracking-wider leading-tight" style={{ opacity: 0.7 }}>
+        {etiqueta}
+      </div>
+      <div
+        className="text-[12px] sm:text-[13px] font-semibold leading-tight mt-0.5"
+        style={{ color: destacado ? '#f5c26b' : 'white' }}
       >
-        Ver detalle <ArrowRight size={14} />
-      </a>
+        {valor}
+      </div>
     </div>
   );
 }

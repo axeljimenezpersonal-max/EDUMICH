@@ -53,6 +53,7 @@ import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
 import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
+import { hoyEnMexico, diasEntre } from '../utils/fechas';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
   obtenerDatosCedula,
@@ -1106,6 +1107,17 @@ router.get('/dashboard', async (req, res) => {
       inscritos: number;
       diasParaCierre: number;
       fase: string;
+      // Ventana completa del trámite. Solicitud y pago comparten la MISMA
+      // ventana; el examen va después. El panel dibuja la línea de tiempo con
+      // esto en vez de una cuenta regresiva suelta.
+      solicitudInicio: string;
+      solicitudFin: string;
+      examenSabado: string;
+      examenDomingo: string;
+      /** Días completos transcurridos desde la apertura (0 el primer día). */
+      diasDesdeApertura: number;
+      /** Duración total de la ventana en días. */
+      duracionVentana: number;
     } | null = null;
 
     try {
@@ -1117,9 +1129,21 @@ router.get('/dashboard', async (req, res) => {
 
       if (etapa) {
         etapaActiva = etapa;
-        const examenDate = new Date(etapa.examenSabado);
-        const titulo = `Etapa ${etapa.etapa} · Fase ${etapa.fase} · ${MESES[examenDate.getMonth()]} ${etapa.anio}`;
-        const diasParaCierre = Math.max(0, Math.ceil((new Date(etapa.solicitudFin).getTime() - Date.now()) / 86400000));
+        const inicio = String(etapa.solicitudInicio).slice(0, 10);
+        const fin = String(etapa.solicitudFin).slice(0, 10);
+        const sabado = String(etapa.examenSabado).slice(0, 10);
+        const domingo = String(etapa.examenDomingo).slice(0, 10);
+
+        // El mes sale del texto de la fecha, NO de `new Date(...)`: esa lo
+        // interpretaba en UTC y en México podía retroceder un día (un examen
+        // del 1 de agosto se anunciaba como julio).
+        const mesExamen = MESES[Number(sabado.slice(5, 7)) - 1];
+        const titulo = `Etapa ${etapa.etapa} · Fase ${etapa.fase} · ${mesExamen} ${etapa.anio}`;
+
+        const hoy = hoyEnMexico();
+        const diasParaCierre = Math.max(0, diasEntre(hoy, fin));
+        const duracionVentana = Math.max(1, diasEntre(inicio, fin));
+        const diasDesdeApertura = Math.max(0, Math.min(duracionVentana, diasEntre(inicio, hoy)));
 
         const [{ inscritosCount }] = await db
           .select({ inscritosCount: count() })
@@ -1133,6 +1157,12 @@ router.get('/dashboard', async (req, res) => {
           inscritos: Number(inscritosCount),
           diasParaCierre,
           fase: etapa.fase,
+          solicitudInicio: inicio,
+          solicitudFin: fin,
+          examenSabado: sabado,
+          examenDomingo: domingo,
+          diasDesdeApertura,
+          duracionVentana,
         };
       }
     } catch {}
