@@ -46,7 +46,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { idsAlumnosConExamenPagado, sqlTieneExamenPagado } from '../utils/pagoAlumno';
-import { sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
@@ -1018,7 +1018,7 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
     alumno: { userId: newUser.id, email: solicitud.email, nombreCompleto: solicitud.nombreCompleto },
     emailEnviado,
     modoEmail,
-    ...(modoEmail === 'dev' ? { credencialTemporal: tempPassword } : {}),
+    ...(puedeRevelarCredenciales() ? { credencialTemporal: tempPassword } : {}),
   });
 });
 
@@ -1136,7 +1136,7 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     ok: true,
     emailEnviado,
     modoEmail,
-    ...(modoEmail === 'dev' ? { credencialTemporal: newPassword } : {}),
+    ...(puedeRevelarCredenciales() ? { credencialTemporal: newPassword } : {}),
   });
 });
 
@@ -3659,7 +3659,7 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
     alumno: { userId: newUser.id, email: solicitud.email, nombreCompleto: solicitud.nombreCompleto },
     emailEnviado,
     modoEmail,
-    ...(modoEmail === 'dev' ? { credencialTemporal: tempPassword } : {}),
+    ...(puedeRevelarCredenciales() ? { credencialTemporal: tempPassword } : {}),
   });
 });
 

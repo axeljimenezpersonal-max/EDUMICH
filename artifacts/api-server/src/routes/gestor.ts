@@ -45,7 +45,7 @@ import {
   conceptosPago,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
-import { sendBienvenidaCredenciales } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
@@ -420,7 +420,7 @@ router.post('/alumnos', async (req, res) => {
     inscripcionId: insc.id,
     emailEnviado,
     modoEmail,
-    ...(modoEmail === 'dev' ? { credencialTemporal: tempPassword } : {}),
+    ...(puedeRevelarCredenciales() ? { credencialTemporal: tempPassword } : {}),
   });
 });
 
@@ -614,7 +614,7 @@ router.post(
         ...result,
         emailEnviado,
         modoEmail,
-        ...(modoEmail !== 'dev' ? { credencialTemporal: undefined } : {}),
+        ...(puedeRevelarCredenciales() ? {} : { credencialTemporal: undefined }),
       });
     } catch (err) {
       for (const f of uploadedFiles) await fs.unlink(f.path).catch(() => {});
@@ -1398,7 +1398,7 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     ok: true,
     emailEnviado,
     modoEmail,
-    ...(modoEmail === 'dev' ? { credencialTemporal: newPassword } : {}),
+    ...(puedeRevelarCredenciales() ? { credencialTemporal: newPassword } : {}),
   });
 });
 

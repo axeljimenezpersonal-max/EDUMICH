@@ -201,6 +201,20 @@ const migrations = [
      ON accesos_rapidos(rol, clave)`,
   `CREATE INDEX IF NOT EXISTS accesos_rapidos_rol_orden_idx
      ON accesos_rapidos(rol, orden)`,
+
+  // Instantáneas diarias: sin esto la historia de los indicadores no existe,
+  // y no se puede reconstruir después.
+  `CREATE TABLE IF NOT EXISTS metricas_diarias (
+     id serial PRIMARY KEY,
+     dia date NOT NULL,
+     clave varchar(60) NOT NULL,
+     valor numeric(14,2) NOT NULL,
+     actualizado_en timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS metricas_diarias_unico_idx
+     ON metricas_diarias(dia, clave)`,
+  `CREATE INDEX IF NOT EXISTS metricas_diarias_clave_idx
+     ON metricas_diarias(clave, dia)`,
 ];
 
 export async function runStartupMigrations() {

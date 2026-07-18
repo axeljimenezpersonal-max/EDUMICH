@@ -30,7 +30,7 @@ import {
 import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { patronLike } from '../utils/like';
-import { sendVerificationCode, sendEmail, sendRecuperarPassword } from '../services/email';
+import { puedeRevelarCredenciales, sendVerificationCode, sendEmail, sendRecuperarPassword } from '../services/email';
 import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
 import { tryAuditLog } from '../utils/audit';
@@ -374,7 +374,7 @@ router.post('/email/solicitar-codigo', async (req, res) => {
   res.json({
     ok: true,
     modo: result.modo,
-    ...(result.modo === 'dev' ? { codigoDev: result.codigo } : {}),
+    ...(puedeRevelarCredenciales() ? { codigoDev: result.codigo } : {}),
   });
 });
 

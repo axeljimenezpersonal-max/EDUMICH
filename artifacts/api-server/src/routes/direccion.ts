@@ -33,6 +33,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { resumenMetricas, serieMetricas, PROCESS_START } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
+import { serie, METRICAS } from '../services/metricasDiarias';
 import { pool } from '@workspace/db';
 
 const router = Router();
@@ -658,6 +659,29 @@ router.get('/insights', async (_req, res) => {
   } catch (e) {
     console.error('[direccion/insights]', e);
     res.status(500).json({ error: 'No se pudieron calcular los insights' });
+  }
+});
+
+/**
+ * GET /tendencias?dias=90 — series históricas de las instantáneas diarias.
+ *
+ * Devuelve también el catálogo con la familia de cada métrica: las de tipo
+ * `estado` no tienen pasado reconstruible y su serie empieza el día que se
+ * instaló la instantánea. Decirlo evita leer un hueco como un cero.
+ */
+router.get('/tendencias', async (req, res) => {
+  try {
+    const dias = Math.min(Math.max(Number(req.query.dias) || 90, 2), 730);
+    const claves = METRICAS.map((m) => m.clave);
+    const puntos = await serie(claves, dias);
+    res.json({
+      dias,
+      metricas: METRICAS.map((m) => ({ clave: m.clave, titulo: m.titulo, familia: m.familia })),
+      puntos,
+    });
+  } catch (e) {
+    console.error('[direccion/tendencias]', e);
+    res.status(500).json({ error: 'No se pudieron cargar las tendencias' });
   }
 });
 

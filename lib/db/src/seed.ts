@@ -50,7 +50,52 @@ import {
 import { MUNICIPIOS_MICHOACAN } from './seed/municipios';
 import { MODULOS_PREPA_ABIERTA } from './seed/modulos';
 
+/**
+ * Candado contra correr el seed sobre una base que no es de pruebas.
+ *
+ * Por qué existe: este script es idempotente y, para serlo, RE-SINCRONIZA la
+ * contraseña de los usuarios que ya existen de vuelta a la de demostración
+ * (más abajo, en la siembra de cuentas). Como `DATABASE_URL` apunta a la base
+ * remota de producción y no a una local, un `pnpm run seed` lanzado por
+ * distracción dejaría la cuenta de administración con una contraseña conocida
+ * y publicada. No hace falta un atacante: basta un despiste.
+ *
+ * Se exige un gesto deliberado (`SEED_CONFIRMO_NO_ES_PRODUCCION=si`) para
+ * cualquier base que no sea local. Es incómodo a propósito.
+ */
+function abortarSiNoEsBaseDePruebas(url: string | undefined): void {
+  if (!url) {
+    console.error('✋ No hay DATABASE_URL. Nada que sembrar.');
+    process.exit(1);
+  }
+
+  const esLocal = /@(localhost|127\.0\.0\.1|host\.docker\.internal|db|postgres)[:/]/.test(url);
+  const confirmado = process.env.SEED_CONFIRMO_NO_ES_PRODUCCION === 'si';
+
+  if (esLocal || confirmado) return;
+
+  // El host se muestra sin credenciales: sirve para que quien lo lea entienda
+  // a dónde iba a escribir, sin filtrar la contraseña en la consola ni en los logs.
+  const host = url.replace(/^.*@/, '').split(/[:/?]/)[0];
+
+  console.error(`
+✋ SEED CANCELADO — la base no parece local.
+
+   Destino: ${host}
+
+   Este script reescribe contraseñas de usuarios EXISTENTES a la de
+   demostración. Sobre la base real, eso deja la cuenta de administración
+   con una contraseña conocida.
+
+   Si de verdad quieres sembrar aquí, hazlo explícito:
+       SEED_CONFIRMO_NO_ES_PRODUCCION=si pnpm --filter @workspace/db run seed
+`);
+  process.exit(1);
+}
+
 async function main() {
+  abortarSiNoEsBaseDePruebas(process.env.DATABASE_URL);
+
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle(pool);
 

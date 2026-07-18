@@ -17,6 +17,26 @@ function getEmailMode(): EmailMode {
   return 'dev';
 }
 
+/**
+ * ¿Se puede devolver una credencial en el cuerpo de la respuesta?
+ *
+ * En modo `dev` el sistema no manda correo y, para poder seguir el alta, echa
+ * la contraseña temporal y el código de verificación en el JSON. Eso es útil en
+ * una laptop y es una fuga de credenciales en producción.
+ *
+ * El problema: `EMAIL_MODE` NO es fail-closed —su valor por defecto es `dev`—,
+ * así que si la variable falta o viene mal escrita en el entorno, producción
+ * empieza a repartir las contraseñas temporales de todos los alumnos nuevos en
+ * la respuesta HTTP, en silencio.
+ *
+ * Esta función es el candado que faltaba: en producción NUNCA se revela nada,
+ * pase lo que pase con `EMAIL_MODE`. Se comprueba contra `NODE_ENV` a propósito,
+ * porque es la variable que el propio arranque ya trata como fuente de verdad.
+ */
+export function puedeRevelarCredenciales(): boolean {
+  return getEmailMode() === 'dev' && process.env.NODE_ENV !== 'production';
+}
+
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 // ─── Tipos ────────────────────────────────────────────────────────────────

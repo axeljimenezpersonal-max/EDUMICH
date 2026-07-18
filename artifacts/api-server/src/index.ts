@@ -42,6 +42,7 @@ import busquedaRoutes from './routes/busqueda';
 import devRoutes from './routes/dev';
 import verificacionRoutes from './routes/verificacion';
 import cron from 'node-cron';
+import { tomarInstantanea, rellenarHistorico } from './services/metricasDiarias';
 import { iniciarCronDepuracion } from './services/depuracion';
 import { recordarCierreDeVentana } from './utils/recordarCierreVentana';
 import { runStartupMigrations } from './db';
@@ -173,6 +174,25 @@ cron.schedule('0 9 * * *', () => {
     .then((n) => { if (n > 0) console.log(`[Cierre ventana] ${n} recordatorio(s) enviados`); })
     .catch((e) => console.error('[Cierre ventana Cron]', e));
 }, { timezone: 'America/Mexico_City' });
+
+// Cron: instantánea diaria de métricas, 23:50 de Michoacán — casi al cierre
+// del día, para que la foto refleje la jornada completa. Es idempotente, así
+// que repetirla no duplica. Ver services/metricasDiarias.ts.
+cron.schedule('50 23 * * *', () => {
+  tomarInstantanea()
+    .then((n) => console.log(`[Métricas] instantánea guardada (${n} métricas)`))
+    .catch((e) => console.error('[Métricas Cron]', e));
+}, { timezone: 'America/Mexico_City' });
+
+// Al arrancar: se toma la foto de hoy y se rellena el histórico reconstruible.
+// Lo primero cubre el caso de que el servidor estuviera caído a las 23:50; lo
+// segundo solo escribe días que falten, así que es barato repetirlo.
+setTimeout(() => {
+  tomarInstantanea()
+    .then(() => rellenarHistorico())
+    .then((n) => { if (n > 0) console.log(`[Métricas] histórico rellenado: ${n} valores`); })
+    .catch((e) => console.error('[Métricas arranque]', e));
+}, 8_000);
 
 // Cron: depuración automática de cuentas inactivas (03:00 AM Mexico City)
 iniciarCronDepuracion();
