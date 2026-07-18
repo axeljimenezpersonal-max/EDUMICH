@@ -25,6 +25,7 @@ import { Search, CornerDownLeft, X } from 'lucide-react';
 import { buscar } from '../../lib/buscador/motor';
 import { INDICE } from '../../lib/buscador/indice';
 import { useEntidades } from '../../lib/buscador/useEntidades';
+import { useDatosPropios } from '../../lib/buscador/useDatosPropios';
 import type { Resultado, RolBuscador, TipoResultado } from '../../lib/buscador/tipos';
 import { useEsTelefono } from '../../lib/useMedia';
 
@@ -57,8 +58,9 @@ const SUGERENCIAS: Record<RolBuscador, string[]> = {
 interface Props {
   rol: RolBuscador;
   /**
-   * Datos ya resueltos del usuario ("tu pago vence el 14"). Los arma el layout,
-   * que es quien sabe del usuario; el buscador sólo los ordena y los muestra.
+   * Datos propios adicionales, si alguna pantalla quiere aportar los suyos.
+   * Lo normal es no pasar nada: `useDatosPropios` ya trae el estado del
+   * usuario al abrir el buscador.
    */
   datos?: Resultado[];
 }
@@ -100,9 +102,14 @@ export function BuscadorGlobal({ rol, datos }: Props) {
   // mano sería comparar cosas distintas. Se muestran en su propio grupo.
   const entidades = useEntidades(rol, consulta);
 
+  // Se piden al ABRIR, no al cargar la página: la mayoría de las visitas nunca
+  // abren el buscador y no tiene por qué costarles una llamada.
+  const mios = useDatosPropios(rol, abierto);
+  const datosVivos = useMemo(() => [...mios, ...(datos ?? [])], [mios, datos]);
+
   const resultados = useMemo(
-    () => (consulta.trim() ? buscar(consulta, INDICE, { rol, datos }, { limite: 14 }) : []),
-    [consulta, rol, datos],
+    () => (consulta.trim() ? buscar(consulta, INDICE, { rol, datos: datosVivos }, { limite: 14 }) : []),
+    [consulta, rol, datosVivos],
   );
 
   const todos = useMemo(() => [...resultados, ...entidades], [resultados, entidades]);

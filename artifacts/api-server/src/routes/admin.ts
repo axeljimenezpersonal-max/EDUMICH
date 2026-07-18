@@ -80,6 +80,74 @@ router.use(authRequired, requireRol('admin'));
 // La TITULAR (Velia) es jefa; su equipo son administradores operativos. Ambos
 // operan casi todo, pero las facultades de jefatura —alta/baja de gestores y
 // firma responsable de la cédula— quedan reservadas a la jefa.
+/**
+ * Los cuatro contadores de "tu día de hoy".
+ *
+ * Vive aparte porque lo usan DOS sitios: el tablero (`/admin/dashboard`) y el
+ * buscador global (`/admin/tareas-pendientes`). Si cada uno los contara por su
+ * cuenta acabarían divergiendo, y el usuario vería dos números distintos para
+ * la misma cosa sin saber a cuál creerle.
+ *
+ * Cada bloque va en su propio try: que falte una tabla no debe tumbar el
+ * tablero entero. Es el comportamiento que ya tenía y se conserva.
+ */
+export async function contarTareasPendientes(): Promise<{
+  documentosPorRevisar: number;
+  pagosPorEmitir: number;
+  pagosPorRevisar: number;
+  solicitudesCuenta: number;
+}> {
+  let documentosPorRevisar = 0;
+  let pagosPorEmitir = 0;    // orden creada, falta emitir la línea de captura
+  let pagosPorRevisar = 0;   // comprobante subido, falta verificar contra banco
+  let solicitudesCuentaPendientes = 0;
+
+  try {
+    const [{ cnt }] = await db
+      .select({ cnt: count() })
+      .from(expedienteDocumentos)
+      .where(eq(expedienteDocumentos.estado, 'pendiente_revision'));
+    documentosPorRevisar = Number(cnt);
+  } catch {}
+
+  try {
+    const [{ cnt }] = await db
+      .select({ cnt: count() })
+      .from(pagosExamen)
+      .where(eq(pagosExamen.estado, 'pendiente_emision'));
+    pagosPorEmitir = Number(cnt);
+  } catch {}
+
+  try {
+    const [{ cnt }] = await db
+      .select({ cnt: count() })
+      .from(pagosExamen)
+      .where(eq(pagosExamen.estado, 'en_revision'));
+    pagosPorRevisar = Number(cnt);
+    // Pagos grupales (gestor) con comprobante también esperan verificación.
+    const [{ cnt: cntG }] = await db
+      .select({ cnt: count() })
+      .from(pagosGrupales)
+      .where(eq(pagosGrupales.estado, 'en_revision'));
+    pagosPorRevisar += Number(cntG);
+  } catch {}
+
+  try {
+    const [{ cnt }] = await db
+      .select({ cnt: count() })
+      .from(solicitudesCuenta)
+      .where(eq(solicitudesCuenta.estado, 'pendiente'));
+    solicitudesCuentaPendientes = Number(cnt);
+  } catch {}
+
+  return {
+    documentosPorRevisar,
+    pagosPorEmitir,
+    pagosPorRevisar,
+    solicitudesCuenta: solicitudesCuentaPendientes,
+  };
+}
+
 export async function esAdminJefe(userId: number): Promise<boolean> {
   const [a] = await db.select({ j: administradores.esJefe }).from(administradores).where(eq(administradores.userId, userId));
   return !!a?.j;
@@ -1072,6 +1140,19 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
 
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 
+// ─── GET /admin/tareas-pendientes ─────────────────────────────────────────
+// Los mismos cuatro contadores del tablero, solos. Existe para el buscador
+// global: `/admin/dashboard` hace ~25 consultas y tres N+1, y llamarlo cada
+// vez que alguien abre el buscador sería un despropósito. Aquí son 5 counts.
+router.get('/tareas-pendientes', async (_req, res) => {
+  try {
+    res.json(await contarTareasPendientes());
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
 router.get('/dashboard', async (req, res) => {
   try {
     const userId = req.user!.userId;
@@ -1173,48 +1254,12 @@ router.get('/dashboard', async (req, res) => {
     // Tareas reales del administrador con el modelo de pago vía Tesorería
     // (pagos_examen). Ya NO existe "calificaciones por capturar": las
     // calificaciones entran por la Relación PDF de la SEP, no se capturan aquí.
-    let documentosPorRevisar = 0;
-    let pagosPorEmitir = 0;    // orden creada, falta emitir la línea de captura
-    let pagosPorRevisar = 0;   // comprobante subido, falta verificar contra banco
-    let solicitudesCuentaPendientes = 0;
-
-    try {
-      const [{ cnt }] = await db
-        .select({ cnt: count() })
-        .from(expedienteDocumentos)
-        .where(eq(expedienteDocumentos.estado, 'pendiente_revision'));
-      documentosPorRevisar = Number(cnt);
-    } catch {}
-
-    try {
-      const [{ cnt }] = await db
-        .select({ cnt: count() })
-        .from(pagosExamen)
-        .where(eq(pagosExamen.estado, 'pendiente_emision'));
-      pagosPorEmitir = Number(cnt);
-    } catch {}
-
-    try {
-      const [{ cnt }] = await db
-        .select({ cnt: count() })
-        .from(pagosExamen)
-        .where(eq(pagosExamen.estado, 'en_revision'));
-      pagosPorRevisar = Number(cnt);
-      // Pagos grupales (gestor) con comprobante también esperan verificación.
-      const [{ cnt: cntG }] = await db
-        .select({ cnt: count() })
-        .from(pagosGrupales)
-        .where(eq(pagosGrupales.estado, 'en_revision'));
-      pagosPorRevisar += Number(cntG);
-    } catch {}
-
-    try {
-      const [{ cnt }] = await db
-        .select({ cnt: count() })
-        .from(solicitudesCuenta)
-        .where(eq(solicitudesCuenta.estado, 'pendiente'));
-      solicitudesCuentaPendientes = Number(cnt);
-    } catch {}
+    const {
+      documentosPorRevisar,
+      pagosPorEmitir,
+      pagosPorRevisar,
+      solicitudesCuenta: solicitudesCuentaPendientes,
+    } = await contarTareasPendientes();
 
     const totalTareasPendientes =
       documentosPorRevisar + pagosPorEmitir + pagosPorRevisar + solicitudesCuentaPendientes;
