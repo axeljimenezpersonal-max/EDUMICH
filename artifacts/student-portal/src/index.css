@@ -232,6 +232,47 @@ html, body {
   .avisador-pos { padding-bottom: 1.25rem; }
 }
 
+/* ── Chat flotante ────────────────────────────────────────────────────────
+   Tres piezas cuya posición se define aquí para que la aritmética viva en un
+   solo lugar: la burbuja, el panel y el pie de redacción.
+
+   En teléfono la burbuja debe librar la barra de navegación inferior (52px +
+   safe-area); el botón de tutoriales de la sección se apila ENCIMA de ella
+   (.tour-boton-flotante), porque los dos vivían en la misma esquina. */
+.chat-lanzador {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 5.25rem);
+}
+.tour-boton-flotante {
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 9.5rem);
+}
+@media (min-width: 768px) {
+  .chat-lanzador { bottom: 1.25rem; }
+  .tour-boton-flotante { bottom: 5.5rem; }
+}
+
+/* Panel: hoja a pantalla completa en teléfono, ventana anclada en escritorio.
+   Un panel de 380px no cabe en 375px, y abajo es donde está el pulgar. */
+.chat-panel {
+  inset-inline: 0;
+  bottom: 0;
+  height: 92dvh;
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+.chat-pie {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.625rem);
+}
+@media (min-width: 640px) {
+  .chat-panel {
+    inset-inline: auto;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    width: 23.5rem;
+    height: min(34rem, calc(100dvh - 2.5rem));
+    border-radius: 1rem;
+  }
+  .chat-pie { padding-bottom: 0.625rem; }
+}
+
 /* Ocultar scrollbar manteniendo funcionalidad */
 .scrollbar-none {
   -ms-overflow-style: none;

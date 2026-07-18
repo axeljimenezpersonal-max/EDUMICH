@@ -9,6 +9,7 @@ import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { ChatFlotante } from '../../components/chat/ChatFlotante';
 import { BottomNav } from '../../components/BottomNav';
 import { demoActive, disableDemo } from '../../lib/demo';
 
@@ -180,6 +181,9 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         nombre={me?.perfil?.nombreCompleto}
         municipio={me?.perfil?.municipio}
       />
+
+      {/* La Secretaría, a un toque desde cualquier pantalla del alumno. */}
+      <ChatFlotante />
 
       {demoActive() && (
         <div

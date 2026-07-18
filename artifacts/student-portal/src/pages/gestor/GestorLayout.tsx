@@ -13,6 +13,7 @@ import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
+import { ChatFlotante } from '../../components/chat/ChatFlotante';
 import { BottomNav } from '../../components/BottomNav';
 
 const NAV = [
@@ -145,6 +146,9 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         nombre={me?.perfil?.nombreCompleto}
         municipio={me?.perfil?.municipio}
       />
+
+      {/* La Secretaría, a un toque desde cualquier pantalla del gestor. */}
+      <ChatFlotante />
     </div>
   );
 }

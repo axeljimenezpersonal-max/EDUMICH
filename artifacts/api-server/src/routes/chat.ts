@@ -97,7 +97,20 @@ router.get('/mi-conversacion', async (req, res) => {
     .where(eq(chatMensajes.conversacionId, conv.id))
     .orderBy(asc(chatMensajes.createdAt));
 
-  res.json({ conversacion: { ...conv, noLeidosParticipante: 0 }, mensajes });
+  // ¿Ya aceptó el aviso legal alguna vez? El consentimiento es un registro legal
+  // y vive en la BD, no en el navegador: si no se consultara, el chat flotante
+  // volvería a pedirlo en cada carga de página (y en cada dispositivo).
+  const [consent] = await db
+    .select({ id: chatConsentimientos.id })
+    .from(chatConsentimientos)
+    .where(eq(chatConsentimientos.userId, userId))
+    .limit(1);
+
+  res.json({
+    conversacion: { ...conv, noLeidosParticipante: 0 },
+    mensajes,
+    consentimientoAceptado: !!consent,
+  });
 });
 
 // Enviar un mensaje a la Secretaría.

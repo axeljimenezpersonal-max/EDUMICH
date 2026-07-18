@@ -180,7 +180,9 @@ export function SectionTour({
           type="button"
           data-tour="btn-seccion-tutorial"
           onClick={start}
-          className="fixed right-4 bottom-20 md:bottom-5 z-40 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-crema-200)] bg-white px-3.5 py-2 text-xs font-semibold shadow-md hover:bg-stone-50"
+          // La altura la fija `.tour-boton-flotante` (index.css): este botón y la
+          // burbuja del chat compartían esquina, así que se apilan.
+          className="tour-boton-flotante fixed right-4 z-40 inline-flex items-center gap-1.5 rounded-full border border-[var(--color-crema-200)] bg-white px-3.5 py-2 text-xs font-semibold shadow-md hover:bg-stone-50"
           style={{ color: 'var(--color-guinda-700)' }}
           title="Ver el tutorial de esta sección"
         >
