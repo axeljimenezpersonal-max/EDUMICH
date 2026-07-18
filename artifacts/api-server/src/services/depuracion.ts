@@ -20,6 +20,7 @@ import {
 } from '@workspace/db/schema';
 import { sendAvisoEliminacion } from './email';
 import { notificarATodosLosAdmins } from '../utils/notificar';
+import { archivoEliminar } from './storage';
 
 // ── Registrar actividad ───────────────────────────────────────────────────
 
@@ -108,12 +109,27 @@ export async function evaluarProteccion(
 
 // ── Job principal ─────────────────────────────────────────────────────────
 
-export async function correrDepuracion(): Promise<{
+/**
+ * Depuración de cuentas inactivas: aviso a 25 días, baja lógica a 30, borrado
+ * definitivo a 90.
+ *
+ * `ensayo: true` recorre exactamente los mismos candidatos y devuelve el mismo
+ * resumen SIN tocar nada. Existe porque este trabajo borra cuentas de
+ * ciudadanos, corre solo a las 3 de la mañana y nadie lo mira: poder preguntarle
+ * "¿a quién borrarías hoy?" antes de que lo haga es la única forma de detectar a
+ * tiempo un criterio mal calibrado. Conviene ejecutarlo así tras cada despliegue
+ * que toque esta lógica.
+ */
+export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Promise<{
   avisos: number;
   softDelete: number;
   hardDelete: number;
+  ensayo: boolean;
+  archivosHuerfanos: string[];
 }> {
-  console.log('[DEPURACION] Iniciando job de depuración de cuentas...');
+  const ensayo = opciones.ensayo === true;
+  const archivosHuerfanos: string[] = [];
+  console.log(`[DEPURACION] Iniciando job de depuración de cuentas${ensayo ? ' (ENSAYO: no se modifica nada)' : ''}...`);
 
   const ahora = new Date();
   const hace25Dias = new Date(ahora.getTime() - 25 * 24 * 60 * 60 * 1000);
@@ -150,6 +166,8 @@ export async function correrDepuracion(): Promise<{
       .where(eq(users.id, est.userId));
 
     if (!userRow) continue;
+
+    if (ensayo) { avisosCount++; continue; }
 
     const [gestorRow] = est.gestorId
       ? await db
@@ -240,6 +258,8 @@ export async function correrDepuracion(): Promise<{
       .from(users)
       .where(eq(users.id, est.userId));
 
+    if (ensayo) { softDeletedCount++; continue; }
+
     // Auditoría
     await db.insert(eliminacionesAuditoria).values({
       estudianteId: est.userId,
@@ -298,6 +318,31 @@ export async function correrDepuracion(): Promise<{
 
   let hardDeletedCount = 0;
   for (const est of candidatosHardDelete) {
+    if (ensayo) { hardDeletedCount++; continue; }
+
+    // Los ARCHIVOS se borran ANTES que las filas, y a propósito.
+    //
+    // El borrado definitivo eliminaba las filas pero nunca los archivos: el acta
+    // de nacimiento, la CURP y la fotografía de esa persona seguían almacenadas
+    // para siempre, mientras la bitácora afirmaba que se había borrado. No era
+    // sólo una fuga: es el derecho de cancelación incumplido.
+    //
+    // Van primero porque después de borrar la fila ya no se sabe qué archivo le
+    // correspondía: la ruta vive en esa misma fila. Si falla el borrado de un
+    // archivo se registra y se sigue —quedarse a medias sería peor—, pero queda
+    // constancia para poder limpiarlo después.
+    const docs = await db
+      .select({ ruta: expedienteDocumentos.rutaArchivo })
+      .from(expedienteDocumentos)
+      .where(eq(expedienteDocumentos.estudianteId, est.userId));
+    for (const d of docs) {
+      if (!d.ruta) continue;
+      await archivoEliminar(d.ruta).catch((e) => {
+        archivosHuerfanos.push(d.ruta);
+        console.error(`[DEPURACION] No se pudo borrar el archivo ${d.ruta}:`, e);
+      });
+    }
+
     // Auditoría anonimizada (LGPDPPSO)
     await db.insert(eliminacionesAuditoria).values({
       estudianteId: est.userId,
@@ -332,18 +377,40 @@ export async function correrDepuracion(): Promise<{
     avisos: avisosCount,
     softDelete: softDeletedCount,
     hardDelete: hardDeletedCount,
+    ensayo,
+    archivosHuerfanos,
   };
 
-  // Audit log del sistema
-  await db.insert(auditLog).values({
-    userId: null,
-    userNombre: 'Sistema',
-    userRol: 'sistema',
-    accion: 'DEPURACION_AUTOMATICA',
-    entidad: 'sistema',
-    detalle: `Job diario: ${avisosCount} avisos, ${softDeletedCount} soft delete, ${hardDeletedCount} hard delete`,
-    metadata: resumen,
-  });
+  // En ensayo no se escribe NADA, tampoco la bitácora: un ensayo que deja
+  // rastro de ejecución real confundiría a quien audite después.
+  if (!ensayo) {
+    await db.insert(auditLog).values({
+      userId: null,
+      userNombre: 'Sistema',
+      userRol: 'sistema',
+      accion: 'DEPURACION_AUTOMATICA',
+      entidad: 'sistema',
+      detalle: `Job diario: ${avisosCount} avisos, ${softDeletedCount} soft delete, ${hardDeletedCount} hard delete`,
+      metadata: resumen,
+    });
+
+    // Que alguien SE ENTERE de que se borraron cuentas. Este trabajo corre a las
+    // 3 de la mañana y hasta ahora sólo dejaba una línea en la consola, que
+    // nadie lee. Borrar expedientes de ciudadanos no puede ser silencioso.
+    if (hardDeletedCount > 0 || softDeletedCount > 0) {
+      await notificarATodosLosAdmins({
+        tipo: 'cuentas_eliminadas_lote',
+        prioridad: hardDeletedCount > 0 ? 'alta' : 'normal',
+        titulo: 'Depuración automática de cuentas',
+        cuerpo:
+          `Se dieron de baja ${softDeletedCount} cuenta(s) y se eliminaron definitivamente ${hardDeletedCount}.` +
+          (archivosHuerfanos.length > 0
+            ? ` ATENCIÓN: ${archivosHuerfanos.length} archivo(s) no se pudieron borrar del almacenamiento.`
+            : ''),
+        enlace: '/admin/alumnos',
+      }).catch(() => {});
+    }
+  }
 
   console.log(`[DEPURACION] Resumen: ${avisosCount} avisos, ${softDeletedCount} soft delete, ${hardDeletedCount} hard delete`);
   return resumen;
@@ -356,7 +423,19 @@ export function iniciarCronDepuracion(): void {
   cron.schedule(
     '0 3 * * *',
     () => {
-      correrDepuracion().catch((e) => console.error('[DEPURACION] Error en job:', e));
+      correrDepuracion().catch(async (e) => {
+        // Si este trabajo falla, nadie se entera: va a la consola de un proceso
+        // que nadie mira, a las 3 de la mañana. Y es el trabajo que BORRA
+        // cuentas, así que fallar a la mitad deja el estado inconsistente.
+        console.error('[DEPURACION] Error en job:', e);
+        await notificarATodosLosAdmins({
+          tipo: 'cuentas_eliminadas_lote',
+          prioridad: 'alta',
+          titulo: 'Falló la depuración automática',
+          cuerpo: `El job diario de depuración terminó con error: ${e instanceof Error ? e.message : String(e)}. Puede haber quedado a medias.`,
+          enlace: '/admin/alumnos',
+        }).catch(() => {});
+      });
     },
     { timezone: 'America/Mexico_City' }
   );

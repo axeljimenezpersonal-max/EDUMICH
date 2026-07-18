@@ -7,6 +7,7 @@
  * POST /admin/depuracion/:id/restaurar   → restaurar cuenta soft-deleted
  * POST /admin/depuracion/:id/forzar      → forzar soft delete inmediato
  * POST /admin/depuracion/:id/reactivar   → reactivar manualmente (admin)
+ * POST /admin/depuracion/ensayo          → simular el job sin modificar nada
  */
 
 import { Router } from 'express';
@@ -23,10 +24,38 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { tryAuditLog } from '../utils/audit';
-import { evaluarProteccion } from '../services/depuracion';
+import { evaluarProteccion, correrDepuracion } from '../services/depuracion';
 
 const router = Router();
 router.use(authRequired, requireRol('admin'));
+
+/**
+ * Ensayo del job de depuración: dice a quién avisaría, daría de baja y borraría
+ * HOY, sin tocar nada.
+ *
+ * El job real corre a las 3 de la mañana, borra cuentas de ciudadanos y no hay
+ * respaldo del que volver. Poder preguntarle qué haría —desde el panel, antes de
+ * que lo haga— es la diferencia entre descubrir un criterio mal calibrado ahora
+ * o descubrirlo cuando ya no hay expedientes.
+ *
+ * Conviene ejecutarlo tras cada despliegue que toque esa lógica.
+ */
+router.post('/ensayo', async (req, res) => {
+  try {
+    const resumen = await correrDepuracion({ ensayo: true });
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'depuracion_ensayo',
+      entidad: 'sistema',
+      detalle: `Ensayo de depuración: avisaría a ${resumen.avisos}, daría de baja ${resumen.softDelete}, eliminaría ${resumen.hardDelete}`,
+      metadata: resumen,
+      req,
+    });
+    res.json(resumen);
+  } catch (e) {
+    res.status(500).json({ error: e instanceof Error ? e.message : 'Error en el ensayo' });
+  }
+});
 
 // ── GET /admin/depuracion/stats ───────────────────────────────────────────
 router.get('/stats', async (_req, res) => {

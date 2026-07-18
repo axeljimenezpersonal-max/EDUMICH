@@ -18,13 +18,22 @@ export function generarPasswordTemporal(): string {
   return `${pick(UPPER, 1)}${pick(LOWER, 1)}-${pick(DIGITS, 4)}-${pick(LOWER, 2)}`;
 }
 
-// Código temporal de 5 dígitos para ALUMNOS nuevos (aprobados por admin o
-// creados por gestor). Se genera UNA sola vez, se envía por correo y el alumno
-// lo usa únicamente para su primer inicio de sesión: ahí el sistema lo obliga
-// a crear su contraseña definitiva (users.password_temporal = true →
-// /estudiante/cambiar-password con confirmación).
+/**
+ * Credencial temporal para ALUMNOS nuevos (aprobados por admin o creados por
+ * gestor). Se genera una sola vez, se envía por correo, y sólo sirve para el
+ * primer inicio de sesión: ahí el sistema obliga a crear la definitiva
+ * (`users.password_temporal = true` → `/estudiante/cambiar-password`).
+ *
+ * ANTES ERAN 5 DÍGITOS: 100,000 combinaciones, y sin caducar hasta el primer
+ * acceso. Con ~1,700 altas al mes y sin bloqueo por cuenta, era el punto más
+ * débil del sistema — y llamativamente, los gestores ya recibían una credencial
+ * miles de veces más fuerte generada en este mismo archivo.
+ *
+ * Ahora usa el mismo formato: ~1,200 millones de combinaciones, y conserva lo
+ * que hacía práctico al código de 5 dígitos — el alfabeto excluye caracteres
+ * que se confunden al dictarlo por teléfono o al copiarlo de un correo
+ * (I/l/1, O/0), y los guiones lo hacen legible en trozos.
+ */
 export function generarCodigoTemporal(): string {
-  let s = '';
-  for (let i = 0; i < 5; i++) s += String(randomInt(0, 10));
-  return s;
+  return generarPasswordTemporal();
 }
