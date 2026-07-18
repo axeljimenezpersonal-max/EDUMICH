@@ -67,6 +67,7 @@ import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
 import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
 import { nombreArchivoUtf8 } from '../utils/archivo';
+import { hoyEnMexico } from '../utils/fechas';
 
 const router = Router();
 
@@ -889,7 +890,7 @@ router.get('/convocatoria-activa', async (_req, res) => {
 
   // Etapa relevante para el gestor: la que tiene la ventana de solicitud ABIERTA
   // hoy; si ninguna, la PRÓXIMA en abrir. Trae las dos fechas (solicitud/examen).
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyEnMexico();
   const [abierta] = await db.execute<{ clave: string; si: string; sf: string; es: string; ed: string }>(sql`
     SELECT clave, solicitud_inicio::text si, solicitud_fin::text sf, examen_sabado::text es, examen_domingo::text ed
     FROM convocatorias_etapas
@@ -1792,7 +1793,7 @@ router.get('/alumnos/:id/convocatoria', async (req, res) => {
   if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
 
   // 1. Find active etapa
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyEnMexico();
 
   const [etapa] = await db
     .select({
@@ -2075,7 +2076,7 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
   // 2.b. CANDADO ESTRICTO: solo se puede solicitar/inscribir DENTRO de la ventana
   // de solicitud [solicitud_inicio, solicitud_fin], como en SIOSAD. Ni antes de
   // que abra ni después de que cierre (ni con el examen ya pasado).
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const hoyStr = hoyEnMexico();
   const apertura = etapa.solicitudInicio ? String(etapa.solicitudInicio) : null;
   const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
   const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;
@@ -2275,7 +2276,7 @@ router.get('/alumnos/:id/ficha-pago', async (req, res) => {
   if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
 
   // Get active etapa
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyEnMexico();
   const [etapa] = await db
     .select({
       id: convocatoriasEtapas.id,

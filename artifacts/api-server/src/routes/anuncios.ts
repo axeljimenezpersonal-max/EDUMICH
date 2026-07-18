@@ -9,6 +9,7 @@ import { eq, sql, and, or, isNull, gte } from 'drizzle-orm';
 import { db } from '../db';
 import { anuncios, anunciosVistos, estudiantes, gestores, convocatoriasEtapas } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
+import { hoyEnMexico } from '../utils/fechas';
 
 const router = Router();
 router.use(authRequired);
@@ -18,7 +19,7 @@ router.use(authRequired);
 // (siempre al día, sin cron). Visible para alumno, gestor y admin. Devuelve la
 // ventana de solicitud abierta hoy (o la próxima en abrir) y el examen próximo.
 router.get('/calendario', async (_req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyEnMexico();
   const dias = (s: string) => Math.ceil((new Date(s + 'T00:00:00').getTime() - new Date(hoy + 'T00:00:00').getTime()) / 86400000);
   const eventos: Array<{
     tipo: 'ventana_abierta' | 'ventana_proxima' | 'examen';
@@ -59,7 +60,7 @@ router.get('/calendario', async (_req, res) => {
 // se recalcula en vivo (finalizada/activa/proxima) por si el guardado quedó
 // atrás.
 router.get('/calendario-etapas', async (_req, res) => {
-  const hoy = new Date().toISOString().slice(0, 10);
+  const hoy = hoyEnMexico();
   const rows = await db.execute<{
     clave: string; etapa: string; fase: string; anio: number;
     solicitud_inicio: string | null; solicitud_fin: string | null;

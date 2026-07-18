@@ -41,6 +41,7 @@ import devRoutes from './routes/dev';
 import verificacionRoutes from './routes/verificacion';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
+import { recordarCierreDeVentana } from './utils/recordarCierreVentana';
 import { runStartupMigrations } from './db';
 import { metricsMiddleware } from './middleware/metrics';
 
@@ -155,6 +156,16 @@ cron.schedule('20 * * * *', () => {
     .then((n) => { if (n > 0) console.log(`[Etapas] ${n} etapa(s) actualizaron su estado`); })
     .catch((e) => console.error('[Etapas Cron]', e));
 });
+
+// Cron: recordatorio de cierre de ventana, UNA vez al día a las 9:00 de
+// Michoacán. Diario y a hora fija a propósito: el aviso solo se dispara faltando
+// 3 días y 1 día, así que correrlo cada hora mandaría el mismo recordatorio 24
+// veces. Ver utils/recordarCierreVentana.ts.
+cron.schedule('0 9 * * *', () => {
+  recordarCierreDeVentana()
+    .then((n) => { if (n > 0) console.log(`[Cierre ventana] ${n} recordatorio(s) enviados`); })
+    .catch((e) => console.error('[Cierre ventana Cron]', e));
+}, { timezone: 'America/Mexico_City' });
 
 // Cron: depuración automática de cuentas inactivas (03:00 AM Mexico City)
 iniciarCronDepuracion();

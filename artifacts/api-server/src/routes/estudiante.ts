@@ -82,6 +82,7 @@ import { notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 import { verifyUrlCredencial } from '../utils/credencialQr';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
+import { hoyEnMexico } from '../utils/fechas';
 
 // ── Multer para expediente ────────────────────────────────────────────────
 const EXPEDIENTE_DIR = process.env.STORAGE_DIR
@@ -1573,7 +1574,7 @@ router.post('/convocatoria/inscribirme', async (req, res) => {
   }
   // CANDADO ESTRICTO por fecha: solo dentro de la ventana de solicitud, como en
   // SIOSAD — ni antes de que abra, ni después de que cierre (ni examen ya pasado).
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const hoyStr = hoyEnMexico();
   const apertura = etapa.solicitudInicio ? String(etapa.solicitudInicio) : null;
   const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
   const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;

@@ -14,6 +14,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
 import { generarHistorialPdf } from '../services/historialPdf';
+import { hoyEnMexico } from '../utils/fechas';
 
 const router = Router();
 router.use(authRequired);
@@ -113,7 +114,7 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     GROUP BY ei.id, ei.folio, ei.estado, m.numero, m.nombre, c.calificacion, c.aciertos, c.aprobado, c.fecha_examen, ce.examen_sabado
     ORDER BY m.numero
   `);
-  const hoyStr = new Date().toISOString().slice(0, 10);
+  const hoyStr = hoyEnMexico();
   const calificacionesExamen = pagadosRows.rows.map((r) => ({
     inscripcionId: Number(r.inscripcion_id),
     folio: r.folio,

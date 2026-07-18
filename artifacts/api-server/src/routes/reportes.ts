@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { generarExcelReporte } from '../services/excelGenerator';
 import { generarPDFReporte } from '../services/pdfReport';
 import type { ReporteData } from '../services/excelGenerator';
+import { notificar } from '../utils/notificar';
 
 const router = Router();
 // Dirección de programa puede CONSULTAR y generar los mismos reportes (es un
@@ -858,6 +859,20 @@ export async function ejecutarReportesProgramados() {
       .update(reportesProgramados)
       .set({ ultimaEjecucionEn: ahora, proximaEjecucion, updatedAt: ahora })
       .where(eq(reportesProgramados.id, prog.id));
+
+    // El reporte se generaba en silencio: quien lo programó no se enteraba de
+    // que ya estaba listo y tenía que ir a buscarlo. (`reporte_enviado` existía
+    // en el modelo y nunca se disparaba.)
+    if (prog.creadoPorUserId) {
+      await notificar({
+        userId: prog.creadoPorUserId,
+        tipo: 'reporte_enviado',
+        prioridad: 'baja',
+        titulo: 'Tu reporte programado ya está listo',
+        cuerpo: `«${prog.nombre ?? nombre}» se generó con ${filas.length} registro(s). Puedes descargarlo desde Reportes.`,
+        enlace: '/admin/reportes',
+      });
+    }
   }
 }
 

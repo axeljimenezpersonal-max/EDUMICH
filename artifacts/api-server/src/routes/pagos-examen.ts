@@ -284,7 +284,7 @@ router.post('/:id/comprobante', subirComprobanteMw, async (req, res) => {
         .from(convocatoriasEtapas)
         .where(eq(convocatoriasEtapas.id, p.etapaId));
       if (et) {
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = hoyEnMexico();
         const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
         if (et.si && hoy < String(et.si)) {
           return res.status(400).json({ error: `La ventana de solicitud de la etapa ${et.clave} aún no abre (abre el ${fmt(String(et.si))}).` });
@@ -443,7 +443,7 @@ router.post('/solicitar', async (req, res) => {
         .from(convocatoriasEtapas)
         .where(eq(convocatoriasEtapas.id, etapaId));
       if (et) {
-        const hoy = new Date().toISOString().slice(0, 10);
+        const hoy = hoyEnMexico();
         const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
         if (et.si && hoy < String(et.si)) {
           return res.status(400).json({ error: `La ventana de solicitud de la etapa ${et.clave} aún no abre (abre el ${fmt(String(et.si))}).` });
