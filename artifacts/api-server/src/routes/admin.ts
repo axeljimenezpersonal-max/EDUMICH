@@ -3966,6 +3966,141 @@ router.get('/convocatorias/:etapaId', async (req, res) => {
   }
 });
 
+// ─── GET /admin/convocatorias/:etapaId/impacto-eliminar ─────────────────────
+// Qué se llevaría por delante borrar esta etapa. SIEMPRE se consulta antes de
+// ofrecer el borrado: una etapa arrastra inscripciones, fichas de pago y
+// horarios, y nadie debería enterarse de eso después.
+router.get('/convocatorias/:etapaId/impacto-eliminar', async (req, res) => {
+  try {
+    const etapaId = parseInt(req.params.etapaId, 10);
+    if (isNaN(etapaId)) { res.status(400).json({ error: 'etapaId inválido' }); return; }
+
+    const [etapa] = await db
+      .select()
+      .from(convocatoriasEtapas)
+      .where(eq(convocatoriasEtapas.id, etapaId));
+    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+
+    const r = await db.execute<{
+      inscripciones: number; alumnos: number; con_calificacion: number;
+      fichas: number; fichas_pagadas: number; horarios: number; sedes: number;
+    }>(sql`
+      SELECT
+        (SELECT COUNT(*) FROM examenes_inscripciones WHERE etapa_id = ${etapaId})::int AS inscripciones,
+        (SELECT COUNT(DISTINCT estudiante_id) FROM examenes_inscripciones WHERE etapa_id = ${etapaId})::int AS alumnos,
+        (SELECT COUNT(*) FROM examenes_inscripciones WHERE etapa_id = ${etapaId} AND calificacion IS NOT NULL)::int AS con_calificacion,
+        (SELECT COUNT(*) FROM pagos_examen WHERE etapa_id = ${etapaId})::int AS fichas,
+        (SELECT COUNT(*) FROM pagos_examen WHERE etapa_id = ${etapaId} AND estado = 'pagado')::int AS fichas_pagadas,
+        (SELECT COUNT(*) FROM convocatorias_modulos_horarios WHERE etapa_id = ${etapaId})::int AS horarios,
+        (SELECT COUNT(*) FROM convocatorias_etapas_sedes WHERE etapa_id = ${etapaId})::int AS sedes
+    `);
+    const c = r.rows[0];
+
+    // Dos candados duros. La calificación es historial académico oficial y el
+    // pago verificado es dinero que ya entró a Tesorería: ninguno de los dos se
+    // puede borrar desde aquí, ni aunque el admin insista.
+    const impedimentos: string[] = [];
+    if (Number(c.con_calificacion) > 0) {
+      impedimentos.push(`${c.con_calificacion} examen(es) ya tienen calificación registrada (historial académico).`);
+    }
+    if (Number(c.fichas_pagadas) > 0) {
+      impedimentos.push(`${c.fichas_pagadas} ficha(s) de pago están marcadas como PAGADAS.`);
+    }
+
+    res.json({
+      etapa: { id: etapa.id, clave: etapa.clave, estado: etapa.estado },
+      arrastra: {
+        inscripciones: Number(c.inscripciones),
+        alumnos: Number(c.alumnos),
+        fichasPago: Number(c.fichas),
+        horarios: Number(c.horarios),
+        sedes: Number(c.sedes),
+      },
+      puedeEliminarse: impedimentos.length === 0,
+      impedimentos,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
+// ─── DELETE /admin/convocatorias/:etapaId ───────────────────────────────────
+// Borra una etapa y lo que cuelga de ella. Existe porque no había forma de
+// quitar una etapa creada por error y quedaban conviviendo con las oficiales,
+// confundiendo a quien mira el calendario.
+//
+// Exige repetir la clave en el cuerpo: es un borrado en cascada e irreversible,
+// no algo que deba pasar por un clic distraído.
+router.delete('/convocatorias/:etapaId', async (req, res) => {
+  try {
+    const etapaId = parseInt(req.params.etapaId, 10);
+    if (isNaN(etapaId)) { res.status(400).json({ error: 'etapaId inválido' }); return; }
+
+    const [etapa] = await db
+      .select()
+      .from(convocatoriasEtapas)
+      .where(eq(convocatoriasEtapas.id, etapaId));
+    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+
+    // La clave puede venir por query o por cuerpo: el cliente `api.delete` no
+    // manda cuerpo, y forzarlo solo para esto complicaría el cliente entero.
+    const confirmacion = String(
+      (req.query.clave as string | undefined) ?? (req.body as { clave?: string })?.clave ?? '',
+    ).trim();
+    if (confirmacion !== etapa.clave) {
+      res.status(400).json({ error: `Para confirmar, escribe la clave exacta de la etapa: ${etapa.clave}` });
+      return;
+    }
+
+    // Se revalidan los candados en el servidor: que la interfaz haya dejado
+    // pulsar el botón no es garantía de nada.
+    const g = await db.execute<{ con_calificacion: number; fichas_pagadas: number }>(sql`
+      SELECT
+        (SELECT COUNT(*) FROM examenes_inscripciones WHERE etapa_id = ${etapaId} AND calificacion IS NOT NULL)::int AS con_calificacion,
+        (SELECT COUNT(*) FROM pagos_examen WHERE etapa_id = ${etapaId} AND estado = 'pagado')::int AS fichas_pagadas
+    `);
+    if (Number(g.rows[0].con_calificacion) > 0) {
+      res.status(409).json({ error: 'No se puede eliminar: hay exámenes con calificación registrada.' });
+      return;
+    }
+    if (Number(g.rows[0].fichas_pagadas) > 0) {
+      res.status(409).json({ error: 'No se puede eliminar: hay fichas de pago ya pagadas.' });
+      return;
+    }
+
+    // Orden importa: las llaves foráneas de inscripciones, pagos y horarios NO
+    // son en cascada, así que hay que vaciar de adentro hacia afuera. Todo en
+    // una transacción: o se va completa, o no se va nada.
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`
+        DELETE FROM pagos_examen_inscripciones
+        WHERE examen_inscripcion_id IN (SELECT id FROM examenes_inscripciones WHERE etapa_id = ${etapaId})
+           OR pago_examen_id IN (SELECT id FROM pagos_examen WHERE etapa_id = ${etapaId})
+      `);
+      await tx.execute(sql`DELETE FROM pagos_examen WHERE etapa_id = ${etapaId}`);
+      await tx.execute(sql`DELETE FROM examenes_inscripciones WHERE etapa_id = ${etapaId}`);
+      await tx.execute(sql`DELETE FROM convocatorias_modulos_horarios WHERE etapa_id = ${etapaId}`);
+      await tx.execute(sql`DELETE FROM convocatorias_etapas_sedes WHERE etapa_id = ${etapaId}`);
+      await tx.execute(sql`DELETE FROM convocatorias_etapas WHERE id = ${etapaId}`);
+    });
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'eliminar_etapa_convocatoria',
+      entidad: 'convocatorias_etapas',
+      entidadId: etapaId,
+      detalle: `Eliminó la etapa ${etapa.clave} y todo lo que colgaba de ella`,
+      req,
+    });
+
+    res.json({ ok: true, clave: etapa.clave });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'Error interno';
+    res.status(500).json({ error: message });
+  }
+});
+
 // ─── GET /admin/convocatorias/:etapaId/exportar-lista ────────────────────────
 router.get('/convocatorias/:etapaId/exportar-lista', async (req, res) => {
   try {

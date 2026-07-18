@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { useRoute, Link } from 'wouter';
+import { useRoute, useLocation, Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
 import { SedesEtapaEditor } from './SedesEtapaEditor';
 import { api, calif10 } from '../../lib/api';
 import {
   ArrowLeft, Download, Users, GraduationCap, CheckCircle, XCircle,
-  Clock, Search, ChevronDown, ChevronRight,
+  Clock, Search, ChevronDown, ChevronRight, Trash2,
 } from 'lucide-react';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { avisar } from '../../components/Avisador';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -39,6 +41,14 @@ type Inscrito = {
   municipio: string | null;
   totalModulos: number;
   modulos: ModuloInscrito[];
+};
+
+/** Lo que se llevaría por delante borrar una etapa (GET impacto-eliminar). */
+type Impacto = {
+  etapa: { id: number; clave: string; estado: string };
+  arrastra: { inscripciones: number; alumnos: number; fichasPago: number; horarios: number; sedes: number };
+  puedeEliminarse: boolean;
+  impedimentos: string[];
 };
 
 type DetalleData = {
@@ -91,6 +101,10 @@ export default function ConvocatoriaDetalle() {
   const [search, setSearch] = useState('');
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
   const [filtroEstado, setFiltroEstado] = useState<'todos' | 'aprobados' | 'reprobados' | 'pendientes'>('todos');
+  const [, setLocation] = useLocation();
+  /** Impacto de borrar esta etapa; con valor, se muestra la confirmación. */
+  const [impacto, setImpacto] = useState<Impacto | null>(null);
+  const [cargandoImpacto, setCargandoImpacto] = useState(false);
 
   useEffect(() => {
     if (!etapaId) return;
@@ -112,6 +126,36 @@ export default function ConvocatoriaDetalle() {
 
   function handleExportar() {
     window.open(`/api/admin/convocatorias/${etapaId}/exportar-lista`, '_blank');
+  }
+
+  /**
+   * Borrar una etapa arrastra inscripciones, fichas de pago y horarios. Primero
+   * se le pregunta al servidor QUÉ se llevaría por delante y se le muestra al
+   * admin; solo después se ofrece confirmar, y escribiendo la clave exacta.
+   */
+  async function pedirImpacto() {
+    if (!etapaId) return;
+    setCargandoImpacto(true);
+    try {
+      const r = await api.get<Impacto>(`/admin/convocatorias/${etapaId}/impacto-eliminar`);
+      setImpacto(r);
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'No se pudo consultar el impacto.', 'error');
+    } finally {
+      setCargandoImpacto(false);
+    }
+  }
+
+  async function eliminarEtapa() {
+    if (!impacto) return;
+    try {
+      await api.delete(`/admin/convocatorias/${etapaId}?clave=${encodeURIComponent(impacto.etapa.clave)}`);
+      avisar(`Etapa ${impacto.etapa.clave} eliminada.`, 'ok');
+      setImpacto(null);
+      setLocation('/admin/convocatorias');
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'No se pudo eliminar la etapa.', 'error');
+    }
   }
 
   const estadoCfg = data
@@ -218,14 +262,25 @@ export default function ConvocatoriaDetalle() {
             </div>
           )}
         </div>
-        <button
-          onClick={handleExportar}
-          disabled={!data}
-          className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-stone-200 bg-white hover:border-stone-300 disabled:opacity-40 transition-colors"
-          style={{ color: '#443e39' }}
-        >
-          <Download size={14} /> Exportar CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleExportar}
+            disabled={!data}
+            className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold rounded-lg border border-stone-200 bg-white hover:border-stone-300 disabled:opacity-40 transition-colors"
+            style={{ color: '#443e39' }}
+          >
+            <Download size={14} /> Exportar CSV
+          </button>
+          <button
+            onClick={pedirImpacto}
+            disabled={!data || cargandoImpacto}
+            title="Eliminar esta etapa"
+            aria-label="Eliminar esta etapa"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-stone-200 bg-white text-red-500 hover:bg-red-50 disabled:opacity-40"
+          >
+            <Trash2 size={15} />
+          </button>
+        </div>
       </div>
 
       {loading ? (
@@ -512,6 +567,40 @@ export default function ConvocatoriaDetalle() {
           )}
 
         </>
+      )}
+
+      {/* Confirmación de borrado: muestra qué se arrastra y exige la clave. */}
+      {impacto && (
+        <ConfirmModal
+          icon={<Trash2 size={18} />}
+          danger
+          title={`Eliminar la etapa ${impacto.etapa.clave}`}
+          confirmLabel={impacto.puedeEliminarse ? 'Eliminar definitivamente' : 'Entendido'}
+          requireText={impacto.puedeEliminarse ? impacto.etapa.clave : undefined}
+          onClose={() => setImpacto(null)}
+          onConfirm={() => { if (impacto.puedeEliminarse) eliminarEtapa(); else setImpacto(null); }}
+          message={
+            impacto.puedeEliminarse ? (
+              <>
+                <p className="mb-2">Esta acción es <strong>irreversible</strong> y también borrará:</p>
+                <ul className="mb-1 list-disc space-y-0.5 pl-4 text-[13px]">
+                  <li><strong>{impacto.arrastra.inscripciones}</strong> inscripción(es) de <strong>{impacto.arrastra.alumnos}</strong> alumno(s)</li>
+                  <li><strong>{impacto.arrastra.fichasPago}</strong> ficha(s) de pago</li>
+                  <li><strong>{impacto.arrastra.horarios}</strong> horario(s) y <strong>{impacto.arrastra.sedes}</strong> sede(s) habilitada(s)</li>
+                </ul>
+              </>
+            ) : (
+              <>
+                <p className="mb-2">
+                  <strong>No se puede eliminar.</strong> Tiene registros que no deben perderse:
+                </p>
+                <ul className="list-disc space-y-0.5 pl-4 text-[13px]">
+                  {impacto.impedimentos.map((m) => <li key={m}>{m}</li>)}
+                </ul>
+              </>
+            )
+          }
+        />
       )}
     </AdminLayout>
   );
