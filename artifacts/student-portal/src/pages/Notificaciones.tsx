@@ -48,6 +48,10 @@ const TIPO_ICONO: Record<string, React.ComponentType<{ size?: number }>> = {
   orden_pago_emitida: CreditCard,
   pago_rechazado: XCircle,
   pago_vencido: XCircle,
+  // Expediente (ver utils/notificarExpediente.ts en el backend).
+  expediente_completo: CheckCircle,
+  mi_alumno_completo_expediente: CheckCircle,
+  alumno_sin_gestor: UserPlus,
 };
 
 function NotifIcon({ tipo }: { tipo: string }) {

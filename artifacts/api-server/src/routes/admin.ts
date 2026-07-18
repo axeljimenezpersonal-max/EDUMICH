@@ -55,6 +55,7 @@ import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
 import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
+import { avisarSiExpedienteQuedoCompleto } from '../utils/notificarExpediente';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
   obtenerDatosCedula,
@@ -4064,6 +4065,10 @@ router.patch('/expediente-documentos/:id/aprobar', async (req, res) => {
     enlace: '/estudiante/expediente',
   });
 
+  // Si esta aprobación fue la que cerró los 5 obligatorios, avisar al gestor y a
+  // administración: es el momento en que el alumno queda listo para su matrícula.
+  await avisarSiExpedienteQuedoCompleto(doc.estudianteId, doc.tipo);
+
   res.json({ ok: true, documento: { id: updated.id, estado: updated.estado } });
 });
 
@@ -4936,12 +4941,71 @@ router.post('/alumnos/:id/renovar-licencia', async (req, res) => {
   }
 
   const nuevoFolio = regenerarFolio ? await generarFolioLicencia() : alumno.licenciaDigital;
-  await db.update(estudiantes).set({
-    licenciaDigital: nuevoFolio,
-    licenciaEmitidaEn: new Date(),
-    licenciaEmitidaPor: adminId,
-    updatedAt: new Date(),
-  }).where(eq(estudiantes.userId, alumnoId));
+  const emitidaEn = new Date();
+  const vigenteHasta = new Date(emitidaEn.getTime());
+  vigenteHasta.setMonth(vigenteHasta.getMonth() + VIGENCIA_CREDENCIAL_MESES);
+  const motivoCredencial = regenerarFolio ? 'reposicion' as const : 'vencimiento' as const;
+
+  await db.transaction(async (tx) => {
+    // a) La credencial activa actual (si la hay).
+    const [activa] = await tx
+      .select({ id: credenciales.id })
+      .from(credenciales)
+      .where(and(eq(credenciales.estudianteId, alumnoId), eq(credenciales.estado, 'activa')));
+
+    if (regenerarFolio) {
+      // b) Reposición: primero se BAJA la vieja, después se inserta la nueva.
+      // El índice único parcial (estudiante_id) WHERE estado='activa' exige ese
+      // orden: si insertáramos antes de bajarla, Postgres rechazaría el insert.
+      if (activa) {
+        await tx.update(credenciales)
+          .set({ estado: 'repuesta', updatedAt: new Date() })
+          .where(eq(credenciales.id, activa.id));
+      }
+
+      const [nueva] = await tx.insert(credenciales).values({
+        estudianteId: alumnoId,
+        folio: nuevoFolio,
+        estado: 'activa',
+        motivo: 'reposicion',
+        emitidaEn,
+        emitidaPor: adminId,
+        vigenteHasta,
+      }).returning({ id: credenciales.id });
+
+      // Deja la cadena: la vieja apunta a la que la sustituyó.
+      if (activa && nueva) {
+        await tx.update(credenciales)
+          .set({ reemplazadaPorId: nueva.id, updatedAt: new Date() })
+          .where(eq(credenciales.id, activa.id));
+      }
+    } else if (activa) {
+      // c) Renovación por vencimiento: mismo folio, se reinicia la vigencia.
+      await tx.update(credenciales)
+        .set({ motivo: 'vencimiento', emitidaEn, emitidaPor: adminId, vigenteHasta, updatedAt: new Date() })
+        .where(eq(credenciales.id, activa.id));
+    } else {
+      // d) Caso borde: datos viejos sin fila de historial. Se crea en vez de fallar.
+      await tx.insert(credenciales).values({
+        estudianteId: alumnoId,
+        folio: nuevoFolio,
+        estado: 'activa',
+        motivo: motivoCredencial,
+        emitidaEn,
+        emitidaPor: adminId,
+        vigenteHasta,
+        notas: 'Fila creada al renovar: la credencial existía solo como espejo en estudiantes.',
+      });
+    }
+
+    // Espejo en `estudiantes` (mismo folio si no se regeneró).
+    await tx.update(estudiantes).set({
+      licenciaDigital: nuevoFolio,
+      licenciaEmitidaEn: emitidaEn,
+      licenciaEmitidaPor: adminId,
+      updatedAt: new Date(),
+    }).where(eq(estudiantes.userId, alumnoId));
+  });
 
   const motivoLabel = motivo === 'reposicion' ? 'reposición por pérdida' : motivo === 'otro' ? 'renovación' : 'vencimiento';
   await tryAuditLog({

@@ -66,6 +66,8 @@ import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
+import { avisarDocumentoSubidoPorAlumno } from '../utils/notificarExpediente';
+import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 import {
   obtenerDatosCedula,
   guardarDatosCedula,
@@ -234,7 +236,7 @@ router.get('/dashboard', async (req, res) => {
 
   // Documentos del EXPEDIENTE (fuente de verdad), no la tabla legacy.
   // Aprobados = obligatorios aprobados (0-5); pendientes/rechazados en cualquier doc.
-  const OBLIG_EXP = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
+  const OBLIG_EXP: readonly string[] = DOCUMENTOS_OBLIGATORIOS;
   const expDocs = await db
     .select({ tipo: expedienteDocumentos.tipo, estado: expedienteDocumentos.estado, rutaArchivo: expedienteDocumentos.rutaArchivo })
     .from(expedienteDocumentos)
@@ -1089,6 +1091,10 @@ router.post(
     // Registrar actividad para el sistema de depuración
     const { registrarActividad } = await import('../services/depuracion');
     await registrarActividad(userId);
+
+    // Esta ruta no avisaba a nadie: el documento se quedaba esperando revisión
+    // sin que administración lo supiera ni el gestor se enterara.
+    await avisarDocumentoSubidoPorAlumno(userId, tipo);
 
     res.json({ ok: true, tipo, nombreOriginal: req.file.originalname });
   }

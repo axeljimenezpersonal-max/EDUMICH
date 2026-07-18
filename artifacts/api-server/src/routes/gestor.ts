@@ -60,6 +60,7 @@ import { generarCredencialPdf, obtenerDatosCredencial } from '../services/creden
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
+import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 import { validarEdad } from '../utils/edad';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
@@ -2045,7 +2046,7 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
     res.status(400).json({ error: 'El alumno aún no tiene matrícula oficial registrada. La asigna la administración cuando la Secretaría valida el expediente.' });
     return;
   }
-  const OBLIG_INSCRIBIR = ['curp', 'acta_nacimiento', 'ine', 'comprobante_domicilio', 'certificado_secundaria'];
+  const OBLIG_INSCRIBIR: readonly string[] = DOCUMENTOS_OBLIGATORIOS;
   const aprobadosRows = await db
     .select({ tipo: expedienteDocumentos.tipo })
     .from(expedienteDocumentos)

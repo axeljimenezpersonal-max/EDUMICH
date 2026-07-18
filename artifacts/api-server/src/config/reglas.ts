@@ -22,3 +22,20 @@ export const VIGENCIA_CREDENCIAL_MESES = 6;
  * Se usa para autollenar/forzar el vencimiento al emitir la ficha.
  */
 export const DIAS_ANTES_EXAMEN_VENCE_PAGO = 7;
+
+/**
+ * Documentos OBLIGATORIOS del expediente. El expediente se considera completo
+ * cuando estos cinco están **aprobados** (no basta con subirlos).
+ *
+ * Estaba copiado en `routes/estudiante.ts` y `routes/gestor.ts`; al aparecer un
+ * tercer consumidor (los avisos al gestor) se centralizó aquí para que agregar o
+ * quitar un documento no deje una copia desactualizada decidiendo quién puede
+ * inscribirse.
+ */
+export const DOCUMENTOS_OBLIGATORIOS = [
+  'curp',
+  'acta_nacimiento',
+  'ine',
+  'comprobante_domicilio',
+  'certificado_secundaria',
+] as const;
