@@ -394,11 +394,17 @@ router.post('/email/verificar-codigo', async (req, res) => {
   }
   const { email, codigo, tipo } = parse.data;
 
-  // ⚠️ TODO(TEMPORAL — QUITAR): bypass de código para PRUEBAS mientras el envío
-  // de correo (resend) no funciona. Acepta "111111" para cualquier correo/tipo.
-  // BUSCAR "BYPASS_CODIGO_PRUEBAS" para eliminar esto antes de producción real.
-  if (codigo === '111111') {
-    // BYPASS_CODIGO_PRUEBAS
+  // Atajo de PRUEBAS: acepta "111111" sin mandar correo, para poder recorrer el
+  // alta en desarrollo. NUNCA en producción.
+  //
+  // Estuvo activo en producción sin este candado y era explotable por cualquiera:
+  // pedir código para el correo de un tercero, mandar "111111", recibir un token
+  // firmado válido y auto-registrarse con ese correo — quedándoselo, porque el
+  // correo es único y la persona real ya no podría darse de alta.
+  //
+  // El candado va contra NODE_ENV y no contra una bandera propia a propósito: una
+  // bandera se puede encender por error en producción; esto no.
+  if (codigo === '111111' && process.env.NODE_ENV !== 'production') {
     await db
       .update(emailVerifications)
       .set({ verificado: true })
