@@ -30,6 +30,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { tieneLenguajeOfensivo, MENSAJE_MODERACION } from '../utils/moderacion';
+import { patronLike } from '../utils/like';
 
 const cuerpoSchema = z.object({ cuerpo: z.string().trim().min(1, 'Escribe un mensaje').max(4000) });
 
@@ -224,7 +225,7 @@ adminChatRouter.get('/no-leidos', async (_req, res) => {
 adminChatRouter.get('/destinatarios', async (req, res) => {
   const q = typeof req.query.q === 'string' ? req.query.q.trim() : '';
   const rolFiltro = typeof req.query.rol === 'string' ? req.query.rol : 'todos';
-  const patt = q ? `%${q}%` : null;
+  const patt = q ? patronLike(q) : null;
   const LIMITE = 40;
 
   let als: { userId: number; nombre: string | null; curp: string | null; municipio: string | null }[] = [];

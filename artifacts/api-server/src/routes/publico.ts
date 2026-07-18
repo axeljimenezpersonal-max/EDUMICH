@@ -29,6 +29,7 @@ import {
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { patronLike } from '../utils/like';
 import { sendVerificationCode, sendEmail, sendRecuperarPassword } from '../services/email';
 import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
@@ -146,7 +147,7 @@ router.post('/buscar-cuenta', buscarCuentaLimiter, async (req, res) => {
       .join(' ')
       .trim()
       .split(/\s+/);
-    const condiciones = palabras.map((p) => sql`unaccent(lower(${estudiantes.nombreCompleto})) LIKE unaccent(lower(${'%' + p + '%'}))`);
+    const condiciones = palabras.map((p) => sql`unaccent(lower(${estudiantes.nombreCompleto})) LIKE unaccent(lower(${patronLike(p)}))`);
     const filas = await db
       .select({ email: users.email, nombreCompleto: estudiantes.nombreCompleto, activo: users.activo })
       .from(estudiantes)

@@ -25,6 +25,7 @@ import { db } from '../db';
 import { estudiantes, gestores, users, pagosExamen, convocatorias } from '@workspace/db';
 import { authRequired, requireRol } from '../middleware/auth';
 import { tryAuditLog } from '../utils/audit';
+import { patronLike } from '../utils/like';
 
 const router = Router();
 
@@ -45,23 +46,6 @@ router.use(authRequired, requireRol('gestor', 'admin'), busquedaLimiter);
 
 /** Cuántos resultados por bloque de entidad. */
 const TOPE_POR_BLOQUE = 6;
-
-/**
- * Neutraliza los comodines de LIKE que venían del usuario.
- *
- * Sin esto, escribir "%" hace que el patrón sea `%%%` y devuelva la tabla
- * entera, y "_" casa con cualquier carácter. Además de dar resultados
- * absurdos, es la forma barata de sacarle el padrón completo a un ILIKE sobre
- * una columna indexada. El repo no tenía este escape en ningún lado.
- */
-function escaparLike(s: string): string {
-  return s.replace(/[\\%_]/g, '\\$&');
-}
-
-/** Patrón `%texto%` ya escapado, listo para interpolar. */
-function patron(token: string): string {
-  return `%${escaparLike(token)}%`;
-}
 
 interface Resultado {
   id: string;
@@ -102,10 +86,10 @@ router.get('/', async (req, res) => {
     const condAlumno = and(
       ...tokens.map(
         (t) => sql`(
-          unaccent(lower(${estudiantes.nombreCompleto})) LIKE unaccent(lower(${patron(t)})) ESCAPE '\\'
-          OR ${estudiantes.curp} ILIKE ${patron(t)} ESCAPE '\\'
-          OR ${estudiantes.folioPreregistro} ILIKE ${patron(t)} ESCAPE '\\'
-          OR ${estudiantes.matriculaOficialDGB} ILIKE ${patron(t)} ESCAPE '\\'
+          unaccent(lower(${estudiantes.nombreCompleto})) LIKE unaccent(lower(${patronLike(t)}))
+          OR ${estudiantes.curp} ILIKE ${patronLike(t)}
+          OR ${estudiantes.folioPreregistro} ILIKE ${patronLike(t)}
+          OR ${estudiantes.matriculaOficialDGB} ILIKE ${patronLike(t)}
         )`,
       ),
       // EL candado del gestor. Si esto falta, ve el padrón entero.
@@ -147,9 +131,9 @@ router.get('/', async (req, res) => {
     const condPago = and(
       ...tokens.map(
         (t) => sql`(
-          ${pagosExamen.folio} ILIKE ${patron(t)} ESCAPE '\\'
-          OR ${pagosExamen.referencia} ILIKE ${patron(t)} ESCAPE '\\'
-          OR ${pagosExamen.lineaCaptura} ILIKE ${patron(t)} ESCAPE '\\'
+          ${pagosExamen.folio} ILIKE ${patronLike(t)}
+          OR ${pagosExamen.referencia} ILIKE ${patronLike(t)}
+          OR ${pagosExamen.lineaCaptura} ILIKE ${patronLike(t)}
         )`,
       ),
       rol === 'gestor' ? eq(pagosExamen.gestorId, userId) : undefined,
@@ -193,8 +177,8 @@ router.get('/', async (req, res) => {
           and(
             ...tokens.map(
               (t) => sql`(
-                unaccent(lower(${gestores.nombreCompleto})) LIKE unaccent(lower(${patron(t)})) ESCAPE '\\'
-                OR ${users.email} ILIKE ${patron(t)} ESCAPE '\\'
+                unaccent(lower(${gestores.nombreCompleto})) LIKE unaccent(lower(${patronLike(t)}))
+                OR ${users.email} ILIKE ${patronLike(t)}
               )`,
             ),
           ),
@@ -219,7 +203,7 @@ router.get('/', async (req, res) => {
         .where(
           and(
             ...tokens.map(
-              (t) => sql`unaccent(lower(${convocatorias.nombre})) LIKE unaccent(lower(${patron(t)})) ESCAPE '\\'`,
+              (t) => sql`unaccent(lower(${convocatorias.nombre})) LIKE unaccent(lower(${patronLike(t)}))`,
             ),
           ),
         )

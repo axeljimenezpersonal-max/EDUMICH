@@ -71,6 +71,7 @@ import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
 import { parseCredencialQr } from '../utils/credencialQr';
+import { patronLike } from '../utils/like';
 
 const router = Router();
 
@@ -401,7 +402,7 @@ router.get('/pagos', async (req, res) => {
     where.push(eq(pagos.estado, estadoFiltro as 'pendiente' | 'verificado' | 'rechazado'));
   }
   if (search) {
-    where.push(sql`(${estudiantes.nombreCompleto} ILIKE ${'%' + search + '%'} OR ${estudiantes.curp} ILIKE ${'%' + search + '%'})`);
+    where.push(sql`(${estudiantes.nombreCompleto} ILIKE ${patronLike(search)} OR ${estudiantes.curp} ILIKE ${patronLike(search)})`);
   }
 
   const whereClause = where.length > 0 ? and(...where) : undefined;
@@ -693,7 +694,7 @@ router.get('/gestores', async (req, res) => {
   const searchSnippet = search
     ? sql`AND ${sql.join(
         search.split(/\s+/).filter(Boolean).map(
-          (t) => sql`(g.nombre_completo ILIKE ${`%${t}%`} OR u.email ILIKE ${`%${t}%`})`
+          (t) => sql`(g.nombre_completo ILIKE ${patronLike(t)} OR u.email ILIKE ${patronLike(t)})`
         ),
         sql` AND `
       )}`
@@ -2039,7 +2040,7 @@ router.get('/alumnos', async (req, res) => {
   const searchSnippet = search
     ? sql`AND ${sql.join(
         search.split(/\s+/).filter(Boolean).map(
-          (t) => sql`(e.nombre_completo ILIKE ${`%${t}%`} OR e.curp ILIKE ${`%${t}%`} OR u.email ILIKE ${`%${t}%`})`
+          (t) => sql`(e.nombre_completo ILIKE ${patronLike(t)} OR e.curp ILIKE ${patronLike(t)} OR u.email ILIKE ${patronLike(t)})`
         ),
         sql` AND `
       )}`
@@ -3267,7 +3268,7 @@ router.get('/solicitudes', async (req, res) => {
     // Build safe WHERE conditions using sql template
     const whereParts: ReturnType<typeof sql>[] = [sql`sc.estado = ${estado}`];
     if (search) {
-      const s = `%${search}%`;
+      const s = patronLike(search);
       whereParts.push(sql`(sc.nombre_completo ILIKE ${s} OR sc.curp ILIKE ${s} OR sc.email ILIKE ${s})`);
     }
     if (municipioId) whereParts.push(sql`sc.municipio_id = ${municipioId}`);
@@ -5426,7 +5427,7 @@ router.get('/outbox', async (req, res) => {
   if (evento) conditions.push(eq(outbox.evento, evento as any));
   if (estado) conditions.push(eq(outbox.estado, estado as any));
   if (q) conditions.push(
-    sql`(${outbox.toEmail} ILIKE ${'%' + q + '%'} OR ${outbox.toName} ILIKE ${'%' + q + '%'} OR ${outbox.subject} ILIKE ${'%' + q + '%'})`
+    sql`(${outbox.toEmail} ILIKE ${patronLike(q)} OR ${outbox.toName} ILIKE ${patronLike(q)} OR ${outbox.subject} ILIKE ${patronLike(q)})`
   );
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;

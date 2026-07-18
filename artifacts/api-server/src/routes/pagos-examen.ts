@@ -34,6 +34,7 @@ import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen'
 import { DIAS_ANTES_EXAMEN_VENCE_PAGO } from '../config/reglas';
 import { STORAGE_ES_EFIMERO, guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 import { hoyEnMexico } from '../utils/fechas';
+import { patronLike } from '../utils/like';
 import {
   avisarOrdenPorEmitir,
   avisarComprobanteRecibido,
@@ -627,10 +628,10 @@ router.get('/', async (req, res) => {
     if (etapaId) cond.push(eq(pagosExamen.etapaId, etapaId));
     if (q) {
       cond.push(sql`(
-        ${estudiantes.nombreCompleto} ILIKE ${'%' + q + '%'} OR
-        ${estudiantes.matriculaOficialDGB} ILIKE ${'%' + q + '%'} OR
-        ${pagosExamen.folio} ILIKE ${'%' + q + '%'} OR
-        ${gestores.nombreCompleto} ILIKE ${'%' + q + '%'}
+        ${estudiantes.nombreCompleto} ILIKE ${patronLike(q)} OR
+        ${estudiantes.matriculaOficialDGB} ILIKE ${patronLike(q)} OR
+        ${pagosExamen.folio} ILIKE ${patronLike(q)} OR
+        ${gestores.nombreCompleto} ILIKE ${patronLike(q)}
       )` as any);
     }
 
@@ -1029,7 +1030,7 @@ router.get('/contabilidad', async (req, res) => {
       FROM examenes_inscripciones ei
       JOIN estudiantes e ON e.user_id = ei.estudiante_id
       JOIN modulos m ON m.id = ei.modulo_id
-      ${q ? sql`WHERE (e.nombre_completo ILIKE ${'%' + q + '%'} OR ei.folio ILIKE ${'%' + q + '%'} OR e.matricula_oficial_dgb ILIKE ${'%' + q + '%'})` : sql``}
+      ${q ? sql`WHERE (e.nombre_completo ILIKE ${patronLike(q)} OR ei.folio ILIKE ${patronLike(q)} OR e.matricula_oficial_dgb ILIKE ${patronLike(q)})` : sql``}
       ORDER BY e.nombre_completo, m.numero
       LIMIT 1000
     `);
