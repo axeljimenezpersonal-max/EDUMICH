@@ -139,8 +139,42 @@ function servirArchivoPago(res: import('express').Response, ref: string, nombre:
 const esAdmin = (rol?: string) => rol === 'admin';
 
 // Folio legible de la ficha de pago: FP-AAAA-000123
+//
+// El año sale de la fecha real en Michoacán, no de una constante: estuvo
+// quemado a 2026 y en enero habría seguido emitiendo fichas FP-2026-*
+// indefinidamente, sin que nada fallara ni avisara. El consecutivo es el id,
+// que es global, así que el cambio de año no reinicia ni colisiona.
 function folioFicha(id: number) {
-  return `FP-${2026}-${String(id).padStart(6, '0')}`;
+  const anio = hoyEnMexico().slice(0, 4);
+  return `FP-${anio}-${String(id).padStart(6, '0')}`;
+}
+
+/**
+ * Gestor al que se le atribuye una ficha, congelado en el momento del pago.
+ *
+ * Antes solo se guardaba si la ficha la pedía un gestor; en el alta por admin
+ * o por el propio alumno quedaba en NULL, y para saber "de quién era" había
+ * que hacer un join contra `estudiantes.gestor_id`, que devuelve el gestor
+ * ACTUAL. Consecuencia: si un alumno cambia de gestor, el histórico se
+ * reescribe solo y la productividad pasada de cada gestor cambia sin que nadie
+ * haya tocado nada. Guardarlo aquí lo vuelve un hecho, no una inferencia.
+ *
+ * Para fichas grupales (sin titular único) se deja NULL: no hay un gestor
+ * al que atribuirla sin mentir.
+ */
+async function gestorParaFicha(
+  rol: string,
+  userId: number,
+  estudianteId: number | null
+): Promise<number | null> {
+  if (rol === 'gestor') return userId;
+  if (estudianteId == null) return null;
+  const [alu] = await db
+    .select({ gestorId: estudiantes.gestorId })
+    .from(estudiantes)
+    .where(eq(estudiantes.userId, estudianteId))
+    .limit(1);
+  return alu?.gestorId ?? null;
 }
 
 // ¿El usuario (alumno / gestor / admin) tiene acceso a este pago?
@@ -507,10 +541,12 @@ router.post('/solicitar', async (req, res) => {
       referencia = alu?.matricula || alu?.curp || null;
     }
 
+    const gestorAtribuido = await gestorParaFicha(rol, userId, estudianteId ?? null);
+
     const [nuevo] = await db.insert(pagosExamen).values({
       estudianteId,
       etapaId,
-      gestorId: rol === 'gestor' ? userId : null,
+      gestorId: gestorAtribuido,
       solicitadoPorUserId: userId,
       concepto: 'derecho_examen',
       cantidadExamenes: cantidad,
@@ -801,11 +837,16 @@ router.post('/', async (req, res) => {
     const synapsis = (cantidad * 30).toFixed(2);
     const referencia = alu.matricula || alu.curp || null;
 
+    const gestorAtribuido = await gestorParaFicha(
+      req.user!.rol, req.user!.userId, estudianteId ?? null
+    );
+
     const [nuevo] = await db
       .insert(pagosExamen)
       .values({
         estudianteId,
         etapaId,
+        gestorId: gestorAtribuido,
         concepto: 'derecho_examen',
         cantidadExamenes: cantidad,
         montoTotal: total,

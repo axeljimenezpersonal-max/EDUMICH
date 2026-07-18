@@ -58,7 +58,14 @@ export function decodeSession(cookie: string): SessionUser | null {
   }
 }
 
-export function setSessionCookie(res: Response, user: SessionUser) {
+/**
+ * Pone la cookie y DEVUELVE el valor exacto que puso.
+ *
+ * Importa que lo devuelva: `encodeSession` incluye `iat: Date.now()`, así que
+ * llamarlo otra vez para, por ejemplo, calcular el hash de la sesión daría un
+ * valor distinto al de la cookie real.
+ */
+export function setSessionCookie(res: Response, user: SessionUser): string {
   const value = encodeSession(user);
   res.cookie(COOKIE_NAME, value, {
     httpOnly: true,
@@ -67,6 +74,7 @@ export function setSessionCookie(res: Response, user: SessionUser) {
     maxAge: 1000 * 60 * 60 * 24 * 7, // 7 días
     path: '/',
   });
+  return value;
 }
 
 export function clearSessionCookie(res: Response) {

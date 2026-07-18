@@ -14,7 +14,7 @@ import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { db } from '../db'; // ajustar al path real del Replit
-import { users, gestores, estudiantes, administradores, directores, municipios, auditLog, passwordResetTokens } from '@workspace/db/schema';
+import { users, gestores, estudiantes, administradores, directores, municipios, auditLog, passwordResetTokens, sesiones } from '@workspace/db/schema';
 import {
   authRequired,
   setSessionCookie,
@@ -30,6 +30,65 @@ const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
 });
+
+/**
+ * Registro de sesiones abiertas.
+ *
+ * La tabla `sesiones` existía y la pantalla de seguridad la leía para mostrar
+ * "tus sesiones activas"… pero NADIE escribía en ella, así que esa pantalla
+ * siempre salió vacía. La autenticación es una cookie firmada (sin estado en
+ * servidor), de modo que la fila de aquí no gobierna el acceso: es el registro
+ * de quién entró, desde dónde y cuándo.
+ *
+ * Sirve para dos cosas: que la pantalla de seguridad diga la verdad, y que
+ * exista HISTORIA de accesos. Hasta ahora solo se guardaba `users.ultimo_login`
+ * —el último—, así que era imposible saber cuánta gente entró una semana
+ * cualquiera.
+ *
+ * Se guarda el HASH de la cookie, nunca la cookie: quien lea la tabla no puede
+ * suplantar a nadie con lo que ahí encuentre.
+ *
+ * Nunca rompe el login: si falla, se traga el error. Entrar importa más que
+ * registrarlo.
+ */
+function navegadorDe(ua: string): string {
+  if (/Edg\//.test(ua)) return 'Edge';
+  if (/OPR\//.test(ua)) return 'Opera';
+  if (/Chrome\//.test(ua)) return 'Chrome';
+  if (/Firefox\//.test(ua)) return 'Firefox';
+  if (/Safari\//.test(ua)) return 'Safari';
+  return 'Otro';
+}
+
+function sistemaDe(ua: string): string {
+  if (/iPhone|iPad/.test(ua)) return 'iOS';
+  if (/Android/.test(ua)) return 'Android';
+  if (/Mac OS X/.test(ua)) return 'macOS';
+  if (/Windows/.test(ua)) return 'Windows';
+  if (/Linux/.test(ua)) return 'Linux';
+  return 'Otro';
+}
+
+const DIAS_SESION = 7;
+
+async function registrarSesion(userId: number, cookie: string, req: import('express').Request) {
+  try {
+    const ua = String(req.headers['user-agent'] ?? '').slice(0, 400);
+    const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? '')
+      .split(',')[0].trim().slice(0, 45);
+    await db.insert(sesiones).values({
+      userId,
+      tokenHash: crypto.createHash('sha256').update(cookie).digest('hex'),
+      ip: ip || null,
+      userAgent: ua || null,
+      navegador: navegadorDe(ua),
+      sistemaOperativo: sistemaDe(ua),
+      expiraEn: new Date(Date.now() + DIAS_SESION * 24 * 60 * 60 * 1000),
+    });
+  } catch (e) {
+    console.warn('[auth] no se pudo registrar la sesión:', e);
+  }
+}
 
 router.post('/login', async (req, res) => {
   const parse = loginSchema.safeParse(req.body);
@@ -57,7 +116,8 @@ router.post('/login', async (req, res) => {
     .where(eq(users.id, user.id));
 
   const session: SessionUser = { userId: user.id, rol: user.rol };
-  setSessionCookie(res, session);
+  const cookie = setSessionCookie(res, session);
+  await registrarSesion(user.id, cookie, req);
 
   res.json({
     ok: true,
@@ -65,7 +125,14 @@ router.post('/login', async (req, res) => {
   });
 });
 
-router.post('/logout', (req, res) => {
+router.post('/logout', async (req, res) => {
+  // La fila de sesión se borra al salir para que la pantalla de seguridad no
+  // liste sesiones que ya no existen.
+  const cookie = req.cookies?.pa_session;
+  if (cookie) {
+    const hash = crypto.createHash('sha256').update(String(cookie)).digest('hex');
+    await db.delete(sesiones).where(eq(sesiones.tokenHash, hash)).catch(() => {});
+  }
   clearSessionCookie(res);
   res.json({ ok: true });
 });

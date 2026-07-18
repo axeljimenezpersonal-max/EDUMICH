@@ -125,6 +125,31 @@ export const METRICAS: Metrica[] = [
     sqlHoy: `SELECT count(*)::float AS v FROM credenciales WHERE estado = 'activa'`,
   },
   {
+    clave: 'activos_7d',
+    titulo: 'Usuarios activos (7 días)',
+    familia: 'estado',
+    // Sale de users.ultimo_login, que solo guarda el ÚLTIMO acceso: por eso
+    // no se puede reconstruir hacia atrás y empieza el día de la instalación.
+    // A partir de ahora la serie diaria sí construye la historia.
+    sqlHoy: `SELECT count(*)::float AS v FROM users
+              WHERE ultimo_login >= now() - interval '7 days'`,
+  },
+  {
+    clave: 'activos_30d',
+    titulo: 'Usuarios activos (30 días)',
+    familia: 'estado',
+    sqlHoy: `SELECT count(*)::float AS v FROM users
+              WHERE ultimo_login >= now() - interval '30 days'`,
+  },
+  {
+    clave: 'logins_del_dia',
+    titulo: 'Inicios de sesión del día',
+    familia: 'estado',
+    // Cuenta filas de `sesiones`, que se empiezan a escribir con este cambio.
+    sqlHoy: `SELECT count(*)::float AS v FROM sesiones
+              WHERE creada_en::date = CURRENT_DATE`,
+  },
+  {
     clave: 'tasa_aprobacion',
     titulo: 'Aprobación acumulada (%)',
     familia: 'estado',

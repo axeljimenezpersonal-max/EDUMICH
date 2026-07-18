@@ -43,6 +43,7 @@ import devRoutes from './routes/dev';
 import verificacionRoutes from './routes/verificacion';
 import cron from 'node-cron';
 import { tomarInstantanea, rellenarHistorico } from './services/metricasDiarias';
+import { pool } from '@workspace/db';
 import { iniciarCronDepuracion } from './services/depuracion';
 import { recordarCierreDeVentana } from './utils/recordarCierreVentana';
 import { runStartupMigrations } from './db';
@@ -193,6 +194,15 @@ setTimeout(() => {
     .then((n) => { if (n > 0) console.log(`[Métricas] histórico rellenado: ${n} valores`); })
     .catch((e) => console.error('[Métricas arranque]', e));
 }, 8_000);
+
+// Cron: barrer sesiones vencidas (04:10). Las filas de `sesiones` no gobiernan
+// el acceso —eso lo hace la cookie firmada—, pero si no se limpian, la pantalla
+// de seguridad acabaría listando sesiones muertas como si estuvieran vivas.
+cron.schedule('10 4 * * *', () => {
+  pool.query(`DELETE FROM sesiones WHERE expira_en < now()`)
+    .then((r) => { if (r.rowCount) console.log(`[Sesiones] ${r.rowCount} vencida(s) barrida(s)`); })
+    .catch((e) => console.error('[Sesiones Cron]', e));
+}, { timezone: 'America/Mexico_City' });
 
 // Cron: depuración automática de cuentas inactivas (03:00 AM Mexico City)
 iniciarCronDepuracion();
