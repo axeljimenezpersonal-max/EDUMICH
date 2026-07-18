@@ -512,3 +512,41 @@ de la titular.
 - Los PDF se dibujan con `pdf-lib`, sin motor HTML → sin superficie de inyección.
 - Todos los `sql.raw()` usan listas fijas de código o enteros ya validados.
 - No se filtran hashes de contraseña ni tokens en ninguna respuesta.
+
+---
+
+## Estado de remediación — 2026-07-18
+
+### ✅ Corregido y desplegado
+
+| # | Hallazgo | Commit |
+|---|---|---|
+| P0-19 | Bypass de verificación `111111` en producción | `4a935af` |
+| P0-25 | `EMAIL_MODE` *fail-open* filtrando contraseñas temporales | `2e9fd2f` |
+| P0-2 | `seed.ts` podía resetear la contraseña de admin en producción | `2e9fd2f` |
+| P1-26 | XSS almacenado contra el admin vía comprobante de pago | `73d035c` |
+| P1-28 | Inyección de fórmulas en la hoja "Gráfica" | `73d035c` |
+| P1-29 | XSS de gestor a alumno vía material del aula | `73d035c` |
+| P3-32 | Búsqueda de bitácora sin `patronLike()` | `73d035c` |
+
+### 🔴 Abierto — máxima prioridad
+
+| # | Hallazgo | Por qué no se cerró aquí |
+|---|---|---|
+| **P0-10** | **Sin ninguna estrategia de respaldo** | Es diseño de infraestructura, no código. Va en la Parte 2 |
+| **P0-11** | El trabajo que borra cuentas corre a ciegas a las 3 AM | Necesita lock distribuido + alertas: decisión de arquitectura |
+| **P0-12** | La bitácora no registra accesos ni exportaciones | Trabajo acotado pero extenso (~15 sitios); merece su propio pase |
+| **P0-13** | La bitácora no es inmutable | Requiere usuario de BD con permisos restringidos: se define al migrar |
+| P1-20 | Contraseña temporal de alumno = 5 dígitos | Cambia el flujo de alta; requiere prueba |
+| P1-21 | Cambiar la contraseña no cierra las sesiones abiertas | Requiere `passwordVersion` en esquema + migración |
+| P1-30 | El borrado ARCO no borra los archivos | **Incumplimiento legal**; requiere prueba con almacenamiento real |
+
+### Nota de proceso
+
+Los arreglos P1-26/28/29 acabaron dentro de un commit ajeno (`73d035c`) porque
+otro agente ejecutó `git add -A` mientras estaban en el árbol. El código llegó
+bien y está en `origin`, pero la trazabilidad se perdió.
+
+Es exactamente el riesgo de P1-4: **sin puertas en CI ni disciplina de commits,
+lo que llega a producción no es necesariamente lo que alguien revisó.** Para una
+plataforma de gobierno, esa trazabilidad es parte del control.
