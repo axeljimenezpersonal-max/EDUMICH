@@ -23,8 +23,49 @@ import {
 } from '../middleware/auth';
 import { sendRecuperarPassword } from '../services/email';
 import { tryAuditLog } from '../utils/audit';
+import { bloqueoDeCuenta, registrarFalloDeCuenta, limpiarFallosDeCuenta } from '../utils/bloqueoCuenta';
 
 const router = Router();
+
+/**
+ * Hash señuelo contra la enumeración por tiempo de respuesta.
+ *
+ * Si el correo no existe se responde de inmediato, pero si existe primero corre
+ * `bcrypt.compare` (~80-100 ms). Esa diferencia delata qué correos tienen cuenta
+ * aunque el mensaje sea idéntico. Comparando siempre contra este hash, ambos
+ * caminos tardan lo mismo.
+ *
+ * Se genera al arrancar a partir de bytes aleatorios, con el MISMO coste que los
+ * hashes reales (10): `compare` tiene que hacer el trabajo completo para que los
+ * dos caminos tarden lo mismo. Un hash tomado de un ejemplo público serviría
+ * igual para el tiempo, pero éste además no es adivinable por nadie.
+ */
+const HASH_SENUELO = bcrypt.hashSync(crypto.randomBytes(32).toString('hex'), 10);
+
+
+/**
+ * Deja constancia de un intento de acceso fallido.
+ *
+ * Se registra el correo intentado porque sin él la bitácora no sirve para
+ * investigar —no se sabría contra qué cuenta iba el ataque—, pero NUNCA la
+ * contraseña probada.
+ */
+async function auditarAccesoFallido(
+  email: string,
+  motivo: 'no_existe' | 'cuenta_inactiva' | 'password_incorrecta' | 'cuenta_bloqueada',
+  req: import('express').Request,
+  userId?: number,
+): Promise<void> {
+  await tryAuditLog({
+    userId: userId ?? null,
+    accion: 'login_fallido',
+    entidad: 'users',
+    entidadId: userId ?? null,
+    detalle: `Intento de acceso fallido para ${email} (${motivo})`,
+    metadata: { motivo, email },
+    req,
+  });
+}
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -99,21 +140,54 @@ router.post('/login', async (req, res) => {
   const { email, password } = parse.data;
 
   const [user] = await db.select().from(users).where(eq(users.email, email));
+
   if (!user || !user.activo) {
+    // Se compara contra un hash señuelo para que responder "no existe" tarde lo
+    // mismo que responder "contraseña incorrecta". Sin esto, la diferencia de
+    // tiempo (~80 ms de bcrypt) revela qué correos tienen cuenta, aunque el
+    // mensaje sea genérico.
+    await bcrypt.compare(password, HASH_SENUELO);
+    await auditarAccesoFallido(email, user ? 'cuenta_inactiva' : 'no_existe', req);
     res.status(401).json({ error: 'Credenciales incorrectas' });
+    return;
+  }
+
+  // Bloqueo POR CUENTA. El límite por IP no basta: con varias direcciones se
+  // puede insistir sobre el mismo correo sin activar nada, y la contraseña
+  // temporal del alumno es corta.
+  const bloqueo = bloqueoDeCuenta(user.id);
+  if (bloqueo) {
+    await auditarAccesoFallido(email, 'cuenta_bloqueada', req, user.id);
+    res.status(429).json({
+      error: `Demasiados intentos fallidos. Vuelve a intentar en ${bloqueo} minuto(s).`,
+    });
     return;
   }
 
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) {
+    registrarFalloDeCuenta(user.id);
+    await auditarAccesoFallido(email, 'password_incorrecta', req, user.id);
     res.status(401).json({ error: 'Credenciales incorrectas' });
     return;
   }
+
+  limpiarFallosDeCuenta(user.id);
 
   await db
     .update(users)
     .set({ ultimoLogin: new Date() })
     .where(eq(users.id, user.id));
+
+  await tryAuditLog({
+    userId: user.id,
+    accion: 'login_exitoso',
+    entidad: 'users',
+    entidadId: user.id,
+    detalle: `Inicio de sesión (${user.rol})`,
+    metadata: { rol: user.rol },
+    req,
+  });
 
   const session: SessionUser = { userId: user.id, rol: user.rol };
   const cookie = setSessionCookie(res, session);

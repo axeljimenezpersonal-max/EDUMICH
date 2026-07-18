@@ -10,6 +10,7 @@
 import type { Request, Response, NextFunction } from 'express';
 import crypto from 'node:crypto';
 import { SESSION_SECRET as SECRET } from '../config/env';
+import { tryAuditLog } from '../utils/audit';
 
 const COOKIE_NAME = 'pa_session';
 
@@ -89,6 +90,20 @@ export function authRequired(req: Request, res: Response, next: NextFunction) {
   }
   const user = decodeSession(cookie);
   if (!user) {
+    // Una cookie presente que no valida es la señal más fuerte de ataque activo
+    // que produce este sistema: alguien está intentando falsificar una sesión, o
+    // reutilizando una robada después de que se invalidara. Antes se descartaba
+    // con un 401 mudo y no quedaba rastro.
+    //
+    // No se espera al registro (sin `await`): la respuesta al atacante no debe
+    // depender de que la bitácora escriba, ni tardar más por ello.
+    void tryAuditLog({
+      accion: 'sesion_invalida',
+      entidad: 'auth',
+      detalle: `Cookie de sesión inválida o expirada en ${req.method} ${req.path}`,
+      metadata: { ruta: req.path, metodo: req.method },
+      req,
+    });
     res.status(401).json({ error: 'Sesión inválida' });
     return;
   }
@@ -103,6 +118,18 @@ export function requireRol(...roles: SessionUser['rol'][]) {
       return;
     }
     if (!roles.includes(req.user.rol)) {
+      // Un usuario autenticado pidiendo algo que su rol no permite. Puede ser un
+      // enlace viejo, pero también alguien tanteando qué alcanza — y sin registro
+      // no hay forma de distinguirlo ni de ver el patrón. Aquí SÍ hay usuario,
+      // así que queda con nombre.
+      void tryAuditLog({
+        userId: req.user.userId,
+        accion: 'acceso_denegado',
+        entidad: 'auth',
+        detalle: `Rol ${req.user.rol} intentó ${req.method} ${req.path} (requiere: ${roles.join(', ')})`,
+        metadata: { rol: req.user.rol, requeridos: roles, ruta: req.path, metodo: req.method },
+        req,
+      });
       res.status(403).json({ error: 'Rol no autorizado' });
       return;
     }

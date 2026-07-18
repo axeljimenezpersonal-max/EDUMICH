@@ -9,6 +9,7 @@ import { generarExcelReporte } from '../services/excelGenerator';
 import { generarPDFReporte } from '../services/pdfReport';
 import type { ReporteData } from '../services/excelGenerator';
 import { notificar } from '../utils/notificar';
+import { tryAuditLog } from '../utils/audit';
 
 const router = Router();
 // Dirección de programa puede CONSULTAR y generar los mismos reportes (es un
@@ -716,6 +717,23 @@ router.post('/generar', async (req, res) => {
     .update(reportesGenerados)
     .set({ estado: 'listo', nombreArchivo, tamanoBytes: buffer.length, generadoEn: new Date() })
     .where(eq(reportesGenerados.id, registro.id));
+
+  // Exportar es la forma más fácil de llevarse el padrón completo: un archivo
+  // con miles de CURP y nombres, en un clic. Hasta ahora no dejaba ningún
+  // rastro, así que la pregunta "¿quién se llevó los datos?" no tenía respuesta.
+  //
+  // Se registra CUÁNTOS registros salieron: es lo que distingue una consulta de
+  // trabajo de un barrido, y lo que permite alertar por volumen inusual.
+  // No se guardan los datos exportados, sólo la huella del acto.
+  await tryAuditLog({
+    userId: user?.userId ?? null,
+    accion: 'exportar_reporte',
+    entidad: 'reportes',
+    entidadId: registro.id,
+    detalle: `Exportó "${nombre}" en ${formato} — ${filas.length} registros`,
+    metadata: { tipo, formato, registros: filas.length, filtros },
+    req,
+  });
 
   res.setHeader('Content-Type', mimeType);
   res.setHeader('Content-Disposition', `attachment; filename="${nombreArchivo}"`);
