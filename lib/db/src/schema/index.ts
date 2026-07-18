@@ -27,7 +27,7 @@ import {
   numeric,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { relations, sql } from 'drizzle-orm';
 
 // ─────────────────────────────────────────────────────────────────────────
 // Enums
@@ -300,6 +300,13 @@ export const estudiantes = pgTable(
   (t) => ({
     curpIdx: uniqueIndex('estudiantes_curp_idx').on(t.curp),
     gestorIdx: index('estudiantes_gestor_idx').on(t.gestorId),
+    // Índice PARCIAL: el folio de credencial es único, pero muchos estudiantes
+    // aún no tienen credencial emitida (NULL). Existía solo en la base; sin
+    // declararlo aquí, un `drizzle-kit push` a otro entorno dejaba el folio sin
+    // garantía de unicidad.
+    licenciaDigitalUq: uniqueIndex('estudiantes_licencia_digital_uq')
+      .on(t.licenciaDigital)
+      .where(sql`${t.licenciaDigital} IS NOT NULL`),
   })
 );
 
@@ -1575,6 +1582,13 @@ export const notifTipoEnum = pgEnum('notif_tipo', [
   'chat_mensaje',
   'calificacion_disponible',
   'calificaciones_recibidas',
+  // Ciclo de la orden de pago (pagos_examen). Antes el modelo cambiaba de estado
+  // once veces sin avisarle a nadie: el alumno no sabía que ya podía pagar y la
+  // administración no sabía que había un comprobante esperando.
+  'pago_por_emitir',      // → administración: hay una ficha solicitada sin emitir
+  'orden_pago_emitida',   // → alumno/gestor: ya hay línea de captura, se puede pagar
+  'pago_rechazado',       // → alumno/gestor: el comprobante no procedió (con motivo)
+  'pago_vencido',         // → alumno/gestor: la orden venció sin pagarse
 ]);
 
 export const notifPrioridadEnum = pgEnum('notif_prioridad', ['baja', 'normal', 'alta', 'urgente']);
@@ -1825,4 +1839,51 @@ export const tutorialesVistos = pgTable('tutoriales_vistos', {
 }, (t) => ({
   unicoPorEtapa: uniqueIndex('tutoriales_vistos_uq').on(t.userId, t.clave, t.etapa),
   userIdx: index('tutoriales_vistos_user_idx').on(t.userId),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CREDENCIAL DIGITAL — traqueo de escaneos del QR
+//
+// La tabla ya existía en la base, pero NO estaba declarada aquí: se usaba con
+// SQL crudo desde routes/admin.ts. Como el despliegue deriva el esquema de este
+// archivo (`drizzle-kit push`, sin carpeta de migraciones), al levantar otro
+// entorno la tabla no se creaba y el registro de verificaciones se perdía en
+// silencio — el INSERT es fire-and-forget con `.catch(() => {})`.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export const credencialesVerificaciones = pgTable(
+  'credenciales_verificaciones',
+  {
+    id: serial('id').primaryKey(),
+    // Nullable a propósito: un folio inexistente o mal firmado se registra igual,
+    // porque saber que alguien intentó verificarlo es justamente el dato útil.
+    estudianteId: integer('estudiante_id').references(() => estudiantes.userId, {
+      onDelete: 'set null',
+    }),
+    folio: varchar('folio', { length: 60 }).notNull(),
+    firmaValida: boolean('firma_valida').notNull().default(false),
+    // 'ok' | 'sin_firma' | 'firma_invalida' | 'no_encontrada'
+    resultado: varchar('resultado', { length: 30 }).notNull(),
+    verificadoPor: integer('verificado_por').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    estudianteIdx: index('credverif_estudiante_idx').on(t.estudianteId, t.createdAt),
+    // El folio es la vía natural de auditoría ("todos los escaneos de esta
+    // credencial") y no tenía índice: hacía seq scan.
+    folioIdx: index('credverif_folio_idx').on(t.folio, t.createdAt),
+  })
+);
+
+export const credencialesVerificacionesRelations = relations(credencialesVerificaciones, ({ one }) => ({
+  estudiante: one(estudiantes, {
+    fields: [credencialesVerificaciones.estudianteId],
+    references: [estudiantes.userId],
+  }),
+  verificador: one(users, {
+    fields: [credencialesVerificaciones.verificadoPor],
+    references: [users.id],
+  }),
 }));
