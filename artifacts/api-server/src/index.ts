@@ -38,6 +38,7 @@ import firmaRoutes from './routes/firma';
 import chatRoutes, { adminChatRouter } from './routes/chat';
 import aulaRoutes from './routes/aula';
 import devRoutes from './routes/dev';
+import verificacionRoutes from './routes/verificacion';
 import cron from 'node-cron';
 import { iniciarCronDepuracion } from './services/depuracion';
 import { runStartupMigrations } from './db';
@@ -130,6 +131,11 @@ app.use('/api/aula', aulaRoutes);
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api/dev', devRoutes);
 }
+
+// Verificación pública de credenciales (destino del QR): se abre en el navegador
+// del que escanea, por eso NO va bajo /api y debe montarse ANTES del estático y
+// del catch-all del SPA para que no lo tape.
+app.use('/c', verificacionRoutes);
 
 // Cron: check programmed reports every hour
 cron.schedule('0 * * * *', () => {
