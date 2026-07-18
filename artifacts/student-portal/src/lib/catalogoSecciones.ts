@@ -61,6 +61,7 @@ export const CATALOGO: Record<Rol, SeccionCatalogo[]> = {
   ],
   direccion: [
     { clave: '/direccion', etiqueta: 'Panorama' },
+    { clave: '/direccion/insights', etiqueta: 'Panorama del creador' },
     { clave: '/direccion/academico', etiqueta: 'Académico' },
     { clave: '/direccion/operacion', etiqueta: 'Operación' },
     { clave: '/direccion/salud', etiqueta: 'Salud del sistema' },

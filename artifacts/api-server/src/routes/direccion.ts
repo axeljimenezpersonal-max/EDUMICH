@@ -33,6 +33,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { resumenMetricas, serieMetricas, PROCESS_START } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
+import { pool } from '@workspace/db';
 
 const router = Router();
 router.use(authRequired, requireRol('direccion'));
@@ -577,6 +578,86 @@ router.get('/integridad', async (_req, res) => {
   } catch (e) {
     console.error('[direccion/integridad]', e);
     res.status(500).json({ error: 'No se pudo revisar la integridad de los datos' });
+  }
+});
+
+/**
+ * GET /insights — el panorama del creador, sin abrir la base.
+ *
+ * Todo lo que aquí aparece sale de consultas agregadas: dinero, embudo,
+ * crecimiento, cobertura, resultados académicos y contenido. Ningún dato
+ * personal de alumnos.
+ *
+ * Sobre el dinero: se reporta el desglose GUARDADO y también el RECALCULADO
+ * a partir de cantidad_examenes × tarifa. Cuando no coinciden es que hay
+ * fichas con el reparto mal grabado, y conviene verlo en vez de elegir en
+ * silencio el número que más nos guste.
+ */
+router.get('/insights', async (_req, res) => {
+  try {
+    const uno = async (sqlTexto: string) => (await pool.query(sqlTexto)).rows;
+
+    const [dinero] = await uno(`
+      SELECT
+        count(*) FILTER (WHERE estado = 'pagado')::int AS fichas_pagadas,
+        COALESCE(sum(cantidad_examenes) FILTER (WHERE estado = 'pagado'), 0)::int AS examenes_pagados,
+        COALESCE(sum(monto_total)    FILTER (WHERE estado = 'pagado'), 0)::float AS cobrado,
+        COALESCE(sum(monto_iemsys)   FILTER (WHERE estado = 'pagado'), 0)::float AS iemsys_guardado,
+        COALESCE(sum(monto_synapsis) FILTER (WHERE estado = 'pagado'), 0)::float AS synapsis_guardado,
+        COALESCE(sum(cantidad_examenes) FILTER (WHERE estado = 'pagado'), 0)::float * 115 AS iemsys_recalculado,
+        COALESCE(sum(cantidad_examenes) FILTER (WHERE estado = 'pagado'), 0)::float * 30  AS synapsis_recalculado,
+        count(*) FILTER (WHERE estado <> 'cancelado'
+                         AND (monto_iemsys + monto_synapsis) <> monto_total)::int AS fichas_descuadradas,
+        COALESCE(sum(monto_total) FILTER (WHERE estado IN ('emitida','en_revision')), 0)::float AS por_cobrar
+      FROM pagos_examen`);
+
+    const porMes = await uno(`
+      SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS mes,
+             count(*)::int AS fichas,
+             COALESCE(sum(cantidad_examenes), 0)::int AS examenes,
+             COALESCE(sum(cantidad_examenes), 0)::float * 30 AS synapsis
+        FROM pagos_examen WHERE estado = 'pagado'
+       GROUP BY 1 ORDER BY 1`);
+
+    const [embudo] = await uno(`
+      SELECT
+        (SELECT count(*) FROM solicitudes_cuenta)::int AS solicitudes,
+        (SELECT count(*) FROM estudiantes)::int AS alumnos,
+        (SELECT count(*) FROM (
+           SELECT estudiante_id FROM expediente_documentos
+            WHERE estado = 'aprobado' AND tipo IN ${DOCS_OBLIGATORIOS}
+            GROUP BY estudiante_id HAVING count(DISTINCT tipo) = 5) t)::int AS expediente_completo,
+        (SELECT count(DISTINCT estudiante_id) FROM pagos_examen
+          WHERE estado = 'pagado' AND estudiante_id IS NOT NULL)::int AS con_pago,
+        (SELECT count(DISTINCT estudiante_id) FROM examenes_inscripciones)::int AS inscritos_examen,
+        (SELECT count(DISTINCT estudiante_id) FROM calificaciones)::int AS con_calificacion,
+        (SELECT count(*) FROM credenciales WHERE estado = 'activa')::int AS credenciales`);
+
+    const crecimiento = await uno(`
+      SELECT to_char(date_trunc('month', created_at), 'YYYY-MM') AS mes, count(*)::int AS alumnos
+        FROM estudiantes GROUP BY 1 ORDER BY 1`);
+
+    const [cobertura] = await uno(`
+      SELECT (SELECT count(DISTINCT municipio_id) FROM estudiantes WHERE municipio_id IS NOT NULL)::int AS con_alumnos,
+             (SELECT count(*) FROM municipios)::int AS totales,
+             (SELECT count(*) FROM gestores WHERE estado = 'activo')::int AS gestores_activos,
+             (SELECT count(*) FROM sedes)::int AS sedes`);
+
+    const [academico] = await uno(`
+      SELECT count(*)::int AS calificaciones,
+             count(*) FILTER (WHERE calificacion >= 60)::int AS aprobadas,
+             round(avg(calificacion)::numeric, 1)::float AS promedio
+        FROM calificaciones WHERE calificacion IS NOT NULL`);
+
+    const [contenido] = await uno(`
+      SELECT (SELECT count(*) FROM modulos)::int AS modulos,
+             (SELECT count(*) FROM banco_preguntas)::int AS preguntas,
+             (SELECT count(DISTINCT estudiante_id) FROM estudiantes_modulos_progreso)::int AS alumnos_practicando`);
+
+    res.json({ dinero, porMes, embudo, crecimiento, cobertura, academico, contenido });
+  } catch (e) {
+    console.error('[direccion/insights]', e);
+    res.status(500).json({ error: 'No se pudieron calcular los insights' });
   }
 });
 

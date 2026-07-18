@@ -75,6 +75,7 @@ import DireccionSalud from './pages/direccion/DireccionSalud';
 import DireccionProyecciones from './pages/direccion/DireccionProyecciones';
 import DireccionReportes from './pages/direccion/DireccionReportes';
 import DireccionUso from './pages/direccion/DireccionUso';
+import DireccionInsights from './pages/direccion/DireccionInsights';
 import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
@@ -195,6 +196,7 @@ export default function App() {
       <Route path="/direccion/salud" component={DireccionSalud} />
       <Route path="/direccion/proyecciones" component={DireccionProyecciones} />
       <Route path="/direccion/reportes" component={DireccionReportes} />
+      <Route path="/direccion/insights" component={DireccionInsights} />
       <Route path="/direccion/uso" component={DireccionUso} />
       <Route path="/direccion" component={DireccionPanorama} />
 

@@ -69,6 +69,27 @@ export const CHEQUEOS: Chequeo[] = [
              GROUP BY folio HAVING count(*) > 1) t`,
   },
   {
+    clave: 'split_no_cuadra',
+    titulo: 'Fichas donde el desglose no suma el total',
+    nivel: 'critico',
+    significa:
+      'monto_iemsys + monto_synapsis no da monto_total. El reparto entre el Estado y Synapsis está mal contado, así que el ingreso reportado a cada parte es falso.',
+    arreglo:
+      'Recalcular: cantidad_examenes × $115 (IEMSyS) y × $30 (Synapsis). El código actual ya lo hace bien; las fichas rotas vienen de la migración del modelo grupal viejo (folios PG-*).',
+    sql: `SELECT count(*)::int AS n FROM pagos_examen
+           WHERE estado <> 'cancelado'
+             AND (monto_iemsys + monto_synapsis) <> monto_total`,
+  },
+  {
+    clave: 'total_no_es_tarifa',
+    titulo: 'Fichas cuyo total no es $145 por examen',
+    nivel: 'aviso',
+    significa: 'El importe cobrado no corresponde a la tarifa vigente por la cantidad de exámenes.',
+    arreglo: 'Revisar si es un caso legítimo (descuento, reposición) o un error de captura.',
+    sql: `SELECT count(*)::int AS n FROM pagos_examen
+           WHERE estado <> 'cancelado' AND monto_total <> cantidad_examenes * 145`,
+  },
+  {
     clave: 'curp_duplicada',
     titulo: 'CURP repetida entre alumnos',
     nivel: 'critico',
