@@ -11,7 +11,8 @@
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "seed": "tsx src/seed.ts",
-    "respaldo": "node ./respaldo.mjs"
+    "respaldo": "node ./respaldo.mjs",
+    "reiniciar-personas": "node ./reiniciar-personas.mjs"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
