@@ -7,11 +7,12 @@
  * el modelo de sedes.
  */
 import { useEffect, useState } from 'react';
-import { MapPin, Plus, Pencil, Trash2, Loader2, Phone, Building2 } from 'lucide-react';
+import { MapPin, Plus, Pencil, Trash2, Loader2, Phone, Building2, CheckCircle, AlertTriangle } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 import { ModalHoja } from '../../components/ui/responsive';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { parseUbicacion, explicar, urlDeMapa } from '../../lib/ubicacionMaps';
 
 interface Sede {
   id: number;
@@ -34,12 +35,11 @@ type FormSede = {
   municipioId: number | '';
   telefono: string;
   horarioAtencion: string;
-  latitud: string;
-  longitud: string;
+  ubicacionTexto: string;
 };
 
 const EMPTY: FormSede = {
-  nombre: '', direccion: '', municipioId: '', telefono: '', horarioAtencion: '', latitud: '', longitud: '',
+  nombre: '', direccion: '', municipioId: '', telefono: '', horarioAtencion: '', ubicacionTexto: '',
 };
 
 const inputStyle: React.CSSProperties = {
@@ -93,8 +93,9 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
         municipioId: s.municipioId,
         telefono: s.telefono ?? '',
         horarioAtencion: s.horarioAtencion ?? '',
-        latitud: s.latitud != null ? String(s.latitud) : '',
-        longitud: s.longitud != null ? String(s.longitud) : '',
+        // Se precarga con el par ya guardado: el analizador lo entiende igual
+        // que un enlace, así que editar no obliga a volver a buscar el lugar.
+        ubicacionTexto: s.latitud != null && s.longitud != null ? `${s.latitud}, ${s.longitud}` : '',
       },
     });
   }
@@ -102,6 +103,7 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
   async function guardar() {
     if (!modal) return;
     const f = modal.form;
+    const ubic = parseUbicacion(f.ubicacionTexto);
     if (f.nombre.trim().length < 3) { setError('El nombre es demasiado corto.'); return; }
     if (f.direccion.trim().length < 5) { setError('La dirección es demasiado corta.'); return; }
     if (!f.municipioId) { setError('Elige un municipio.'); return; }
@@ -114,8 +116,11 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
       municipioId: Number(f.municipioId),
       telefono: f.telefono.trim() || null,
       horarioAtencion: f.horarioAtencion.trim() || null,
-      latitud: f.latitud.trim() || null,
-      longitud: f.longitud.trim() || null,
+      // Al servidor siguen viajando coordenadas: el campo de pegar es sólo la
+      // forma de capturarlas. Si el texto no tiene ubicación válida, van nulas
+      // y el alumno cae en la búsqueda por nombre y dirección, que ya existía.
+      latitud: ubic.ok ? String(ubic.ubicacion.lat) : null,
+      longitud: ubic.ok ? String(ubic.ubicacion.lng) : null,
     };
     try {
       if (modal.id) await api.put(`/admin/sedes/${modal.id}`, body);
@@ -306,19 +311,56 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
                   <input style={inputStyle} value={modal.form.horarioAtencion} onChange={(e) => setF({ horarioAtencion: e.target.value })} placeholder="L-V 9:00-15:00" />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label style={labelStyle}>Latitud <span style={{ fontWeight: 400, color: '#a89a8e' }}>(opcional)</span></label>
-                  <input style={inputStyle} value={modal.form.latitud} onChange={(e) => setF({ latitud: e.target.value })} placeholder="19.7008" inputMode="decimal" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Longitud <span style={{ fontWeight: 400, color: '#a89a8e' }}>(opcional)</span></label>
-                  <input style={inputStyle} value={modal.form.longitud} onChange={(e) => setF({ longitud: e.target.value })} placeholder="-101.1844" inputMode="decimal" />
-                </div>
+              {/* Ubicación: se pega el enlace de Google Maps y de ahí se sacan las
+                  coordenadas. Se guardan coordenadas y no el enlace porque
+                  abren en cualquier app de mapas —no sólo Google—, permiten
+                  "cómo llegar" con ruta, y un par de números no puede ser un
+                  `javascript:` disfrazado. Ver lib/ubicacionMaps.ts. */}
+              <div>
+                <label style={labelStyle}>
+                  Ubicación en el mapa <span style={{ fontWeight: 400, color: '#a89a8e' }}>(opcional)</span>
+                </label>
+                <input
+                  style={inputStyle}
+                  value={modal.form.ubicacionTexto}
+                  onChange={(e) => setF({ ubicacionTexto: e.target.value })}
+                  placeholder="Pega aquí el enlace de Google Maps"
+                />
+                {(() => {
+                  const r = parseUbicacion(modal.form.ubicacionTexto);
+                  if (r.ok) {
+                    return (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 12, color: '#166534' }}>
+                        <CheckCircle size={13} />
+                        <span>Ubicación detectada: {r.ubicacion.lat}, {r.ubicacion.lng}</span>
+                        <a
+                          href={urlDeMapa(r.ubicacion)}
+                          target="_blank"
+                          rel="noreferrer"
+                          style={{ color: 'var(--color-guinda-700)', fontWeight: 600 }}
+                        >
+                          Comprobar en el mapa →
+                        </a>
+                      </div>
+                    );
+                  }
+                  if (r.motivo === 'vacio') {
+                    return (
+                      <p style={{ fontSize: 11, color: '#a89a8e', lineHeight: 1.5, marginTop: 6 }}>
+                        Abre el lugar en Google Maps y pega aquí la dirección de la barra del navegador.
+                        También sirve hacer clic derecho sobre el punto y copiar los dos números.
+                        Sin esto el alumno igual puede buscar la sede por su nombre y dirección.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>
+                      <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{explicar(r.motivo)}</span>
+                    </div>
+                  );
+                })()}
               </div>
-              <p style={{ fontSize: 11, color: '#a89a8e', lineHeight: 1.5 }}>
-                Las coordenadas permiten el botón «Ver en mapa» del alumno. Puedes copiarlas de Google Maps (clic derecho sobre el punto).
-              </p>
             </div>
           </div>
         </ModalHoja>
