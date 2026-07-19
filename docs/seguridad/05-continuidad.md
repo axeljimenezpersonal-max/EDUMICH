@@ -6,9 +6,28 @@
 
 ---
 
-## 1. El punto de partida, sin adornos
+## 0. Actualización 2026-07-18: ya existe un respaldo
 
-**No existe ninguna estrategia de respaldo.** Búsqueda exhaustiva de
+Se construyó `lib/db/respaldo.mjs` y **se ejecutó**: 3,762 filas de 67 tablas y
+las 60 secuencias, comprimido y cifrado (AES-256-GCM), **verificado
+descifrando el archivo y contando fila por fila**. Vive fuera del repositorio y
+está bloqueado en `.gitignore` por si acaso.
+
+Dato que reubica la urgencia: **la base pesa 17 MB y tiene 7 estudiantes.**
+Todavía es un sistema pre-producción con datos de prueba. Lo que faltaba no era
+*este* respaldo — era la **capacidad** de respaldar, y eso es lo que ahora
+existe y se puede repetir con un comando.
+
+Sigue pendiente de la infraestructura (§ siguientes): automatizarlo, sacarlo del
+equipo local, y **probar una restauración completa**. Este script no sustituye a
+`pg_dump` ni a los respaldos de RDS: no guarda el esquema ni los archivos
+subidos. Es la red mínima mientras llega lo demás.
+
+---
+
+## 1. El punto de partida que motivó esto
+
+**No existía ninguna estrategia de respaldo.** Búsqueda exhaustiva de
 `backup|dump|restore|snapshot|pg_dump` en todo el repositorio: un solo
 resultado, y es un comentario.
 
