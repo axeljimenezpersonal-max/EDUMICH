@@ -26,6 +26,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_INSCRIPCION, TOUR_INSCRIPCION_ACTIVA, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import { api } from '../../lib/api';
 import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria, ExpedienteResponse } from '../../lib/api';
+import { urlComoLlegar } from '../../lib/ubicacionMaps';
 
 // Nombres institucionales de los documentos del expediente (las claves
 // internas — curp, acta_nacimiento… — nunca se muestran al alumno).
@@ -178,9 +179,7 @@ function GrupoConvocatoria({ clave, examenes, historial = false }: { clave: stri
 // ── SedeCard ──────────────────────────────────────────────────────────────
 
 function SedeCard({ sede }: { sede: NonNullable<ConvocatoriaResponse['sedeAsignada']> }) {
-  const mapsUrl = sede.latitud && sede.longitud
-    ? `https://www.google.com/maps?q=${sede.latitud},${sede.longitud}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(sede.nombre + ' ' + sede.direccion)}`;
+  const rutaUrl = urlComoLlegar(sede);
 
   return (
     <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm">
@@ -192,9 +191,9 @@ function SedeCard({ sede }: { sede: NonNullable<ConvocatoriaResponse['sedeAsigna
           <p className="font-semibold text-stone-900">{sede.nombre}</p>
           <p className="text-sm text-stone-600 mt-0.5">{sede.direccion}</p>
           {sede.telefono && <p className="text-sm text-stone-500 mt-0.5">Tel: {sede.telefono}</p>}
-          <a href={mapsUrl} target="_blank" rel="noopener noreferrer"
+          <a href={rutaUrl} target="_blank" rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-sm text-[var(--color-guinda-700)] hover:underline mt-2">
-            Ver en mapa <ChevronRight className="w-3.5 h-3.5" />
+            Cómo llegar <ChevronRight className="w-3.5 h-3.5" />
           </a>
         </div>
       </div>

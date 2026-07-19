@@ -18,6 +18,7 @@ import { EstudianteLayout } from './EstudianteLayout';
 import { api, calif10 } from '../../lib/api';
 import type { PaseExamenData } from '../../lib/api';
 import { fechaHoraCorta } from '../../lib/fechas';
+import { urlComoLlegar } from '../../lib/ubicacionMaps';
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -156,12 +157,7 @@ export default function PaseExamen() {
 
   const badge = estadoBadge(pase.estado);
 
-  const mapsUrl =
-    pase.sede.latitud && pase.sede.longitud
-      ? `https://www.google.com/maps?q=${pase.sede.latitud},${pase.sede.longitud}`
-      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-          pase.sede.nombre + ' ' + pase.sede.direccion
-        )}`;
+  const rutaUrl = urlComoLlegar(pase.sede);
 
   return (
     <EstudianteLayout>
@@ -282,15 +278,16 @@ export default function PaseExamen() {
           Imprimir pase
         </button>
 
-        {/* Ver cómo llegar */}
+        {/* Cómo llegar: ruta desde donde esté el alumno, no sólo el punto.
+            El día del examen no necesita ubicarla, necesita llegar. */}
         <a
-          href={mapsUrl}
+          href={rutaUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full px-4 py-3 border border-stone-200 text-stone-700 text-sm font-medium rounded-xl hover:bg-stone-50 transition-colors"
         >
           <MapPin className="w-4 h-4 text-stone-500" />
-          Ver cómo llegar
+          Cómo llegar
         </a>
 
         {/* Checklist si validado */}

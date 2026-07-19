@@ -91,7 +91,45 @@ export function explicar(motivo: Exclude<ResultadoUbicacion, { ok: true }>['moti
   }
 }
 
-/** Para el botón de comprobación, y para lo que ve el alumno. */
+/** Para el botón de comprobación al capturar la sede. */
 export function urlDeMapa(u: Ubicacion): string {
   return `https://www.google.com/maps?q=${u.lat},${u.lng}`;
+}
+
+/**
+ * A dónde manda el botón del alumno.
+ *
+ * Devuelve una URL de RUTA, no de "ver el punto": el día del examen el alumno
+ * no necesita saber dónde queda, necesita llegar. Google resuelve el origen
+ * solo, desde donde esté.
+ *
+ * Se usa la forma universal `maps/dir/?api=1`, que es la que Google documenta
+ * como estable: en el teléfono abre la aplicación si está instalada, y si no,
+ * el navegador — sin necesidad de detectar el sistema operativo, que siempre
+ * acaba fallando con algún dispositivo.
+ *
+ * Sin coordenadas cae en el nombre y la dirección, que sigue dando ruta: es
+ * menos preciso, pero mejor que no ofrecer nada. Por eso capturar la ubicación
+ * es opcional y no bloquea.
+ */
+export function urlComoLlegar(sede: {
+  latitud?: string | number | null;
+  longitud?: string | number | null;
+  nombre: string;
+  direccion: string;
+}): string {
+  const destino =
+    sede.latitud != null && sede.longitud != null && String(sede.latitud) !== '' && String(sede.longitud) !== ''
+      ? `${sede.latitud},${sede.longitud}`
+      : `${sede.nombre} ${sede.direccion}`;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destino)}`;
+}
+
+/** ¿Se capturó la ubicación exacta, o vamos a depender de la búsqueda por texto? */
+export function tieneUbicacionExacta(sede: {
+  latitud?: string | number | null;
+  longitud?: string | number | null;
+}): boolean {
+  return sede.latitud != null && sede.longitud != null
+    && String(sede.latitud) !== '' && String(sede.longitud) !== '';
 }
