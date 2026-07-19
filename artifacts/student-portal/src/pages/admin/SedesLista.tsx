@@ -50,7 +50,15 @@ const labelStyle: React.CSSProperties = {
   display: 'block', fontSize: 12, fontWeight: 600, color: '#6b635e', marginBottom: 4,
 };
 
-export default function SedesLista() {
+/**
+ * Catálogo de sedes.
+ *
+ * `embebido` la monta DENTRO de Convocatorias (que es donde vive
+ * conceptualmente: la convocatoria define qué sedes se ofrecen, el alumno
+ * elige). Sin la prop sigue funcionando como página propia, para que
+ * `/admin/sedes` no se rompa.
+ */
+export default function SedesLista({ embebido = false }: { embebido?: boolean } = {}) {
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [loading, setLoading] = useState(true);
@@ -138,20 +146,31 @@ export default function SedesLista() {
     setModal((m) => (m ? { ...m, form: { ...m.form, ...patch } } : m));
   }
 
+  const Envoltura = embebido
+    ? ({ children }: { children: React.ReactNode }) => <>{children}</>
+    : AdminLayout;
+
   return (
-    <AdminLayout>
+    <Envoltura>
       <div style={{ maxWidth: 860 }}>
         {/* Header */}
         <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <div className="flex items-center gap-3">
-            <div style={{ width: 40, height: 40, borderRadius: 10, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <MapPin size={20} style={{ color: 'var(--color-guinda-700)' }} />
+          {embebido ? (
+            // Embebida, el título lo pone la pestaña: repetirlo sería ruido.
+            <p style={{ fontSize: 12, color: '#6b635e', margin: 0 }}>
+              Lugares donde los alumnos presentan su examen. La convocatoria decide cuáles se ofrecen en cada etapa.
+            </p>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#efe7d6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <MapPin size={20} style={{ color: 'var(--color-guinda-700)' }} />
+              </div>
+              <div>
+                <h1 style={{ fontSize: 20, fontWeight: 700, color: '#2a2a2a', margin: 0 }}>Sedes</h1>
+                <p style={{ fontSize: 12, color: '#6b635e', margin: 0 }}>Lugares donde los alumnos presentan su examen</p>
+              </div>
             </div>
-            <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#2a2a2a', margin: 0 }}>Sedes</h1>
-              <p style={{ fontSize: 12, color: '#6b635e', margin: 0 }}>Lugares donde los alumnos presentan su examen</p>
-            </div>
-          </div>
+          )}
           <button
             onClick={abrirNueva}
             style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', background: 'var(--color-guinda-700)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
@@ -321,6 +340,6 @@ export default function SedesLista() {
           onClose={() => setABorrar(null)}
         />
       )}
-    </AdminLayout>
+    </Envoltura>
   );
 }

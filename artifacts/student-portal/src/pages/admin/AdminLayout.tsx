@@ -409,7 +409,6 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
   const otrosItems = [
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación', tour: 'nav-verificacion' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias', tour: undefined },
-    { href: '/admin/sedes',         icon: MapPin,     label: 'Sedes', tour: undefined },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios', tour: undefined },
     { href: '/admin/chat',          icon: MessageSquare, label: 'Chat en vivo', tour: 'nav-chat' },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes', tour: 'nav-reportes' },

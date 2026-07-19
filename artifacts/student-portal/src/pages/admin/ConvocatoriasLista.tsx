@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
+import SedesLista from './SedesLista';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_CONVOCATORIAS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
@@ -76,6 +77,19 @@ export default function ConvocatoriasLista() {
     ? data.etapas.find((e) => e.id === data.etapaActivaId) ?? null
     : null;
 
+  // La pestaña arranca desde la URL para que `/admin/sedes` pueda redirigir
+  // aquí y para poder compartir el enlace directo al catálogo.
+  const [vista, setVista] = useState<'etapas' | 'sedes'>(
+    () => (new URLSearchParams(window.location.search).get('vista') === 'sedes' ? 'sedes' : 'etapas')
+  );
+
+  function cambiarVista(v: 'etapas' | 'sedes') {
+    setVista(v);
+    // Se refleja en la barra de direcciones sin recargar ni ensuciar el
+    // historial: cambiar de pestaña no es "navegar hacia atrás".
+    window.history.replaceState(null, '', v === 'sedes' ? '/admin/convocatorias?vista=sedes' : '/admin/convocatorias');
+  }
+
   return (
     <AdminLayout>
       {/* Page header */}
@@ -91,11 +105,11 @@ export default function ConvocatoriasLista() {
             className="text-2xl font-bold tracking-tight"
             style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
           >
-            Etapas {año}
+            {vista === 'sedes' ? 'Sedes' : `Etapas ${año}`}
           </h1>
         </div>
 
-        <div data-tour="a-conv-acciones" className="flex items-center gap-2">
+        <div data-tour="a-conv-acciones" className="flex items-center gap-2" style={{ display: vista === "etapas" ? undefined : "none" }}>
           <button
             onClick={() => setPrecargaOpen(true)}
             className="inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
@@ -122,6 +136,36 @@ export default function ConvocatoriasLista() {
           </div>
         </div>
       </div>
+
+      {/* Sedes vive AQUÍ y no como sección aparte del menú: la convocatoria es
+          la que define qué sedes se ofrecen en cada etapa, y el alumno elige
+          entre ésas. Tenerlas separadas hacía parecer que eran catálogos
+          independientes. */}
+      <div className="flex gap-1 mb-6 border-b border-stone-200">
+        {([
+          { id: 'etapas', label: 'Etapas' },
+          { id: 'sedes', label: 'Sedes' },
+        ] as const).map((t) => (
+          <button
+            key={t.id}
+            onClick={() => cambiarVista(t.id)}
+            className="px-4 py-2.5 text-sm font-semibold -mb-px"
+            style={{
+              color: vista === t.id ? 'var(--color-guinda-700)' : '#6b635e',
+              borderBottom: `2px solid ${vista === t.id ? 'var(--color-guinda-700)' : 'transparent'}`,
+              background: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {vista === 'sedes' && <SedesLista embebido />}
+
+      {vista === 'etapas' && (
+      <>
 
       {precargaOpen && (
         <PrecargarEtapasModal
@@ -345,6 +389,9 @@ export default function ConvocatoriasLista() {
             })}
           </div>
         </div>
+      )}
+
+      </>
       )}
 
       <SectionTour

@@ -58,7 +58,6 @@ import GestorDetalle from './pages/admin/GestorDetalle';
 import AdminAlumnoDetalle from './pages/admin/AdminAlumnoDetalle';
 import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
-import SedesLista from './pages/admin/SedesLista';
 import { Avisador } from './components/Avisador';
 import { Confirmador } from './components/Confirmador';
 import AnunciosLista from './pages/admin/AnunciosLista';
@@ -178,7 +177,11 @@ export default function App() {
       <Route path="/admin/gestores" component={GestoresLista} />
       <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
       <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
-      <Route path="/admin/sedes" component={SedesLista} />
+      {/* Sedes ya no es sección propia: vive como pestaña dentro de
+          Convocatorias, que es quien define qué sedes se ofrecen en cada etapa.
+          La ruta vieja se conserva redirigiendo para no romper enlaces
+          guardados ni el menú de nadie. */}
+      <Route path="/admin/sedes"><Redirect to="/admin/convocatorias?vista=sedes" /></Route>
       <Route path="/admin/anuncios" component={AnunciosLista} />
       <Route path="/admin/chat" component={AdminChat} />
       <Route path="/admin/verificacion-pase" component={VerificacionPase} />
