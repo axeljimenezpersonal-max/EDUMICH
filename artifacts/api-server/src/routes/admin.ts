@@ -2999,9 +2999,16 @@ router.patch('/gestores/:gestorId', async (req, res) => {
     if (data.titulo !== undefined) setValues.titulo = data.titulo;
     if (data.telefono !== undefined) setValues.telefono = data.telefono;
     if (data.capacidadMaxima !== undefined) setValues.capacidadMaxima = data.capacidadMaxima;
-    if (data.centroAsesoria !== undefined) setValues.centroAsesoria = data.centroAsesoria;
-    if (data.claveCentro !== undefined) setValues.claveCentro = data.claveCentro;
-    if (data.rfcCentro !== undefined) setValues.rfcCentro = data.rfcCentro;
+    // Los datos del centro son OPCIONALES. Un campo que se deja en blanco se
+    // guarda como NULL, no como cadena vacía: "no tiene RFC" y "tiene un RFC
+    // que es la cadena vacía" son cosas distintas, y sólo la primera existe.
+    // Sin esto, la Relación de exámenes imprimiría lo mismo pero la base
+    // quedaría con dos formas de decir "nada", que es lo que después rompe los
+    // reportes y las validaciones.
+    const oVacioANulo = (v: string | undefined) => (v === undefined ? undefined : (v.trim() || null));
+    if (data.centroAsesoria !== undefined) setValues.centroAsesoria = oVacioANulo(data.centroAsesoria);
+    if (data.claveCentro !== undefined) setValues.claveCentro = oVacioANulo(data.claveCentro);
+    if (data.rfcCentro !== undefined) setValues.rfcCentro = oVacioANulo(data.rfcCentro);
     if (data.aulaHabilitada !== undefined) setValues.aulaHabilitada = data.aulaHabilitada;
 
     await db.update(gestores).set(setValues).where(eq(gestores.userId, gestorId));

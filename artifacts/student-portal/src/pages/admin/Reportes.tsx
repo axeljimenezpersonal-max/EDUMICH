@@ -906,11 +906,13 @@ function EditorCentro({ gestorId, gestores, setGestores }: { gestorId: string; g
 
   return (
     <div className="rounded-xl border p-3 mb-4" style={{ borderColor: LINEA, background: '#f8fafc' }}>
-      <div className="text-xs font-semibold mb-2" style={{ color: SLATE_500 }}>Datos del centro (se guardan en el gestor y se autollenan en el documento)</div>
+      <div className="text-xs font-semibold mb-2" style={{ color: SLATE_500 }}>
+        Datos del centro <span className="font-normal">— opcionales: lo que dejes en blanco sale como línea vacía en el documento, para llenarse a mano</span>
+      </div>
       <div className="grid md:grid-cols-3 gap-2">
         <input value={centro.centroAsesoria} onChange={(e) => setCentro((c) => ({ ...c, centroAsesoria: e.target.value }))} placeholder="Nombre del centro (ej. Instituto IDEA)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
         <input value={centro.claveCentro} onChange={(e) => setCentro((c) => ({ ...c, claveCentro: e.target.value }))} placeholder="Clave (ej. 010)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
-        <input value={centro.rfcCentro} onChange={(e) => setCentro((c) => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
+        <input value={centro.rfcCentro} onChange={(e) => setCentro((c) => ({ ...c, rfcCentro: e.target.value }))} placeholder="RFC del centro (si tiene)" className="text-sm border border-slate-300 rounded-lg px-3 py-2" />
       </div>
       <div className="flex items-center gap-2 mt-2">
         <button onClick={guardarCentro} disabled={guardando} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-300 text-slate-700 hover:bg-white disabled:opacity-50">
