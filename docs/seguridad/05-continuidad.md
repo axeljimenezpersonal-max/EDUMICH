@@ -18,8 +18,16 @@ Todavía es un sistema pre-producción con datos de prueba. Lo que faltaba no er
 *este* respaldo — era la **capacidad** de respaldar, y eso es lo que ahora
 existe y se puede repetir con un comando.
 
-Sigue pendiente de la infraestructura (§ siguientes): automatizarlo, sacarlo del
-equipo local, y **probar una restauración completa**. Este script no sustituye a
+**2026-07-20: la restauración se probó de verdad y funciona.** Base desechable,
+esquema aplicado, 3,783 filas y 60 secuencias restauradas, y verificado que la
+base resultante es OPERABLE —no sólo que los datos están—: las secuencias no
+colisionan, la integridad referencial se sostiene y `unaccent` funciona.
+**Tiempo total medido: ~1.5 minutos.** Procedimiento en
+[runbook-restauracion.md](runbook-restauracion.md), con tres hallazgos que sólo
+aparecieron al ejecutarlo.
+
+Sigue pendiente de la infraestructura (§ siguientes): automatizarlo y sacarlo del
+equipo local. Este script no sustituye a
 `pg_dump` ni a los respaldos de RDS: no guarda el esquema ni los archivos
 subidos. Es la red mínima mientras llega lo demás.
 
