@@ -220,6 +220,7 @@ const SECCIONES: Seccion[] = [
           items={[
             'Domicilio: Av. Lázaro Cárdenas 1775, Col. Chapultepec Norte, C.P. 58260, Morelia, Michoacán.',
             'Correo electrónico de la Unidad de Transparencia: transparencia.iemsysem@michoacan.gob.mx',
+            'Correo alterno: transparenciamorelia@morelia.gob.mx',
             'Plataforma Nacional de Transparencia (PNT): www.plataformadetransparencia.org.mx',
           ]}
         />
