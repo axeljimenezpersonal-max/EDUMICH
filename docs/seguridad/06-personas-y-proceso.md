@@ -29,6 +29,18 @@ se realicen"* al determinar las medidas de seguridad. Y alojar datos de personas
 mexicanas —incluidos **menores de edad**— en servidores fuera del país constituye
 una **transferencia internacional**, con requisitos adicionales.
 
+> 🔴 **Hallazgo 2026-07-20: la transferencia ya está ocurriendo.**
+> La base de producción vive hoy en **`us-east-2` (Ohio, Estados Unidos)**,
+> verificado en la cadena de conexión. Es decir, los expedientes —acta, CURP,
+> domicilio, fotografía, con menores incluidos— **ya están almacenados fuera de
+> México**, sin que esa transferencia esté identificada ni fundamentada en
+> ningún documento.
+>
+> Esto reencuadra la decisión: elegir `mx-central-1` no es *evitar* una
+> transferencia futura, es **corregir una que ya existe**. Hoy el riesgo es
+> acotado porque sólo hay cuentas de prueba; deja de serlo con el primer alumno
+> real.
+
 **Existe la región AWS México (Central), `mx-central-1`, con tres zonas de
 disponibilidad.**
 
