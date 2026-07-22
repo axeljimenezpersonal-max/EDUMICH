@@ -234,6 +234,12 @@ const migrations = [
   // Barrido de candados vencidos hace tiempo (por si algún cliente nunca liberó).
   `CREATE INDEX IF NOT EXISTS bloqueos_edicion_refrescado_idx
      ON bloqueos_edicion(refrescado_en)`,
+
+  // Permisos de pago por centro de asesoría: la administración habilita/inhabilita
+  // el pago individual y/o grupal por gestor. Default true → nadie pierde la
+  // capacidad al desplegar; la admin la retira caso por caso. Ver schema.gestores.
+  `ALTER TABLE gestores ADD COLUMN IF NOT EXISTS pago_individual_habilitado boolean NOT NULL DEFAULT true`,
+  `ALTER TABLE gestores ADD COLUMN IF NOT EXISTS pago_grupal_habilitado boolean NOT NULL DEFAULT true`,
 ];
 
 export async function runStartupMigrations() {

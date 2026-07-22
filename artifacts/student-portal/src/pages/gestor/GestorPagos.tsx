@@ -260,10 +260,20 @@ function NuevoView({ onCancel, onCreado, onError }: {
   const [creando, setCreando] = useState(false);
   const [modo, setModo] = useState<'individual' | 'grupal'>('grupal');
   const [alumnoSel, setAlumnoSel] = useState<number | null>(null);
+  // Permisos de pago del centro (los habilita la administración). Por defecto
+  // ambos activos; se ajusta al llegar la respuesta.
+  const [permisos, setPermisos] = useState<{ individual: boolean; grupal: boolean }>({ individual: true, grupal: true });
 
   useEffect(() => {
-    api.get<{ costoExamen: number; examenes: ExamenDisponible[] }>('/pagos-examen/gestor-candidatos')
-      .then((r) => { setExamenes(r.examenes); setCosto(r.costoExamen); })
+    api.get<{ costoExamen: number; permisos?: { individual: boolean; grupal: boolean }; examenes: ExamenDisponible[] }>('/pagos-examen/gestor-candidatos')
+      .then((r) => {
+        setExamenes(r.examenes);
+        setCosto(r.costoExamen);
+        const p = r.permisos ?? { individual: true, grupal: true };
+        setPermisos(p);
+        // Arrancar en un modo permitido: grupal si se puede, si no individual.
+        setModo(p.grupal ? 'grupal' : 'individual');
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -291,7 +301,10 @@ function NuevoView({ onCancel, onCreado, onError }: {
     return [...m.values()].sort((a, b) => a.numero - b.numero);
   }, [visibles]);
 
-  function cambiarModo(m: 'individual' | 'grupal') { setModo(m); setAlumnoSel(null); setSel(new Set()); }
+  function cambiarModo(m: 'individual' | 'grupal') {
+    if (!permisos[m]) return; // no permitido por la administración
+    setModo(m); setAlumnoSel(null); setSel(new Set());
+  }
   function elegirAlumno(id: number) { setAlumnoSel(id); setSel(new Set(examenes.filter((e) => e.estudianteId === id).map((e) => e.id))); }
   function toggle(id: number) { setSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; }); }
   function toggleModulo(items: ExamenDisponible[]) {
@@ -331,18 +344,31 @@ function NuevoView({ onCancel, onCreado, onError }: {
       ) : (
         <div className="space-y-4 pb-24">
           <div className="grid grid-cols-2 gap-3">
-            {(['individual', 'grupal'] as const).map((m) => (
-              <button key={m} onClick={() => cambiarModo(m)}
-                className={`text-left rounded-xl border-2 p-4 transition-colors ${modo === m ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 bg-white hover:border-stone-300'}`}>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${modo === m ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
-                    {modo === m && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
-                  </span>
-                  <span className="text-sm font-bold text-stone-900">{m === 'individual' ? 'Pago individual' : 'Pago grupal'}</span>
-                </div>
-                <p className="text-xs text-stone-500 leading-snug">{m === 'individual' ? 'Los exámenes de un solo alumno.' : 'Exámenes de varios alumnos en una sola ficha.'}</p>
-              </button>
-            ))}
+            {(['individual', 'grupal'] as const).map((m) => {
+              const permitido = permisos[m];
+              return (
+                <button key={m} onClick={() => cambiarModo(m)} disabled={!permitido}
+                  title={!permitido ? 'La coordinación no habilitó este tipo de pago para tu centro.' : undefined}
+                  className={`text-left rounded-xl border-2 p-4 transition-colors ${
+                    !permitido
+                      ? 'border-stone-200 bg-stone-50 opacity-60 cursor-not-allowed'
+                      : modo === m
+                        ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]'
+                        : 'border-stone-200 bg-white hover:border-stone-300'
+                  }`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${modo === m && permitido ? 'border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
+                      {modo === m && permitido && <span className="w-2 h-2 rounded-full bg-[var(--color-guinda-700)]" />}
+                    </span>
+                    <span className="text-sm font-bold text-stone-900">{m === 'individual' ? 'Pago individual' : 'Pago grupal'}</span>
+                    {!permitido && (
+                      <span className="ml-auto rounded-full px-2 py-0.5 text-[10px] font-bold uppercase bg-stone-200 text-stone-500">No habilitado</span>
+                    )}
+                  </div>
+                  <p className="text-xs text-stone-500 leading-snug">{m === 'individual' ? 'Los exámenes de un solo alumno.' : 'Exámenes de varios alumnos en una sola ficha.'}</p>
+                </button>
+              );
+            })}
           </div>
 
           {modo === 'individual' && (

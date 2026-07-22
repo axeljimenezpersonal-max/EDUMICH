@@ -3,7 +3,7 @@ import { useRoute, useLocation } from 'wouter';
 import {
   ChevronLeft, MapPin, Mail, Phone, Users, CheckCircle, GraduationCap,
   FileText, TrendingUp, Edit, KeyRound, UserX, UserCheck, ArrowUpRight,
-  AlertTriangle, X, Calendar, Gauge, Clock, Send,
+  AlertTriangle, X, Calendar, Gauge, Clock, Send, Landmark, User,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
@@ -24,6 +24,8 @@ type GestorDetalle = {
   estado: 'activo' | 'inactivo';
   capacidadMaxima: number;
   aulaHabilitada: boolean;
+  pagoIndividualHabilitado: boolean;
+  pagoGrupalHabilitado: boolean;
   metricas: {
     totalAlumnos: number;
     expedientesCompletos: number;
@@ -583,6 +585,28 @@ export default function GestorDetalle() {
     }
   }
 
+  const [togglingPago, setTogglingPago] = useState<null | 'individual' | 'grupal'>(null);
+  async function handleTogglePago(cual: 'individual' | 'grupal') {
+    if (!gestor || togglingPago) return;
+    const campo = cual === 'individual' ? 'pagoIndividualHabilitado' : 'pagoGrupalHabilitado';
+    const nuevo = !gestor[campo];
+    setTogglingPago(cual);
+    try {
+      await api.patch(`/admin/gestores/${gestor.id}`, { [campo]: nuevo });
+      setGestor((g) => (g ? { ...g, [campo]: nuevo } : g));
+      showToast(
+        nuevo
+          ? `Pago ${cual} habilitado para este centro`
+          : `Pago ${cual} inhabilitado para este centro`,
+        true,
+      );
+    } catch {
+      showToast('Error al cambiar los permisos de pago', false);
+    } finally {
+      setTogglingPago(null);
+    }
+  }
+
   if (loadingGestor) {
     return (
       <AdminLayout>
@@ -824,6 +848,52 @@ export default function GestorDetalle() {
             style={{ background: gestor.aulaHabilitada ? '#78716c' : '#2d7d46' }}>
             {togglingAula ? 'Guardando…' : gestor.aulaHabilitada ? 'Desactivar aula' : 'Activar aula'}
           </button>
+        </div>
+
+        {/* Permisos de pago de derecho de examen (por centro de asesoría) */}
+        <div className="mx-8 mt-4 rounded-xl border px-4 py-3.5" style={{ borderColor: '#e7e5e4', background: '#fafaf9' }}>
+          <div className="flex items-center gap-2 mb-1">
+            <Landmark size={16} style={{ color: 'var(--color-guinda-700)' }} />
+            <div className="text-sm font-bold" style={{ color: '#443e39' }}>Permisos de pago de derecho de examen</div>
+          </div>
+          <div className="text-xs mb-3" style={{ color: '#6b635e' }}>
+            Controla cómo puede solicitar fichas este centro. Al menos uno debe quedar activo.
+          </div>
+          {([
+            { cual: 'individual' as const, on: gestor.pagoIndividualHabilitado, icon: <User size={15} />, titulo: 'Pago individual', desc: 'Los exámenes de un solo alumno en una ficha.' },
+            { cual: 'grupal' as const, on: gestor.pagoGrupalHabilitado, icon: <Users size={15} />, titulo: 'Pago grupal', desc: 'Exámenes de varios alumnos en una sola ficha.' },
+          ]).map(({ cual, on, icon, titulo, desc }) => {
+            // No dejar apagar el último permiso: el centro quedaría sin poder pagar.
+            const esUltimoActivo = on && !(cual === 'individual' ? gestor.pagoGrupalHabilitado : gestor.pagoIndividualHabilitado);
+            return (
+              <div key={cual} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border px-3 py-2.5 mb-2 last:mb-0"
+                style={on ? { borderColor: '#bbf7d0', background: '#f0fdf4' } : { borderColor: '#e7e5e4', background: '#ffffff' }}>
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                    style={on ? { background: '#dcfce7', color: '#166534' } : { background: '#e7e5e4', color: '#78716c' }}>
+                    {icon}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold flex items-center gap-1.5" style={{ color: '#443e39' }}>
+                      {titulo}
+                      {on
+                        ? <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: '#dcfce7', color: '#166534' }}>Activo</span>
+                        : <span className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase" style={{ background: '#e7e5e4', color: '#78716c' }}>Bloqueado</span>}
+                    </div>
+                    <div className="text-xs" style={{ color: '#6b635e' }}>{desc}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleTogglePago(cual)}
+                  disabled={togglingPago !== null || esUltimoActivo}
+                  title={esUltimoActivo ? 'No puedes bloquear el único método de pago activo del centro.' : undefined}
+                  className="shrink-0 px-3.5 py-1.5 text-xs font-bold rounded-lg text-white disabled:opacity-50"
+                  style={{ background: on ? '#78716c' : '#2d7d46' }}>
+                  {togglingPago === cual ? 'Guardando…' : on ? 'Bloquear' : 'Habilitar'}
+                </button>
+              </div>
+            );
+          })}
         </div>
 
         {/* Meta row */}

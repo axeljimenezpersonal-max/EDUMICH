@@ -231,6 +231,12 @@ export const gestores = pgTable('gestores', {
   aulaHabilitada: boolean('aula_habilitada').notNull().default(false),
   // Foro del aula en modo "solo anuncios": únicamente el gestor puede escribir.
   foroSoloGestor: boolean('foro_solo_gestor').notNull().default(false),
+  // Permisos de pago de derecho de examen que la administración habilita por
+  // centro de asesoría. Por defecto ambos activos: hoy todos los centros pueden
+  // pagar individual (los exámenes de un alumno) y grupal (de varios en una sola
+  // ficha); la admin puede retirarle uno a un centro concreto.
+  pagoIndividualHabilitado: boolean('pago_individual_habilitado').notNull().default(true),
+  pagoGrupalHabilitado: boolean('pago_grupal_habilitado').notNull().default(true),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   titulo: varchar('titulo', { length: 80 }).notNull().default('Gestor Municipal'),
   capacidadMaxima: integer('capacidad_maxima').notNull().default(50),

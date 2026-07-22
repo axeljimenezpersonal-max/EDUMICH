@@ -453,8 +453,13 @@ router.get('/gestor-candidatos', async (req, res) => {
         )
       ORDER BY m.numero, e.nombre_completo
     `);
+    const [perm] = await db
+      .select({ ind: gestores.pagoIndividualHabilitado, gru: gestores.pagoGrupalHabilitado })
+      .from(gestores)
+      .where(eq(gestores.userId, gestorId));
     return res.json({
       costoExamen: 145,
+      permisos: { individual: perm?.ind ?? true, grupal: perm?.gru ?? true },
       examenes: rows.rows.map((r) => ({
         id: Number(r.id), folio: r.folio, estudianteId: Number(r.estudiante_id), alumno: r.alumno,
         moduloId: Number(r.modulo_id), moduloNumero: Number(r.modulo_numero), moduloNombre: r.modulo_nombre,
@@ -512,6 +517,22 @@ router.post('/solicitar', async (req, res) => {
     const estudianteIds = new Set(inscs.map((i) => i.estudianteId));
     const grupal = estudianteIds.size > 1;
     const estudianteId = grupal ? null : inscs[0].estudianteId;
+
+    // Permisos de pago por centro: la administración puede habilitar/inhabilitar
+    // el pago individual y/o grupal de cada gestor. La UI ya oculta lo no
+    // permitido, pero esta es la barrera autoritativa (nadie la salta por API).
+    if (rol === 'gestor') {
+      const [perm] = await db
+        .select({ ind: gestores.pagoIndividualHabilitado, gru: gestores.pagoGrupalHabilitado })
+        .from(gestores)
+        .where(eq(gestores.userId, userId));
+      if (perm && grupal && !perm.gru) {
+        return res.status(403).json({ error: 'La coordinación no tiene habilitado el pago grupal para tu centro.' });
+      }
+      if (perm && !grupal && !perm.ind) {
+        return res.status(403).json({ error: 'La coordinación no tiene habilitado el pago individual para tu centro.' });
+      }
+    }
     const etapaId = inscs[0].etapaId ?? null;
     const cantidad = ids.length;
 

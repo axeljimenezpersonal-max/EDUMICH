@@ -2764,6 +2764,8 @@ router.get('/gestores/:gestorId', async (req, res) => {
       estado: string;
       capacidad_maxima: number;
       aula_habilitada: boolean;
+      pago_individual_habilitado: boolean;
+      pago_grupal_habilitado: boolean;
       email: string;
       ultimo_login: Date | null;
       total_alumnos: number;
@@ -2787,6 +2789,8 @@ router.get('/gestores/:gestorId', async (req, res) => {
         g.estado,
         g.capacidad_maxima,
         g.aula_habilitada,
+        g.pago_individual_habilitado,
+        g.pago_grupal_habilitado,
         u.email,
         u.ultimo_login,
         (SELECT count(*) FROM estudiantes e WHERE e.gestor_id = g.user_id)::int AS total_alumnos,
@@ -2842,6 +2846,8 @@ router.get('/gestores/:gestorId', async (req, res) => {
       estado: r.estado as 'activo' | 'inactivo',
       capacidadMaxima: r.capacidad_maxima,
       aulaHabilitada: !!r.aula_habilitada,
+      pagoIndividualHabilitado: !!r.pago_individual_habilitado,
+      pagoGrupalHabilitado: !!r.pago_grupal_habilitado,
       metricas: {
         totalAlumnos,
         expedientesCompletos,
@@ -2975,6 +2981,9 @@ const patchGestorSchema = z.object({
   rfcCentro: z.string().optional(),
   // Aula virtual: módulo "plus" del gestor (Synapsis lo activa/cobra)
   aulaHabilitada: z.boolean().optional(),
+  // Permisos de pago de derecho de examen por centro de asesoría.
+  pagoIndividualHabilitado: z.boolean().optional(),
+  pagoGrupalHabilitado: z.boolean().optional(),
 });
 
 router.patch('/gestores/:gestorId', async (req, res) => {
@@ -3010,6 +3019,8 @@ router.patch('/gestores/:gestorId', async (req, res) => {
     if (data.claveCentro !== undefined) setValues.claveCentro = oVacioANulo(data.claveCentro);
     if (data.rfcCentro !== undefined) setValues.rfcCentro = oVacioANulo(data.rfcCentro);
     if (data.aulaHabilitada !== undefined) setValues.aulaHabilitada = data.aulaHabilitada;
+    if (data.pagoIndividualHabilitado !== undefined) setValues.pagoIndividualHabilitado = data.pagoIndividualHabilitado;
+    if (data.pagoGrupalHabilitado !== undefined) setValues.pagoGrupalHabilitado = data.pagoGrupalHabilitado;
 
     await db.update(gestores).set(setValues).where(eq(gestores.userId, gestorId));
 
