@@ -191,6 +191,7 @@ export default function NuevoAlumno() {
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ curp?: string; email?: string }>({});
+  const [validandoCurp, setValidandoCurp] = useState(false);
   const [exito, setExito] = useState<RegistroExito | null>(null);
   const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
 
@@ -267,15 +268,74 @@ export default function NuevoAlumno() {
 
   // ── Step 1 validation ────────────────────────────────────────────────
   const edadError = validarEdad(datos.fechaNacimiento);
+  // Estos campos NO son burocracia: van en la cédula de inscripción y en la
+  // Relación que se entrega a la SEP-DGB. Si faltan, el trámite se atora
+  // semanas después, cuando el alumno ya no está enfrente del gestor.
+  const faltantesObligatorios: string[] = [];
+  if (!datos.nombres.trim()) faltantesObligatorios.push('nombre(s)');
+  if (!datos.apellidoPaterno.trim()) faltantesObligatorios.push('apellido paterno');
+  if (datos.curp.length !== 18) faltantesObligatorios.push('CURP completa');
+  if (!emailValido(datos.email)) faltantesObligatorios.push('correo válido');
+  if (!datos.fechaNacimiento) faltantesObligatorios.push('fecha de nacimiento');
+  if (!datos.sexo) faltantesObligatorios.push('sexo');
+  if (!datos.estadoCivil) faltantesObligatorios.push('estado civil');
+  if (!datos.lugarNacimiento.trim()) faltantesObligatorios.push('lugar de nacimiento');
+  if (!datos.calleNumero.trim()) faltantesObligatorios.push('calle y número');
+  if (!datos.colonia.trim()) faltantesObligatorios.push('colonia');
+  if (!datos.cp.trim()) faltantesObligatorios.push('código postal');
+  if (!datos.ciudad.trim()) faltantesObligatorios.push('ciudad');
+
   const paso1Valid =
-    datos.nombres.trim().length > 0 &&
-    datos.apellidoPaterno.trim().length > 0 &&
-    datos.curp.length === 18 &&
-    emailValido(datos.email) &&
+    faltantesObligatorios.length === 0 &&
     conv !== null &&
     edadError === null &&
     !fieldErrors.curp &&
     !fieldErrors.email;
+
+  /**
+   * Antes de avanzar, la CURP pasa por el filtro de auditoría que ya existía y
+   * que este formulario NO estaba usando: estructura oficial, dígito
+   * verificador, cruce contra los datos capturados (nombre, fecha, sexo) y
+   * unicidad.
+   *
+   * Es la misma comprobación del registro público. Que el gestor no la tuviera
+   * significaba que una CURP mal tecleada llegaba hasta el final del alta y
+   * reventaba al guardar, con el alumno ya sentado enfrente.
+   */
+  async function continuarAPaso2() {
+    setValidandoCurp(true);
+    setFieldErrors((prev) => ({ ...prev, curp: undefined }));
+    try {
+      const r = await api.post<{ valida: boolean; errores: string[]; entidadNacimiento?: string }>(
+        '/publico/validar-curp',
+        {
+          curp: datos.curp,
+          nombres: datos.nombres,
+          apellidoPaterno: datos.apellidoPaterno,
+          apellidoMaterno: datos.apellidoMaterno || undefined,
+          fechaNacimiento: datos.fechaNacimiento || undefined,
+          sexo: datos.sexo || undefined,
+        },
+      );
+      if (!r.valida) {
+        setFieldErrors((prev) => ({ ...prev, curp: r.errores[0] ?? 'La CURP no es válida.' }));
+        return;
+      }
+      // La entidad de nacimiento la codifica la propia CURP: se autollena para
+      // no pedir dos veces el mismo dato.
+      if (r.entidadNacimiento && !datos.entidadNacimiento) {
+        setDatos((d) => ({ ...d, entidadNacimiento: r.entidadNacimiento! }));
+      }
+      setPaso(2);
+    } catch (err) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        curp: (err as Error).message || 'No se pudo validar la CURP. Intenta de nuevo.',
+      }));
+    } finally {
+      setValidandoCurp(false);
+    }
+  }
 
   // ── Step 2 counters ──────────────────────────────────────────────────
   const faltanCount = ([archivos.curp, archivos.acta, archivos.ine, archivos.domicilio, archivos.certificado] as (File | null)[]).filter(
@@ -532,7 +592,7 @@ export default function NuevoAlumno() {
 
       {/* ── PASO 1: Datos personales ─────────────────────────────────── */}
       {paso === 1 && (
-        <div data-tour="g-alta-datos" className="gov-card p-6 max-w-3xl space-y-5">
+        <div data-tour="g-alta-datos" className="gov-card p-6 max-w-3xl mx-auto space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="gov-label" htmlFor="nombres">
@@ -610,7 +670,7 @@ export default function NuevoAlumno() {
             </div>
             <div>
               <label className="gov-label" htmlFor="fnac">
-                Fecha de nacimiento
+                Fecha de nacimiento <span className="text-red-500">*</span>
               </label>
               <DatePicker
                 id="fnac"
@@ -664,7 +724,7 @@ export default function NuevoAlumno() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="gov-label" htmlFor="sexo">Sexo</label>
+              <label className="gov-label" htmlFor="sexo">Sexo <span className="text-red-500">*</span></label>
               <select
                 id="sexo"
                 value={datos.sexo}
@@ -678,7 +738,7 @@ export default function NuevoAlumno() {
               </select>
             </div>
             <div>
-              <label className="gov-label" htmlFor="ecivil">Estado civil</label>
+              <label className="gov-label" htmlFor="ecivil">Estado civil <span className="text-red-500">*</span></label>
               <select
                 id="ecivil"
                 value={datos.estadoCivil}
@@ -707,7 +767,7 @@ export default function NuevoAlumno() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="gov-label" htmlFor="lugarNac">Lugar de nacimiento (ciudad)</label>
+              <label className="gov-label" htmlFor="lugarNac">Lugar de nacimiento (ciudad) <span className="text-red-500">*</span></label>
               <input
                 id="lugarNac"
                 value={datos.lugarNacimiento}
@@ -729,7 +789,7 @@ export default function NuevoAlumno() {
           </div>
 
           <div>
-            <label className="gov-label">Domicilio</label>
+            <label className="gov-label">Domicilio <span className="text-red-500">*</span></label>
             <div className="space-y-3">
               <input
                 value={datos.calleNumero}
@@ -768,24 +828,27 @@ export default function NuevoAlumno() {
 
           <div className="pt-2">
             <button
-              onClick={() => setPaso(2)}
-              disabled={!paso1Valid}
+              onClick={continuarAPaso2}
+              disabled={!paso1Valid || validandoCurp}
               className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Continuar →
+              {validandoCurp ? 'Validando CURP…' : 'Continuar →'}
             </button>
             {!paso1Valid && (datos.nombres.trim().length > 0 || datos.apellidoPaterno.trim().length > 0) && (
               <span className="ml-3 text-xs text-stone-500">
                 {fieldErrors.curp
-                  ? 'Corrige el CURP antes de continuar'
+                  ? 'Corrige la CURP antes de continuar'
                   : fieldErrors.email
                   ? 'Corrige el correo antes de continuar'
-                  : datos.curp.length < 18
-                  ? 'Completa los 18 caracteres de la CURP'
-                  : !emailValido(datos.email)
-                  ? 'Ingresa un correo válido'
                   : !conv
                   ? 'No hay convocatoria activa'
+                  : edadError
+                  ? edadError
+                  // Se listan los campos que faltan por nombre. Un "completa los
+                  // campos obligatorios" obliga a cazarlos a ojo por todo el
+                  // formulario, y es de las cosas que más desespera al capturar.
+                  : faltantesObligatorios.length > 0
+                  ? `Falta: ${faltantesObligatorios.slice(0, 3).join(', ')}${faltantesObligatorios.length > 3 ? ` y ${faltantesObligatorios.length - 3} más` : ''}`
                   : ''}
               </span>
             )}
@@ -795,7 +858,7 @@ export default function NuevoAlumno() {
 
       {/* ── PASO 2: Documentos ───────────────────────────────────────── */}
       {paso === 2 && (
-        <div className="max-w-3xl space-y-5">
+        <div className="max-w-3xl mx-auto space-y-5">
           {/* Resumen paso 1 */}
           <div className="gov-card p-4 flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">

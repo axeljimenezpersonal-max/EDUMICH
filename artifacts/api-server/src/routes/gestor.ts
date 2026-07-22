@@ -273,16 +273,22 @@ const crearAlumnoSchema = z.object({
   email: z.string().email(),
   telefono: z.string().min(7).max(30).optional(),
   fechaNacimiento: z.string().optional(),
-  sexo: z.string().max(20).optional(),
-  lugarNacimiento: z.string().max(120).optional(),
+  // OBLIGATORIOS: van en la cédula de inscripción y en la Relación que se
+  // entrega a la SEP-DGB. Si faltan, el trámite se cae más adelante y para
+  // entonces el alumno ya se fue del centro de asesoría — así que se exigen
+  // aquí, en el único momento en que la persona está enfrente.
+  fechaNacimientoReq: z.string().optional(), // (compat: se usa fechaNacimiento)
+  sexo: z.string().min(1, 'Falta el sexo').max(20),
+  lugarNacimiento: z.string().min(2, 'Falta el lugar de nacimiento').max(120),
+  estadoCivil: z.string().min(1, 'Falta el estado civil').max(30),
+  calleNumero: z.string().min(3, 'Falta la calle y número').max(200),
+  colonia: z.string().min(2, 'Falta la colonia').max(120),
+  cp: z.string().min(4, 'Falta el código postal').max(10),
+  ciudad: z.string().min(2, 'Falta la ciudad').max(120),
+  // Se deducen o son de apoyo: no bloquean.
   entidadNacimiento: z.string().max(80).optional(),
-  estadoCivil: z.string().max(30).optional(),
   ultimoEstudio: z.string().max(120).optional(),
   direccion: z.string().optional(),
-  calleNumero: z.string().max(200).optional(),
-  colonia: z.string().max(120).optional(),
-  cp: z.string().max(10).optional(),
-  ciudad: z.string().max(120).optional(),
   estadoDomicilio: z.string().max(80).optional(),
   convocatoriaId: z.number().int().positive(),
 }).refine((d) => (d.nombreCompleto && d.nombreCompleto.trim()) || (d.nombres && d.apellidoPaterno), {
