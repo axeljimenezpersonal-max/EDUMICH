@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Lock, Pencil, Copy, AlertCircle, CheckCircle2, Loader2, Download, RefreshCw, PenLine } from 'lucide-react';
 import { api, type CedulaDatos, type CedulaDatosEditable } from '../lib/api';
+import { useBloqueoEdicion } from '../lib/useBloqueoEdicion';
 import { CampoCopiable } from './CampoCopiable';
 import FirmaPad from './FirmaPad';
+import AvisoBloqueo from './AvisoBloqueo';
 
 /**
  * Editor de cédula reutilizable (lectura por defecto + edición + preview +
@@ -100,6 +102,27 @@ export function CedulaEditor({
   const [editing, setEditing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
+  const [reintentando, setReintentando] = useState(false);
+
+  // ── Candado de edición concurrente ───────────────────────────────────────
+  // Dos personas (gestor y admin, o dos admins) pueden abrir la misma cédula.
+  // Mientras una edita, la otra queda en solo lectura. La clave del recurso es
+  // el id del alumno que va en `basePath` (…/alumnos/123): mismo alumno = mismo
+  // candado, sin importar por qué panel se entre.
+  const alumnoId = basePath.match(/(\d+)(?!.*\d)/)?.[1] ?? null;
+  const recurso = alumnoId ? `alumno:${alumnoId}` : null;
+  const { estado: estadoBloqueo, titular, reintentar } = useBloqueoEdicion(recurso, editing);
+  const gateActivo = recurso !== null;
+  // Solo mostramos el formulario cuando el candado es nuestro (o no hay gate).
+  const editandoForm = editing && (!gateActivo || estadoBloqueo === 'propio');
+  const bloqueadoPorOtro = editing && gateActivo && estadoBloqueo === 'ajeno';
+  const verificandoCandado = editing && gateActivo && estadoBloqueo !== 'propio' && estadoBloqueo !== 'ajeno';
+
+  async function intentarReintentar() {
+    setReintentando(true);
+    await reintentar();
+    setReintentando(false);
+  }
 
   function cargar() {
     return api
@@ -148,7 +171,7 @@ export function CedulaEditor({
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <div className="space-y-5">
-        {!editing ? (
+        {!editandoForm ? (
           <div className="bg-white border border-stone-200 rounded-xl p-5">
             <div className="flex items-center justify-between mb-2">
               <h3 className="font-serif text-base font-bold text-stone-900 flex items-center gap-2">
@@ -156,9 +179,11 @@ export function CedulaEditor({
               </h3>
               <button
                 onClick={() => setEditing(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors"
+                disabled={verificandoCandado}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] transition-colors disabled:opacity-50"
               >
-                <Pencil size={13} /> Editar cédula
+                {verificandoCandado ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />}
+                {verificandoCandado ? 'Abriendo…' : 'Editar cédula'}
               </button>
             </div>
             <p className="text-xs text-stone-400 mb-2">Toca <Copy size={11} className="inline -mt-0.5" /> para copiar un dato.</p>
@@ -307,6 +332,15 @@ export function CedulaEditor({
           style={{ height: 720 }}
         />
       </div>
+
+      {bloqueadoPorOtro && (
+        <AvisoBloqueo
+          titular={titular}
+          reintentando={reintentando}
+          onSoloLectura={() => setEditing(false)}
+          onReintentar={intentarReintentar}
+        />
+      )}
     </div>
   );
 }

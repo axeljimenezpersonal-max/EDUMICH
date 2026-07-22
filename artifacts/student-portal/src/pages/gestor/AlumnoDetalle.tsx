@@ -59,6 +59,8 @@ import { TOUR_G_FICHA, GATE_GESTOR } from '../../components/onboarding/secciones
 import { CampoCopiable } from '../../components/CampoCopiable';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { avisar } from '../../components/Avisador';
+import { useBloqueoEdicion } from '../../lib/useBloqueoEdicion';
+import AvisoBloqueo from '../../components/AvisoBloqueo';
 
 interface AlumnoConMatricula {
   userId: number;
@@ -146,6 +148,27 @@ export default function AlumnoDetalle() {
   const [editarModal, setEditarModal] = useState(false);
   const [editarLoading, setEditarLoading] = useState(false);
   const [editarFieldErrors, setEditarFieldErrors] = useState<Record<string, string>>({});
+  const [reintentandoBloqueo, setReintentandoBloqueo] = useState(false);
+
+  // Candado de edición concurrente sobre este alumno. Misma clave que usa la
+  // administración para la cédula (`alumno:<id>`): si un admin está editando la
+  // cédula de este alumno, el gestor no puede abrir "Editar información" a la vez
+  // (y viceversa). El candado late mientras el modal está abierto y se libera al
+  // cerrarlo, guardar o cerrar la pestaña.
+  const {
+    estado: estadoBloqueo,
+    titular: titularBloqueo,
+    reintentar: reintentarBloqueo,
+  } = useBloqueoEdicion(id != null ? `alumno:${id}` : null, editarModal);
+  const gateBloqueo = id != null;
+  const puedeEditarInfo = editarModal && (!gateBloqueo || estadoBloqueo === 'propio');
+  const bloqueadoPorOtro = editarModal && gateBloqueo && estadoBloqueo === 'ajeno';
+
+  async function handleReintentarBloqueo() {
+    setReintentandoBloqueo(true);
+    await reintentarBloqueo();
+    setReintentandoBloqueo(false);
+  }
 
   // Reenviar modal
   const [reenviarModal, setReenviarModal] = useState(false);
@@ -865,8 +888,8 @@ export default function AlumnoDetalle() {
         </div>
       )}
 
-      {/* ── Modal: Editar alumno ── */}
-      {editarModal && alumno && (
+      {/* ── Modal: Editar alumno ── (bajo candado de edición concurrente) */}
+      {editarModal && alumno && puedeEditarInfo && (
         <EditarAlumnoModal
           alumno={alumno}
           loading={editarLoading}
@@ -874,6 +897,23 @@ export default function AlumnoDetalle() {
           onClose={() => { setEditarModal(false); setEditarFieldErrors({}); }}
           onSave={handleEditarAlumno}
         />
+      )}
+      {/* Otro colaborador ya está editando a este alumno */}
+      {bloqueadoPorOtro && (
+        <AvisoBloqueo
+          titular={titularBloqueo}
+          reintentando={reintentandoBloqueo}
+          onSoloLectura={() => { setEditarModal(false); setEditarFieldErrors({}); }}
+          onReintentar={handleReintentarBloqueo}
+        />
+      )}
+      {/* Verificando el candado antes de abrir el formulario */}
+      {editarModal && gateBloqueo && estadoBloqueo !== 'propio' && estadoBloqueo !== 'ajeno' && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+          <div className="bg-white rounded-2xl shadow-xl px-6 py-5 flex items-center gap-3 text-sm text-stone-600">
+            <Loader2 size={18} className="animate-spin text-[var(--color-guinda-700)]" /> Verificando disponibilidad…
+          </div>
+        </div>
       )}
 
       {/* ── Modal: Reenviar credenciales ── */}

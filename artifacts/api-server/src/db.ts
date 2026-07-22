@@ -218,6 +218,22 @@ const migrations = [
      ON metricas_diarias(dia, clave)`,
   `CREATE INDEX IF NOT EXISTS metricas_diarias_clave_idx
      ON metricas_diarias(clave, dia)`,
+
+  // Bloqueos de edición concurrente ("candado suave" con latido). Impide que
+  // dos colaboradores editen a la vez el mismo recurso sensible. El candado se
+  // considera vivo mientras `refrescado_en` sea reciente; expira solo si el
+  // cliente deja de latir. Ver schema.bloqueosEdicion y routes/bloqueos.ts.
+  `CREATE TABLE IF NOT EXISTS bloqueos_edicion (
+     recurso varchar(120) PRIMARY KEY,
+     user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     nombre varchar(200) NOT NULL,
+     rol varchar(20) NOT NULL,
+     adquirido_en timestamp NOT NULL DEFAULT now(),
+     refrescado_en timestamp NOT NULL DEFAULT now()
+   )`,
+  // Barrido de candados vencidos hace tiempo (por si algún cliente nunca liberó).
+  `CREATE INDEX IF NOT EXISTS bloqueos_edicion_refrescado_idx
+     ON bloqueos_edicion(refrescado_en)`,
 ];
 
 export async function runStartupMigrations() {

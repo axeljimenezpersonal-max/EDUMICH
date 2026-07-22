@@ -472,6 +472,28 @@ export const firmasUsuario = pgTable('firmas_usuario', {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// Bloqueos de edición concurrente — "candado suave" con latido (heartbeat).
+// Impide que dos colaboradores editen el mismo recurso sensible a la vez
+// (una cédula, una inscripción, una convocatoria…). `recurso` es una clave
+// estable tipo "alumno:123" | "convocatoria:7": el mismo recurso, un solo
+// candado. El candado está VIVO mientras `refrescadoEn` sea reciente (TTL
+// corto que se renueva con un latido periódico del cliente); si el cliente se
+// cae, cierra la pestaña o pierde la red, el candado expira solo y nadie queda
+// bloqueado por un "fantasma". La toma es atómica en Postgres (INSERT … ON
+// CONFLICT DO UPDATE … WHERE mío-o-vencido), así que nunca se otorga a dos.
+// ─────────────────────────────────────────────────────────────────────────
+export const bloqueosEdicion = pgTable('bloqueos_edicion', {
+  recurso: varchar('recurso', { length: 120 }).primaryKey(),
+  userId: integer('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  nombre: varchar('nombre', { length: 200 }).notNull(), // nombre del titular, para mostrarlo
+  rol: varchar('rol', { length: 20 }).notNull(),
+  adquiridoEn: timestamp('adquirido_en').notNull().defaultNow(),
+  refrescadoEn: timestamp('refrescado_en').notNull().defaultNow(), // último latido
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // Pagos — comprobantes de pago del alumno
 // ─────────────────────────────────────────────────────────────────────────
 
