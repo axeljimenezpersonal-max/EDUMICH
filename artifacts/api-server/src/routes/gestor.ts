@@ -2546,6 +2546,120 @@ router.post('/inscripcion-lote', async (req, res) => {
   res.json({ ok: true, etapaClave: etapa.clave, periodoAbierto, totalInscritos, alumnosInscritos: alumnosConAlgo, resultados });
 });
 
+/**
+ * Cancela inscripciones de examen del gestor en una etapa (todas, o de un solo
+ * alumno) y limpia sus fichas de pago POR EMITIR. Las fichas ya emitidas, en
+ * revisión o pagadas NO se tocan (hay dinero de por medio): esas inscripciones
+ * se omiten y se reportan.
+ */
+async function cancelarInscripcionesEtapa(params: {
+  gestorId: number;
+  etapaId: number;
+  estudianteId?: number;
+  req?: Request;
+}): Promise<{ canceladas: number; fichasCanceladas: number; omitidas: number } | null> {
+  const { gestorId, etapaId, estudianteId, req } = params;
+
+  const alumnoIds = (
+    await db.select({ userId: estudiantes.userId }).from(estudiantes).where(eq(estudiantes.gestorId, gestorId))
+  ).map((a) => a.userId);
+  if (alumnoIds.length === 0) return { canceladas: 0, fichasCanceladas: 0, omitidas: 0 };
+  if (estudianteId != null && !alumnoIds.includes(estudianteId)) return null; // no es del gestor
+
+  const objetivoAlumnos = estudianteId != null ? [estudianteId] : alumnoIds;
+  const objetivo = await db
+    .select({ id: examenesInscripciones.id })
+    .from(examenesInscripciones)
+    .where(and(
+      inArray(examenesInscripciones.estudianteId, objetivoAlumnos),
+      eq(examenesInscripciones.etapaId, etapaId),
+      ne(examenesInscripciones.estado, 'cancelado'),
+    ));
+  const ids = objetivo.map((o) => o.id);
+  if (ids.length === 0) return { canceladas: 0, fichasCanceladas: 0, omitidas: 0 };
+
+  // Inscripciones "bloqueadas" por una ficha ya emitida/en revisión/pagada: se omiten.
+  const bloqueadas = await db
+    .select({ iid: pagosExamenInscripciones.examenInscripcionId })
+    .from(pagosExamenInscripciones)
+    .innerJoin(pagosExamen, eq(pagosExamenInscripciones.pagoExamenId, pagosExamen.id))
+    .where(and(
+      inArray(pagosExamenInscripciones.examenInscripcionId, ids),
+      inArray(pagosExamen.estado, ['emitida', 'en_revision', 'pagado']),
+    ));
+  const bloqueadasSet = new Set(bloqueadas.map((b) => b.iid));
+  const cancelables = ids.filter((id) => !bloqueadasSet.has(id));
+  if (cancelables.length === 0) return { canceladas: 0, fichasCanceladas: 0, omitidas: bloqueadasSet.size };
+
+  // Fichas POR EMITIR afectadas (para recomputar o cancelar después).
+  const afectadas = await db
+    .select({ pid: pagosExamenInscripciones.pagoExamenId })
+    .from(pagosExamenInscripciones)
+    .innerJoin(pagosExamen, eq(pagosExamenInscripciones.pagoExamenId, pagosExamen.id))
+    .where(and(
+      inArray(pagosExamenInscripciones.examenInscripcionId, cancelables),
+      eq(pagosExamen.estado, 'pendiente_emision'),
+    ));
+  const fichaIds = [...new Set(afectadas.map((a) => a.pid))];
+
+  // Desenganchar del puente (solo fichas por emitir) y cancelar las inscripciones.
+  if (fichaIds.length) {
+    await db.delete(pagosExamenInscripciones).where(and(
+      inArray(pagosExamenInscripciones.examenInscripcionId, cancelables),
+      inArray(pagosExamenInscripciones.pagoExamenId, fichaIds),
+    ));
+  }
+  await db.update(examenesInscripciones).set({ estado: 'cancelado' }).where(inArray(examenesInscripciones.id, cancelables));
+
+  // Recalcular cada ficha por emitir: si quedó vacía se cancela; si no, se ajusta.
+  let fichasCanceladas = 0;
+  for (const pid of fichaIds) {
+    const [{ n }] = await db.select({ n: count() }).from(pagosExamenInscripciones).where(eq(pagosExamenInscripciones.pagoExamenId, pid));
+    const cant = Number(n) || 0;
+    if (cant === 0) {
+      await db.update(pagosExamen).set({ estado: 'cancelado' }).where(eq(pagosExamen.id, pid));
+      fichasCanceladas++;
+    } else {
+      await db.update(pagosExamen).set({
+        cantidadExamenes: cant,
+        montoTotal: (cant * 145).toFixed(2),
+        montoIemsys: (cant * 115).toFixed(2),
+        montoSynapsis: (cant * 30).toFixed(2),
+      }).where(eq(pagosExamen.id, pid));
+    }
+  }
+
+  await tryAuditLog({
+    userId: gestorId, accion: 'cancelar_inscripciones', entidad: 'examenes_inscripciones',
+    entidadId: estudianteId ?? etapaId,
+    detalle: `Gestor canceló ${cancelables.length} inscripción(es) — etapa ${etapaId}${estudianteId ? `, alumno ${estudianteId}` : ' (todas)'}`,
+    metadata: { etapaId, estudianteId: estudianteId ?? null, fichasCanceladas }, req,
+  });
+
+  return { canceladas: cancelables.length, fichasCanceladas, omitidas: bloqueadasSet.size };
+}
+
+// ─── POST /gestor/inscripcion-lote/cancelar — cancela TODAS las de la etapa ──
+router.post('/inscripcion-lote/cancelar', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const etapaId = Number(req.body?.etapaId);
+  if (!etapaId) { res.status(400).json({ error: 'Falta la etapa' }); return; }
+  const r = await cancelarInscripcionesEtapa({ gestorId, etapaId, req });
+  if (!r) { res.status(403).json({ error: 'Sin permiso' }); return; }
+  res.json({ ok: true, ...r });
+});
+
+// ─── POST /gestor/inscripcion-lote/cancelar-alumno — cancela las de un alumno ──
+router.post('/inscripcion-lote/cancelar-alumno', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const etapaId = Number(req.body?.etapaId);
+  const estudianteId = Number(req.body?.estudianteId);
+  if (!etapaId || !estudianteId) { res.status(400).json({ error: 'Faltan datos' }); return; }
+  const r = await cancelarInscripcionesEtapa({ gestorId, etapaId, estudianteId, req });
+  if (!r) { res.status(403).json({ error: 'Ese alumno no es de tu centro' }); return; }
+  res.json({ ok: true, ...r });
+});
+
 // ─── GET /gestor/alumnos/:id/ficha-pago ──────────────────────────────────────
 // Genera y devuelve una ficha PDF de pago de derecho de examen.
 // Query param: metodo = 'spei' | 'banco_deposito' | 'tienda_conveniencia'

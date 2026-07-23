@@ -12,11 +12,13 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import {
   ClipboardList, Loader2, CheckCircle2, AlertCircle, Users, CalendarClock,
-  CreditCard, X, Lock, Search, Clock, CalendarCheck, ExternalLink,
+  CreditCard, X, Lock, Search, Clock, CalendarCheck, ExternalLink, Trash2,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api } from '../../lib/api';
 import { fechaCorta } from '../../lib/fechas';
+import { confirmar } from '../../components/Confirmador';
+import { avisar } from '../../components/Avisador';
 
 interface ModuloDisp { moduloId: number; numero: number; nombre: string; dia: string; hora: string; }
 interface ModuloInscrito { id: number; numero: number; }
@@ -56,6 +58,7 @@ export default function GestorInscripcion() {
   const [modulosSel, setModulosSel] = useState<Set<number>>(new Set());
   const [alumnosSel, setAlumnosSel] = useState<Set<number>>(new Set());
   const [enviando, setEnviando] = useState(false);
+  const [cancelando, setCancelando] = useState(false);
   const [resultado, setResultado] = useState<RespuestaLote | null>(null);
   const [filtroAlumno, setFiltroAlumno] = useState('');
 
@@ -126,6 +129,63 @@ export default function GestorInscripcion() {
     } finally {
       setEnviando(false);
     }
+  }
+
+  const hayInscripciones = useMemo(() => (datos?.alumnos ?? []).some((a) => a.yaInscritos.length > 0), [datos]);
+
+  async function cancelarTodas() {
+    if (!datos?.etapa) return;
+    const ok = await confirmar({
+      danger: true,
+      title: 'Cancelar TODAS las inscripciones',
+      message: (
+        <>Se cancelarán <b>todas</b> las inscripciones de la etapa <b>{datos.etapa.clave}</b> de tus alumnos,
+        junto con sus <b>fichas de pago por emitir</b>. Las fichas ya emitidas o pagadas no se tocan.
+        Esta acción no se puede deshacer.</>
+      ),
+      confirmLabel: 'Sí, cancelar todo',
+      requireText: 'CANCELAR',
+    });
+    if (!ok) return;
+    setCancelando(true);
+    try {
+      const r = await api.post<{ canceladas: number; fichasCanceladas: number; omitidas: number }>(
+        '/gestor/inscripcion-lote/cancelar', { etapaId: datos.etapa.id });
+      avisar(
+        `Se cancelaron ${r.canceladas} inscripción(es)` + (r.omitidas ? `; ${r.omitidas} omitida(s) por pago en curso` : '') + '.',
+        r.canceladas > 0 ? 'ok' : 'info',
+      );
+      cargar();
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'No se pudo cancelar', 'error');
+    } finally { setCancelando(false); }
+  }
+
+  async function cancelarAlumno(a: AlumnoElegible) {
+    if (!datos?.etapa) return;
+    const ok = await confirmar({
+      danger: true,
+      title: `Cancelar inscripciones de ${a.nombre}`,
+      message: (
+        <>Se cancelarán las <b>{a.yaInscritos.length}</b> inscripción(es) de <b>{a.nombre}</b> en la etapa
+        <b> {datos.etapa.clave}</b> y se ajusta su ficha de pago por emitir. Esta acción no se puede deshacer.</>
+      ),
+      confirmLabel: 'Sí, cancelar',
+    });
+    if (!ok) return;
+    setCancelando(true);
+    try {
+      const r = await api.post<{ canceladas: number; omitidas: number }>(
+        '/gestor/inscripcion-lote/cancelar-alumno', { etapaId: datos.etapa.id, estudianteId: a.userId });
+      avisar(
+        r.canceladas > 0 ? `Se cancelaron ${r.canceladas} inscripción(es) de ${a.nombre}.`
+          : (r.omitidas ? 'No se canceló: hay un pago en curso.' : 'Sin cambios.'),
+        r.canceladas > 0 ? 'ok' : 'info',
+      );
+      cargar();
+    } catch (e) {
+      avisar(e instanceof Error ? e.message : 'No se pudo cancelar', 'error');
+    } finally { setCancelando(false); }
   }
 
   const totalExamenes = modulosSel.size * alumnosSel.size;
@@ -309,6 +369,16 @@ export default function GestorInscripcion() {
                     Ver perfil <ExternalLink size={11} />
                   </Link>
                 );
+                // Cancelar las inscripciones del alumno (solo si tiene).
+                const cancelarLink = a.yaInscritos.length > 0 ? (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); cancelarAlumno(a); }}
+                    disabled={cancelando}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-600 hover:underline shrink-0 whitespace-nowrap px-1.5 py-1 rounded hover:bg-red-50 disabled:opacity-50"
+                  >
+                    Cancelar <Trash2 size={11} />
+                  </button>
+                ) : null;
                 if (lleno) {
                   // Bloqueado: ya tiene el máximo de módulos. No se puede seleccionar.
                   return (
@@ -326,6 +396,7 @@ export default function GestorInscripcion() {
                           {a.yaInscritos.length} módulos ya inscritos
                         </span>
                         {verPerfil}
+                        {cancelarLink}
                       </div>
                     </div>
                   );
@@ -347,6 +418,7 @@ export default function GestorInscripcion() {
                         <span className="text-[10px] text-stone-400 whitespace-nowrap">{a.yaInscritos.length} ya inscrito(s)</span>
                       )}
                       {verPerfil}
+                      {cancelarLink}
                     </div>
                   </div>
                 );
@@ -381,6 +453,25 @@ export default function GestorInscripcion() {
               </details>
             )}
           </div>
+
+          {/* Zona de riesgo — cancelar todas las inscripciones de la etapa */}
+          {hayInscripciones && (
+            <div className="bg-white border border-red-200 rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="min-w-0">
+                  <div className="text-sm font-bold text-red-700">Cancelar inscripciones</div>
+                  <p className="text-xs text-stone-500">Cancela <b>todas</b> las inscripciones de esta etapa y sus fichas de pago por emitir. Las ya pagadas no se tocan.</p>
+                </div>
+                <button
+                  onClick={cancelarTodas}
+                  disabled={cancelando}
+                  className="inline-flex items-center gap-2 py-2 px-4 border border-red-300 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-50 disabled:opacity-50 shrink-0"
+                >
+                  {cancelando ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />} Cancelar todas
+                </button>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-2">
