@@ -393,7 +393,7 @@ export default function GestorInscripcion() {
                       </div>
                       <div className="flex flex-col items-end gap-1 shrink-0">
                         <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap">
-                          {a.yaInscritos.length} módulos ya inscritos
+                          {a.yaInscritos.length} exámenes solicitados
                         </span>
                         {verPerfil}
                         {cancelarLink}
@@ -415,7 +415,7 @@ export default function GestorInscripcion() {
                     </button>
                     <div className="flex flex-col items-end gap-1 shrink-0">
                       {a.yaInscritos.length > 0 && (
-                        <span className="text-[10px] text-stone-400 whitespace-nowrap">{a.yaInscritos.length} ya inscrito(s)</span>
+                        <span className="text-[10px] text-stone-400 whitespace-nowrap">{a.yaInscritos.length} examen(es) solicitado(s)</span>
                       )}
                       {verPerfil}
                       {cancelarLink}

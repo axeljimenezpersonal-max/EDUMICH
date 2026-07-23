@@ -151,17 +151,22 @@ router.get('/dashboard', async (req, res) => {
     .innerJoin(inscripciones, eq(inscripciones.estudianteId, estudiantes.userId))
     .where(eq(estudiantes.gestorId, userId));
 
-  // Documentos del EXPEDIENTE en revisión (fuente de verdad), no la tabla legacy.
-  const docsPendientes = await db
-    .select({ c: count() })
-    .from(expedienteDocumentos)
-    .innerJoin(estudiantes, eq(estudiantes.userId, expedienteDocumentos.estudianteId))
-    .where(
-      and(
-        eq(estudiantes.gestorId, userId),
-        eq(expedienteDocumentos.estado, 'pendiente_revision')
-      )
-    );
+  // Documentos pendientes = obligatorios del expediente que AÚN no están
+  // aprobados (faltan, en revisión o rechazados), sumados sobre los alumnos del
+  // gestor. Así el KPI concuerda con el banner "N alumno(s) con documentos
+  // pendientes" (mismo criterio: expediente que todavía no llega a 5/5).
+  const docsPendientes = await db.execute<{ c: number }>(sql`
+    SELECT COALESCE(SUM(5 - aprobados), 0)::int AS c FROM (
+      SELECT e.user_id,
+        COUNT(DISTINCT ed.tipo) FILTER (
+          WHERE ed.estado = 'aprobado'
+            AND ed.tipo IN ('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')
+        ) AS aprobados
+      FROM estudiantes e
+      LEFT JOIN expediente_documentos ed ON ed.estudiante_id = e.user_id
+      WHERE e.gestor_id = ${userId}
+      GROUP BY e.user_id
+    ) t`);
 
   // Pagos pendientes = FICHAS de pago del gestor listas para pagar ('emitida').
   // Una ficha cubre varios exámenes/alumnos, así que se cuentan FICHAS, no alumnos.
@@ -175,7 +180,7 @@ router.get('/dashboard', async (req, res) => {
     kpis: {
       alumnosTotales: total,
       alumnosConInscripcion: conInscripcion.length,
-      documentosPendientes: docsPendientes[0]?.c ?? 0,
+      documentosPendientes: Number(docsPendientes.rows[0]?.c ?? 0),
       pagosPendientes: Number(pagosPend.rows[0]?.c ?? 0),
     },
   });
