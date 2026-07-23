@@ -46,6 +46,26 @@ const ESTADO_BADGE: Record<Etapa['estado'], { label: string; bg: string; color: 
   finalizada: { label: 'Finalizada', bg: '#f1f0ee', color: '#78716c' },
 };
 
+/** Una tarjeta de etapa en la agenda lateral (inscripción + examen). */
+function TarjetaEtapa({ e }: { e: Etapa }) {
+  const badge = ESTADO_BADGE[e.estado];
+  const dim = e.estado === 'finalizada';
+  return (
+    <div className={`rounded-lg border p-3 ${dim ? 'border-stone-100 opacity-60' : 'border-stone-200'}`}>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="font-bold text-sm text-stone-900">Etapa {e.clave}</div>
+        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
+      </div>
+      <div className="flex items-center gap-1.5 text-[11px] text-stone-600">
+        <CalendarClock size={12} className="text-amber-600 shrink-0" /> Inscripción y pago: <b className="text-stone-800">{rango(e.solicitudInicio, e.solicitudFin)}</b>
+      </div>
+      <div className="flex items-center gap-1.5 text-[11px] text-stone-600 mt-0.5">
+        <CalendarCheck size={12} className="text-[var(--color-guinda-700)] shrink-0" /> Examen: <b className="text-stone-800">{rango(e.examenSabado, e.examenDomingo)}</b>
+      </div>
+    </div>
+  );
+}
+
 export function CalendarioOficial() {
   const [abierto, setAbierto] = useState(false);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
@@ -53,6 +73,7 @@ export function CalendarioOficial() {
   const [cursor, setCursor] = useState<{ y: number; m: number }>(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
   const [sel, setSel] = useState<string | null>(null);
   const [cargado, setCargado] = useState(false);
+  const [verFinalizadas, setVerFinalizadas] = useState(false);
 
   useEffect(() => {
     if (!abierto || cargado) return;
@@ -126,6 +147,8 @@ export function CalendarioOficial() {
     [...etapas].sort((a, b) => (a.solicitudInicio ?? '9') < (b.solicitudInicio ?? '9') ? -1 : 1)
       .sort((a, b) => (a.estado === 'finalizada' ? 1 : 0) - (b.estado === 'finalizada' ? 1 : 0)),
     [etapas]);
+  const activas = useMemo(() => etapasOrden.filter((e) => e.estado !== 'finalizada'), [etapasOrden]);
+  const finalizadas = useMemo(() => etapasOrden.filter((e) => e.estado === 'finalizada'), [etapasOrden]);
 
   return (
     <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
@@ -222,29 +245,30 @@ export function CalendarioOficial() {
                 </button>
               </div>
 
-              {/* Agenda de etapas */}
+              {/* Agenda de etapas — por defecto solo las vigentes; las finalizadas
+                  se ocultan tras un botón para no saturar la vista. */}
               <div className="min-w-0">
-                <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Etapas</div>
-                <div className="space-y-2 max-h-[420px] overflow-y-auto pr-1">
-                  {etapasOrden.map((e) => {
-                    const badge = ESTADO_BADGE[e.estado];
-                    const dim = e.estado === 'finalizada';
-                    return (
-                      <div key={e.clave} className={`rounded-lg border p-3 ${dim ? 'border-stone-100 opacity-60' : 'border-stone-200'}`}>
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <div className="font-bold text-sm text-stone-900">Etapa {e.clave}</div>
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-stone-600">
-                          <CalendarClock size={12} className="text-amber-600 shrink-0" /> Inscripción y pago: <b className="text-stone-800">{rango(e.solicitudInicio, e.solicitudFin)}</b>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-[11px] text-stone-600 mt-0.5">
-                          <CalendarCheck size={12} className="text-[var(--color-guinda-700)] shrink-0" /> Examen: <b className="text-stone-800">{rango(e.examenSabado, e.examenDomingo)}</b>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {etapasOrden.length === 0 && <div className="text-sm text-stone-400 text-center py-8">Aún no hay etapas cargadas.</div>}
+                <div className="text-xs font-bold uppercase tracking-widest text-stone-400 mb-2">Próximas etapas</div>
+                <div className="space-y-2">
+                  {activas.map((e) => <TarjetaEtapa key={e.clave} e={e} />)}
+                  {activas.length === 0 && finalizadas.length === 0 && (
+                    <div className="text-sm text-stone-400 text-center py-8">Aún no hay etapas cargadas.</div>
+                  )}
+                  {activas.length === 0 && finalizadas.length > 0 && (
+                    <div className="text-sm text-stone-400 text-center py-6">No hay etapas próximas por ahora.</div>
+                  )}
+
+                  {finalizadas.length > 0 && (
+                    <>
+                      <button
+                        onClick={() => setVerFinalizadas((v) => !v)}
+                        className="w-full text-xs font-semibold text-stone-500 hover:text-stone-700 border border-stone-200 rounded-lg px-3 py-2 hover:bg-stone-50 transition-colors"
+                      >
+                        {verFinalizadas ? 'Ocultar finalizadas' : `Ver etapas finalizadas (${finalizadas.length})`}
+                      </button>
+                      {verFinalizadas && finalizadas.map((e) => <TarjetaEtapa key={e.clave} e={e} />)}
+                    </>
+                  )}
                 </div>
               </div>
             </div>
