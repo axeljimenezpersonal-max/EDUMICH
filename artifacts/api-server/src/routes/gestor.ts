@@ -11,7 +11,7 @@
  * Ubicación destino en Replit: artifacts/api-server/src/routes/gestor.ts
  */
 
-import { Router } from 'express';
+import { Router, type Request } from 'express';
 import { and, desc, eq, count, sql, inArray, ne, lte, gte } from 'drizzle-orm';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
@@ -2055,6 +2055,176 @@ router.get('/config-pago', async (_req, res) => {
   });
 });
 
+// ═══════════════════════════════════════════════════════════════════════════
+// INSCRIPCIÓN A EXÁMENES — lógica compartida entre la inscripción individual y
+// la inscripción EN LOTE (varios alumnos). Las reglas viven en un solo lugar
+// para que ambas rutas nunca se separen ("todo debe empatar").
+// ═══════════════════════════════════════════════════════════════════════════
+
+// Regla dura: máximo 4 módulos por etapa (sáb/dom × 2 turnos).
+const MAX_MODULOS_POR_ETAPA = 4;
+
+/**
+ * Valida que la etapa exista y que HOY esté dentro de la ventana de solicitud
+ * [solicitud_inicio, solicitud_fin] (candado estricto, como SIOSAD). Compartido
+ * por todos los alumnos de un lote (la ventana es de la etapa, no del alumno).
+ */
+async function validarEtapaVentana(etapaId: number): Promise<
+  | { ok: true; etapa: { id: number; clave: string; examenSabado: string | null; examenDomingo: string | null }; periodoAbierto: boolean }
+  | { ok: false; error: string }
+> {
+  const [etapa] = await db
+    .select({
+      id: convocatoriasEtapas.id,
+      clave: convocatoriasEtapas.clave,
+      estado: convocatoriasEtapas.estado,
+      solicitudInicio: convocatoriasEtapas.solicitudInicio,
+      solicitudFin: convocatoriasEtapas.solicitudFin,
+      examenSabado: convocatoriasEtapas.examenSabado,
+      examenDomingo: convocatoriasEtapas.examenDomingo,
+    })
+    .from(convocatoriasEtapas)
+    .where(eq(convocatoriasEtapas.id, etapaId));
+  if (!etapa) return { ok: false, error: 'Etapa no encontrada' };
+
+  const hoyStr = hoyEnMexico();
+  const apertura = etapa.solicitudInicio ? String(etapa.solicitudInicio) : null;
+  const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
+  const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;
+  const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
+  if (apertura && hoyStr < apertura) {
+    return { ok: false, error: `La ventana de solicitud de la etapa ${etapa.clave} aún no abre. Abre el ${fmt(apertura)}.` };
+  }
+  if ((cierre && cierre < hoyStr) || (examen && examen < hoyStr)) {
+    return { ok: false, error: `El período de solicitud de la etapa ${etapa.clave} ya cerró${cierre ? ` (venció el ${fmt(cierre)})` : ''}. No se puede inscribir a una convocatoria pasada.` };
+  }
+  return { ok: true, etapa, periodoAbierto: etapa.estado === 'inscripcion_abierta' };
+}
+
+/** Horarios (por módulo) y nombres de módulo para una etapa — carga una sola vez. */
+async function cargarHorariosModulos(etapaId: number, modulosIds: number[]) {
+  const horariosRows = await db
+    .select({
+      id: convocatoriasModulosHorarios.id,
+      moduloId: convocatoriasModulosHorarios.moduloId,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+    })
+    .from(convocatoriasModulosHorarios)
+    .where(and(eq(convocatoriasModulosHorarios.etapaId, etapaId), inArray(convocatoriasModulosHorarios.moduloId, modulosIds)));
+  const horarioByModuloId = new Map(horariosRows.map((h) => [h.moduloId, h]));
+  const modulosRows = modulosIds.length
+    ? await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(inArray(modulos.id, modulosIds))
+    : [];
+  const modulosById = new Map(modulosRows.map((m) => [m.id, m]));
+  return { horarioByModuloId, modulosById };
+}
+
+type InscribirResultado = {
+  elegible: boolean;
+  motivo?: string;
+  inscritos: Array<{ folio: string; moduloId: number; moduloNombre: string | null; dia: string; hora: string; fechaExamen: string }>;
+  sinHorario: number[];
+  conflicto: number[];
+  yaInscritos: number[];
+  excedeLimite: number[];
+};
+
+/**
+ * Inscribe a UN alumno en los módulos indicados de una etapa ya validada.
+ * Contiene TODAS las reglas por-alumno: matrícula oficial, expediente 5/5
+ * aprobado, máx 4 módulos, choque de horario, duplicados y sede. Escribe en
+ * examenes_inscripciones (estado 'inscrito' = candidato de pago). No valida la
+ * ventana ni la etapa (eso lo hace el caller y se comparte en el lote).
+ */
+async function inscribirExamenAlumno(params: {
+  gestorId: number;
+  alumno: { userId: number; matriculaOficialDGB: string | null; municipioId: number | null };
+  etapa: { id: number; clave: string; examenSabado: string | null; examenDomingo: string | null };
+  modulosIds: number[];
+  horarioByModuloId: Map<number, { id: number; moduloId: number; dia: string; hora: string }>;
+  modulosById: Map<number, { id: number; numero: number; nombre: string }>;
+  sedeElegida: number | null;
+  req?: Request;
+}): Promise<InscribirResultado> {
+  const { gestorId, alumno, etapa, modulosIds, horarioByModuloId, modulosById, sedeElegida, req } = params;
+  const vacio = { inscritos: [] as InscribirResultado['inscritos'], sinHorario: [], conflicto: [], yaInscritos: [], excedeLimite: [] };
+
+  // Gating por alumno
+  if (!alumno.matriculaOficialDGB) {
+    return { elegible: false, motivo: 'Sin matrícula oficial DGB', ...vacio };
+  }
+  const aprobadosRows = await db
+    .select({ tipo: expedienteDocumentos.tipo })
+    .from(expedienteDocumentos)
+    .where(and(eq(expedienteDocumentos.estudianteId, alumno.userId), eq(expedienteDocumentos.estado, 'aprobado')));
+  const aprobadosOblig = new Set(aprobadosRows.map((r) => r.tipo).filter((t) => (DOCUMENTOS_OBLIGATORIOS as readonly string[]).includes(t)));
+  if (aprobadosOblig.size < DOCUMENTOS_OBLIGATORIOS.length) {
+    return { elegible: false, motivo: 'Expediente incompleto (faltan documentos aprobados)', ...vacio };
+  }
+
+  // Inscripciones activas del alumno en la etapa (para límite y choque de horario)
+  const existingInsc = await db
+    .select({
+      moduloId: examenesInscripciones.moduloId,
+      dia: convocatoriasModulosHorarios.dia,
+      hora: convocatoriasModulosHorarios.hora,
+    })
+    .from(examenesInscripciones)
+    .innerJoin(convocatoriasModulosHorarios, eq(convocatoriasModulosHorarios.id, examenesInscripciones.horarioId))
+    .where(and(
+      eq(examenesInscripciones.estudianteId, alumno.userId),
+      eq(examenesInscripciones.etapaId, etapa.id),
+      ne(examenesInscripciones.estado, 'cancelado'),
+    ));
+  const inscritosModuloIds = new Set(existingInsc.map((i) => i.moduloId));
+  const existingSlots = new Set(existingInsc.map((i) => `${i.dia}-${i.hora}`));
+
+  // Sede (por alumno, depende de su municipio)
+  const resSede = await resolverSedeParaInscripcion({ etapaId: etapa.id, sedeIdElegida: sedeElegida ?? null, municipioId: alumno.municipioId ?? null });
+  if ('error' in resSede) return { elegible: false, motivo: resSede.error, ...vacio };
+  const sedeId = resSede.sedeId;
+
+  // Procesar cada módulo
+  let activos = inscritosModuloIds.size;
+  const sinHorario: number[] = [];
+  const conflicto: number[] = [];
+  const yaInscritos: number[] = [];
+  const excedeLimite: number[] = [];
+  const aInscribir: Array<{ moduloId: number; horarioId: number; dia: string; hora: string; fechaExamen: string; folio: string }> = [];
+  for (const moduloId of modulosIds) {
+    const horario = horarioByModuloId.get(moduloId);
+    if (!horario) { sinHorario.push(moduloId); continue; }
+    if (inscritosModuloIds.has(moduloId)) { yaInscritos.push(moduloId); continue; }
+    const slot = `${horario.dia}-${horario.hora}`;
+    if (existingSlots.has(slot)) { conflicto.push(moduloId); continue; }
+    if (activos >= MAX_MODULOS_POR_ETAPA) { excedeLimite.push(moduloId); continue; }
+    const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
+    const fechaExamen = horario.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
+    aInscribir.push({ moduloId, horarioId: horario.id, dia: horario.dia, hora: horario.hora, fechaExamen: fechaExamen ?? '', folio });
+    existingSlots.add(slot); inscritosModuloIds.add(moduloId); activos++;
+  }
+
+  const inscritos: InscribirResultado['inscritos'] = [];
+  for (const item of aInscribir) {
+    await db.insert(examenesInscripciones).values({
+      estudianteId: alumno.userId, etapaId: etapa.id, moduloId: item.moduloId,
+      horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
+    });
+    inscritos.push({ folio: item.folio, moduloId: item.moduloId, moduloNombre: modulosById.get(item.moduloId)?.nombre ?? null, dia: item.dia, hora: item.hora, fechaExamen: item.fechaExamen });
+  }
+
+  if (inscritos.length > 0) {
+    await tryAuditLog({
+      userId: gestorId, accion: 'inscribir_examenes', entidad: 'examenes_inscripciones', entidadId: alumno.userId,
+      detalle: `Gestor inscribió al alumno ${alumno.userId} en ${inscritos.length} examen(es) — etapa ${etapa.clave}`,
+      metadata: { etapaId: etapa.id, inscritos: inscritos.map((i) => i.folio) }, req,
+    });
+  }
+
+  return { elegible: true, inscritos, sinHorario, conflicto, yaInscritos, excedeLimite };
+}
+
 // ─── POST /gestor/alumnos/:id/inscribir-examen ───────────────────────────────
 // Body: { etapaId: number, modulosIds: number[] }
 const inscribirExamenSchema = z.object({
@@ -2079,218 +2249,179 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
   const alumno = await verificarAlumnoDelGestor(gestorId, alumnoId);
   if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
 
-  // 1.b Gating: expediente aprobado (5 obligatorios) + matrícula oficial
-  if (!alumno.matriculaOficialDGB) {
-    res.status(400).json({ error: 'El alumno aún no tiene matrícula oficial registrada. La asigna la administración cuando la Secretaría valida el expediente.' });
-    return;
-  }
-  const OBLIG_INSCRIBIR: readonly string[] = DOCUMENTOS_OBLIGATORIOS;
-  const aprobadosRows = await db
-    .select({ tipo: expedienteDocumentos.tipo })
-    .from(expedienteDocumentos)
-    .where(and(eq(expedienteDocumentos.estudianteId, alumnoId), eq(expedienteDocumentos.estado, 'aprobado')));
-  const aprobadosOblig = new Set(aprobadosRows.map((r) => r.tipo).filter((t) => OBLIG_INSCRIBIR.includes(t)));
-  if (aprobadosOblig.size < OBLIG_INSCRIBIR.length) {
-    res.status(400).json({ error: 'El expediente del alumno no está completo y aprobado (5 documentos obligatorios).' });
-    return;
-  }
+  // Etapa + candado de ventana (compartido con la inscripción en lote).
+  const val = await validarEtapaVentana(etapaId);
+  if (!val.ok) { res.status(400).json({ error: val.error }); return; }
+  const { etapa, periodoAbierto } = val;
 
-  // 2. Validate etapa exists (don't require inscripcion_abierta)
+  // Toda la lógica por-alumno (gating, máx 4, horario, sede, insert) va en el helper.
+  const { horarioByModuloId, modulosById } = await cargarHorariosModulos(etapaId, modulosIds);
+  const r = await inscribirExamenAlumno({
+    gestorId, alumno, etapa, modulosIds, horarioByModuloId, modulosById,
+    sedeElegida: sedeElegida ?? null, req,
+  });
+  if (!r.elegible) { res.status(400).json({ error: r.motivo }); return; }
+
+  res.json({
+    ok: true,
+    inscritos: r.inscritos,
+    sinHorario: r.sinHorario,
+    conflicto: r.conflicto,
+    yaInscritos: r.yaInscritos,
+    excedeLimite: r.excedeLimite,
+    maxModulos: MAX_MODULOS_POR_ETAPA,
+    periodoAbierto,
+    ...(periodoAbierto ? {} : { advertencia: 'El período de inscripción no está abierto, pero el gestor puede inscribir manualmente.' }),
+  });
+});
+
+// ─── GET /gestor/inscripcion-lote/datos — datos de la pantalla de inscripción en lote ──
+// Etapa activa + módulos que ofrece + alumnos del gestor con su elegibilidad.
+router.get('/inscripcion-lote/datos', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const hoy = hoyEnMexico();
+  const { costoExamen } = await getConfigPago();
+
   const [etapa] = await db
     .select({
       id: convocatoriasEtapas.id,
       clave: convocatoriasEtapas.clave,
+      etapa: convocatoriasEtapas.etapa,
+      fase: convocatoriasEtapas.fase,
       estado: convocatoriasEtapas.estado,
-      solicitudInicio: convocatoriasEtapas.solicitudInicio,
-      solicitudFin: convocatoriasEtapas.solicitudFin,
       examenSabado: convocatoriasEtapas.examenSabado,
       examenDomingo: convocatoriasEtapas.examenDomingo,
     })
     .from(convocatoriasEtapas)
-    .where(eq(convocatoriasEtapas.id, etapaId));
-  if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+    .where(sql`(${convocatoriasEtapas.estado} = 'inscripcion_abierta'
+      OR (${convocatoriasEtapas.solicitudInicio} <= ${hoy} AND ${convocatoriasEtapas.solicitudFin} >= ${hoy}))`)
+    .orderBy(desc(convocatoriasEtapas.id))
+    .limit(1);
 
-  // 2.b. CANDADO ESTRICTO: solo se puede solicitar/inscribir DENTRO de la ventana
-  // de solicitud [solicitud_inicio, solicitud_fin], como en SIOSAD. Ni antes de
-  // que abra ni después de que cierre (ni con el examen ya pasado).
-  const hoyStr = hoyEnMexico();
-  const apertura = etapa.solicitudInicio ? String(etapa.solicitudInicio) : null;
-  const cierre = etapa.solicitudFin ? String(etapa.solicitudFin) : null;
-  const examen = etapa.examenSabado ? String(etapa.examenSabado) : null;
-  const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' });
-  if (apertura && hoyStr < apertura) {
-    res.status(400).json({
-      error: `La ventana de solicitud de la etapa ${etapa.clave} aún no abre. Abre el ${fmt(apertura)}.`,
-    });
-    return;
-  }
-  if ((cierre && cierre < hoyStr) || (examen && examen < hoyStr)) {
-    res.status(400).json({
-      error: `El período de solicitud de la etapa ${etapa.clave} ya cerró${cierre ? ` (venció el ${fmt(cierre)})` : ''}. No se puede inscribir a una convocatoria pasada.`,
-    });
-    return;
-  }
+  if (!etapa) { res.json({ etapa: null, modulos: [], alumnos: [], costoExamen }); return; }
 
-  const periodoAbierto = etapa.estado === 'inscripcion_abierta';
-
-  // 3. Get horarios for requested modules in this etapa
+  // Módulos que ofrece la etapa (con su horario día/hora)
   const horariosRows = await db
     .select({
-      id: convocatoriasModulosHorarios.id,
       moduloId: convocatoriasModulosHorarios.moduloId,
       dia: convocatoriasModulosHorarios.dia,
       hora: convocatoriasModulosHorarios.hora,
     })
     .from(convocatoriasModulosHorarios)
-    .where(
-      and(
-        eq(convocatoriasModulosHorarios.etapaId, etapaId),
-        inArray(convocatoriasModulosHorarios.moduloId, modulosIds)
-      )
-    );
-  const horarioByModuloId = new Map(horariosRows.map((h) => [h.moduloId, h]));
+    .where(eq(convocatoriasModulosHorarios.etapaId, etapa.id));
+  const moduloIds = [...new Set(horariosRows.map((h) => h.moduloId))];
+  const modRows = moduloIds.length
+    ? await db.select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre }).from(modulos).where(inArray(modulos.id, moduloIds))
+    : [];
+  const modById = new Map(modRows.map((m) => [m.id, m]));
+  const modulosDisponibles = horariosRows
+    .map((h) => ({ moduloId: h.moduloId, numero: modById.get(h.moduloId)?.numero ?? 0, nombre: modById.get(h.moduloId)?.nombre ?? '', dia: h.dia, hora: h.hora }))
+    .sort((a, b) => a.numero - b.numero);
 
-  // 4. Existing active inscriptions for student + etapa
-  const existingInsc = await db
-    .select({
-      moduloId: examenesInscripciones.moduloId,
-      horarioId: examenesInscripciones.horarioId,
-      dia: convocatoriasModulosHorarios.dia,
-      hora: convocatoriasModulosHorarios.hora,
-    })
-    .from(examenesInscripciones)
-    .innerJoin(
-      convocatoriasModulosHorarios,
-      eq(convocatoriasModulosHorarios.id, examenesInscripciones.horarioId)
-    )
-    .where(
-      and(
-        eq(examenesInscripciones.estudianteId, alumnoId),
-        eq(examenesInscripciones.etapaId, etapaId),
-        ne(examenesInscripciones.estado, 'cancelado')
-      )
-    );
-  const inscritosModuloIds = new Set(existingInsc.map((i) => i.moduloId));
-  // Existing horario slots: "dia-hora" for conflict check
-  const existingSlots = new Set(existingInsc.map((i) => `${i.dia}-${i.hora}`));
+  // Alumnos del gestor + elegibilidad (matrícula + expediente 5/5) + módulos ya inscritos en la etapa
+  const alumnosRows = await db
+    .select({ userId: estudiantes.userId, nombre: estudiantes.nombreCompleto, matricula: estudiantes.matriculaOficialDGB })
+    .from(estudiantes)
+    .where(eq(estudiantes.gestorId, gestorId))
+    .orderBy(estudiantes.nombreCompleto);
+  const alumnoIds = alumnosRows.map((a) => a.userId);
 
-  // 5. Sede: valida la elegida contra las que la etapa habilita (o respaldo por
-  // municipio). Fuente única compartida con el alumno y el admin.
-  const resSede = await resolverSedeParaInscripcion({
-    etapaId,
-    sedeIdElegida: sedeElegida ?? null,
-    municipioId: alumno.municipioId ?? null,
+  const docsRows = alumnoIds.length
+    ? await db
+        .select({ estudianteId: expedienteDocumentos.estudianteId, tipo: expedienteDocumentos.tipo })
+        .from(expedienteDocumentos)
+        .where(and(inArray(expedienteDocumentos.estudianteId, alumnoIds), eq(expedienteDocumentos.estado, 'aprobado')))
+    : [];
+  const aprobadosPorAlumno = new Map<number, Set<string>>();
+  for (const d of docsRows) {
+    if (!(DOCUMENTOS_OBLIGATORIOS as readonly string[]).includes(d.tipo)) continue;
+    const s = aprobadosPorAlumno.get(d.estudianteId) ?? new Set<string>();
+    s.add(d.tipo);
+    aprobadosPorAlumno.set(d.estudianteId, s);
+  }
+
+  const inscRows = alumnoIds.length
+    ? await db
+        .select({ estudianteId: examenesInscripciones.estudianteId, moduloId: examenesInscripciones.moduloId })
+        .from(examenesInscripciones)
+        .where(and(inArray(examenesInscripciones.estudianteId, alumnoIds), eq(examenesInscripciones.etapaId, etapa.id), ne(examenesInscripciones.estado, 'cancelado')))
+    : [];
+  const inscritosPorAlumno = new Map<number, number[]>();
+  for (const i of inscRows) {
+    const a = inscritosPorAlumno.get(i.estudianteId) ?? [];
+    a.push(i.moduloId);
+    inscritosPorAlumno.set(i.estudianteId, a);
+  }
+
+  const alumnos = alumnosRows.map((a) => {
+    const aprob = aprobadosPorAlumno.get(a.userId)?.size ?? 0;
+    const expedienteOk = aprob >= DOCUMENTOS_OBLIGATORIOS.length;
+    const tieneMatricula = !!a.matricula;
+    const elegible = tieneMatricula && expedienteOk;
+    const motivo = !tieneMatricula ? 'Sin matrícula oficial' : !expedienteOk ? `Expediente ${aprob}/${DOCUMENTOS_OBLIGATORIOS.length}` : undefined;
+    return { userId: a.userId, nombre: a.nombre, matricula: a.matricula, elegible, motivo, yaInscritos: inscritosPorAlumno.get(a.userId) ?? [] };
   });
-  if ('error' in resSede) { res.status(400).json({ error: resSede.error }); return; }
-  const sedeId = resSede.sedeId;
-
-  // 6. Get module names for response
-  const modulosRows = await db
-    .select({ id: modulos.id, numero: modulos.numero, nombre: modulos.nombre })
-    .from(modulos)
-    .where(inArray(modulos.id, modulosIds));
-  const modulosById = new Map(modulosRows.map((m) => [m.id, m]));
-
-  // 7. Process each requested module
-  // Regla dura: máximo 4 módulos por convocatoria (sáb/dom × 2 turnos).
-  const MAX_MODULOS_POR_ETAPA = 4;
-  let activos = inscritosModuloIds.size;
-  const sinHorario: number[] = [];
-  const conflicto: number[] = [];
-  const yaInscritos: number[] = [];
-  const excedeLimite: number[] = [];
-  const aInscribir: Array<{
-    moduloId: number;
-    horarioId: number;
-    dia: string;
-    hora: string;
-    fechaExamen: string;
-    folio: string;
-  }> = [];
-
-  for (const moduloId of modulosIds) {
-    const horario = horarioByModuloId.get(moduloId);
-    if (!horario) {
-      sinHorario.push(moduloId);
-      continue;
-    }
-    if (inscritosModuloIds.has(moduloId)) {
-      yaInscritos.push(moduloId);
-      continue;
-    }
-    const slot = `${horario.dia}-${horario.hora}`;
-    if (existingSlots.has(slot)) {
-      conflicto.push(moduloId);
-      continue;
-    }
-    if (activos >= MAX_MODULOS_POR_ETAPA) {
-      excedeLimite.push(moduloId);
-      continue;
-    }
-    const folio = `${etapa.clave}-${Math.floor(1000 + Math.random() * 8999)}`;
-    const fechaExamen = horario.dia === 'sabado' ? etapa.examenSabado : etapa.examenDomingo;
-    aInscribir.push({ moduloId, horarioId: horario.id, dia: horario.dia, hora: horario.hora, fechaExamen, folio });
-    // Track the new slot so subsequent modules in this request don't conflict
-    existingSlots.add(slot);
-    inscritosModuloIds.add(moduloId);
-    activos++;
-  }
-
-  // 8. Insert
-  const inscritos: Array<{
-    folio: string;
-    moduloId: number;
-    moduloNombre: string | null;
-    dia: string;
-    hora: string;
-    fechaExamen: string;
-  }> = [];
-
-  for (const item of aInscribir) {
-    await db.insert(examenesInscripciones).values({
-      estudianteId: alumnoId,
-      etapaId: etapa.id,
-      moduloId: item.moduloId,
-      horarioId: item.horarioId,
-      sedeId,
-      folio: item.folio,
-      estado: 'inscrito',
-    });
-    const mod = modulosById.get(item.moduloId);
-    inscritos.push({
-      folio: item.folio,
-      moduloId: item.moduloId,
-      moduloNombre: mod?.nombre ?? null,
-      dia: item.dia,
-      hora: item.hora,
-      fechaExamen: item.fechaExamen,
-    });
-  }
-
-  // 9. Audit log
-  if (inscritos.length > 0) {
-    await tryAuditLog({
-      userId: gestorId,
-      accion: 'inscribir_examenes',
-      entidad: 'examenes_inscripciones',
-      entidadId: alumnoId,
-      detalle: `Gestor inscribió al alumno ${alumnoId} en ${inscritos.length} examen(es) — etapa ${etapa.clave}`,
-      metadata: { etapaId: etapa.id, inscritos: inscritos.map((i) => i.folio) },
-      req,
-    });
-  }
 
   res.json({
-    ok: true,
-    inscritos,
-    sinHorario,
-    conflicto,
-    yaInscritos,
-    excedeLimite,
-    maxModulos: MAX_MODULOS_POR_ETAPA,
-    periodoAbierto,
-    ...(periodoAbierto ? {} : { advertencia: 'El período de inscripción no está abierto, pero el gestor puede inscribir manualmente.' }),
+    etapa: { id: etapa.id, clave: etapa.clave, etapa: etapa.etapa, fase: etapa.fase, estado: etapa.estado },
+    modulos: modulosDisponibles,
+    alumnos,
+    costoExamen,
   });
+});
+
+// ─── POST /gestor/inscripcion-lote — inscribe VARIOS alumnos a módulo(s) de golpe ──
+const inscripcionLoteSchema = z.object({
+  etapaId: z.number().int().positive(),
+  modulosIds: z.array(z.number().int().positive()).min(1),
+  estudianteIds: z.array(z.number().int().positive()).min(1),
+  sedeId: z.number().int().positive().optional(),
+});
+
+router.post('/inscripcion-lote', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const parse = inscripcionLoteSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Datos inválidos', detalle: parse.error.errors }); return; }
+  const { etapaId, modulosIds, estudianteIds, sedeId: sedeElegida } = parse.data;
+
+  // Ventana + etapa: una sola validación para todo el lote.
+  const val = await validarEtapaVentana(etapaId);
+  if (!val.ok) { res.status(400).json({ error: val.error }); return; }
+  const { etapa, periodoAbierto } = val;
+
+  const { horarioByModuloId, modulosById } = await cargarHorariosModulos(etapaId, modulosIds);
+
+  const resultados: Array<{
+    estudianteId: number;
+    nombre: string;
+    elegible: boolean;
+    motivo?: string;
+    inscritos: number;
+    folios: string[];
+    detalle: { sinHorario: number[]; conflicto: number[]; yaInscritos: number[]; excedeLimite: number[] };
+  }> = [];
+
+  for (const estudianteId of [...new Set(estudianteIds)]) {
+    const alumno = await verificarAlumnoDelGestor(gestorId, estudianteId);
+    if (!alumno) {
+      resultados.push({ estudianteId, nombre: `#${estudianteId}`, elegible: false, motivo: 'No es alumno de tu centro', inscritos: 0, folios: [], detalle: { sinHorario: [], conflicto: [], yaInscritos: [], excedeLimite: [] } });
+      continue;
+    }
+    const r = await inscribirExamenAlumno({ gestorId, alumno, etapa, modulosIds, horarioByModuloId, modulosById, sedeElegida: sedeElegida ?? null, req });
+    resultados.push({
+      estudianteId,
+      nombre: alumno.nombreCompleto ?? `#${estudianteId}`,
+      elegible: r.elegible,
+      motivo: r.motivo,
+      inscritos: r.inscritos.length,
+      folios: r.inscritos.map((i) => i.folio),
+      detalle: { sinHorario: r.sinHorario, conflicto: r.conflicto, yaInscritos: r.yaInscritos, excedeLimite: r.excedeLimite },
+    });
+  }
+
+  const totalInscritos = resultados.reduce((n, r) => n + r.inscritos, 0);
+  const alumnosConAlgo = resultados.filter((r) => r.inscritos > 0).length;
+  res.json({ ok: true, etapaClave: etapa.clave, periodoAbierto, totalInscritos, alumnosInscritos: alumnosConAlgo, resultados });
 });
 
 // ─── GET /gestor/alumnos/:id/ficha-pago ──────────────────────────────────────

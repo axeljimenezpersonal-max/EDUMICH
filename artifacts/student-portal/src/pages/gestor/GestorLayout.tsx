@@ -7,7 +7,7 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School, Lock,
+  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School, Lock, ClipboardList,
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
@@ -21,6 +21,7 @@ const NAV = [
   { to: '/gestor', icon: LayoutDashboard, label: 'Inicio', tour: 'nav-inicio' },
   { to: '/gestor/alumnos/nuevo', icon: FilePlus2, label: 'Nuevo alumno', tour: 'nav-nuevo' },
   { to: '/gestor/alumnos', icon: Users, label: 'Mis alumnos', tour: 'nav-alumnos' },
+  { to: '/gestor/inscripcion', icon: ClipboardList, label: 'Inscripción', tour: 'nav-inscripcion' },
   { to: '/gestor/pagos', icon: CreditCard, label: 'Pagos', tour: 'nav-pagos' },
   { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones', tour: 'nav-calificaciones' },
   { to: '/gestor/mensajes', icon: MessageSquare, label: 'Mensajes', tour: 'nav-mensajes' },
@@ -137,6 +138,7 @@ export function GestorLayout({ children }: { children: ReactNode }) {
           { to: '/gestor/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
         ]}
         extras={[
+          { to: '/gestor/inscripcion', label: 'Inscripción', icon: ClipboardList, tour: 'nav-inscripcion' },
           { to: '/gestor/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
           { to: '/gestor/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
           { to: '/gestor/aula', label: 'Mi aula', icon: School, lock: !aula, tour: 'nav-aula' },
