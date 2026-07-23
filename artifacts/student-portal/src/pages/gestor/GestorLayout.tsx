@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
-import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 import { BottomNav } from '../../components/BottomNav';
@@ -66,7 +65,6 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         userName={me?.perfil?.nombreCompleto ?? me?.email}
         userRole={me ? `Gestor · ${me.perfil?.municipio ?? ''}` : undefined}
         onLogout={handleLogout}
-        acciones={<BuscadorGlobal rol="gestor" />}
       />
 
       <div className="flex-1 max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 grid grid-cols-1 md:grid-cols-[220px_1fr] gap-4 sm:gap-6 w-full pb-20 md:pb-6">
