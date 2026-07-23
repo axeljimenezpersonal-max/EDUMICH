@@ -15,7 +15,7 @@
 import { Router } from 'express';
 import multer from 'multer';
 import ExcelJS from 'exceljs';
-import { eq, or, ilike, sql, asc } from 'drizzle-orm';
+import { eq, or, ilike, sql, asc, desc } from 'drizzle-orm';
 import { db } from '../db';
 import { padronHistorico } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
@@ -138,6 +138,22 @@ router.get('/resumen', requireRol('admin', 'direccion'), async (_req, res) => {
   res.json({ total: Number(n) });
 });
 
+// Ordenamiento por columna (clic en el encabezado, como Excel). Se listan las
+// columnas permitidas para no aceptar nombres arbitrarios del cliente.
+const COLUMNAS_ORDEN = {
+  matricula: [padronHistorico.matricula],
+  curp: [padronHistorico.curp],
+  nombre: [padronHistorico.primerApellido, padronHistorico.segundoApellido, padronHistorico.nombre],
+  sexo: [padronHistorico.sexo],
+  nacimiento: [padronHistorico.fechaNacimiento],
+  alta: [padronHistorico.fechaAlta],
+} as const;
+function ordenamiento(orden: unknown, dir: unknown) {
+  const cols = COLUMNAS_ORDEN[orden as keyof typeof COLUMNAS_ORDEN] ?? COLUMNAS_ORDEN.nombre;
+  const d = dir === 'desc' ? desc : asc;
+  return cols.map((c) => d(c));
+}
+
 // Filtro de búsqueda reutilizado por el listado y por la exportación.
 function filtroBusqueda(q: string) {
   if (!q) return undefined;
@@ -158,7 +174,7 @@ router.get('/', requireRol('admin', 'direccion'), async (req, res) => {
   const pagina = Math.max(1, Number(req.query.pagina) || 1);
   const where = filtroBusqueda(q);
   const registros = await db.select().from(padronHistorico).where(where)
-    .orderBy(asc(padronHistorico.primerApellido), asc(padronHistorico.segundoApellido))
+    .orderBy(...ordenamiento(req.query.orden, req.query.dir))
     .limit(porPagina).offset((pagina - 1) * porPagina);
   const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(padronHistorico).where(where);
   const [{ g }] = await db.select({ g: sql<number>`count(*)::int` }).from(padronHistorico);
@@ -169,7 +185,7 @@ router.get('/', requireRol('admin', 'direccion'), async (req, res) => {
 router.get('/exportar', requireRol('admin', 'direccion'), async (req, res) => {
   const q = String(req.query.q ?? '').trim();
   const rows = await db.select().from(padronHistorico).where(filtroBusqueda(q))
-    .orderBy(asc(padronHistorico.primerApellido), asc(padronHistorico.segundoApellido));
+    .orderBy(...ordenamiento(req.query.orden, req.query.dir));
 
   const wb = new ExcelJS.Workbook();
   const ws = wb.addWorksheet('Padrón');

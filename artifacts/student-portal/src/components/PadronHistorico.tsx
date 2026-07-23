@@ -7,7 +7,7 @@
  * gestor no ve la lista completa: solo recibe la coincidencia por CURP.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Database, Upload, Search, Loader2, CheckCircle2, AlertCircle, ShieldAlert, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Database, Upload, Search, Loader2, CheckCircle2, AlertCircle, ShieldAlert, X, Download, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Registro {
@@ -22,6 +22,7 @@ interface Registro {
   fechaAlta: string | null;
 }
 interface Respuesta { registros: Registro[]; total: number; totalGeneral: number; pagina: number; porPagina: number; }
+type OrdenCol = 'matricula' | 'curp' | 'nombre' | 'sexo' | 'nacimiento' | 'alta';
 
 // Fecha 'YYYY-MM-DD' → 'dd/mm/aaaa' sin crear Date (evita el corrimiento de zona).
 function fechaMx(s: string | null): string {
@@ -36,6 +37,8 @@ function nombreCompleto(r: Registro): string {
 export function PadronHistorico() {
   const [q, setQ] = useState('');
   const [pagina, setPagina] = useState(1);
+  const [orden, setOrden] = useState<OrdenCol>('nombre');
+  const [dir, setDir] = useState<'asc' | 'desc'>('asc');
   const [data, setData] = useState<Respuesta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
@@ -45,18 +48,26 @@ export function PadronHistorico() {
 
   function cargar(busqueda = q, pag = pagina) {
     setCargando(true);
-    api.get<Respuesta>(`/padron-historico?q=${encodeURIComponent(busqueda.trim())}&pagina=${pag}&porPagina=${POR_PAGINA}`)
+    api.get<Respuesta>(`/padron-historico?q=${encodeURIComponent(busqueda.trim())}&pagina=${pag}&porPagina=${POR_PAGINA}&orden=${orden}&dir=${dir}`)
       .then(setData)
       .catch(() => setData({ registros: [], total: 0, totalGeneral: 0, pagina: 1, porPagina: POR_PAGINA }))
       .finally(() => setCargando(false));
   }
 
-  // Cargar al montar y cada vez que cambia la búsqueda o la página (con debounce).
+  // Cargar al montar y cuando cambia la búsqueda, la página o el orden (debounce).
   useEffect(() => {
     const t = setTimeout(() => cargar(q, pagina), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, pagina]);
+  }, [q, pagina, orden, dir]);
+
+  // Clic en un encabezado: si es la misma columna, invierte el sentido; si es
+  // otra, ordena por ella (ascendente). Siempre vuelve a la página 1.
+  function ordenarPor(col: OrdenCol) {
+    if (orden === col) setDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setOrden(col); setDir('asc'); }
+    setPagina(1);
+  }
 
   const totalPaginas = data ? Math.max(1, Math.ceil(data.total / POR_PAGINA)) : 1;
 
@@ -151,7 +162,7 @@ export function PadronHistorico() {
             : `${data.totalGeneral} registro(s) en el padrón`) : ''}
         </div>
         <a
-          href={`/api/padron-historico/exportar?q=${encodeURIComponent(q.trim())}`}
+          href={`/api/padron-historico/exportar?q=${encodeURIComponent(q.trim())}&orden=${orden}&dir=${dir}`}
           className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-guinda-700)] border border-stone-300 rounded-lg px-3 py-1.5 hover:bg-stone-50"
         >
           <Download size={13} /> Descargar Excel{q.trim() ? ' (filtrado)' : ''}
@@ -164,12 +175,23 @@ export function PadronHistorico() {
           <table className="w-full text-sm min-w-[720px]">
             <thead>
               <tr className="text-left text-[11px] font-bold uppercase tracking-wide text-stone-400 border-b border-stone-100">
-                <th className="px-3 py-2.5">Matrícula</th>
-                <th className="px-3 py-2.5">CURP</th>
-                <th className="px-3 py-2.5">Nombre</th>
-                <th className="px-3 py-2.5">Sexo</th>
-                <th className="px-3 py-2.5">Nacimiento</th>
-                <th className="px-3 py-2.5">Alta</th>
+                {([['matricula', 'Matrícula'], ['curp', 'CURP'], ['nombre', 'Nombre'], ['sexo', 'Sexo'], ['nacimiento', 'Nacimiento'], ['alta', 'Alta']] as [OrdenCol, string][]).map(([col, label]) => {
+                  const activo = orden === col;
+                  return (
+                    <th key={col} className="px-3 py-2.5">
+                      <button
+                        onClick={() => ordenarPor(col)}
+                        className={`inline-flex items-center gap-1 uppercase tracking-wide transition-colors ${activo ? 'text-[var(--color-guinda-700)]' : 'hover:text-stone-600'}`}
+                        title="Ordenar"
+                      >
+                        {label}
+                        {activo
+                          ? (dir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />)
+                          : <ChevronsUpDown size={11} className="opacity-40" />}
+                      </button>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-50">
