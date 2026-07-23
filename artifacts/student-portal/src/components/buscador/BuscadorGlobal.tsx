@@ -212,7 +212,7 @@ export function BuscadorGlobal({ rol, datos }: Props) {
 
                 {consulta.trim() && todos.length === 0 && (
                   <SinResultados rol={rol} onIrAMensajes={() => {
-                    setLocation(rol === 'gestor' ? '/gestor/mensajes' : '/estudiante/mensajes');
+                    setLocation(rol === 'gestor' ? '/gestor/faq' : '/estudiante/faq');
                     setAbierto(false);
                   }} />
                 )}
@@ -366,26 +366,26 @@ function Sugerencias({ opciones, onElegir }: { opciones: string[]; onElegir: (s:
 }
 
 /**
- * Sin resultados NO es un callejón sin salida: se ofrece el chat con la
- * Secretaría, que es exactamente lo que el usuario iba a hacer de todos modos.
+ * Sin resultados NO es un callejón sin salida: se ofrece ir a Preguntas
+ * frecuentes, donde están las dudas comunes ya resueltas.
  */
 function SinResultados({ rol, onIrAMensajes }: { rol: RolBuscador; onIrAMensajes: () => void }) {
-  const puedeEscribir = rol === 'estudiante' || rol === 'gestor';
+  const tieneFaq = rol === 'estudiante' || rol === 'gestor';
   return (
     <div className="px-5 py-8 text-center">
       <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a' }}>
         No encontré nada con esas palabras
       </div>
       <div className="text-[12px] mt-1" style={{ color: '#6b635e' }}>
-        Prueba con otra palabra{puedeEscribir ? ', o pregúntale a la Secretaría.' : '.'}
+        Prueba con otra palabra{tieneFaq ? ', o revisa las preguntas frecuentes.' : '.'}
       </div>
-      {puedeEscribir && (
+      {tieneFaq && (
         <button
           onClick={onIrAMensajes}
           className="mt-3 text-[12.5px] font-semibold px-3.5 py-2 rounded-lg text-white"
           style={{ background: GUINDA, border: 'none', cursor: 'pointer' }}
         >
-          Escribir a la Secretaría
+          Ver preguntas frecuentes
         </button>
       )}
     </div>

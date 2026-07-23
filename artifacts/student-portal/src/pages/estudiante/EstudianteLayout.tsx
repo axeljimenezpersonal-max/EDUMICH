@@ -1,7 +1,7 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, MessageSquare, CreditCard,
+  LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, HelpCircle, CreditCard,
   GraduationCap, School, Lock,
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
@@ -10,7 +10,6 @@ import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
-import { ChatFlotante } from '../../components/chat/ChatFlotante';
 import { BottomNav } from '../../components/BottomNav';
 import { demoActive, disableDemo } from '../../lib/demo';
 
@@ -24,7 +23,7 @@ const NAV = [
 ];
 const NAV_HERRAMIENTAS = [
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
-  { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
+  { to: '/estudiante/faq', label: 'Preguntas frecuentes', icon: HelpCircle, tour: 'nav-faq' },
 ];
 
 function SeccionLabel({ children }: { children: ReactNode }) {
@@ -173,7 +172,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
           { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
           { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
           { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
-          { to: '/estudiante/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
+          { to: '/estudiante/faq', label: 'Preguntas frecuentes', icon: HelpCircle, tour: 'nav-faq' },
           { to: '/estudiante/aula', label: 'Mi aula', icon: School, lock: !aula, tour: 'nav-aula' },
         ]}
       />
@@ -183,9 +182,6 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
         nombre={me?.perfil?.nombreCompleto}
         municipio={me?.perfil?.municipio}
       />
-
-      {/* La Secretaría, a un toque desde cualquier pantalla del alumno. */}
-      <ChatFlotante />
 
       {demoActive() && (
         <div

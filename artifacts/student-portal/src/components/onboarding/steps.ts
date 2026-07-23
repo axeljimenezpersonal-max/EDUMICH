@@ -95,11 +95,11 @@ const ESTUDIANTE: TourStep[] = [
   },
   {
     id: 'est-mensajes',
-    anchor: 'nav-mensajes nav-mas',
+    anchor: 'nav-faq nav-mas',
     placement: 'right',
-    icon: 'MessageSquare',
-    title: '¿Dudas? Escríbenos',
-    body: 'En "Mensajes" tienes tu línea directa con la Secretaría. Cualquier cosa de tu trámite, pregúntala aquí; te respondemos en horario de oficina.',
+    icon: 'HelpCircle',
+    title: '¿Dudas? Preguntas frecuentes',
+    body: 'En "Preguntas frecuentes" están resueltas las dudas más comunes del trámite: inscripción, pago, documentos y examen. Búscalas o léelas al instante.',
   },
   {
     id: 'est-help',
@@ -161,11 +161,11 @@ const GESTOR: TourStep[] = [
   },
   {
     id: 'ges-mensajes',
-    anchor: 'nav-mensajes nav-mas',
+    anchor: 'nav-faq nav-mas',
     placement: 'right',
-    icon: 'MessageSquare',
-    title: 'Canal con la Secretaría',
-    body: 'Cualquier duda del trámite, escríbela aquí. Es tu línea directa con la administración estatal.',
+    icon: 'HelpCircle',
+    title: 'Preguntas frecuentes',
+    body: 'Las dudas comunes del trámite ya resueltas: altas, pagos, documentos. Búscalas o léelas al instante.',
   },
   {
     id: 'ges-help',
@@ -232,14 +232,6 @@ const ADMIN: TourStep[] = [
     icon: 'ScanLine',
     title: 'Verificación de pases',
     body: 'El día del examen, escanea el código QR del pase de cada alumno para validar su asistencia en el momento.',
-  },
-  {
-    id: 'adm-chat',
-    anchor: 'nav-chat nav-mas',
-    placement: 'right',
-    icon: 'MessageSquare',
-    title: 'Chat en vivo',
-    body: 'Responde a alumnos y gestores en tiempo real. Tú puedes escribir a cualquiera; ellos solo a la Secretaría.',
   },
   {
     id: 'adm-help',

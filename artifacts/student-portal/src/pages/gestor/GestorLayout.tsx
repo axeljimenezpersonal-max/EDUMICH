@@ -7,14 +7,13 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, MessageSquare, School, Lock, ClipboardList,
+  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, HelpCircle, School, Lock, ClipboardList,
 } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
-import { ChatFlotante } from '../../components/chat/ChatFlotante';
 import { BottomNav } from '../../components/BottomNav';
 
 const NAV = [
@@ -24,7 +23,7 @@ const NAV = [
   { to: '/gestor/inscripcion', icon: ClipboardList, label: 'Inscripción', tour: 'nav-inscripcion' },
   { to: '/gestor/pagos', icon: CreditCard, label: 'Pagos', tour: 'nav-pagos' },
   { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones', tour: 'nav-calificaciones' },
-  { to: '/gestor/mensajes', icon: MessageSquare, label: 'Mensajes', tour: 'nav-mensajes' },
+  { to: '/gestor/faq', icon: HelpCircle, label: 'Preguntas frecuentes', tour: 'nav-faq' },
 ];
 
 export function GestorLayout({ children }: { children: ReactNode }) {
@@ -140,7 +139,7 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         extras={[
           { to: '/gestor/inscripcion', label: 'Inscripción', icon: ClipboardList, tour: 'nav-inscripcion' },
           { to: '/gestor/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
-          { to: '/gestor/mensajes', label: 'Mensajes', icon: MessageSquare, tour: 'nav-mensajes' },
+          { to: '/gestor/faq', label: 'Preguntas frecuentes', icon: HelpCircle, tour: 'nav-faq' },
           { to: '/gestor/aula', label: 'Mi aula', icon: School, lock: !aula, tour: 'nav-aula' },
         ]}
       />
@@ -150,9 +149,6 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         nombre={me?.perfil?.nombreCompleto}
         municipio={me?.perfil?.municipio}
       />
-
-      {/* La Secretaría, a un toque desde cualquier pantalla del gestor. */}
-      <ChatFlotante />
     </div>
   );
 }

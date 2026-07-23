@@ -32,8 +32,8 @@ import MiConvocatoria from './pages/estudiante/MiConvocatoria';
 import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import PaseExamen from './pages/estudiante/PaseExamen';
 import MiIdentificacion from './pages/estudiante/MiIdentificacion';
-import EstudianteMensajes from './pages/estudiante/Mensajes';
-import GestorMensajes from './pages/gestor/GestorMensajes';
+import EstudianteFaq from './pages/estudiante/Faq';
+import GestorFaq from './pages/gestor/GestorFaq';
 import GestorAula from './pages/gestor/GestorAula';
 import AlumnoAula from './pages/estudiante/AlumnoAula';
 import AutoRegistroEmail from './pages/publico/AutoRegistroEmail';
@@ -62,7 +62,6 @@ import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import { Avisador } from './components/Avisador';
 import { Confirmador } from './components/Confirmador';
 import AnunciosLista from './pages/admin/AnunciosLista';
-import AdminChat from './pages/admin/AdminChat';
 import AdminCalificaciones from './pages/admin/AdminCalificaciones';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
@@ -130,7 +129,7 @@ export default function App() {
       <Route path="/gestor/pagos" component={GestorPagos} />
       <Route path="/gestor/inscripcion" component={GestorInscripcion} />
       <Route path="/gestor/calificaciones" component={GestorCalificaciones} />
-      <Route path="/gestor/mensajes" component={GestorMensajes} />
+      <Route path="/gestor/faq" component={GestorFaq} />
       <Route path="/gestor/aula" component={GestorAula} />
       <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
 
@@ -152,7 +151,7 @@ export default function App() {
       <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
       <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
       <Route path="/estudiante/identificacion" component={MiIdentificacion} />
-      <Route path="/estudiante/mensajes" component={EstudianteMensajes} />
+      <Route path="/estudiante/faq" component={EstudianteFaq} />
 
       {/* Rutas públicas de registro */}
       <Route path="/registro/email" component={AutoRegistroEmail} />
@@ -185,7 +184,6 @@ export default function App() {
           guardados ni el menú de nadie. */}
       <Route path="/admin/sedes"><Redirect to="/admin/convocatorias?vista=sedes" /></Route>
       <Route path="/admin/anuncios" component={AnunciosLista} />
-      <Route path="/admin/chat" component={AdminChat} />
       <Route path="/admin/verificacion-pase" component={VerificacionPase} />
       <Route path="/admin/reportes" component={Reportes} />
       <Route path="/admin/configuracion/:seccion" component={Configuracion} />
