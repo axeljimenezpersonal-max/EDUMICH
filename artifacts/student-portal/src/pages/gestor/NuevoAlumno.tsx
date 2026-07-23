@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { GestorLayout } from './GestorLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
-import { api, type Convocatoria } from '../../lib/api';
+import { api, ApiError, type Convocatoria } from '../../lib/api';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_NUEVO_ALUMNO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
@@ -274,6 +274,7 @@ export default function NuevoAlumno() {
   const faltantesObligatorios: string[] = [];
   if (!datos.nombres.trim()) faltantesObligatorios.push('nombre(s)');
   if (!datos.apellidoPaterno.trim()) faltantesObligatorios.push('apellido paterno');
+  if (!datos.apellidoMaterno.trim()) faltantesObligatorios.push('apellido materno');
   if (datos.curp.length !== 18) faltantesObligatorios.push('CURP completa');
   if (!emailValido(datos.email)) faltantesObligatorios.push('correo válido');
   if (!datos.fechaNacimiento) faltantesObligatorios.push('fecha de nacimiento');
@@ -350,7 +351,24 @@ export default function NuevoAlumno() {
   // ── Manejar errores de unicidad (409) ────────────────────────────────
   function handleConflictError(err: unknown) {
     const msg = (err as Error).message ?? '';
-    // La API devuelve { error, campo } en 409 — el cliente de api lanza el mensaje
+
+    // 400 de validación (Zod): la API manda `detalles` con el campo y el mensaje.
+    // Mapeamos curp/email a su campo y cualquier otro (p. ej. apellido materno)
+    // al aviso general — en vez de pintar un "400" crudo sin contexto.
+    if (err instanceof ApiError && err.detalles.length > 0) {
+      const fe = err.fieldErrors();
+      const nuevos: { curp?: string; email?: string } = {};
+      if (fe.curp) nuevos.curp = fe.curp;
+      if (fe.email) nuevos.email = fe.email;
+      if (Object.keys(nuevos).length > 0) setFieldErrors((prev) => ({ ...prev, ...nuevos }));
+      const otro = err.detalles.find((d) => d.path[0] !== 'curp' && d.path[0] !== 'email');
+      if (otro) setSubmitError(otro.message);
+      else if (!Object.keys(nuevos).length) setSubmitError(err.detalles[0].message);
+      setPaso(1);
+      return;
+    }
+
+    // 409 de unicidad (o 400 con `error` legible) — { error, campo }.
     if (msg.includes('correo') || msg.toLowerCase().includes('email')) {
       setFieldErrors((prev) => ({ ...prev, email: msg }));
       setPaso(1);
@@ -359,6 +377,7 @@ export default function NuevoAlumno() {
       setPaso(1);
     } else {
       setSubmitError(msg);
+      setPaso(1);
     }
   }
 
@@ -620,7 +639,7 @@ export default function NuevoAlumno() {
             </div>
             <div>
               <label className="gov-label" htmlFor="apM">
-                Apellido materno
+                Apellido materno <span className="text-red-600">*</span>
               </label>
               <input
                 id="apM"

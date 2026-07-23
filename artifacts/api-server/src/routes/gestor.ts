@@ -293,7 +293,12 @@ const crearAlumnoSchema = z.object({
   convocatoriaId: z.number().int().positive(),
 }).refine((d) => (d.nombreCompleto && d.nombreCompleto.trim()) || (d.nombres && d.apellidoPaterno), {
   message: 'Falta el nombre del alumno (nombres y apellido paterno)',
-});
+}).refine(
+  // Apellido materno obligatorio cuando se capturan las partes (el flujo del
+  // gestor). Se exime la ruta legacy que manda solo `nombreCompleto`.
+  (d) => (d.nombreCompleto && d.nombreCompleto.trim()) || !!(d.apellidoMaterno && d.apellidoMaterno.trim()),
+  { message: 'Falta el apellido materno del alumno', path: ['apellidoMaterno'] },
+);
 
 router.post('/alumnos', async (req, res) => {
   const userId = req.user!.userId;
@@ -458,21 +463,47 @@ router.post(
     const allFiles = [docCurp, docActa, docIne, docDomicilio, docCertificado].filter(Boolean) as Express.Multer.File[];
 
     const body = req.body as Record<string, string>;
+    // Se pasan TODAS las partes que envía el formulario (nombres, apellidos,
+    // sexo, domicilio desglosado…). Antes solo se leían 7 campos y las partes
+    // del nombre se perdían, por lo que el .refine del esquema fallaba siempre
+    // y el registro devolvía 400 sin poder dar de alta a nadie.
     const parse = crearAlumnoSchema.safeParse({
-      nombreCompleto: body.nombreCompleto,
+      nombreCompleto: body.nombreCompleto || undefined,
+      nombres: body.nombres || undefined,
+      apellidoPaterno: body.apellidoPaterno || undefined,
+      apellidoMaterno: body.apellidoMaterno || undefined,
       curp: body.curp,
       email: body.email,
       telefono: body.telefono || undefined,
       fechaNacimiento: body.fechaNacimiento || undefined,
+      sexo: body.sexo || undefined,
+      lugarNacimiento: body.lugarNacimiento || undefined,
+      entidadNacimiento: body.entidadNacimiento || undefined,
+      estadoCivil: body.estadoCivil || undefined,
+      ultimoEstudio: body.ultimoEstudio || undefined,
       direccion: body.direccion || undefined,
+      calleNumero: body.calleNumero || undefined,
+      colonia: body.colonia || undefined,
+      cp: body.cp || undefined,
+      ciudad: body.ciudad || undefined,
+      estadoDomicilio: body.estadoDomicilio || undefined,
       convocatoriaId: Number(body.convocatoriaId),
     });
     if (!parse.success) {
       for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
-      res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
+      res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos', detalles: parse.error.issues });
       return;
     }
     const data = parse.data;
+
+    if (data.fechaNacimiento) {
+      const errEdad = validarEdad(data.fechaNacimiento);
+      if (errEdad) {
+        for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
+        res.status(400).json({ error: errEdad, campo: 'fechaNacimiento' });
+        return;
+      }
+    }
 
     const [curpExistsRC] = await db
       .select()
