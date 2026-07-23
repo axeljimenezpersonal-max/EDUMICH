@@ -12,7 +12,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import {
   ClipboardList, Loader2, CheckCircle2, AlertCircle, Users, CalendarClock,
-  CreditCard, X, Lock, Search, Clock, CalendarCheck,
+  CreditCard, X, Lock, Search, Clock, CalendarCheck, ExternalLink,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api } from '../../lib/api';
@@ -299,10 +299,20 @@ export default function GestorInscripcion() {
                     ))}
                   </div>
                 );
+                // Vínculo al perfil del alumno (no dispara la selección).
+                const verPerfil = (
+                  <Link
+                    href={`/gestor/alumnos/${a.userId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-guinda-700)] hover:underline shrink-0 whitespace-nowrap px-1.5 py-1 rounded hover:bg-[var(--color-guinda-50,#faf0f3)]"
+                  >
+                    Ver perfil <ExternalLink size={11} />
+                  </Link>
+                );
                 if (lleno) {
                   // Bloqueado: ya tiene el máximo de módulos. No se puede seleccionar.
                   return (
-                    <div key={a.userId} className="w-full flex items-start gap-3 py-2.5 px-2 opacity-90 cursor-not-allowed">
+                    <div key={a.userId} className="w-full flex items-start gap-3 py-2.5 px-2">
                       <span className="w-4 h-4 rounded border border-stone-200 bg-stone-100 flex items-center justify-center shrink-0 mt-0.5">
                         <Lock size={10} className="text-stone-400" />
                       </span>
@@ -311,26 +321,34 @@ export default function GestorInscripcion() {
                         <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
                         {chips}
                       </div>
-                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 shrink-0 whitespace-nowrap">
-                        {a.yaInscritos.length} módulos ya inscritos
-                      </span>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 whitespace-nowrap">
+                          {a.yaInscritos.length} módulos ya inscritos
+                        </span>
+                        {verPerfil}
+                      </div>
                     </div>
                   );
                 }
                 return (
-                  <button key={a.userId} onClick={() => toggleAlumno(a.userId)} className="w-full flex items-start gap-3 py-2.5 text-left hover:bg-stone-50 rounded-lg px-2">
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${on ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
-                      {on && <CheckCircle2 size={12} className="text-white" />}
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold text-stone-900 truncate">{a.nombre}</div>
-                      <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
-                      {chips}
+                  <div key={a.userId} className="w-full flex items-start gap-2 py-2.5 px-2 hover:bg-stone-50 rounded-lg">
+                    <button onClick={() => toggleAlumno(a.userId)} className="flex items-start gap-3 text-left min-w-0 flex-1">
+                      <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${on ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
+                        {on && <CheckCircle2 size={12} className="text-white" />}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-stone-900 truncate">{a.nombre}</div>
+                        <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
+                        {chips}
+                      </div>
+                    </button>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {a.yaInscritos.length > 0 && (
+                        <span className="text-[10px] text-stone-400 whitespace-nowrap">{a.yaInscritos.length} ya inscrito(s)</span>
+                      )}
+                      {verPerfil}
                     </div>
-                    {a.yaInscritos.length > 0 && (
-                      <span className="text-[10px] text-stone-400 shrink-0 whitespace-nowrap">{a.yaInscritos.length} ya inscrito(s)</span>
-                    )}
-                  </button>
+                  </div>
                 );
               })}
               {elegibles.length === 0 && (
@@ -350,7 +368,13 @@ export default function GestorInscripcion() {
                     <div key={a.userId} className="flex items-center gap-2 text-xs text-stone-500 px-2 py-1">
                       <Lock size={11} className="text-stone-400 shrink-0" />
                       <span className="truncate">{a.nombre}</span>
-                      <span className="ml-auto text-amber-700">{a.motivo}</span>
+                      <span className="ml-auto text-amber-700 shrink-0">{a.motivo}</span>
+                      <Link
+                        href={`/gestor/alumnos/${a.userId}`}
+                        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-guinda-700)] hover:underline shrink-0 whitespace-nowrap px-1.5 py-0.5 rounded hover:bg-[var(--color-guinda-50,#faf0f3)]"
+                      >
+                        Ver perfil <ExternalLink size={10} />
+                      </Link>
                     </div>
                   ))}
                 </div>
