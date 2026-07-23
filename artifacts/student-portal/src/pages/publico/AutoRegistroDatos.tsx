@@ -6,6 +6,7 @@ import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { api } from '../../lib/api';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
+import { ENTIDADES_MEXICO } from '../../data/entidadesMexico';
 
 interface Municipio {
   id: number;
@@ -224,7 +225,12 @@ export default function AutoRegistroDatos() {
             </div>
             <div>
               <label className="gov-label" htmlFor="entNac">Entidad donde nació</label>
-              <input id="entNac" type="text" value={form.entidadNacimiento} onChange={set('entidadNacimiento')} className="gov-input" placeholder="Michoacán" />
+              <select id="entNac" value={form.entidadNacimiento} onChange={set('entidadNacimiento')} className="gov-input">
+                <option value="">Selecciona… (se deduce de la CURP)</option>
+                {ENTIDADES_MEXICO.map((ent) => (
+                  <option key={ent} value={ent}>{ent}</option>
+                ))}
+              </select>
             </div>
           </div>
 

@@ -74,7 +74,8 @@ dice con claridad qué se comprobó y qué no.
 - **Expediente**: 5 documentos obligatorios (CURP, acta, identificación,
   comprobante de domicilio, certificado de secundaria).
 - **Admin titular vs operativo**: `administradores.es_jefe`. El operativo NO da
-  alta/baja de gestores ni firma cédula.
+  alta/baja de gestores. (Firmar la cédula sí lo pueden ambos perfiles: cada
+  admin firma con la suya.)
 
 ---
 

@@ -20,6 +20,7 @@ import { api, ApiError, type Convocatoria } from '../../lib/api';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_NUEVO_ALUMNO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
+import { ENTIDADES_MEXICO } from '../../data/entidadesMexico';
 import { confirmar } from '../../components/Confirmador';
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -799,13 +800,17 @@ export default function NuevoAlumno() {
             </div>
             <div>
               <label className="gov-label" htmlFor="entNac">Entidad donde nació</label>
-              <input
+              <select
                 id="entNac"
                 value={datos.entidadNacimiento}
                 onChange={(e) => setDatos((d) => ({ ...d, entidadNacimiento: e.target.value }))}
                 className="gov-input"
-                placeholder="Ej. Michoacán (se deduce de la CURP si se deja vacío)"
-              />
+              >
+                <option value="">Selecciona… (se deduce de la CURP)</option>
+                {ENTIDADES_MEXICO.map((ent) => (
+                  <option key={ent} value={ent}>{ent}</option>
+                ))}
+              </select>
             </div>
           </div>
 

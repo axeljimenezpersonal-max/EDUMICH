@@ -60,7 +60,7 @@ export default function FirmaPad({
     ctx.lineWidth = 2.4;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1c1917';
+    ctx.strokeStyle = '#1d3faf'; // tinta azul (como una pluma), no negro
     huboTrazo.current = false;
   }, [drawingSlot]);
 

@@ -109,27 +109,29 @@ function firmaActiva(
 }
 
 /**
- * Resuelve el "Responsable de la inscripción" cuando el alumno NO tiene gestor:
- * es la administradora TITULAR (jefa). La firma responsable es una facultad de
- * jefatura, así que SIEMPRE se toma de un admin jefe, sin importar quién genere
- * la cédula (un admin operativo o el propio alumno). Un operativo puede
- * descargar la cédula, pero nunca firma como responsable.
+ * Resuelve el "Responsable de la inscripción" cuando el alumno NO tiene gestor.
+ * Firmar la cédula es facultad de CUALQUIER administrador (titular u operativo):
+ * cada quien firma con la suya. Si quien genera la cédula aún no registró su
+ * firma, se toma la de otro admin para no dejar el documento sin firmar.
  */
 async function resolverAdminResponsable(
   responsableUserId?: number
 ): Promise<{ nombre: string; firma: string | null }> {
-  // 1) Quien la procesa, SOLO si es un admin JEFE (con o sin firma cargada).
+  // 1) Quien procesa la cédula, si es admin (titular u operativo) y YA tiene
+  //    firma registrada: firma con la suya.
   if (responsableUserId) {
     const [a] = await db
-      .select({ nombre: administradores.nombreCompleto, esJefe: administradores.esJefe })
+      .select({ nombre: administradores.nombreCompleto })
       .from(administradores)
       .where(eq(administradores.userId, responsableUserId));
-    if (a?.esJefe) {
+    if (a) {
       const [f] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, responsableUserId));
-      return { nombre: a.nombre, firma: firmaActiva(f) };
+      const firma = firmaActiva(f);
+      if (firma) return { nombre: a.nombre, firma };
     }
   }
-  // 2) El admin JEFE con firma guardada más reciente (Belia).
+  // 2) Cualquier admin con la firma guardada más reciente (para no dejar la
+  //    cédula sin firmar cuando quien la genera aún no registró la suya).
   const [row] = await db
     .select({
       nombre: administradores.nombreCompleto,
@@ -139,13 +141,11 @@ async function resolverAdminResponsable(
     })
     .from(administradores)
     .innerJoin(firmasUsuario, eq(firmasUsuario.userId, administradores.userId))
-    .where(eq(administradores.esJefe, true))
     .orderBy(desc(firmasUsuario.updatedAt))
     .limit(1);
   if (row) return { nombre: row.nombre, firma: firmaActiva(row) };
-  // 3) Ningún jefe con firma: al menos el nombre de un jefe (línea en blanco).
-  const [a0] = await db.select({ nombre: administradores.nombreCompleto }).from(administradores)
-    .where(eq(administradores.esJefe, true)).limit(1);
+  // 3) Ningún admin con firma: al menos el nombre de un admin (línea en blanco).
+  const [a0] = await db.select({ nombre: administradores.nombreCompleto }).from(administradores).limit(1);
   return { nombre: a0?.nombre ?? '', firma: null };
 }
 

@@ -877,7 +877,7 @@ export default function AdminAlumnoDetalle() {
   const [, params] = useRoute('/admin/alumnos/:id');
   const alumnoId = Number(params?.id);
   // Firmar como responsable es facultad de la titular; el equipo operativo solo consulta.
-  const { esJefe, cargando: cargandoPerfil } = useAdminPerfil();
+  const { cargando: cargandoPerfil } = useAdminPerfil();
 
   const [data, setData] = useState<DetalleResp | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1431,7 +1431,8 @@ export default function AdminAlumnoDetalle() {
               // Se espera a saber el rol para no mostrar el pad de firma un
               // instante a quien no puede firmar (ni al revés).
               mostrarFirmaResponsable={!cargandoPerfil}
-              puedeFirmar={esJefe}
+              // Ambos perfiles de admin (titular y operativo) pueden firmar.
+              puedeFirmar={true}
             />
           )}
           {activeTab === 'modulos' && (
