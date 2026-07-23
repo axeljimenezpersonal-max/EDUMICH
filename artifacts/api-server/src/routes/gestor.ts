@@ -12,7 +12,7 @@
  */
 
 import { Router, type Request } from 'express';
-import { and, desc, eq, count, sql, inArray, ne, lte, gte } from 'drizzle-orm';
+import { and, desc, eq, count, sql, inArray, ne, lte, gte, isNull } from 'drizzle-orm';
 import multer from 'multer';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
@@ -59,6 +59,7 @@ import {
 import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
+import { avisarOrdenPorEmitir } from '../utils/notificarPago';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 import { validarEdad } from '../utils/edad';
@@ -2064,6 +2065,12 @@ router.get('/config-pago', async (_req, res) => {
 // Regla dura: máximo 4 módulos por etapa (sáb/dom × 2 turnos).
 const MAX_MODULOS_POR_ETAPA = 4;
 
+// Folio legible de la ficha de pago (mismo formato que en pagos-examen.ts:
+// FP-<año>-<id a 6 dígitos>). Se replica aquí para el borrador automático.
+function folioFicha(id: number) {
+  return `FP-${hoyEnMexico().slice(0, 4)}-${String(id).padStart(6, '0')}`;
+}
+
 /**
  * Valida que la etapa exista y que HOY esté dentro de la ventana de solicitud
  * [solicitud_inicio, solicitud_fin] (candado estricto, como SIOSAD). Compartido
@@ -2206,11 +2213,13 @@ async function inscribirExamenAlumno(params: {
   }
 
   const inscritos: InscribirResultado['inscritos'] = [];
+  const nuevasInscripcionIds: number[] = [];
   for (const item of aInscribir) {
-    await db.insert(examenesInscripciones).values({
+    const [fila] = await db.insert(examenesInscripciones).values({
       estudianteId: alumno.userId, etapaId: etapa.id, moduloId: item.moduloId,
       horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
-    });
+    }).returning({ id: examenesInscripciones.id });
+    nuevasInscripcionIds.push(fila.id);
     inscritos.push({ folio: item.folio, moduloId: item.moduloId, moduloNombre: modulosById.get(item.moduloId)?.nombre ?? null, dia: item.dia, hora: item.hora, fechaExamen: item.fechaExamen });
   }
 
@@ -2220,9 +2229,106 @@ async function inscribirExamenAlumno(params: {
       detalle: `Gestor inscribió al alumno ${alumno.userId} en ${inscritos.length} examen(es) — etapa ${etapa.clave}`,
       metadata: { etapaId: etapa.id, inscritos: inscritos.map((i) => i.folio) }, req,
     });
+    // Idea A: cada examen inscrito queda enganchado a una ficha borrador
+    // ('pendiente_emision') para que aparezca de una vez en Pagos como "por emitir".
+    await engancharABorradorPago({ gestorId, etapaId: etapa.id, estudianteId: alumno.userId, inscripcionIds: nuevasInscripcionIds });
   }
 
   return { elegible: true, inscritos, sinHorario, conflicto, yaInscritos, excedeLimite };
+}
+
+/**
+ * Idea A — "pago por emitir" automático. Al inscribir exámenes, cada uno queda
+ * enganchado de una vez a una ficha BORRADOR (estado 'pendiente_emision'), para
+ * que aparezca en Pagos sin armado manual; la administración solo captura la
+ * línea de captura en la ventana de pago.
+ *
+ * Como casi todo es grupal, se usa UNA sola ficha grupal por gestor+etapa que
+ * va creciendo. Si el centro solo tiene habilitado el pago individual, se arma
+ * un borrador individual por alumno. Si no tiene ninguno habilitado, no se crea
+ * nada (las inscripciones quedan como candidatas para el flujo manual).
+ */
+async function engancharABorradorPago(params: {
+  gestorId: number;
+  etapaId: number;
+  estudianteId: number;
+  inscripcionIds: number[];
+}): Promise<void> {
+  const { gestorId, etapaId, estudianteId, inscripcionIds } = params;
+  if (inscripcionIds.length === 0) return;
+
+  const [perm] = await db
+    .select({ ind: gestores.pagoIndividualHabilitado, gru: gestores.pagoGrupalHabilitado })
+    .from(gestores)
+    .where(eq(gestores.userId, gestorId));
+  if (perm && !perm.gru && !perm.ind) return; // centro sin ningún pago habilitado
+  const grupal = perm ? perm.gru : true; // por defecto grupal
+
+  // Ficha borrador destino: grupal = una por gestor+etapa (estudiante null);
+  // individual = una por alumno.
+  const filtroEstudiante = grupal ? isNull(pagosExamen.estudianteId) : eq(pagosExamen.estudianteId, estudianteId);
+  const [existente] = await db
+    .select({ id: pagosExamen.id })
+    .from(pagosExamen)
+    .where(and(
+      eq(pagosExamen.gestorId, gestorId),
+      eq(pagosExamen.etapaId, etapaId),
+      eq(pagosExamen.estado, 'pendiente_emision'),
+      eq(pagosExamen.concepto, 'derecho_examen'),
+      filtroEstudiante,
+    ))
+    .limit(1);
+
+  let pagoId: number;
+  if (existente) {
+    pagoId = existente.id;
+  } else {
+    let referencia: string | null = null;
+    if (!grupal) {
+      const [alu] = await db
+        .select({ matricula: estudiantes.matriculaOficialDGB, curp: estudiantes.curp })
+        .from(estudiantes).where(eq(estudiantes.userId, estudianteId)).limit(1);
+      referencia = alu?.matricula || alu?.curp || null;
+    }
+    const [nuevo] = await db.insert(pagosExamen).values({
+      estudianteId: grupal ? null : estudianteId,
+      etapaId,
+      gestorId,
+      solicitadoPorUserId: gestorId,
+      concepto: 'derecho_examen',
+      cantidadExamenes: 0,
+      montoTotal: '0.00', montoIemsys: '0.00', montoSynapsis: '0.00',
+      referencia,
+      estado: 'pendiente_emision',
+    }).returning({ id: pagosExamen.id });
+    pagoId = nuevo.id;
+    const folio = folioFicha(pagoId);
+    await db.update(pagosExamen).set({ folio, referencia: referencia ?? folio }).where(eq(pagosExamen.id, pagoId));
+  }
+
+  // Enganchar las inscripciones nuevas (aún no cubiertas por ninguna ficha).
+  await db.insert(pagosExamenInscripciones)
+    .values(inscripcionIds.map((iid) => ({ pagoExamenId: pagoId, examenInscripcionId: iid })));
+
+  // Recalcular cantidad y montos desde el puente (145 = 115 IEMSyS + 30 Synapsis).
+  const [{ n }] = await db
+    .select({ n: count() })
+    .from(pagosExamenInscripciones)
+    .where(eq(pagosExamenInscripciones.pagoExamenId, pagoId));
+  const cant = Number(n) || inscripcionIds.length;
+  await db.update(pagosExamen).set({
+    cantidadExamenes: cant,
+    montoTotal: (cant * 145).toFixed(2),
+    montoIemsys: (cant * 115).toFixed(2),
+    montoSynapsis: (cant * 30).toFixed(2),
+  }).where(eq(pagosExamen.id, pagoId));
+
+  // Avisar a la administración solo al crear la ficha (no en cada alta), para
+  // no saturar: la coordinación ve la orden "por emitir" en su panel.
+  if (!existente) {
+    const [ficha] = await db.select().from(pagosExamen).where(eq(pagosExamen.id, pagoId)).limit(1);
+    if (ficha) await avisarOrdenPorEmitir(ficha).catch(() => {});
+  }
 }
 
 // ─── POST /gestor/alumnos/:id/inscribir-examen ───────────────────────────────

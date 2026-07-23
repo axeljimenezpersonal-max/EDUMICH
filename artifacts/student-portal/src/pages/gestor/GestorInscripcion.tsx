@@ -393,11 +393,18 @@ export default function GestorInscripcion() {
               <button onClick={() => setResultado(null)} className="text-stone-400 hover:text-stone-700"><X size={18} /></button>
             </div>
             <div className="p-5">
-              <div className="flex items-center gap-2 rounded-xl bg-green-50 border border-green-200 p-3 mb-3">
-                <CheckCircle2 size={18} className="text-green-600 shrink-0" />
-                <div className="text-sm text-green-800">
-                  Se inscribieron <b>{resultado.totalInscritos}</b> examen(es) en <b>{resultado.alumnosInscritos}</b> alumno(s).
+              <div className="rounded-xl bg-green-50 border border-green-200 p-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 size={18} className="text-green-600 shrink-0" />
+                  <div className="text-sm text-green-800">
+                    Se inscribieron <b>{resultado.totalInscritos}</b> examen(es) en <b>{resultado.alumnosInscritos}</b> alumno(s).
+                  </div>
                 </div>
+                {resultado.totalInscritos > 0 && (
+                  <p className="text-xs text-green-700/90 mt-1.5 pl-7">
+                    Ya aparecen en <b>Pagos</b> como ficha por emitir. La administración captura la línea de captura en la ventana de pago.
+                  </p>
+                )}
               </div>
               <div className="max-h-64 overflow-y-auto divide-y divide-stone-100">
                 {resultado.resultados.map((r) => (
