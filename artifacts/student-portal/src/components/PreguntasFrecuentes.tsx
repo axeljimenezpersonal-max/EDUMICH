@@ -19,6 +19,7 @@ interface Faq {
   pregunta: string;
   respuesta: string;
   categoria: string;
+  principal: boolean;
 }
 
 // Paleta suave para las badges de categoría (color estable por texto).
@@ -110,17 +111,21 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
     [q, buscando, indiceCombinado, rol],
   );
 
+  // El listado (navegación) muestra solo las PRINCIPALES (5 por categoría); las
+  // demás viven únicamente en el buscador de arriba.
+  const principales = useMemo(() => (faqs ?? []).filter((f) => f.principal), [faqs]);
+
   const categorias = useMemo(() => {
     const m = new Map<string, number>();
-    for (const f of faqs ?? []) m.set(f.categoria, (m.get(f.categoria) ?? 0) + 1);
+    for (const f of principales) m.set(f.categoria, (m.get(f.categoria) ?? 0) + 1);
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
-  }, [faqs]);
+  }, [principales]);
 
   // Navegación por categoría (solo cuando no se está buscando).
   const filtradas = useMemo(() => {
-    if (cat === null) return faqs ?? [];
-    return (faqs ?? []).filter((f) => f.categoria === cat);
-  }, [faqs, cat]);
+    if (cat === null) return principales;
+    return principales.filter((f) => f.categoria === cat);
+  }, [principales, cat]);
 
   return (
     <div className="max-w-3xl mx-auto pb-12">
@@ -189,7 +194,7 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
                 onClick={() => setCat(null)}
                 className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${cat === null ? 'bg-[var(--color-guinda-700)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
               >
-                Todas ({faqs.length})
+                Principales ({principales.length})
               </button>
               {categorias.map(([c, n]) => (
                 <button
@@ -206,6 +211,8 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
           {filtradas.length === 0 ? (
             <div className="text-center py-16 text-sm text-stone-400">Aún no hay preguntas frecuentes.</div>
           ) : (
+            <>
+            <p className="text-xs text-stone-400 mb-3 px-1">Estas son las principales. ¿No ves tu duda? Escríbela arriba y el buscador la encuentra entre todas.</p>
             <div className="space-y-3">
               {filtradas.map((f) => {
                 const id = `faq-${f.id}`;
@@ -222,6 +229,7 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
                 );
               })}
             </div>
+            </>
           )}
         </>
       )}

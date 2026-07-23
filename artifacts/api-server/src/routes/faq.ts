@@ -47,6 +47,7 @@ const faqSchema = z.object({
   audiencia: z.enum(['estudiante', 'gestor', 'ambos']),
   orden: z.number().int().optional(),
   activa: z.boolean().optional(),
+  principal: z.boolean().optional(),
 });
 
 adminFaqRouter.post('/', async (req, res) => {

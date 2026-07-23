@@ -512,6 +512,9 @@ export const preguntasFrecuentes = pgTable('preguntas_frecuentes', {
   audiencia: varchar('audiencia', { length: 20 }).notNull().default('ambos'), // 'estudiante' | 'gestor' | 'ambos'
   orden: integer('orden').notNull().default(0),
   activa: boolean('activa').notNull().default(true),
+  // "Principal": las que se muestran en el listado del Centro de ayuda (5 por
+  // categoría). Las no principales viven solo en el buscador.
+  principal: boolean('principal').notNull().default(false),
   createdAt: timestamp('created_at').notNull().defaultNow(),
   updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });

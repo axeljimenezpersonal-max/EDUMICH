@@ -16,6 +16,7 @@ interface Faq {
   audiencia: string;
   orden: number;
   activa: boolean;
+  principal: boolean;
 }
 type Form = Omit<Faq, 'id'>;
 
@@ -24,7 +25,7 @@ const AUDIENCIAS = [
   { v: 'estudiante', l: 'Solo alumno' },
   { v: 'gestor', l: 'Solo gestor' },
 ];
-const VACIO: Form = { pregunta: '', respuesta: '', categoria: 'General', audiencia: 'ambos', orden: 0, activa: true };
+const VACIO: Form = { pregunta: '', respuesta: '', categoria: 'General', audiencia: 'ambos', orden: 0, activa: true, principal: false };
 
 export default function AdminFaq() {
   const [faqs, setFaqs] = useState<Faq[] | null>(null);
@@ -39,7 +40,7 @@ export default function AdminFaq() {
   useEffect(() => { cargar(); }, []);
 
   function abrirNueva() { setError(null); setModal({ id: null, form: { ...VACIO } }); }
-  function abrirEditar(f: Faq) { setError(null); setModal({ id: f.id, form: { pregunta: f.pregunta, respuesta: f.respuesta, categoria: f.categoria, audiencia: f.audiencia, orden: f.orden, activa: f.activa } }); }
+  function abrirEditar(f: Faq) { setError(null); setModal({ id: f.id, form: { pregunta: f.pregunta, respuesta: f.respuesta, categoria: f.categoria, audiencia: f.audiencia, orden: f.orden, activa: f.activa, principal: f.principal } }); }
 
   async function guardar() {
     if (!modal) return;
@@ -102,6 +103,7 @@ export default function AdminFaq() {
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="text-sm font-bold text-stone-900">{f.pregunta}</span>
                     <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">{f.categoria}</span>
+                    {f.principal && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">Principal</span>}
                     <span className="text-[10px] text-stone-400">{AUDIENCIAS.find((a) => a.v === f.audiencia)?.l ?? f.audiencia}</span>
                     {!f.activa && <span className="text-[10px] font-bold text-amber-700">Oculta</span>}
                   </div>
@@ -166,6 +168,13 @@ export default function AdminFaq() {
                   Visible
                 </label>
               </div>
+              <label className="flex items-start gap-2 text-sm text-stone-700 cursor-pointer bg-[var(--color-crema-100)] rounded-lg p-3">
+                <input type="checkbox" checked={modal.form.principal} onChange={(e) => set('principal', e.target.checked)} className="w-4 h-4 mt-0.5 accent-[var(--color-guinda-700)]" />
+                <span>
+                  <span className="font-semibold">Principal</span>
+                  <span className="block text-xs text-stone-500">Se muestra en el listado del Centro de ayuda (recomendado: 5 por categoría). Las no principales solo aparecen en el buscador.</span>
+                </span>
+              </label>
               {error && <div className="text-xs text-red-600 bg-red-50 rounded p-2 flex items-center gap-1.5"><AlertCircle size={13} /> {error}</div>}
             </div>
             <div className="flex gap-2 px-5 pb-5">
