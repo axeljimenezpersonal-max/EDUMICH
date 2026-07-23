@@ -89,6 +89,32 @@ export default function GestorDashboard() {
         </p>
       </div>
 
+      {/* Convocatoria activa — lo primero. La ETAPA es el elemento destacado;
+          las fechas y el contador viven en los banners de abajo. */}
+      {conv && (
+        <div
+          className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl px-4 py-3.5 text-white shadow-sm"
+          style={{ background: 'linear-gradient(120deg, var(--color-guinda-800), var(--color-guinda-600))' }}
+        >
+          <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/75">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-white/60" />
+              <span className="inline-flex h-2 w-2 rounded-full bg-white" />
+            </span>
+            Convocatoria activa
+          </span>
+          <span className="font-serif text-base font-bold leading-tight text-white/90">{conv.nombre}</span>
+          {etapaAct && (
+            <span className="inline-flex items-center rounded-lg bg-white/15 px-3 py-1.5 font-serif text-lg font-bold uppercase tracking-tight ring-1 ring-white/25 sm:text-xl">
+              Etapa {etapaAct.clave}
+            </span>
+          )}
+          {etapaAct?.ventana === 'proxima' && (
+            <span className="text-xs font-medium text-white/75">próxima ventana</span>
+          )}
+        </div>
+      )}
+
       {/* Banners de anuncios */}
       {visibleAnuncios.map(a => {
         const colorMap = {
@@ -150,29 +176,6 @@ export default function GestorDashboard() {
 
       {/* Calendario oficial completo (colapsable) */}
       <div className="mb-6"><CalendarioOficial /></div>
-
-      {/* Convocatoria activa — tira delgada (solo identidad; las fechas y el
-          contador ya viven en los banners de arriba, para no triplicar). */}
-      {conv && (
-        <div
-          className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-4 py-3 text-white shadow-sm"
-          style={{ background: 'linear-gradient(120deg, var(--color-guinda-800), var(--color-guinda-600))' }}
-        >
-          <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/75">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-white/60" />
-              <span className="inline-flex h-2 w-2 rounded-full bg-white" />
-            </span>
-            Convocatoria activa
-          </span>
-          <span className="font-serif text-lg font-bold leading-tight">{conv.nombre}</span>
-          {etapaAct && (
-            <span className="text-sm text-white/75">
-              · Etapa {etapaAct.clave}{etapaAct.ventana === 'proxima' && ' · próxima ventana'}
-            </span>
-          )}
-        </div>
-      )}
 
       {/* KPIs — cada tarjeta lleva a su lista filtrada */}
       <div data-tour="g-ini-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
