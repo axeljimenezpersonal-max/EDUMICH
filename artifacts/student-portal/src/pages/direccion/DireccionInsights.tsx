@@ -169,18 +169,31 @@ export default function DireccionInsights() {
             {d.crecimiento.length === 0 ? (
               <p className="text-[13px]" style={{ color: '#6b635e' }}>Sin datos.</p>
             ) : (
-              <div className="flex items-end gap-2" style={{ height: 110 }}>
-                {d.crecimiento.map((c) => (
-                  <div key={c.mes} className="flex-1 flex flex-col items-center gap-1.5">
-                    <span className="text-[11px] font-bold tabular-nums" style={{ color: GUINDA }}>
-                      {c.alumnos}
-                    </span>
-                    <div className="w-full rounded-t"
-                         style={{ height: `${(c.alumnos / maxAlta) * 72}px`, background: GUINDA, minHeight: 3 }} />
-                    <span className="text-[10px]" style={{ color: '#6b635e' }}>{c.mes.slice(5)}</span>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="flex items-end gap-2" style={{ height: 110 }}>
+                  {d.crecimiento.map((c, i) => {
+                    // El primer mes es PARCIAL (arranca a media marcha): se pinta en
+                    // gris para no leerlo como un mes completo.
+                    const parcial = i === 0;
+                    return (
+                      <div key={c.mes} className="flex-1 flex flex-col items-center gap-1.5">
+                        <span className="text-[11px] font-bold tabular-nums" style={{ color: parcial ? '#a89a8e' : GUINDA }}>
+                          {c.alumnos}
+                        </span>
+                        <div className="w-full rounded-t"
+                             style={{ height: `${(c.alumnos / maxAlta) * 72}px`, background: parcial ? '#d4ccc3' : GUINDA, minHeight: 3 }} />
+                        <span className="text-[10px]" style={{ color: '#6b635e' }}>{c.mes.slice(5)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {d.crecimiento.length > 1 && (
+                  <p className="text-[10px] mt-2" style={{ color: '#a89a8e' }}>
+                    <span className="inline-block w-2 h-2 rounded-sm align-middle mr-1" style={{ background: '#d4ccc3' }} />
+                    El primer mes es parcial: son datos de antes, aún no es un mes completo.
+                  </p>
+                )}
+              </>
             )}
           </SeccionCard>
 
