@@ -52,7 +52,8 @@ import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rech
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
 import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
-import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
+import { generarRelacionExamenes, generarRelacionExamenesTodos } from '../services/relacionExamenesPdf';
+import { generarInscritosPagados } from '../services/inscritosPagadosPdf';
 import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
@@ -3032,18 +3033,69 @@ router.patch('/gestores/:gestorId', async (req, res) => {
 });
 
 // ─── GET /admin/relacion-examenes/pdf?etapaId=&gestorId= ───────────────────
-// Documento oficial "Relación de exámenes solicitados" por centro (gestor)+etapa.
+// Documento oficial "Relación de exámenes solicitados". Con `gestorId` = un
+// centro; sin él (o gestorId=todos) = todos los centros de la etapa, una hoja
+// por centro fusionadas en un solo PDF.
 router.get('/relacion-examenes/pdf', async (req, res) => {
   const etapaId = Number(req.query.etapaId);
-  const gestorId = Number(req.query.gestorId);
-  if (!etapaId || !gestorId) { res.status(400).json({ error: 'Faltan etapa y gestor' }); return; }
+  const gestorParam = String(req.query.gestorId ?? '').trim();
+  const todos = gestorParam === '' || gestorParam === 'todos';
+  const gestorId = Number(gestorParam);
+  if (!etapaId || (!todos && !gestorId)) { res.status(400).json({ error: 'Falta la etapa' }); return; }
   try {
-    const { pdf, nombreArchivo } = await generarRelacionExamenes(etapaId, gestorId);
+    const { pdf, nombreArchivo } = todos
+      ? await generarRelacionExamenesTodos(etapaId)
+      : await generarRelacionExamenes(etapaId, gestorId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
     res.send(Buffer.from(pdf));
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error al generar el documento' });
+  }
+});
+
+// ─── GET /admin/inscritos-pagados/pdf?etapaId= ─────────────────────────────
+// "Relación de inscritos pagados": consolidado de la etapa (todos los centros),
+// solo alumnos con ficha pagada. Mismo formato institucional que la Relación.
+router.get('/inscritos-pagados/pdf', async (req, res) => {
+  const etapaId = Number(req.query.etapaId);
+  if (!etapaId) { res.status(400).json({ error: 'Falta la etapa' }); return; }
+  try {
+    const { pdf, nombreArchivo } = await generarInscritosPagados(etapaId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
+    res.send(Buffer.from(pdf));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error al generar el documento' });
+  }
+});
+
+// ─── GET /admin/etapas/:etapaId/gestores-con-inscritos ─────────────────────
+// Centros que tienen exámenes en la etapa (para el selector de "Exámenes
+// solicitados": elegir un gestor o todos).
+router.get('/etapas/:etapaId/gestores-con-inscritos', async (req, res) => {
+  const etapaId = Number(req.params.etapaId);
+  if (!etapaId) { res.status(400).json({ error: 'Etapa inválida' }); return; }
+  try {
+    const filas = await db.execute<{ gestor_id: number; nombre: string; centro: string | null; n: number }>(sql`
+      SELECT e.gestor_id AS gestor_id, g.nombre_completo AS nombre, g.centro_asesoria AS centro,
+             COUNT(DISTINCT ei.id)::int AS n
+      FROM examenes_inscripciones ei
+      JOIN estudiantes e ON e.user_id = ei.estudiante_id
+      JOIN gestores g ON g.user_id = e.gestor_id
+      WHERE ei.etapa_id = ${etapaId} AND ei.estado <> 'cancelado' AND e.gestor_id IS NOT NULL
+      GROUP BY e.gestor_id, g.nombre_completo, g.centro_asesoria
+      ORDER BY g.centro_asesoria NULLS LAST, g.nombre_completo
+    `);
+    res.json({
+      gestores: filas.rows.map((r) => ({
+        gestorId: Number(r.gestor_id),
+        nombre: r.centro || r.nombre,
+        examenes: Number(r.n),
+      })),
+    });
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'Error' });
   }
 });
 
