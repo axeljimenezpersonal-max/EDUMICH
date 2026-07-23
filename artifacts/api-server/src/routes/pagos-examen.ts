@@ -615,6 +615,27 @@ router.get('/gestor-mios', async (req, res) => {
   }
 });
 
+/**
+ * Datos fiscales del centro de asesoría (persona moral, o física) que la ficha
+ * de pago menciona: razón social + RFC + clave. La coordinación los necesita al
+ * emitir la orden y el gestor al pagar. Null si la ficha no tiene gestor.
+ */
+async function centroFiscalDeFicha(gestorId: number | null) {
+  if (gestorId == null) return null;
+  const [g] = await db
+    .select({
+      nombre: gestores.nombreCompleto,
+      razonSocial: gestores.centroAsesoria,
+      rfc: gestores.rfcCentro,
+      clave: gestores.claveCentro,
+    })
+    .from(gestores)
+    .where(eq(gestores.userId, gestorId))
+    .limit(1);
+  if (!g) return null;
+  return { nombre: g.nombre, razonSocial: g.razonSocial ?? null, rfc: g.rfc ?? null, clave: g.clave ?? null };
+}
+
 // GET /api/pagos-examen/gestor-detalle/:id — detalle de una ficha del gestor
 router.get('/gestor-detalle/:id', async (req, res) => {
   if (req.user!.rol !== 'gestor') return res.status(403).json({ error: 'Solo gestor' });
@@ -631,7 +652,7 @@ router.get('/gestor-detalle/:id', async (req, res) => {
         .where(eq(examenesInscripciones.id, it.inscripcionId)).limit(1);
       items.push({ ...it, alumno: alu?.nombre ?? '' });
     }
-    return res.json(vistaAlumno(det.pago, items));
+    return res.json({ ...vistaAlumno(det.pago, items), centroFiscal: await centroFiscalDeFicha(det.pago.gestorId) });
   } catch {
     return res.status(500).json({ error: 'Error al obtener la ficha' });
   }
@@ -783,7 +804,7 @@ router.get('/:id/detalle', async (req, res) => {
         .limit(1);
     }
     const { fechaExamen, vencimientoSugerido } = await fechasDeEtapa(det.pago.etapaId);
-    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp, fechaExamen, vencimientoSugerido });
+    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp, fechaExamen, vencimientoSugerido, centroFiscal: await centroFiscalDeFicha(det.pago.gestorId) });
   } catch {
     return res.status(500).json({ error: 'Error al obtener detalle' });
   }

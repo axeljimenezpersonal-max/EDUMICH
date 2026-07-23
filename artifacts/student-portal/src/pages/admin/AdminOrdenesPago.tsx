@@ -20,6 +20,7 @@ import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../..
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PagoStepper } from '../../components/PagoStepper';
+import { CentroFiscalCard } from '../../components/CentroFiscalCard';
 import { api, type PagoExamenAdmin, type PagoExamenEstado, type PagoExamenCandidato, type PagoExamenDesglose } from '../../lib/api';
 
 const FILTROS: { key: string; label: string }[] = [
@@ -378,6 +379,9 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               <Dato label="Vencimiento" val={fmtFecha(p.fechaVencimiento)} />
             </div>
           </div>
+
+          {/* Datos fiscales del centro (persona moral) — para emitir la orden */}
+          <CentroFiscalCard centro={p.centroFiscal} />
 
           <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
             <div className="px-4 py-2.5 bg-[var(--color-crema-100)] border-b border-stone-200 text-xs font-bold uppercase tracking-wide text-stone-600 flex items-center justify-between">

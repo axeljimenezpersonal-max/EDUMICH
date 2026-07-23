@@ -903,6 +903,15 @@ export const METODOS_PAGO: { value: MetodoPago; label: string; ayuda: string }[]
   { value: 'linea', label: 'Pago en línea', ayuda: 'Portal de pago del Estado con tarjeta.' },
 ];
 
+/** Datos fiscales del centro de asesoría que aparecen en la ficha de pago
+ *  (persona moral casi siempre). Para copiar/ver rápido al emitir o pagar. */
+export interface CentroFiscal {
+  nombre: string;              // responsable del centro (persona física / firmante)
+  razonSocial: string | null;  // centro de asesoría (persona moral)
+  rfc: string | null;
+  clave: string | null;
+}
+
 /** Vista del alumno — nunca incluye el split 115/30. */
 export interface PagoExamenAlumno {
   id: number;
@@ -922,6 +931,8 @@ export interface PagoExamenAlumno {
   tieneComprobante: boolean;
   motivoRechazo: string | null;
   examenes: PagoExamenItem[];
+  /** Datos fiscales del centro (persona moral) que menciona la ficha. */
+  centroFiscal?: CentroFiscal | null;
 }
 
 /** Vista admin — incluye split interno + datos del alumno. */

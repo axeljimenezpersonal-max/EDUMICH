@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { PagoStepper } from '../../components/PagoStepper';
+import { CentroFiscalCard } from '../../components/CentroFiscalCard';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_PAGOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
@@ -600,6 +601,11 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
               )}
               {p.fechaVencimiento && <div className="text-xs text-stone-500 mt-2">Vence el <strong className="text-stone-700">{fmtFecha(p.fechaVencimiento)}</strong>.</div>}
             </div>
+          )}
+
+          {/* Datos fiscales del centro (para copiar al pagar) */}
+          {(p.estado === 'emitida' || p.estado === 'en_revision' || p.estado === 'pagado' || p.estado === 'vencido') && (
+            <CentroFiscalCard centro={p.centroFiscal} />
           )}
 
           {/* Instrucciones + pago */}
