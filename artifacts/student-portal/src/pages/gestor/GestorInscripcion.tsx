@@ -19,9 +19,10 @@ import { api } from '../../lib/api';
 import { fechaCorta } from '../../lib/fechas';
 
 interface ModuloDisp { moduloId: number; numero: number; nombre: string; dia: string; hora: string; }
+interface ModuloInscrito { id: number; numero: number; }
 interface AlumnoElegible {
   userId: number; nombre: string; matricula: string | null;
-  elegible: boolean; motivo?: string; yaInscritos: number[];
+  elegible: boolean; motivo?: string; yaInscritos: ModuloInscrito[];
 }
 interface EtapaLote {
   id: number; clave: string; etapa: number; fase: string; estado: string;
@@ -33,6 +34,7 @@ interface DatosLote {
   modulos: ModuloDisp[];
   alumnos: AlumnoElegible[];
   costoExamen: number;
+  maxModulos: number;
 }
 
 const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
@@ -74,6 +76,11 @@ export default function GestorInscripcion() {
     return elegibles.filter((a) => a.nombre.toLowerCase().includes(q) || (a.matricula ?? '').toLowerCase().includes(q));
   }, [elegibles, filtroAlumno]);
   const costo = datos?.costoExamen ?? 145;
+  const maxMod = datos?.maxModulos ?? 4;
+  // Un alumno "lleno" ya tiene el máximo de módulos en la etapa: no se puede
+  // inscribir a más y se muestra bloqueado con los módulos que ya trae.
+  const estaLleno = (a: AlumnoElegible) => a.yaInscritos.length >= maxMod;
+  const seleccionables = useMemo(() => elegibles.filter((a) => !estaLleno(a)), [elegibles, maxMod]);
 
   // Cuadrícula de horario: días (Sábado/Domingo) × horas, igual que la
   // inscripción individual. Un mismo día+hora es un "bloque": solo se puede
@@ -97,7 +104,8 @@ export default function GestorInscripcion() {
     setAlumnosSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
   }
   function toggleTodosElegibles() {
-    setAlumnosSel((s) => (elegibles.length > 0 && elegibles.every((a) => s.has(a.userId)) ? new Set() : new Set(elegibles.map((a) => a.userId))));
+    // "Seleccionar elegibles" no toca a los alumnos que ya están llenos.
+    setAlumnosSel((s) => (seleccionables.length > 0 && seleccionables.every((a) => s.has(a.userId)) ? new Set() : new Set(seleccionables.map((a) => a.userId))));
   }
 
   async function inscribir() {
@@ -246,9 +254,9 @@ export default function GestorInscripcion() {
                 <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">2</span>
                 <h3 className="text-sm font-bold text-stone-800">Elige los alumnos</h3>
               </div>
-              {elegibles.length > 0 && (
+              {seleccionables.length > 0 && (
                 <button onClick={toggleTodosElegibles} className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-guinda-50,#faf0f3)]">
-                  {elegibles.every((a) => alumnosSel.has(a.userId)) ? 'Quitar todos' : 'Seleccionar elegibles'}
+                  {seleccionables.every((a) => alumnosSel.has(a.userId)) ? 'Quitar todos' : 'Seleccionar elegibles'}
                 </button>
               )}
             </div>
@@ -280,17 +288,47 @@ export default function GestorInscripcion() {
             <div className="divide-y divide-stone-100">
               {elegiblesFiltrados.map((a) => {
                 const on = alumnosSel.has(a.userId);
+                const lleno = estaLleno(a);
+                // Chips de los módulos que YA trae el alumno en esta etapa (M1, M2…).
+                const chips = a.yaInscritos.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {a.yaInscritos.map((m) => (
+                      <span key={m.id} className="inline-flex items-center text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">
+                        M{m.numero || '?'}
+                      </span>
+                    ))}
+                  </div>
+                );
+                if (lleno) {
+                  // Bloqueado: ya tiene el máximo de módulos. No se puede seleccionar.
+                  return (
+                    <div key={a.userId} className="w-full flex items-start gap-3 py-2.5 px-2 opacity-90 cursor-not-allowed">
+                      <span className="w-4 h-4 rounded border border-stone-200 bg-stone-100 flex items-center justify-center shrink-0 mt-0.5">
+                        <Lock size={10} className="text-stone-400" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold text-stone-500 truncate">{a.nombre}</div>
+                        <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
+                        {chips}
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-100 text-amber-700 shrink-0 whitespace-nowrap">
+                        {a.yaInscritos.length} módulos ya inscritos
+                      </span>
+                    </div>
+                  );
+                }
                 return (
-                  <button key={a.userId} onClick={() => toggleAlumno(a.userId)} className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-stone-50 rounded-lg px-2">
-                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
+                  <button key={a.userId} onClick={() => toggleAlumno(a.userId)} className="w-full flex items-start gap-3 py-2.5 text-left hover:bg-stone-50 rounded-lg px-2">
+                    <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 mt-0.5 ${on ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
                       {on && <CheckCircle2 size={12} className="text-white" />}
                     </span>
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-semibold text-stone-900 truncate">{a.nombre}</div>
                       <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
+                      {chips}
                     </div>
                     {a.yaInscritos.length > 0 && (
-                      <span className="text-[10px] text-stone-400">{a.yaInscritos.length} módulo(s) ya inscrito(s)</span>
+                      <span className="text-[10px] text-stone-400 shrink-0 whitespace-nowrap">{a.yaInscritos.length} ya inscrito(s)</span>
                     )}
                   </button>
                 );

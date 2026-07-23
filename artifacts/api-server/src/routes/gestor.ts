@@ -2348,10 +2348,18 @@ router.get('/inscripcion-lote/datos', async (req, res) => {
         .from(examenesInscripciones)
         .where(and(inArray(examenesInscripciones.estudianteId, alumnoIds), eq(examenesInscripciones.etapaId, etapa.id), ne(examenesInscripciones.estado, 'cancelado')))
     : [];
-  const inscritosPorAlumno = new Map<number, number[]>();
+  // Números de módulo para los ya inscritos (pueden no estar en los disponibles
+  // si se quitó el horario después de inscribir), así podemos mostrar "M1, M2…".
+  const numeroByModulo = new Map<number, number>(modRows.map((m) => [m.id, m.numero]));
+  const faltantes = [...new Set(inscRows.map((i) => i.moduloId))].filter((id) => !numeroByModulo.has(id));
+  if (faltantes.length) {
+    const extra = await db.select({ id: modulos.id, numero: modulos.numero }).from(modulos).where(inArray(modulos.id, faltantes));
+    for (const m of extra) numeroByModulo.set(m.id, m.numero);
+  }
+  const inscritosPorAlumno = new Map<number, Array<{ id: number; numero: number }>>();
   for (const i of inscRows) {
     const a = inscritosPorAlumno.get(i.estudianteId) ?? [];
-    a.push(i.moduloId);
+    a.push({ id: i.moduloId, numero: numeroByModulo.get(i.moduloId) ?? 0 });
     inscritosPorAlumno.set(i.estudianteId, a);
   }
 
@@ -2361,7 +2369,8 @@ router.get('/inscripcion-lote/datos', async (req, res) => {
     const tieneMatricula = !!a.matricula;
     const elegible = tieneMatricula && expedienteOk;
     const motivo = !tieneMatricula ? 'Sin matrícula oficial' : !expedienteOk ? `Expediente ${aprob}/${DOCUMENTOS_OBLIGATORIOS.length}` : undefined;
-    return { userId: a.userId, nombre: a.nombre, matricula: a.matricula, elegible, motivo, yaInscritos: inscritosPorAlumno.get(a.userId) ?? [] };
+    const yaInscritos = (inscritosPorAlumno.get(a.userId) ?? []).sort((x, y) => x.numero - y.numero);
+    return { userId: a.userId, nombre: a.nombre, matricula: a.matricula, elegible, motivo, yaInscritos };
   });
 
   res.json({
@@ -2373,6 +2382,7 @@ router.get('/inscripcion-lote/datos', async (req, res) => {
     modulos: modulosDisponibles,
     alumnos,
     costoExamen,
+    maxModulos: MAX_MODULOS_POR_ETAPA,
   });
 });
 
