@@ -7,7 +7,7 @@
  * gestor no ve la lista completa: solo recibe la coincidencia por CURP.
  */
 import { useEffect, useRef, useState } from 'react';
-import { Database, Upload, Search, Loader2, CheckCircle2, AlertCircle, ShieldAlert, X } from 'lucide-react';
+import { Database, Upload, Search, Loader2, CheckCircle2, AlertCircle, ShieldAlert, X, Download, ChevronLeft, ChevronRight } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface Registro {
@@ -21,7 +21,7 @@ interface Registro {
   fechaNacimiento: string | null;
   fechaAlta: string | null;
 }
-interface Respuesta { registros: Registro[]; total: number; mostrando: number; limite: number; }
+interface Respuesta { registros: Registro[]; total: number; totalGeneral: number; pagina: number; porPagina: number; }
 
 // Fecha 'YYYY-MM-DD' → 'dd/mm/aaaa' sin crear Date (evita el corrimiento de zona).
 function fechaMx(s: string | null): string {
@@ -35,27 +35,30 @@ function nombreCompleto(r: Registro): string {
 
 export function PadronHistorico() {
   const [q, setQ] = useState('');
+  const [pagina, setPagina] = useState(1);
   const [data, setData] = useState<Respuesta | null>(null);
   const [cargando, setCargando] = useState(true);
   const [subiendo, setSubiendo] = useState(false);
   const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const POR_PAGINA = 50;
 
-  function cargar(busqueda = q) {
+  function cargar(busqueda = q, pag = pagina) {
     setCargando(true);
-    api.get<Respuesta>(`/padron-historico?q=${encodeURIComponent(busqueda.trim())}`)
+    api.get<Respuesta>(`/padron-historico?q=${encodeURIComponent(busqueda.trim())}&pagina=${pag}&porPagina=${POR_PAGINA}`)
       .then(setData)
-      .catch(() => setData({ registros: [], total: 0, mostrando: 0, limite: 50 }))
+      .catch(() => setData({ registros: [], total: 0, totalGeneral: 0, pagina: 1, porPagina: POR_PAGINA }))
       .finally(() => setCargando(false));
   }
-  useEffect(() => { cargar(''); /* eslint-disable-next-line */ }, []);
 
-  // Búsqueda con pequeño debounce.
+  // Cargar al montar y cada vez que cambia la búsqueda o la página (con debounce).
   useEffect(() => {
-    const t = setTimeout(() => cargar(q), 350);
+    const t = setTimeout(() => cargar(q, pagina), 300);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q, pagina]);
+
+  const totalPaginas = data ? Math.max(1, Math.ceil(data.total / POR_PAGINA)) : 1;
 
   async function subir(file: File) {
     setSubiendo(true); setAviso(null);
@@ -64,8 +67,9 @@ export function PadronHistorico() {
       fd.append('archivo', file);
       const r = await api.post<{ procesados: number; sinMatricula: number; total: number }>('/padron-historico/importar', fd);
       setAviso({ ok: true, texto: `Se cargaron ${r.procesados} registro(s). El padrón tiene ahora ${r.total}.${r.sinMatricula ? ` (${r.sinMatricula} fila(s) sin matrícula se omitieron.)` : ''}` });
-      cargar('');
       setQ('');
+      setPagina(1);
+      cargar('', 1);
     } catch (e) {
       setAviso({ ok: false, texto: e instanceof Error ? e.message : 'No se pudo cargar el archivo.' });
     } finally {
@@ -130,20 +134,28 @@ export function PadronHistorico() {
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => { setQ(e.target.value); setPagina(1); }}
           placeholder="Buscar por CURP, matrícula o nombre…"
           className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-9 py-2.5 bg-white focus:outline-none focus:border-[var(--color-guinda-700)]"
         />
         {q && (
-          <button onClick={() => setQ('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700" aria-label="Limpiar">
+          <button onClick={() => { setQ(''); setPagina(1); }} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700" aria-label="Limpiar">
             <X size={16} />
           </button>
         )}
       </div>
-      <div className="text-[11px] text-stone-400 mb-2 px-1">
-        {data ? (q.trim()
-          ? `${data.mostrando} resultado(s)${data.mostrando >= data.limite ? ` (mostrando los primeros ${data.limite})` : ''} · ${data.total} en total`
-          : `${data.total} registro(s) en el padrón`) : ''}
+      <div className="flex items-center justify-between gap-3 flex-wrap mb-2 px-1">
+        <div className="text-[11px] text-stone-400">
+          {data ? (q.trim()
+            ? `${data.total} resultado(s) para «${q.trim()}» · ${data.totalGeneral} en el padrón`
+            : `${data.totalGeneral} registro(s) en el padrón`) : ''}
+        </div>
+        <a
+          href={`/api/padron-historico/exportar?q=${encodeURIComponent(q.trim())}`}
+          className="inline-flex items-center gap-1.5 text-[12px] font-semibold text-[var(--color-guinda-700)] border border-stone-300 rounded-lg px-3 py-1.5 hover:bg-stone-50"
+        >
+          <Download size={13} /> Descargar Excel{q.trim() ? ' (filtrado)' : ''}
+        </a>
       </div>
 
       {/* Tabla */}
@@ -165,7 +177,7 @@ export function PadronHistorico() {
                 <tr><td colSpan={6} className="px-3 py-10 text-center text-stone-400"><Loader2 size={18} className="animate-spin inline" /> Cargando…</td></tr>
               ) : (data?.registros.length ?? 0) === 0 ? (
                 <tr><td colSpan={6} className="px-3 py-10 text-center text-stone-400">
-                  {data && data.total === 0 ? 'El padrón está vacío. Sube el Excel para empezar.' : 'Sin resultados.'}
+                  {data && data.totalGeneral === 0 ? 'El padrón está vacío. Sube el Excel para empezar.' : 'Sin resultados.'}
                 </td></tr>
               ) : (
                 data!.registros.map((r) => (
@@ -183,6 +195,31 @@ export function PadronHistorico() {
           </table>
         </div>
       </div>
+
+      {/* Paginación (hojas) */}
+      {data && data.total > POR_PAGINA && (
+        <div className="flex items-center justify-between gap-3 mt-3">
+          <div className="text-[12px] text-stone-500">
+            Página <b>{pagina}</b> de <b>{totalPaginas}</b>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setPagina((p) => Math.max(1, p - 1))}
+              disabled={pagina <= 1 || cargando}
+              className="inline-flex items-center gap-1 text-[13px] font-semibold border border-stone-300 rounded-lg px-3 py-1.5 text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ChevronLeft size={14} /> Anterior
+            </button>
+            <button
+              onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+              disabled={pagina >= totalPaginas || cargando}
+              className="inline-flex items-center gap-1 text-[13px] font-semibold border border-stone-300 rounded-lg px-3 py-1.5 text-stone-700 hover:bg-stone-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Siguiente <ChevronRight size={14} />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

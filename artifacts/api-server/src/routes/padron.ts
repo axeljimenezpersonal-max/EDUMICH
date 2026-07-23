@@ -138,24 +138,63 @@ router.get('/resumen', requireRol('admin', 'direccion'), async (_req, res) => {
   res.json({ total: Number(n) });
 });
 
-// ─── GET /padron-historico — búsqueda/listado (solo Secretaría y dirección) ──
+// Filtro de búsqueda reutilizado por el listado y por la exportación.
+function filtroBusqueda(q: string) {
+  if (!q) return undefined;
+  const patron = `%${q}%`;
+  return or(
+    ilike(padronHistorico.curp, patron),
+    ilike(padronHistorico.matricula, patron),
+    ilike(padronHistorico.nombre, patron),
+    ilike(padronHistorico.primerApellido, patron),
+    ilike(padronHistorico.segundoApellido, patron),
+  );
+}
+
+// ─── GET /padron-historico — búsqueda/listado paginado (Secretaría y dirección) ──
 router.get('/', requireRol('admin', 'direccion'), async (req, res) => {
   const q = String(req.query.q ?? '').trim();
-  const limit = Math.min(Number(req.query.limit) || 50, 200);
-  const patron = `%${q}%`;
-  const where = q
-    ? or(
-        ilike(padronHistorico.curp, patron),
-        ilike(padronHistorico.matricula, patron),
-        ilike(padronHistorico.nombre, patron),
-        ilike(padronHistorico.primerApellido, patron),
-        ilike(padronHistorico.segundoApellido, patron),
-      )
-    : undefined;
+  const porPagina = Math.min(Math.max(Number(req.query.porPagina) || 50, 10), 200);
+  const pagina = Math.max(1, Number(req.query.pagina) || 1);
+  const where = filtroBusqueda(q);
   const registros = await db.select().from(padronHistorico).where(where)
-    .orderBy(asc(padronHistorico.primerApellido), asc(padronHistorico.segundoApellido)).limit(limit);
-  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(padronHistorico);
-  res.json({ registros, total: Number(n), mostrando: registros.length, limite: limit });
+    .orderBy(asc(padronHistorico.primerApellido), asc(padronHistorico.segundoApellido))
+    .limit(porPagina).offset((pagina - 1) * porPagina);
+  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(padronHistorico).where(where);
+  const [{ g }] = await db.select({ g: sql<number>`count(*)::int` }).from(padronHistorico);
+  res.json({ registros, total: Number(n), totalGeneral: Number(g), pagina, porPagina });
+});
+
+// ─── GET /padron-historico/exportar — descarga el padrón (filtrado) en Excel ──
+router.get('/exportar', requireRol('admin', 'direccion'), async (req, res) => {
+  const q = String(req.query.q ?? '').trim();
+  const rows = await db.select().from(padronHistorico).where(filtroBusqueda(q))
+    .orderBy(asc(padronHistorico.primerApellido), asc(padronHistorico.segundoApellido));
+
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet('Padrón');
+  ws.columns = [
+    { header: 'Matricula', key: 'matricula', width: 18 },
+    { header: 'CURP', key: 'curp', width: 20 },
+    { header: 'Primer_Apellido', key: 'primerApellido', width: 20 },
+    { header: 'Segundo_Apellido', key: 'segundoApellido', width: 20 },
+    { header: 'Nombre', key: 'nombre', width: 26 },
+    { header: 'Sexo', key: 'sexo', width: 8 },
+    { header: 'Fecha_Nacimiento', key: 'fechaNacimiento', width: 16 },
+    { header: 'Fecha_alta', key: 'fechaAlta', width: 16 },
+  ];
+  ws.getRow(1).font = { bold: true };
+  for (const r of rows) ws.addRow(r);
+
+  await tryAuditLog({
+    userId: req.user!.userId, accion: 'exportar_padron_historico', entidad: 'padron_historico', entidadId: 0,
+    detalle: `Exportó ${rows.length} registro(s) del padrón histórico${q ? ` (búsqueda "${q}")` : ''}`, req,
+  });
+
+  res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+  res.setHeader('Content-Disposition', 'attachment; filename="padron-historico.xlsx"');
+  await wb.xlsx.write(res);
+  res.end();
 });
 
 // ─── GET /padron-historico/por-curp — match para "Nuevo alumno" ─────────────
