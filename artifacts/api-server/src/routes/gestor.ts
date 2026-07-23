@@ -2644,6 +2644,9 @@ router.post('/inscripcion-lote/cancelar', async (req, res) => {
   const gestorId = req.user!.userId;
   const etapaId = Number(req.body?.etapaId);
   if (!etapaId) { res.status(400).json({ error: 'Falta la etapa' }); return; }
+  // Candado: solo se cancela dentro de la ventana de solicitud abierta.
+  const val = await validarEtapaVentana(etapaId);
+  if (!val.ok) { res.status(400).json({ error: val.error }); return; }
   const r = await cancelarInscripcionesEtapa({ gestorId, etapaId, req });
   if (!r) { res.status(403).json({ error: 'Sin permiso' }); return; }
   res.json({ ok: true, ...r });
@@ -2655,6 +2658,9 @@ router.post('/inscripcion-lote/cancelar-alumno', async (req, res) => {
   const etapaId = Number(req.body?.etapaId);
   const estudianteId = Number(req.body?.estudianteId);
   if (!etapaId || !estudianteId) { res.status(400).json({ error: 'Faltan datos' }); return; }
+  // Candado: solo se cancela dentro de la ventana de solicitud abierta.
+  const val = await validarEtapaVentana(etapaId);
+  if (!val.ok) { res.status(400).json({ error: val.error }); return; }
   const r = await cancelarInscripcionesEtapa({ gestorId, etapaId, estudianteId, req });
   if (!r) { res.status(403).json({ error: 'Ese alumno no es de tu centro' }); return; }
   res.json({ ok: true, ...r });
