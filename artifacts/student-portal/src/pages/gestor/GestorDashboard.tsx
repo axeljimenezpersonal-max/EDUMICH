@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import { AccesosRapidos } from '../../components/AccesosRapidos';
 import { Link } from 'wouter';
-import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, Calendar, AlertCircle, Megaphone, X, CreditCard, ChevronRight } from 'lucide-react';
+import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, AlertCircle, Megaphone, X, CreditCard, ChevronRight } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { AvisosCalendario } from '../../components/AvisosCalendario';
 import { CalendarioOficial } from '../../components/CalendarioOficial';
@@ -39,21 +39,6 @@ interface EtapaActivaGestor {
   examenSabado: string | null;
   examenDomingo: string | null;
   ventana: 'abierta' | 'proxima';
-}
-
-// Rango de fechas compacto: "13–17 abr" o "30 abr – 2 may".
-function rangoFechas(a: string | null, b: string | null): string {
-  const M = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-  if (!a || !b) return '—';
-  const da = new Date(a + 'T00:00:00'), db = new Date(b + 'T00:00:00');
-  return da.getMonth() === db.getMonth()
-    ? `${da.getDate()}–${db.getDate()} ${M[db.getMonth()]}`
-    : `${da.getDate()} ${M[da.getMonth()]} – ${db.getDate()} ${M[db.getMonth()]}`;
-}
-function diasHasta(s: string | null): number | null {
-  if (!s) return null;
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  return Math.ceil((new Date(s + 'T00:00:00').getTime() - hoy.getTime()) / 86400000);
 }
 
 export default function GestorDashboard() {
@@ -166,90 +151,26 @@ export default function GestorDashboard() {
       {/* Calendario oficial completo (colapsable) */}
       <div className="mb-6"><CalendarioOficial /></div>
 
-      {/* Convocatoria activa — banner destacado */}
+      {/* Convocatoria activa — tira delgada (solo identidad; las fechas y el
+          contador ya viven en los banners de arriba, para no triplicar). */}
       {conv && (
         <div
-          className="relative mb-6 overflow-hidden rounded-2xl text-white shadow-lg"
-          style={{
-            background:
-              'linear-gradient(120deg, var(--color-guinda-800) 0%, var(--color-guinda-700) 55%, var(--color-guinda-600) 100%)',
-          }}
+          className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl px-4 py-3 text-white shadow-sm"
+          style={{ background: 'linear-gradient(120deg, var(--color-guinda-800), var(--color-guinda-600))' }}
         >
-          {/* Ornamentos sutiles */}
-          <div
-            className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.06)' }}
-          />
-          <div
-            className="pointer-events-none absolute -bottom-24 right-24 h-56 w-56 rounded-full"
-            style={{ background: 'rgba(255,255,255,0.04)' }}
-          />
-          <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-1.5"
-            style={{ background: 'var(--color-dorado)' }}
-          />
-
-          <div className="relative flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-white/60" />
-                  <span className="inline-flex h-2 w-2 rounded-full bg-white" />
-                </span>
-                Convocatoria activa
-              </div>
-              <div className="mt-2 font-serif text-3xl font-bold leading-tight sm:text-4xl">
-                {conv.nombre}
-              </div>
-
-              {etapaAct && (
-                <div className="mt-1.5 text-sm text-white/70">
-                  Etapa <strong className="font-semibold text-white/90">{etapaAct.clave}</strong>
-                  {etapaAct.ventana === 'proxima' && ' · próxima ventana'}
-                </div>
-              )}
-
-              <div className="mt-4 flex flex-wrap gap-2.5">
-                {/* Dos fechas oficiales de la etapa: solicitud/pago y presentación. */}
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
-                  <Calendar size={15} className="opacity-80" />
-                  Solicitud y pago:{' '}
-                  <strong className="font-semibold">
-                    {etapaAct ? rangoFechas(etapaAct.solicitudInicio, etapaAct.solicitudFin)
-                      : new Date(conv.fechaCierre).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })}
-                  </strong>
-                </span>
-                <span className="inline-flex items-center gap-2 rounded-full bg-white/12 px-3.5 py-1.5 text-sm font-medium ring-1 ring-white/20 backdrop-blur-sm">
-                  <FileCheck2 size={15} className="opacity-80" />
-                  Presentación:{' '}
-                  <strong className="font-semibold">
-                    {etapaAct ? rangoFechas(etapaAct.examenSabado, etapaAct.examenDomingo)
-                      : conv.fechaExamen ? new Date(conv.fechaExamen).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' }) : '—'}
-                  </strong>
-                </span>
-              </div>
-            </div>
-
-            {/* Cuenta regresiva: días para el cierre de solicitud/pago (lo que apremia al gestor). */}
-            {etapaAct && (() => {
-              const d = diasHasta(etapaAct.solicitudFin);
-              if (d === null || d < 0) return null;
-              const abrir = diasHasta(etapaAct.solicitudInicio);
-              const proxima = etapaAct.ventana === 'proxima' && abrir !== null && abrir > 0;
-              const num = proxima ? abrir : d;
-              return (
-                <div className="hidden shrink-0 text-center sm:block">
-                  <div className="rounded-2xl bg-white/12 px-6 py-4 ring-1 ring-white/20">
-                    <div className="font-serif text-4xl font-bold leading-none">{num}</div>
-                    <div className="mt-1 text-[11px] text-white/80 max-w-[120px]">
-                      {proxima ? (num === 1 ? 'día para que abra' : 'días para que abra')
-                        : (num === 1 ? 'día para el cierre de solicitud' : 'días para el cierre de solicitud')}
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
-          </div>
+          <span className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-white/75">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-white/60" />
+              <span className="inline-flex h-2 w-2 rounded-full bg-white" />
+            </span>
+            Convocatoria activa
+          </span>
+          <span className="font-serif text-lg font-bold leading-tight">{conv.nombre}</span>
+          {etapaAct && (
+            <span className="text-sm text-white/75">
+              · Etapa {etapaAct.clave}{etapaAct.ventana === 'proxima' && ' · próxima ventana'}
+            </span>
+          )}
         </div>
       )}
 
