@@ -57,10 +57,10 @@ export default function FirmaPad({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     ctx.scale(dpr, dpr);
-    ctx.lineWidth = 2.4;
+    ctx.lineWidth = 1.6;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#1d3faf'; // tinta azul (como una pluma), no negro
+    ctx.strokeStyle = '#1e3a63'; // azul marino de tinta, formal y sobrio
     huboTrazo.current = false;
   }, [drawingSlot]);
 
