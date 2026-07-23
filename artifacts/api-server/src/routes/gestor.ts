@@ -2289,6 +2289,8 @@ router.get('/inscripcion-lote/datos', async (req, res) => {
       etapa: convocatoriasEtapas.etapa,
       fase: convocatoriasEtapas.fase,
       estado: convocatoriasEtapas.estado,
+      solicitudInicio: convocatoriasEtapas.solicitudInicio,
+      solicitudFin: convocatoriasEtapas.solicitudFin,
       examenSabado: convocatoriasEtapas.examenSabado,
       examenDomingo: convocatoriasEtapas.examenDomingo,
     })
@@ -2363,7 +2365,11 @@ router.get('/inscripcion-lote/datos', async (req, res) => {
   });
 
   res.json({
-    etapa: { id: etapa.id, clave: etapa.clave, etapa: etapa.etapa, fase: etapa.fase, estado: etapa.estado },
+    etapa: {
+      id: etapa.id, clave: etapa.clave, etapa: etapa.etapa, fase: etapa.fase, estado: etapa.estado,
+      solicitudInicio: etapa.solicitudInicio, solicitudFin: etapa.solicitudFin,
+      examenSabado: etapa.examenSabado, examenDomingo: etapa.examenDomingo,
+    },
     modulos: modulosDisponibles,
     alumnos,
     costoExamen,

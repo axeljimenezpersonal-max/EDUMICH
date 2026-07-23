@@ -8,26 +8,35 @@
  * Flujo: elegir módulo(s) → elegir alumnos (solo los elegibles) → inscribir.
  * La inscripción individual dentro del perfil del alumno sigue disponible.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import {
   ClipboardList, Loader2, CheckCircle2, AlertCircle, Users, CalendarClock,
-  CreditCard, X, Lock, Search,
+  CreditCard, X, Lock, Search, Clock, CalendarCheck,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api } from '../../lib/api';
+import { fechaCorta } from '../../lib/fechas';
 
 interface ModuloDisp { moduloId: number; numero: number; nombre: string; dia: string; hora: string; }
 interface AlumnoElegible {
   userId: number; nombre: string; matricula: string | null;
   elegible: boolean; motivo?: string; yaInscritos: number[];
 }
+interface EtapaLote {
+  id: number; clave: string; etapa: number; fase: string; estado: string;
+  solicitudInicio: string | null; solicitudFin: string | null;
+  examenSabado: string | null; examenDomingo: string | null;
+}
 interface DatosLote {
-  etapa: { id: number; clave: string; etapa: number; fase: string; estado: string } | null;
+  etapa: EtapaLote | null;
   modulos: ModuloDisp[];
   alumnos: AlumnoElegible[];
   costoExamen: number;
 }
+
+const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
+const HORA_LABEL: Record<string, string> = { '09:00': '9:00 AM', '11:00': '11:00 AM' };
 interface ResultadoAlumno {
   estudianteId: number; nombre: string; elegible: boolean; motivo?: string;
   inscritos: number; folios: string[];
@@ -65,6 +74,21 @@ export default function GestorInscripcion() {
     return elegibles.filter((a) => a.nombre.toLowerCase().includes(q) || (a.matricula ?? '').toLowerCase().includes(q));
   }, [elegibles, filtroAlumno]);
   const costo = datos?.costoExamen ?? 145;
+
+  // Cuadrícula de horario: días (Sábado/Domingo) × horas, igual que la
+  // inscripción individual. Un mismo día+hora es un "bloque": solo se puede
+  // elegir un módulo por bloque (nadie presenta dos exámenes a la vez).
+  const modulos = datos?.modulos ?? [];
+  const diasOrd = useMemo(
+    () => [...new Set(modulos.map((m) => m.dia))].sort((a, b) => (a === 'sabado' ? 0 : 1) - (b === 'sabado' ? 0 : 1)),
+    [datos],
+  );
+  const horasOrd = useMemo(() => [...new Set(modulos.map((m) => m.hora))].sort(), [datos]);
+  const fechaDeDia = (d: string) => (d === 'sabado' ? datos?.etapa?.examenSabado : d === 'domingo' ? datos?.etapa?.examenDomingo : null);
+  function slotOcupado(m: ModuloDisp): boolean {
+    if (modulosSel.has(m.moduloId)) return false;
+    return modulos.some((x) => x.moduloId !== m.moduloId && modulosSel.has(x.moduloId) && x.dia === m.dia && x.hora === m.hora);
+  }
 
   function toggleModulo(id: number) {
     setModulosSel((s) => { const n = new Set(s); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -141,30 +165,76 @@ export default function GestorInscripcion() {
               <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">1</span>
               <h3 className="text-sm font-bold text-stone-800">Elige el o los módulos</h3>
             </div>
-            <p className="text-xs text-stone-500 mb-3 pl-8">Se inscribirá a cada alumno seleccionado en estos módulos (máx. 4 por alumno; los que ya tenga se omiten).</p>
+            <p className="text-xs text-stone-500 mb-3 pl-8">Se inscribirá a cada alumno seleccionado en estos módulos (máx. 4 por alumno; los que ya tenga se omiten). Un mismo día y hora es un bloque: solo se elige uno de cada bloque.</p>
             {datos.modulos.length === 0 ? (
               <div className="text-sm text-stone-400 pl-8 py-2">Esta etapa no tiene módulos con horario configurado.</div>
             ) : (
-              <div className="grid sm:grid-cols-2 gap-2">
-                {datos.modulos.map((m) => {
-                  const on = modulosSel.has(m.moduloId);
-                  return (
-                    <button
-                      key={m.moduloId}
-                      onClick={() => toggleModulo(m.moduloId)}
-                      className={`text-left rounded-lg border-2 p-3 transition-colors ${on ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${on ? 'bg-[var(--color-guinda-700)] border-[var(--color-guinda-700)]' : 'border-stone-300'}`}>
-                          {on && <CheckCircle2 size={12} className="text-white" />}
-                        </span>
-                        <span className="text-sm font-bold text-stone-900">Módulo {m.numero}</span>
+              <div className="overflow-x-auto -mx-1 px-1 pb-1">
+                <div className="grid gap-2 min-w-[560px]" style={{ gridTemplateColumns: `64px repeat(${diasOrd.length}, minmax(0,1fr))` }}>
+                  {/* Encabezado: días con su fecha de examen */}
+                  <div />
+                  {diasOrd.map((d) => {
+                    const fecha = fechaDeDia(d);
+                    return (
+                      <div key={`h-${d}`} className="text-center pb-1.5 border-b-2" style={{ borderColor: '#e8c4d4' }}>
+                        <div className="text-xs font-bold uppercase tracking-wide text-[var(--color-guinda-700)]">{DIA_LABEL[d] ?? d}</div>
+                        {fecha && <div className="text-[10px] font-medium text-stone-400 normal-case mt-0.5">{fechaCorta(fecha)}</div>}
                       </div>
-                      <div className="text-xs text-stone-600 mt-0.5 pl-6 truncate" title={m.nombre}>{m.nombre}</div>
-                      <div className="text-[11px] text-stone-400 mt-0.5 pl-6">{diaCorto(m.dia)} · {m.hora}</div>
-                    </button>
-                  );
-                })}
+                    );
+                  })}
+                  {/* Filas: una por hora */}
+                  {horasOrd.map((h) => (
+                    <Fragment key={`row-${h}`}>
+                      <div className="flex items-center justify-end pr-1.5 text-[11px] font-bold text-stone-500">
+                        <Clock size={11} className="mr-1 text-stone-400 shrink-0" />{HORA_LABEL[h] ?? h}
+                      </div>
+                      {diasOrd.map((d) => {
+                        const slotMods = datos.modulos.filter((m) => m.dia === d && m.hora === h);
+                        return (
+                          <div key={`c-${d}-${h}`} className="rounded-xl border border-stone-100 bg-stone-50/40 p-1.5 space-y-1.5">
+                            {slotMods.length === 0 ? (
+                              <div className="flex items-center justify-center text-[11px] text-stone-300 py-4">—</div>
+                            ) : (
+                              <>
+                                {slotMods.map((m) => {
+                                  const checked = modulosSel.has(m.moduloId);
+                                  const ocupado = slotOcupado(m);
+                                  return (
+                                    <label
+                                      key={m.moduloId}
+                                      className={`flex items-start gap-2.5 p-2.5 rounded-lg border transition-all duration-200 select-none ${
+                                        ocupado
+                                          ? 'border-stone-200 bg-stone-50 opacity-55 cursor-not-allowed'
+                                          : checked
+                                            ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] cursor-pointer ring-1 ring-[var(--color-guinda-700)]'
+                                            : 'border-stone-200 bg-white hover:bg-stone-50 cursor-pointer'
+                                      }`}
+                                    >
+                                      <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        disabled={ocupado}
+                                        onChange={() => !ocupado && toggleModulo(m.moduloId)}
+                                        className="w-4 h-4 shrink-0 mt-0.5 accent-[var(--color-guinda-700)]"
+                                      />
+                                      <div className="min-w-0 flex-1">
+                                        <div className={`text-[11px] font-bold ${checked ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'}`}>Módulo {m.numero}</div>
+                                        <div className="text-xs text-stone-700 leading-snug">{m.nombre}</div>
+                                      </div>
+                                    </label>
+                                  );
+                                })}
+                                {slotMods.length > 1 && (
+                                  <div className="text-center text-[9px] text-stone-400 font-semibold uppercase tracking-wide">Empalmados · elige uno</div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </Fragment>
+                  ))}
+                </div>
               </div>
             )}
           </div>
