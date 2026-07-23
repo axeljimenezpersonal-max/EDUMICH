@@ -15,7 +15,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_REPORTES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { avisar } from '../../components/Avisador';
 import { confirmar } from '../../components/Confirmador';
-import { AvisoModuloReportes } from '../../components/AvisoModuloReportes';
+import { AvisoModuloReportes, REPORTES_LISTOS } from '../../components/AvisoModuloReportes';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -146,24 +146,31 @@ export default function Reportes() {
               <BarChart2 size={13} /> Reportes
             </div>
             <h1 className="font-serif text-3xl font-bold text-stone-900">Panel de indicadores</h1>
-            <p className="text-sm text-stone-500 mt-0.5">Pulso de la operación en vivo. Abajo puedes descargar reportes filtrados.</p>
+            <p className="text-sm text-stone-500 mt-0.5">
+              {REPORTES_LISTOS
+                ? 'Pulso de la operación en vivo. Abajo puedes descargar reportes filtrados.'
+                : 'Disponible una vez que haya un mes completo de datos reales.'}
+            </p>
           </div>
         </div>
 
-        <AvisoModuloReportes />
+        {/* Hasta que haya un mes de datos reales, el módulo no muestra panel ni
+            descargas (nada clickeable): solo el aviso de "en preparación". */}
+        {REPORTES_LISTOS ? (
+          <>
+            <div data-tour="a-rep-indicadores"><PanelIndicadores /></div>
 
-        {/* Módulo en gris (vista previa del primer mes). Sigue visible y clickeable. */}
-        <div style={{ filter: 'grayscale(0.9)', opacity: 0.6 }}>
-          <div data-tour="a-rep-indicadores"><PanelIndicadores /></div>
+            <div className="my-8 flex items-center gap-3">
+              <div className="h-px flex-1 bg-stone-200" />
+              <span className="text-xs font-semibold uppercase tracking-widest text-stone-400">Descargar reportes</span>
+              <div className="h-px flex-1 bg-stone-200" />
+            </div>
 
-          <div className="my-8 flex items-center gap-3">
-            <div className="h-px flex-1 bg-stone-200" />
-            <span className="text-xs font-semibold uppercase tracking-widest text-stone-400">Descargar reportes</span>
-            <div className="h-px flex-1 bg-stone-200" />
-          </div>
-
-          <CentroDescargas />
-        </div>
+            <CentroDescargas />
+          </>
+        ) : (
+          <AvisoModuloReportes />
+        )}
       </div>
 
       <SectionTour

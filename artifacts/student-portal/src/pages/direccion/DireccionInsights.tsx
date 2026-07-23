@@ -14,7 +14,7 @@ import { Loader2, AlertTriangle, TrendingUp, MapPin, Users } from 'lucide-react'
 import { api } from '../../lib/api';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
 import { Tendencias } from './Tendencias';
-import { AvisoModuloReportes } from '../../components/AvisoModuloReportes';
+import { AvisoModuloReportes, REPORTES_LISTOS } from '../../components/AvisoModuloReportes';
 
 const GUINDA = '#6B1530';
 const DORADO = '#8a6f3f';
@@ -101,9 +101,9 @@ export default function DireccionInsights() {
         </p>
       </div>
 
-      <AvisoModuloReportes />
-      {/* Módulo en gris (vista previa del primer mes). Sigue visible y clickeable. */}
-      <div style={{ filter: 'grayscale(0.9)', opacity: 0.6 }}>
+      {/* Hasta que haya un mes de datos reales, no se muestra nada interactivo. */}
+      {REPORTES_LISTOS ? (
+      <>
 
       {/* ── Dinero ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
@@ -285,7 +285,10 @@ export default function DireccionInsights() {
           </p>
         </SeccionCard>
       </div>
-      </div>
+      </>
+      ) : (
+        <AvisoModuloReportes />
+      )}
     </DireccionLayout>
   );
 }

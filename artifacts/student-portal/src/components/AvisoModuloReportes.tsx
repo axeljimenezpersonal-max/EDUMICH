@@ -1,23 +1,26 @@
 /**
- * Aviso "en preparación" para el módulo de Reportes. Durante el primer mes la
- * prioridad es la operación administrativa; los reportes y gráficas se definen
- * con datos reales una vez que haya un mes completo. El módulo se deja visible
- * (para vista previa de dirección/Sinapsis) pero atenuado en gris.
+ * Placeholder del módulo de Reportes mientras no está listo. Durante el primer
+ * mes la prioridad es la operación administrativa; los reportes y gráficas se
+ * habilitarán con datos reales cuando haya un mes completo. Hasta entonces el
+ * módulo NO muestra panel ni gráficas (nada clickeable), solo este aviso.
+ *
+ * Para reactivar todo el módulo, pon REPORTES_LISTOS en true (un solo lugar).
  */
 import { Construction } from 'lucide-react';
 
+export const REPORTES_LISTOS = false;
+
 export function AvisoModuloReportes() {
   return (
-    <div className="mb-5 flex items-start gap-3 rounded-xl border border-stone-300 bg-stone-100 p-4">
-      <Construction size={18} className="shrink-0 mt-0.5 text-stone-500" />
-      <div className="min-w-0">
-        <div className="text-sm font-bold text-stone-700">Reportes en preparación · primer mes</div>
-        <p className="text-[13px] mt-0.5 leading-relaxed text-stone-600">
-          Durante el primer mes la prioridad es la operación administrativa. Las gráficas y reportes
-          se afinarán con los datos reales cuando haya un mes completo; por ahora los ves en gris,
-          a modo de vista previa.
-        </p>
+    <div className="max-w-lg mx-auto text-center py-20">
+      <div className="w-14 h-14 rounded-2xl bg-stone-100 flex items-center justify-center mx-auto mb-4">
+        <Construction size={26} className="text-stone-400" />
       </div>
+      <h2 className="font-serif text-xl font-bold text-stone-800 mb-1.5">Reportes en preparación</h2>
+      <p className="text-sm text-stone-500 leading-relaxed">
+        Durante el primer mes la prioridad es la operación administrativa. Las gráficas y reportes
+        se habilitarán con los datos reales, una vez que haya un mes completo.
+      </p>
     </div>
   );
 }
