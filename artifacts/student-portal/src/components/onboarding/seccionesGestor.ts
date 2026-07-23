@@ -27,7 +27,7 @@ export const TOUR_G_INICIO: TourStep[] = [
     placement: 'bottom',
     icon: 'CalendarClock',
     title: 'Fechas que importan',
-    body: 'Aquí ves, siempre al día, cuándo está abierta la ventana para inscribir y pagar, y cuándo presentan examen tus alumnos. En el aviso morado del examen puedes descargar la lista de alumnos que participan.',
+    body: 'Aquí ves, siempre al día, cuándo está abierta la ventana para inscribir, y cuándo presentan examen tus alumnos. El pago se realiza después, en las fechas que indica la Secretaría. En el aviso morado del examen puedes descargar la lista de alumnos que participan.',
   },
   {
     id: 'g-ini-kpis',

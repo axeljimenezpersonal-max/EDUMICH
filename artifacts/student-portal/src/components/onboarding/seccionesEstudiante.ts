@@ -25,8 +25,8 @@ export const TOUR_INICIO: TourStep[] = [
     anchor: 'dash-inscripcion',
     placement: 'bottom',
     icon: 'CalendarClock',
-    title: 'Inscripción y pago abiertos',
-    body: 'Cuando hay una etapa abierta para inscribirte y pagar tu examen, aquí aparece con sus fechas exactas y los días que faltan para el cierre. Tócalo para ir directo a inscribirte. Si no ves este aviso, es que no hay una ventana abierta por ahora.',
+    title: 'Inscripción abierta',
+    body: 'Cuando hay una etapa abierta para inscribirte a tu examen, aquí aparece con sus fechas exactas y los días que faltan para el cierre. Tócalo para ir directo a inscribirte. El pago se realiza después, en las fechas que indica la Secretaría. Si no ves este aviso, es que no hay una ventana abierta por ahora.',
   },
   {
     id: 'ini-ficha',
@@ -195,7 +195,7 @@ export const TOUR_INSCRIPCION_ACTIVA: TourStep[] = [
     placement: 'bottom',
     icon: 'CalendarClock',
     title: 'Paso 1 · Esta es la convocatoria abierta',
-    body: 'Esta es la etapa cuya inscripción y pago están abiertos ahora. Aquí ves las fechas exactas y los días que faltan para el cierre. Solo dentro de esta ventana puedes inscribir y pagar.',
+    body: 'Esta es la etapa cuya inscripción está abierta ahora. Aquí ves las fechas exactas y los días que faltan para el cierre. Solo dentro de esta ventana puedes inscribirte; el pago se realiza después, en las fechas que indica la Secretaría.',
   },
   {
     id: 'insc-act-modulos',

@@ -1,6 +1,6 @@
 /**
  * AvisosCalendario — banners de FECHAS calculados en vivo del calendario oficial
- * de etapas. Regla general del portal: cuando la ventana de INSCRIPCIÓN Y PAGO de
+ * de etapas. Regla general del portal: cuando la ventana de INSCRIPCIÓN de
  * una etapa está abierta, se muestra un banner PROMINENTE con la etapa en grande,
  * el rango de fechas (del → al) y la cuenta regresiva. Igual para el examen próximo.
  * Se usa en el inicio de alumno, gestor y admin. Siempre al día, sin cron.
@@ -74,7 +74,7 @@ export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataT
   );
 }
 
-// ── Banner PROMINENTE: inscripción y pago abiertos ──────────────────────────
+// ── Banner PROMINENTE: inscripción abierta ──────────────────────────────────
 // Si recibe `href`, todo el banner es clickeable y lleva a la inscripción.
 function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string }) {
   const urgente = e.urgencia === 'alta';
@@ -89,14 +89,14 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
           {urgente ? <AlertTriangle size={13} /> : <CalendarClock size={13} />}
-          Inscripción y pago abiertos
+          Inscripción abierta
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
           Etapa {e.clave}
           {href && <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" style={{ color: acento }} />}
         </div>
         <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
-          La ventana para <strong className="text-stone-800">inscribir y pagar tu examen</strong> está abierta.
+          La ventana para <strong className="text-stone-800">inscribir tu examen</strong> está abierta.
         </p>
         <div className="mt-2.5 flex flex-wrap items-center gap-2">
           {e.fechaInicio && (
@@ -119,7 +119,7 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
           )}
         </div>
         <p className="mt-1.5 text-[11px] text-stone-500">
-          Fuera de estas fechas no es posible inscribir ni pagar el examen.
+          Estas fechas son solo para <strong className="text-stone-600">inscribir</strong>. El <strong className="text-stone-600">pago</strong> se realiza después, en las fechas que indica la Secretaría.
         </p>
         {href && (
           <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-bold underline decoration-2 underline-offset-2" style={{ color: acento }}>
@@ -218,7 +218,7 @@ function BannerVentanaProxima({ e }: { e: EventoCalendario }) {
       <CalendarClock size={16} style={{ color: '#3b82f6', flexShrink: 0, marginTop: 2 }} />
       <div className="min-w-0">
         <div className="text-sm font-semibold" style={{ color: '#1d4ed8' }}>
-          Próxima inscripción y pago — <span className="uppercase">Etapa {e.clave}</span>
+          Próxima inscripción — <span className="uppercase">Etapa {e.clave}</span>
         </div>
         <p className="mt-0.5 text-xs leading-relaxed" style={{ color: '#57504a' }}>
           Abre el <strong>{fmtLargo(e.fecha)}</strong> ({enDias(e.dias)}){e.fechaFin ? ` y cierra el ${fmtLargo(e.fechaFin)}` : ''}.

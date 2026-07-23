@@ -333,7 +333,7 @@ export const TOUR_A_CONVOCATORIAS: TourStep[] = [
     placement: 'bottom',
     icon: 'Flag',
     title: 'La etapa activa',
-    body: 'Esta es la etapa que está corriendo. Es la que ven alumnos y gestores en sus paneles, y de la que dependen sus ventanas de inscripción y pago. Antes de cambiar sus fechas, considera que afecta a todos en ese momento.',
+    body: 'Esta es la etapa que está corriendo. Es la que ven alumnos y gestores en sus paneles, y de la que depende su ventana de inscripción. Antes de cambiar sus fechas, considera que afecta a todos en ese momento.',
   },
   {
     id: 'a-conv-fin',

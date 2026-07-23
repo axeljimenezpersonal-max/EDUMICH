@@ -57,7 +57,7 @@ function TarjetaEtapa({ e }: { e: Etapa }) {
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
       </div>
       <div className="flex items-center gap-1.5 text-[11px] text-stone-600">
-        <CalendarClock size={12} className="text-amber-600 shrink-0" /> Inscripción y pago: <b className="text-stone-800">{rango(e.solicitudInicio, e.solicitudFin)}</b>
+        <CalendarClock size={12} className="text-amber-600 shrink-0" /> Inscripción: <b className="text-stone-800">{rango(e.solicitudInicio, e.solicitudFin)}</b>
       </div>
       <div className="flex items-center gap-1.5 text-[11px] text-stone-600 mt-0.5">
         <CalendarCheck size={12} className="text-[var(--color-guinda-700)] shrink-0" /> Examen: <b className="text-stone-800">{rango(e.examenSabado, e.examenDomingo)}</b>
@@ -132,7 +132,7 @@ export function CalendarioOficial() {
     const push = (uid: string, summary: string, start: string, endExcl: string) =>
       ev.push('BEGIN:VEVENT', `UID:${uid}@edumich`, `DTSTART;VALUE=DATE:${start}`, `DTEND;VALUE=DATE:${endExcl}`, `SUMMARY:${summary}`, 'END:VEVENT');
     for (const e of etapas) {
-      if (e.solicitudInicio && e.solicitudFin) push(`insc-${e.clave}`, `Inscripción y pago · Etapa ${e.clave}`, dt(e.solicitudInicio), nextDay(e.solicitudFin));
+      if (e.solicitudInicio && e.solicitudFin) push(`insc-${e.clave}`, `Inscripción · Etapa ${e.clave}`, dt(e.solicitudInicio), nextDay(e.solicitudFin));
       if (e.examenSabado) push(`exs-${e.clave}`, `Examen · Etapa ${e.clave} (sábado)`, dt(e.examenSabado), nextDay(e.examenSabado));
       if (e.examenDomingo) push(`exd-${e.clave}`, `Examen · Etapa ${e.clave} (domingo)`, dt(e.examenDomingo), nextDay(e.examenDomingo));
     }
@@ -218,7 +218,7 @@ export function CalendarioOficial() {
 
                 {/* Leyenda */}
                 <div className="flex flex-wrap items-center gap-4 mt-4 text-xs text-stone-600">
-                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: '#fef3c7', border: '1px solid #fcd34d' }} /> Inscripción y pago</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: '#fef3c7', border: '1px solid #fcd34d' }} /> Inscripción</span>
                   <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: GUINDA }} /> Examen</span>
                   <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded ring-2 ring-[var(--color-guinda-600)]" /> Hoy</span>
                 </div>
@@ -234,7 +234,7 @@ export function CalendarioOficial() {
                     ))}
                     {selMark.solicitud.map((c) => (
                       <div key={'s' + c} className="flex items-center gap-2 text-xs text-stone-700">
-                        <CalendarClock size={13} className="text-amber-600" /> Inscripción y pago · Etapa {c}
+                        <CalendarClock size={13} className="text-amber-600" /> Inscripción · Etapa {c}
                       </div>
                     ))}
                   </div>
