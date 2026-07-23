@@ -14,6 +14,7 @@ import { Loader2, AlertTriangle, TrendingUp, MapPin, Users } from 'lucide-react'
 import { api } from '../../lib/api';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
 import { Tendencias } from './Tendencias';
+import { AvisoModuloReportes } from '../../components/AvisoModuloReportes';
 
 const GUINDA = '#6B1530';
 const DORADO = '#8a6f3f';
@@ -99,6 +100,10 @@ export default function DireccionInsights() {
           Los números del programa y del negocio, calculados en vivo desde la base.
         </p>
       </div>
+
+      <AvisoModuloReportes />
+      {/* Módulo en gris (vista previa del primer mes). Sigue visible y clickeable. */}
+      <div style={{ filter: 'grayscale(0.9)', opacity: 0.6 }}>
 
       {/* ── Dinero ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
@@ -279,6 +284,7 @@ export default function DireccionInsights() {
             distingue a la plataforma. Vigilar cuánto se usa dice si vale lo que costó.
           </p>
         </SeccionCard>
+      </div>
       </div>
     </DireccionLayout>
   );

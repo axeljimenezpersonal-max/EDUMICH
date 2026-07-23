@@ -10,6 +10,7 @@ import {
   Inbox, TrendingUp, Download, RefreshCw, Loader2,
 } from 'lucide-react';
 import { DireccionLayout, SeccionCard } from './DireccionLayout';
+import { AvisoModuloReportes } from '../../components/AvisoModuloReportes';
 
 type ReporteTipo =
   | 'inscripciones' | 'expedientes' | 'financiero' | 'academico'
@@ -133,6 +134,10 @@ export default function DireccionReportes() {
           Los mismos reportes del sistema, en modo consulta · Excel o PDF
         </p>
       </div>
+
+      <AvisoModuloReportes />
+      {/* Módulo en gris (vista previa del primer mes). Sigue visible y clickeable. */}
+      <div style={{ filter: 'grayscale(0.9)', opacity: 0.6 }}>
 
       {/* Selección de tipo */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -281,6 +286,7 @@ export default function DireccionReportes() {
           </table>
           </div>
         </SeccionCard>
+      </div>
       </div>
     </DireccionLayout>
   );

@@ -15,6 +15,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_REPORTES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { avisar } from '../../components/Avisador';
 import { confirmar } from '../../components/Confirmador';
+import { AvisoModuloReportes } from '../../components/AvisoModuloReportes';
 
 // ─────────────────────────────────────────────────────────────
 // Types
@@ -149,15 +150,20 @@ export default function Reportes() {
           </div>
         </div>
 
-        <div data-tour="a-rep-indicadores"><PanelIndicadores /></div>
+        <AvisoModuloReportes />
 
-        <div className="my-8 flex items-center gap-3">
-          <div className="h-px flex-1 bg-stone-200" />
-          <span className="text-xs font-semibold uppercase tracking-widest text-stone-400">Descargar reportes</span>
-          <div className="h-px flex-1 bg-stone-200" />
+        {/* Módulo en gris (vista previa del primer mes). Sigue visible y clickeable. */}
+        <div style={{ filter: 'grayscale(0.9)', opacity: 0.6 }}>
+          <div data-tour="a-rep-indicadores"><PanelIndicadores /></div>
+
+          <div className="my-8 flex items-center gap-3">
+            <div className="h-px flex-1 bg-stone-200" />
+            <span className="text-xs font-semibold uppercase tracking-widest text-stone-400">Descargar reportes</span>
+            <div className="h-px flex-1 bg-stone-200" />
+          </div>
+
+          <CentroDescargas />
         </div>
-
-        <CentroDescargas />
       </div>
 
       <SectionTour
