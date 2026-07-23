@@ -240,6 +240,30 @@ const migrations = [
   // capacidad al desplegar; la admin la retira caso por caso. Ver schema.gestores.
   `ALTER TABLE gestores ADD COLUMN IF NOT EXISTS pago_individual_habilitado boolean NOT NULL DEFAULT true`,
   `ALTER TABLE gestores ADD COLUMN IF NOT EXISTS pago_grupal_habilitado boolean NOT NULL DEFAULT true`,
+
+  // Preguntas frecuentes administrables. Ver schema.preguntasFrecuentes.
+  `CREATE TABLE IF NOT EXISTS preguntas_frecuentes (
+     id serial PRIMARY KEY,
+     pregunta varchar(300) NOT NULL,
+     respuesta text NOT NULL,
+     categoria varchar(60) NOT NULL DEFAULT 'General',
+     audiencia varchar(20) NOT NULL DEFAULT 'ambos',
+     orden integer NOT NULL DEFAULT 0,
+     activa boolean NOT NULL DEFAULT true,
+     created_at timestamp NOT NULL DEFAULT now(),
+     updated_at timestamp NOT NULL DEFAULT now()
+   )`,
+  // Semilla inicial SOLO si la tabla está vacía (no re-siembra tras ediciones).
+  `INSERT INTO preguntas_frecuentes (pregunta, respuesta, categoria, audiencia, orden)
+   SELECT * FROM (VALUES
+     ('¿Cómo doy de alta a un alumno?', 'Entra a "Nuevo alumno", captura sus datos y sube los 5 documentos obligatorios (CURP, acta, identificación, comprobante de domicilio y certificado de secundaria). La administración revisa el expediente y asigna la matrícula.', 'Alumnos', 'gestor', 10),
+     ('¿Cómo hago un pago grupal?', 'En "Pagos" → "Nuevo pago" elige "Pago grupal", selecciona los exámenes de varios alumnos y solicita la ficha. La coordinación la emite con su línea de captura.', 'Pagos', 'gestor', 20),
+     ('¿Cuántos módulos puede llevar un alumno por convocatoria?', 'Máximo 4 módulos por convocatoria.', 'Inscripción', 'ambos', 30),
+     ('¿Qué documentos necesita el expediente?', 'Cinco: CURP, acta de nacimiento, identificación, comprobante de domicilio y certificado de secundaria. Todos deben quedar aprobados para poder inscribir a examen.', 'Documentos', 'ambos', 40),
+     ('¿Con cuánto se aprueba un módulo?', 'Con 60 de calificación mínima.', 'Calificaciones', 'estudiante', 50),
+     ('¿Cuánto cuesta el examen?', 'El derecho de examen es de 145 pesos por módulo. El pago se hace ante la Tesorería del Estado con la línea de captura.', 'Pagos', 'ambos', 60)
+   ) AS v(pregunta, respuesta, categoria, audiencia, orden)
+   WHERE NOT EXISTS (SELECT 1 FROM preguntas_frecuentes)`,
 ];
 
 export async function runStartupMigrations() {

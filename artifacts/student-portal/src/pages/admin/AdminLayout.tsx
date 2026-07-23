@@ -410,6 +410,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin/verificacion-pase', icon: ScanLine,  label: 'Verificación', tour: 'nav-verificacion' },
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias', tour: undefined },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios', tour: undefined },
+    { href: '/admin/faq',           icon: HelpCircle, label: 'Preguntas frecuentes', tour: undefined },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes', tour: 'nav-reportes' },
     { href: '/admin/configuracion', icon: Settings,   label: 'Configuración', tour: undefined },
   ];

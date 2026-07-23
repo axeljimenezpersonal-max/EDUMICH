@@ -62,6 +62,7 @@ import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import { Avisador } from './components/Avisador';
 import { Confirmador } from './components/Confirmador';
 import AnunciosLista from './pages/admin/AnunciosLista';
+import AdminFaq from './pages/admin/AdminFaq';
 import AdminCalificaciones from './pages/admin/AdminCalificaciones';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
@@ -184,6 +185,7 @@ export default function App() {
           guardados ni el menú de nadie. */}
       <Route path="/admin/sedes"><Redirect to="/admin/convocatorias?vista=sedes" /></Route>
       <Route path="/admin/anuncios" component={AnunciosLista} />
+      <Route path="/admin/faq" component={AdminFaq} />
       <Route path="/admin/verificacion-pase" component={VerificacionPase} />
       <Route path="/admin/reportes" component={Reportes} />
       <Route path="/admin/configuracion/:seccion" component={Configuracion} />

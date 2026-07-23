@@ -500,6 +500,23 @@ export const bloqueosEdicion = pgTable('bloqueos_edicion', {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// Preguntas frecuentes — administrables por la administración. Aparecen en la
+// sección "Preguntas frecuentes" del alumno y del gestor (según `audiencia`).
+// Sustituyen a la mensajería: la duda común se resuelve leyendo, no escribiendo.
+// ─────────────────────────────────────────────────────────────────────────
+export const preguntasFrecuentes = pgTable('preguntas_frecuentes', {
+  id: serial('id').primaryKey(),
+  pregunta: varchar('pregunta', { length: 300 }).notNull(),
+  respuesta: text('respuesta').notNull(),
+  categoria: varchar('categoria', { length: 60 }).notNull().default('General'), // "badge"
+  audiencia: varchar('audiencia', { length: 20 }).notNull().default('ambos'), // 'estudiante' | 'gestor' | 'ambos'
+  orden: integer('orden').notNull().default(0),
+  activa: boolean('activa').notNull().default(true),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────
 // Pagos — comprobantes de pago del alumno
 // ─────────────────────────────────────────────────────────────────────────
 
