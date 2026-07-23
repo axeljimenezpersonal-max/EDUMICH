@@ -115,8 +115,11 @@ export function SectionTour({
   }, [storageKey, etapa]);
 
   const next = useCallback(() => {
-    setIndex((i) => (i >= total - 1 ? (cerrar(true), i) : i + 1));
-  }, [total, cerrar]);
+    // En el último paso, completar: marca visto (fuera del updater de setIndex,
+    // que es un efecto secundario y no debe vivir ahí — antes podía no persistir).
+    if (index >= total - 1) { cerrar(true); return; }
+    setIndex((i) => i + 1);
+  }, [index, total, cerrar]);
   const prev = useCallback(() => setIndex((i) => (i > 0 ? i - 1 : 0)), []);
   /** Saltar / clic fuera: NO marca visto (R1). */
   const skip = useCallback(() => cerrar(false), [cerrar]);

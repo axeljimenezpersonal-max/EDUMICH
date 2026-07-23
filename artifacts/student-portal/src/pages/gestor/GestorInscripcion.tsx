@@ -12,7 +12,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'wouter';
 import {
   ClipboardList, Loader2, CheckCircle2, AlertCircle, Users, CalendarClock,
-  CreditCard, X, Lock,
+  CreditCard, X, Lock, Search,
 } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { api } from '../../lib/api';
@@ -46,6 +46,7 @@ export default function GestorInscripcion() {
   const [alumnosSel, setAlumnosSel] = useState<Set<number>>(new Set());
   const [enviando, setEnviando] = useState(false);
   const [resultado, setResultado] = useState<RespuestaLote | null>(null);
+  const [filtroAlumno, setFiltroAlumno] = useState('');
 
   function cargar() {
     setLoading(true);
@@ -58,6 +59,11 @@ export default function GestorInscripcion() {
 
   const elegibles = useMemo(() => datos?.alumnos.filter((a) => a.elegible) ?? [], [datos]);
   const noElegibles = useMemo(() => datos?.alumnos.filter((a) => !a.elegible) ?? [], [datos]);
+  const elegiblesFiltrados = useMemo(() => {
+    const q = filtroAlumno.trim().toLowerCase();
+    if (!q) return elegibles;
+    return elegibles.filter((a) => a.nombre.toLowerCase().includes(q) || (a.matricula ?? '').toLowerCase().includes(q));
+  }, [elegibles, filtroAlumno]);
   const costo = datos?.costoExamen ?? 145;
 
   function toggleModulo(id: number) {
@@ -115,12 +121,18 @@ export default function GestorInscripcion() {
         </div>
       ) : (
         <div className="space-y-5 pb-24">
-          {/* Etapa activa */}
-          <div className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex items-center gap-2 text-sm">
-            <CalendarClock size={16} className="text-[var(--color-guinda-700)]" />
-            <span className="text-stone-600">Etapa activa:</span>
-            <b className="text-stone-900">Etapa {datos.etapa.clave}</b>
-            <span className="ml-auto text-[11px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">Ventana abierta</span>
+          {/* Etapa activa — destacada, con la clave en grande */}
+          <div className="rounded-xl border-2 px-5 py-4 flex items-center gap-3.5" style={{ borderColor: '#e8c4d4', background: 'var(--color-crema-100)' }}>
+            <div className="w-12 h-12 rounded-xl bg-[var(--color-guinda-700)] text-white flex items-center justify-center shrink-0">
+              <CalendarClock size={22} />
+            </div>
+            <div className="min-w-0">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--color-guinda-700)]">Etapa activa</div>
+              <div className="font-serif text-xl font-bold text-stone-900 leading-tight">Etapa {datos.etapa.clave}</div>
+            </div>
+            <span className="ml-auto inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-green-100 text-green-700">
+              <span className="w-2 h-2 rounded-full bg-green-500" /> Ventana abierta
+            </span>
           </div>
 
           {/* 1. Módulos */}
@@ -172,8 +184,31 @@ export default function GestorInscripcion() {
             </div>
             <p className="text-xs text-stone-500 mb-3 pl-8"><Users size={11} className="inline -mt-0.5" /> Solo se pueden inscribir alumnos con matrícula oficial y expediente 5/5 aprobado.</p>
 
+            {/* Mini filtro de búsqueda */}
+            {elegibles.length > 0 && (
+              <div className="relative mb-2">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
+                <input
+                  value={filtroAlumno}
+                  onChange={(e) => setFiltroAlumno(e.target.value)}
+                  placeholder="Buscar alumno por nombre o matrícula…"
+                  className="w-full text-sm border border-stone-300 rounded-lg pl-9 pr-8 py-2 bg-white focus:outline-none focus:border-[var(--color-guinda-700)]"
+                />
+                {filtroAlumno && (
+                  <button onClick={() => setFiltroAlumno('')} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700" aria-label="Limpiar">
+                    <X size={15} />
+                  </button>
+                )}
+              </div>
+            )}
+            {elegibles.length > 0 && (
+              <div className="text-[11px] text-stone-400 mb-1 px-1">
+                {alumnosSel.size} de {elegibles.length} seleccionado(s){filtroAlumno && ` · ${elegiblesFiltrados.length} coinciden`}
+              </div>
+            )}
+
             <div className="divide-y divide-stone-100">
-              {elegibles.map((a) => {
+              {elegiblesFiltrados.map((a) => {
                 const on = alumnosSel.has(a.userId);
                 return (
                   <button key={a.userId} onClick={() => toggleAlumno(a.userId)} className="w-full flex items-center gap-3 py-2.5 text-left hover:bg-stone-50 rounded-lg px-2">
@@ -192,6 +227,9 @@ export default function GestorInscripcion() {
               })}
               {elegibles.length === 0 && (
                 <div className="text-sm text-stone-400 py-6 text-center">Ningún alumno cumple aún los requisitos (matrícula + expediente aprobado).</div>
+              )}
+              {elegibles.length > 0 && elegiblesFiltrados.length === 0 && (
+                <div className="text-sm text-stone-400 py-6 text-center">Ningún alumno coincide con «{filtroAlumno}».</div>
               )}
             </div>
 

@@ -244,7 +244,7 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
         <div className="flex items-center justify-between gap-2">
           {/* Salidas: «Saltar» solo aplaza (se vuelve a ofrecer); «No volver a
               mostrar» es la única que apaga el tutorial de forma permanente. */}
-          <div className="flex min-w-0 flex-col items-start gap-0.5">
+          <div className="flex min-w-0 flex-col items-start gap-1">
             <button
               type="button"
               onClick={onSkip}
@@ -252,13 +252,13 @@ export function TourCard({ icon, title, body, index, total, rect, placement, isL
             >
               {isLast ? 'Cerrar' : 'Saltar tutorial'}
             </button>
-            {onNoMostrar && !isLast && (
+            {onNoMostrar && (
               <button
                 type="button"
                 onClick={onNoMostrar}
-                className="text-[11px] text-stone-300 underline underline-offset-2 hover:text-stone-500 transition-colors"
+                className="inline-flex items-center gap-1 text-[12px] font-semibold text-stone-500 underline underline-offset-2 decoration-stone-300 hover:text-[var(--color-guinda-700)] hover:decoration-[var(--color-guinda-700)] transition-colors"
               >
-                No volver a mostrar
+                <X size={12} /> No volver a mostrar
               </button>
             )}
           </div>
