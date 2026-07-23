@@ -314,7 +314,9 @@ export default function NuevoAlumno() {
           nombres: datos.nombres,
           apellidoPaterno: datos.apellidoPaterno,
           apellidoMaterno: datos.apellidoMaterno || undefined,
-          fechaNacimiento: datos.fechaNacimiento || undefined,
+          // La API espera 'YYYY-MM-DD'. Antes se mandaba el objeto Date, que al
+          // serializar salía como ISO con hora y reventaba el esquema → 400.
+          fechaNacimiento: datos.fechaNacimiento ? format(datos.fechaNacimiento, 'yyyy-MM-dd') : undefined,
           sexo: datos.sexo || undefined,
         },
       );

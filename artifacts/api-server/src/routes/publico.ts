@@ -224,7 +224,10 @@ const validarCurpSchema = z.object({
 router.post('/validar-curp', curpLimiter, async (req, res) => {
   const parse = validarCurpSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ valida: false, errores: ['Datos inválidos.'] });
+    // El contrato de este endpoint es { valida, errores }: un dato mal formado
+    // se responde como validación fallida (200), no como 400 crudo. Así el
+    // cliente muestra un mensaje útil en vez del código de estado pelón.
+    res.json({ valida: false, errores: ['No se pudo validar la CURP con los datos capturados. Revísalos e intenta de nuevo.'] });
     return;
   }
   const { curp, ...datos } = parse.data;
