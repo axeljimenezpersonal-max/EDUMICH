@@ -196,6 +196,48 @@ export default function NuevoAlumno() {
   const [exito, setExito] = useState<RegistroExito | null>(null);
   const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
 
+  // Coincidencia en el padrón histórico del Estado (alumno que YA existe).
+  interface PadronMatch {
+    matricula: string; curp: string | null;
+    primerApellido: string | null; segundoApellido: string | null;
+    nombre: string | null; sexo: string | null; fechaNacimiento: string | null;
+  }
+  const [padronMatch, setPadronMatch] = useState<PadronMatch | null>(null);
+
+  // Al completar la CURP (18), se consulta el padrón. Solo señala "ya existe";
+  // el gestor no ve el padrón completo (eso es de administración/dirección).
+  useEffect(() => {
+    const curp = datos.curp.trim().toUpperCase();
+    if (curp.length !== 18) { setPadronMatch(null); return; }
+    let cancelado = false;
+    const t = setTimeout(() => {
+      api.get<{ existe: boolean; registro: PadronMatch | null }>(`/padron-historico/por-curp?curp=${encodeURIComponent(curp)}`)
+        .then((r) => { if (!cancelado) setPadronMatch(r.existe ? r.registro : null); })
+        .catch(() => { if (!cancelado) setPadronMatch(null); });
+    }, 300);
+    return () => { cancelado = true; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datos.curp]);
+
+  // 'YYYY-MM-DD' → Date local (sin corrimiento de zona).
+  function fechaLocal(s: string | null): Date | undefined {
+    if (!s) return undefined;
+    const [y, m, d] = s.slice(0, 10).split('-').map(Number);
+    return y && m && d ? new Date(y, m - 1, d) : undefined;
+  }
+  function usarDatosPadron() {
+    if (!padronMatch) return;
+    const f = padronMatch;
+    setDatos((d) => ({
+      ...d,
+      nombres: f.nombre ?? d.nombres,
+      apellidoPaterno: f.primerApellido ?? d.apellidoPaterno,
+      apellidoMaterno: f.segundoApellido ?? d.apellidoMaterno,
+      sexo: f.sexo === 'M' ? 'hombre' : f.sexo === 'F' ? 'mujer' : d.sexo,
+      fechaNacimiento: fechaLocal(f.fechaNacimiento) ?? d.fechaNacimiento,
+    }));
+  }
+
   // One ref per file input
   const inputRefs = useRef<Record<DocKey, HTMLInputElement | null>>({
     curp: null,
@@ -615,6 +657,27 @@ export default function NuevoAlumno() {
       {/* ── PASO 1: Datos personales ─────────────────────────────────── */}
       {paso === 1 && (
         <div data-tour="g-alta-datos" className="gov-card p-6 max-w-3xl mx-auto space-y-5">
+          {padronMatch && (
+            <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 size={20} className="text-emerald-600 shrink-0 mt-0.5" />
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-bold text-emerald-800">Este alumno ya existe en el padrón del Estado</div>
+                  <p className="text-[13px] text-emerald-700/90 mt-0.5">
+                    {[padronMatch.primerApellido, padronMatch.segundoApellido, padronMatch.nombre].filter(Boolean).join(' ') || '—'}
+                    {' · '}Matrícula <span className="font-mono">{padronMatch.matricula}</span>
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={usarDatosPadron}
+                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-[13px] font-semibold text-white hover:bg-emerald-700"
+                >
+                  Usar estos datos
+                </button>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="gov-label" htmlFor="nombres">

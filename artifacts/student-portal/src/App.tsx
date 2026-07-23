@@ -63,6 +63,7 @@ import { Avisador } from './components/Avisador';
 import { Confirmador } from './components/Confirmador';
 import AnunciosLista from './pages/admin/AnunciosLista';
 import AdminFaq from './pages/admin/AdminFaq';
+import AdminPadron from './pages/admin/AdminPadron';
 import AdminCalificaciones from './pages/admin/AdminCalificaciones';
 import Reportes from './pages/admin/Reportes';
 import Configuracion from './pages/admin/Configuracion';
@@ -76,6 +77,7 @@ import DireccionProyecciones from './pages/direccion/DireccionProyecciones';
 import DireccionReportes from './pages/direccion/DireccionReportes';
 import DireccionUso from './pages/direccion/DireccionUso';
 import DireccionInsights from './pages/direccion/DireccionInsights';
+import DireccionPadron from './pages/direccion/DireccionPadron';
 import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
@@ -186,6 +188,7 @@ export default function App() {
       <Route path="/admin/sedes"><Redirect to="/admin/convocatorias?vista=sedes" /></Route>
       <Route path="/admin/anuncios" component={AnunciosLista} />
       <Route path="/admin/faq" component={AdminFaq} />
+      <Route path="/admin/padron" component={AdminPadron} />
       <Route path="/admin/verificacion-pase" component={VerificacionPase} />
       <Route path="/admin/reportes" component={Reportes} />
       <Route path="/admin/configuracion/:seccion" component={Configuracion} />
@@ -203,6 +206,7 @@ export default function App() {
       <Route path="/direccion/reportes" component={DireccionReportes} />
       <Route path="/direccion/insights" component={DireccionInsights} />
       <Route path="/direccion/uso" component={DireccionUso} />
+      <Route path="/direccion/padron" component={DireccionPadron} />
       <Route path="/direccion" component={DireccionPanorama} />
 
       {/* Notificaciones — accesible desde todos los perfiles */}

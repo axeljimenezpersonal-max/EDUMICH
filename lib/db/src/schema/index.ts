@@ -520,6 +520,29 @@ export const preguntasFrecuentes = pgTable('preguntas_frecuentes', {
 });
 
 // ─────────────────────────────────────────────────────────────────────────
+// Padrón histórico — alumnos que YA existen en la base del Estado (antes del
+// portal). Se carga desde un Excel. NO es el padrón vivo (`estudiantes`): sirve
+// para que al dar de alta, si la CURP ya está aquí, se marque "ya existe". Solo
+// lo administran/consultan la administración (Secretaría) y dirección (Sinapsis).
+// ─────────────────────────────────────────────────────────────────────────
+export const padronHistorico = pgTable('padron_historico', {
+  id: serial('id').primaryKey(),
+  // Matrícula oficial (14 dígitos): llave única del padrón (idempotencia al importar).
+  matricula: varchar('matricula', { length: 20 }).notNull().unique(),
+  curp: varchar('curp', { length: 20 }), // puede repetirse o venir con formato no estándar
+  primerApellido: varchar('primer_apellido', { length: 120 }),
+  segundoApellido: varchar('segundo_apellido', { length: 120 }),
+  nombre: varchar('nombre', { length: 160 }),
+  sexo: varchar('sexo', { length: 1 }),
+  fechaNacimiento: date('fecha_nacimiento'),
+  fechaAlta: date('fecha_alta'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+}, (t) => ({
+  curpIdx: index('padron_historico_curp_idx').on(t.curp),
+}));
+
+// ─────────────────────────────────────────────────────────────────────────
 // Pagos — comprobantes de pago del alumno
 // ─────────────────────────────────────────────────────────────────────────
 

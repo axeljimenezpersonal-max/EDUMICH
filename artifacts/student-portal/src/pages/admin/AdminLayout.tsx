@@ -4,7 +4,7 @@ import {
   LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
   Home, Bell, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
-  MessageSquare, GraduationCap, HelpCircle, Menu, X, MapPin,
+  MessageSquare, GraduationCap, HelpCircle, Menu, X, MapPin, Database,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
@@ -411,6 +411,7 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin/convocatorias', icon: Calendar,   label: 'Convocatorias', tour: undefined },
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios', tour: undefined },
     { href: '/admin/faq',           icon: HelpCircle, label: 'Preguntas frecuentes', tour: undefined },
+    { href: '/admin/padron',        icon: Database,   label: 'Padrón histórico', tour: undefined },
     { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes', tour: 'nav-reportes' },
     { href: '/admin/configuracion', icon: Settings,   label: 'Configuración', tour: undefined },
   ];

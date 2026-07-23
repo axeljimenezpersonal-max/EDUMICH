@@ -357,6 +357,24 @@ const migrations = [
      ('¿Puedo ver el historial de mis módulos acreditados?', 'Sí. En tu perfil aparece el avance por módulo.', 'Calificaciones', 'estudiante', 510, false)
    ) AS v(pregunta, respuesta, categoria, audiencia, orden, principal)
    WHERE NOT EXISTS (SELECT 1 FROM preguntas_frecuentes pf WHERE pf.pregunta = v.pregunta)`,
+
+  // Padrón histórico (alumnos que ya existen en la base del Estado). Ver
+  // schema.padronHistorico. Los datos se cargan por la pantalla de importación,
+  // nunca desde el repo (son datos personales reales).
+  `CREATE TABLE IF NOT EXISTS padron_historico (
+     id serial PRIMARY KEY,
+     matricula varchar(20) NOT NULL UNIQUE,
+     curp varchar(20),
+     primer_apellido varchar(120),
+     segundo_apellido varchar(120),
+     nombre varchar(160),
+     sexo varchar(1),
+     fecha_nacimiento date,
+     fecha_alta date,
+     created_at timestamp NOT NULL DEFAULT now(),
+     updated_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE INDEX IF NOT EXISTS padron_historico_curp_idx ON padron_historico (curp)`,
 ];
 
 export async function runStartupMigrations() {

@@ -37,6 +37,7 @@ import bancoRoutes from './routes/banco';
 import firmaRoutes from './routes/firma';
 import bloqueosRoutes from './routes/bloqueos';
 import faqRoutes, { adminFaqRouter } from './routes/faq';
+import padronRoutes from './routes/padron';
 import chatRoutes, { adminChatRouter } from './routes/chat';
 import aulaRoutes from './routes/aula';
 import usoRoutes from './routes/uso';
@@ -134,6 +135,7 @@ app.use('/api/firma', firmaRoutes);
 app.use('/api/bloqueos', bloqueosRoutes);
 app.use('/api/faq', faqRoutes);
 app.use('/api/admin/faq', adminFaqRouter);
+app.use('/api/padron-historico', padronRoutes);
 // Búsqueda transversal del buscador global. Va en su propio prefijo, sin
 // pasar por adminRoutes, porque la usan gestor y admin (valida rol adentro).
 app.use('/api/busqueda', busquedaRoutes);
