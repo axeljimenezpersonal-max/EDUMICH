@@ -612,7 +612,7 @@ router.get('/insights', async (_req, res) => {
         COALESCE(sum(monto_total)    FILTER (WHERE estado = 'pagado'), 0)::float AS cobrado,
         COALESCE(sum(monto_iemsys)   FILTER (WHERE estado = 'pagado'), 0)::float AS iemsys_guardado,
         COALESCE(sum(monto_synapsis) FILTER (WHERE estado = 'pagado'), 0)::float AS synapsis_guardado,
-        COALESCE(sum(cantidad_examenes) FILTER (WHERE estado = 'pagado'), 0)::float * 115 AS iemsys_recalculado,
+        COALESCE(sum(cantidad_examenes) FILTER (WHERE estado = 'pagado'), 0)::float * 101 AS iemsys_recalculado,
         COALESCE(sum(cantidad_examenes) FILTER (WHERE estado = 'pagado'), 0)::float * 30  AS synapsis_recalculado,
         count(*) FILTER (WHERE estado <> 'cancelado'
                          AND (monto_iemsys + monto_synapsis) <> monto_total)::int AS fichas_descuadradas,

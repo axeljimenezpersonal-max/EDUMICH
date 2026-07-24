@@ -110,7 +110,7 @@ export default function DireccionInsights() {
         <TarjetaKPI etiqueta="Parte Synapsis" valor={pesos(d.dinero.synapsis_recalculado)}
           sub="$30 por examen" acento={DORADO} />
         <TarjetaKPI etiqueta="Parte IEMSyS" valor={pesos(d.dinero.iemsys_recalculado)}
-          sub="$115 por examen" acento={GUINDA} />
+          sub="$101 por examen" acento={GUINDA} />
         <TarjetaKPI etiqueta="Por cobrar" valor={pesos(d.dinero.por_cobrar)}
           sub="fichas emitidas sin pagar" />
       </div>

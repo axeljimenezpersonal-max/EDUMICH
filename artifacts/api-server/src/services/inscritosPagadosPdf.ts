@@ -44,7 +44,7 @@ export async function generarInscritosPagados(
     .from(conceptosPago)
     .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
     .limit(1);
-  const precio = concepto ? Math.round(parseFloat(String(concepto.monto))) : 145;
+  const precio = concepto ? Math.round(parseFloat(String(concepto.monto))) : 131;
 
   // Alumnos con exámenes PAGADOS en esta etapa (ficha en estado 'pagado').
   // Los módulos agregados son solo los cubiertos por una ficha pagada.

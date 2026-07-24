@@ -60,7 +60,7 @@ import { generarCredencialPdf, obtenerDatosCredencial } from '../services/creden
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
 import { avisarOrdenPorEmitir } from '../utils/notificarPago';
-import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
+import { generarInscritosPagados } from '../services/inscritosPagadosPdf';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 import { validarEdad } from '../utils/edad';
@@ -1099,8 +1099,10 @@ router.get('/etapas/:clave/participantes.csv', async (req, res) => {
 });
 
 // GET /gestor/etapas/:clave/relacion.pdf
-// La MISMA "Relación de exámenes solicitados" (PDF institucional) que ve la
-// administración, pero solo con los alumnos de ESTE gestor. Reemplaza al CSV.
+// La lista de alumnos que PRESENTAN el examen = la MISMA "Relación de inscritos
+// pagados" (PDF institucional) de la administración, pero solo de ESTE gestor.
+// Solo incluye a quienes YA PAGARON (no a todos los que tienen un módulo
+// solicitado). Reemplaza al CSV.
 router.get('/etapas/:clave/relacion.pdf', async (req, res) => {
   try {
     const userId = req.user!.userId;
@@ -1110,7 +1112,7 @@ router.get('/etapas/:clave/relacion.pdf', async (req, res) => {
     `);
     const etapa = etapaRes.rows[0];
     if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
-    const { pdf, nombreArchivo } = await generarRelacionExamenes(etapa.id, userId);
+    const { pdf, nombreArchivo } = await generarInscritosPagados(etapa.id, userId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
     res.send(Buffer.from(pdf));
@@ -2337,7 +2339,7 @@ async function engancharABorradorPago(params: {
   await db.insert(pagosExamenInscripciones)
     .values(inscripcionIds.map((iid) => ({ pagoExamenId: pagoId, examenInscripcionId: iid })));
 
-  // Recalcular cantidad y montos desde el puente (145 = 115 IEMSyS + 30 Synapsis).
+  // Recalcular cantidad y montos desde el puente (131 = 101 IEMSyS + 30 Synapsis).
   const [{ n }] = await db
     .select({ n: count() })
     .from(pagosExamenInscripciones)
@@ -2345,8 +2347,8 @@ async function engancharABorradorPago(params: {
   const cant = Number(n) || inscripcionIds.length;
   await db.update(pagosExamen).set({
     cantidadExamenes: cant,
-    montoTotal: (cant * 145).toFixed(2),
-    montoIemsys: (cant * 115).toFixed(2),
+    montoTotal: (cant * 131).toFixed(2),
+    montoIemsys: (cant * 101).toFixed(2),
     montoSynapsis: (cant * 30).toFixed(2),
   }).where(eq(pagosExamen.id, pagoId));
 
@@ -2649,8 +2651,8 @@ async function cancelarInscripcionesEtapa(params: {
     } else {
       await db.update(pagosExamen).set({
         cantidadExamenes: cant,
-        montoTotal: (cant * 145).toFixed(2),
-        montoIemsys: (cant * 115).toFixed(2),
+        montoTotal: (cant * 131).toFixed(2),
+        montoIemsys: (cant * 101).toFixed(2),
         montoSynapsis: (cant * 30).toFixed(2),
       }).where(eq(pagosExamen.id, pid));
     }

@@ -95,7 +95,7 @@ const DEMO_EXPEDIENTE = {
   folioPreregistro: 'PRE-2026-000482',
 };
 
-const DEMO_CONFIG_PAGO = { costoExamen: 145, datosBancarios: null };
+const DEMO_CONFIG_PAGO = { costoExamen: 131, datosBancarios: null };
 
 const DEMO_CONVOCATORIA = {
   etapaActiva: null,

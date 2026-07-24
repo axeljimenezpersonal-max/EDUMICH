@@ -667,7 +667,7 @@ export default function MiConvocatoria() {
   }, []);
 
   // Costo por examen (para el total al solicitar la inscripción)
-  const [costoExamen, setCostoExamen] = useState(145);
+  const [costoExamen, setCostoExamen] = useState(131);
   useEffect(() => {
     api.get<{ costoExamen: number }>('/estudiante/config-pago')
       .then((r) => { if (r?.costoExamen) setCostoExamen(r.costoExamen); })

@@ -255,7 +255,7 @@ function NuevoView({ onCancel, onCreado, onError }: {
   onCancel: () => void; onCreado: (id: number) => void; onError: (m: string) => void;
 }) {
   const [examenes, setExamenes] = useState<ExamenDisponible[]>([]);
-  const [costo, setCosto] = useState(145);
+  const [costo, setCosto] = useState(131);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [creando, setCreando] = useState(false);

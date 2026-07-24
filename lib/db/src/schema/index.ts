@@ -675,9 +675,9 @@ export const pagosExamen = pgTable(
     metodoPago: varchar('metodo_pago', { length: 30 }),
     concepto: pagoConceptoEnum('concepto').notNull().default('derecho_examen'),
     cantidadExamenes: integer('cantidad_examenes').notNull().default(1),
-    // $145 = $115 IEMSyS + $30 Synapsis. El split es INTERNO (solo reportes admin).
-    montoTotal: numeric('monto_total', { precision: 10, scale: 2 }).notNull().default('145.00'),
-    montoIemsys: numeric('monto_iemsys', { precision: 10, scale: 2 }).notNull().default('115.00'),
+    // $131 = $101 IEMSyS + $30 Synapsis. El split es INTERNO (solo reportes admin).
+    montoTotal: numeric('monto_total', { precision: 10, scale: 2 }).notNull().default('131.00'),
+    montoIemsys: numeric('monto_iemsys', { precision: 10, scale: 2 }).notNull().default('101.00'),
     montoSynapsis: numeric('monto_synapsis', { precision: 10, scale: 2 }).notNull().default('30.00'),
     // Referencia visible: CURP o matrícula MIC-AAAA-NNNNN (nunca datos bancarios)
     referencia: varchar('referencia', { length: 40 }),

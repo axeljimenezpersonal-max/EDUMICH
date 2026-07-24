@@ -78,7 +78,7 @@ export default function GestorInscripcion() {
     if (!q) return elegibles;
     return elegibles.filter((a) => a.nombre.toLowerCase().includes(q) || (a.matricula ?? '').toLowerCase().includes(q));
   }, [elegibles, filtroAlumno]);
-  const costo = datos?.costoExamen ?? 145;
+  const costo = datos?.costoExamen ?? 131;
   const maxMod = datos?.maxModulos ?? 4;
   // Un alumno "lleno" ya tiene el máximo de módulos en la etapa: no se puede
   // inscribir a más y se muestra bloqueado con los módulos que ya trae.

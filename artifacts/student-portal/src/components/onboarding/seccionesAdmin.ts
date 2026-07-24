@@ -206,7 +206,7 @@ export const TOUR_A_PAGOS: TourStep[] = [
     placement: 'bottom',
     icon: 'LayoutGrid',
     title: 'Órdenes y contabilidad',
-    body: 'Dos vistas: “Órdenes de pago” para gestionar cada ficha una por una, y “Contabilidad de exámenes” para el desglose del dinero (el reparto $115/$30 y los totales). ',
+    body: 'Dos vistas: “Órdenes de pago” para gestionar cada ficha una por una, y “Contabilidad de exámenes” para el desglose del dinero (el reparto $101/$30 y los totales). ',
   },
   {
     id: 'a-pag-filtros',

@@ -58,7 +58,7 @@ export async function generarRelacionExamenes(
     .from(conceptosPago)
     .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
     .limit(1);
-  const precio = concepto ? Math.round(parseFloat(String(concepto.monto))) : 145;
+  const precio = concepto ? Math.round(parseFloat(String(concepto.monto))) : 131;
 
   // Alumnos del centro con exámenes en esta etapa (no cancelados), con sus módulos
   const rows = await db.execute<{

@@ -27,11 +27,15 @@ const migrations = [
      telefono_publico varchar(30),
      created_at timestamp NOT NULL DEFAULT now()
    )`,
-  // Concepto "derecho de examen" a $145 (Tesorería del Estado). Idempotente:
+  // Concepto "derecho de examen" a $131 (Tesorería del Estado). Idempotente:
   // solo se siembra si no existe; ediciones posteriores del admin persisten.
   `INSERT INTO conceptos_pago (clave, nombre, descripcion, monto, vigencia, activo)
-     VALUES ('derecho_examen', 'Derecho de examen', 'Pago de derecho de examen ante la Tesorería del Estado', 145.00, 2026, true)
+     VALUES ('derecho_examen', 'Derecho de examen', 'Pago de derecho de examen ante la Tesorería del Estado', 131.00, 2026, true)
      ON CONFLICT (clave) DO NOTHING`,
+  // Actualización de precio a $131 en la base ya sembrada (antes $145).
+  `UPDATE conceptos_pago SET monto = 131.00 WHERE clave = 'derecho_examen' AND monto = 145.00`,
+  // El precio en el texto de las preguntas frecuentes ($145 → $131).
+  `UPDATE preguntas_frecuentes SET respuesta = replace(respuesta, '145 pesos', '131 pesos') WHERE respuesta LIKE '%145 pesos%'`,
   // Renombre de marca "Prepa Abierta" → "Preparatoria Abierta" en datos ya
   // sembrados en producción. Idempotente (solo afecta filas con el texto viejo).
   `UPDATE plantillas_correo SET
@@ -261,7 +265,7 @@ const migrations = [
      ('¿Cuántos módulos puede llevar un alumno por convocatoria?', 'Máximo 4 módulos por convocatoria.', 'Inscripción', 'ambos', 30),
      ('¿Qué documentos necesita el expediente?', 'Cinco: CURP, acta de nacimiento, identificación, comprobante de domicilio y certificado de secundaria. Todos deben quedar aprobados para poder inscribir a examen.', 'Documentos', 'ambos', 40),
      ('¿Con cuánto se aprueba un módulo?', 'Con 60 de calificación mínima.', 'Calificaciones', 'estudiante', 50),
-     ('¿Cuánto cuesta el examen?', 'El derecho de examen es de 145 pesos por módulo. El pago se hace ante la Tesorería del Estado con la línea de captura.', 'Pagos', 'ambos', 60)
+     ('¿Cuánto cuesta el examen?', 'El derecho de examen es de 131 pesos por módulo. El pago se hace ante la Tesorería del Estado con la línea de captura.', 'Pagos', 'ambos', 60)
    ) AS v(pregunta, respuesta, categoria, audiencia, orden)
    WHERE NOT EXISTS (SELECT 1 FROM preguntas_frecuentes)`,
 
@@ -324,13 +328,13 @@ const migrations = [
      ('¿Cuándo son los exámenes?', 'En sábado y domingo, en los horarios que marca la etapa (por lo general 9:00 y 11:00). Confirma la fecha en la convocatoria.', 'Inscripción', 'ambos', 307, false),
      ('¿Puedo cambiar de módulo después de inscribir?', 'Dentro de la ventana, consúltalo con tu centro o con la administración. Fuera de la ventana ya no se puede.', 'Inscripción', 'ambos', 308, false),
      ('¿Cuántas etapas de inscripción hay al año?', 'El calendario contempla varias etapas cortas a lo largo del año. Revísalas en "Convocatorias".', 'Inscripción', 'ambos', 309, false),
-     ('¿La inscripción tiene costo?', 'La inscripción no. Lo que se paga es el derecho de examen: 145 pesos por módulo.', 'Inscripción', 'ambos', 310, false)
+     ('¿La inscripción tiene costo?', 'La inscripción no. Lo que se paga es el derecho de examen: 131 pesos por módulo.', 'Inscripción', 'ambos', 310, false)
    ) AS v(pregunta, respuesta, categoria, audiencia, orden, principal)
    WHERE NOT EXISTS (SELECT 1 FROM preguntas_frecuentes pf WHERE pf.pregunta = v.pregunta)`,
 
   `INSERT INTO preguntas_frecuentes (pregunta, respuesta, categoria, audiencia, orden, principal)
    SELECT v.pregunta, v.respuesta, v.categoria, v.audiencia, v.orden, v.principal FROM (VALUES
-     ('¿Cuánto cuesta el examen?', 'El derecho de examen es de 145 pesos por módulo. El pago se hace ante la Tesorería del Estado con la línea de captura.', 'Pagos', 'ambos', 401, true),
+     ('¿Cuánto cuesta el examen?', 'El derecho de examen es de 131 pesos por módulo. El pago se hace ante la Tesorería del Estado con la línea de captura.', 'Pagos', 'ambos', 401, true),
      ('¿Cómo hago un pago grupal?', 'En "Pagos" eliges los exámenes de varios alumnos y solicitas la ficha grupal. La administración la emite con su línea de captura.', 'Pagos', 'gestor', 402, true),
      ('¿Quién emite la línea de captura?', 'La emite el Estado y la administración la carga en la ficha. Módula no cobra: solo almacena y concilia.', 'Pagos', 'ambos', 403, true),
      ('¿Cuándo se paga?', 'En los días hábiles siguientes al cierre de la ventana de inscripción, cuando la administración manda el pago.', 'Pagos', 'ambos', 404, true),

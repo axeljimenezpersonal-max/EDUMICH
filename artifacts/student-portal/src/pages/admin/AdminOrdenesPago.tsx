@@ -647,7 +647,7 @@ function Dato({ label, val }: { label: string; val: string }) {
 }
 
 // ─── Nueva orden ───────────────────────────────────────────────────────────
-const COSTO_EXAMEN = 145;
+const COSTO_EXAMEN = 131;
 
 interface AlumnoBusqueda {
   id: number; nombreCompleto: string; curp: string | null;

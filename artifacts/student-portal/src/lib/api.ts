@@ -912,7 +912,7 @@ export interface CentroFiscal {
   clave: string | null;
 }
 
-/** Vista del alumno — nunca incluye el split 115/30. */
+/** Vista del alumno — nunca incluye el split 101/30. */
 export interface PagoExamenAlumno {
   id: number;
   folio: string | null;

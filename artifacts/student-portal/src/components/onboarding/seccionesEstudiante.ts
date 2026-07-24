@@ -271,7 +271,7 @@ export const TOUR_PAGOS: TourStep[] = [
     placement: 'bottom',
     icon: 'BarChart3',
     title: 'Tu resumen de pagos',
-    body: 'De un vistazo: cuántos exámenes tienes inscritos, cuántos ya están pagados y el costo por examen ($145 MXN).',
+    body: 'De un vistazo: cuántos exámenes tienes inscritos, cuántos ya están pagados y el costo por examen ($131 MXN).',
   },
   {
     id: 'pagos-inscripciones',

@@ -6,7 +6,7 @@
  *  - La orden de pago con línea de captura la emite la plataforma del Estado;
  *    aquí SOLO se almacena (la captura un admin/enlace) y se sirve.
  *  - 'pagado' SOLO se setea por conciliación/verificación de un admin.
- *  - Al alumno se le muestra únicamente el total ($145); el split 115/30 es interno.
+ *  - Al alumno se le muestra únicamente el total ($131); el split 101/30 es interno.
  *
  * Montado en /api/pagos-examen con authRequired; cada handler valida el rol.
  */
@@ -237,7 +237,7 @@ async function detallePago(pagoId: number) {
   return { pago, items };
 }
 
-/** Vista pública para el ALUMNO — nunca expone el split 115/30. */
+/** Vista pública para el ALUMNO — nunca expone el split 101/30. */
 function vistaAlumno(pago: typeof pagosExamen.$inferSelect, items: any[]) {
   return {
     id: pago.id,
@@ -458,7 +458,7 @@ router.get('/gestor-candidatos', async (req, res) => {
       .from(gestores)
       .where(eq(gestores.userId, gestorId));
     return res.json({
-      costoExamen: 145,
+      costoExamen: 131,
       permisos: { individual: perm?.ind ?? true, grupal: perm?.gru ?? true },
       examenes: rows.rows.map((r) => ({
         id: Number(r.id), folio: r.folio, estudianteId: Number(r.estudiante_id), alumno: r.alumno,
@@ -571,8 +571,8 @@ router.post('/solicitar', async (req, res) => {
       solicitadoPorUserId: userId,
       concepto: 'derecho_examen',
       cantidadExamenes: cantidad,
-      montoTotal: (cantidad * 145).toFixed(2),
-      montoIemsys: (cantidad * 115).toFixed(2),
+      montoTotal: (cantidad * 131).toFixed(2),
+      montoIemsys: (cantidad * 101).toFixed(2),
       montoSynapsis: (cantidad * 30).toFixed(2),
       referencia,
       estado: 'pendiente_emision',
@@ -677,8 +677,8 @@ export async function recalcularFicha(pagoId: number, estadoActual: PagoExamenEs
   const invalidar = estadoActual === 'emitida';
   await db.update(pagosExamen).set({
     cantidadExamenes: cantidad,
-    montoTotal: (cantidad * 145).toFixed(2),
-    montoIemsys: (cantidad * 115).toFixed(2),
+    montoTotal: (cantidad * 131).toFixed(2),
+    montoIemsys: (cantidad * 101).toFixed(2),
     montoSynapsis: (cantidad * 30).toFixed(2),
     estudianteId: estudianteIds.size === 1 ? [...estudianteIds][0] : null,
     ...(invalidar ? {
@@ -873,9 +873,9 @@ router.post('/', async (req, res) => {
     const etapaId = inscs[0]?.etapaId ?? null;
 
     const cantidad = examenInscripcionIds.length;
-    const UNIT = 145;
+    const UNIT = 131;
     const total = (cantidad * UNIT).toFixed(2);
-    const iemsys = (cantidad * 115).toFixed(2);
+    const iemsys = (cantidad * 101).toFixed(2);
     const synapsis = (cantidad * 30).toFixed(2);
     const referencia = alu.matricula || alu.curp || null;
 
@@ -1070,7 +1070,7 @@ router.post('/:id/cancelar', async (req, res) => {
   }
 });
 
-// GET /api/pagos-examen/reportes/desglose — split interno 115/30 (solo admin)
+// GET /api/pagos-examen/reportes/desglose — split interno 101/30 (solo admin)
 router.get('/reportes/desglose', async (req, res) => {
   if (!esAdmin(req.user!.rol)) return res.status(403).json({ error: 'Solo administración' });
   try {

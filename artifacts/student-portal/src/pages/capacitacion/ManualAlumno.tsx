@@ -114,7 +114,7 @@ const escenas: Escena[] = [
     tag: 'Vista · Alumno',
     caption: (
       <>
-        La ficha trae dos conceptos: el <b>derecho de examen ($115)</b> y la <b>cuota de uso de
+        La ficha trae dos conceptos: el <b>derecho de examen ($101)</b> y la <b>cuota de uso de
         plataforma ($20)</b>. Se paga con una referencia única en banco, ventanilla o en línea.
       </>
     ),
@@ -122,7 +122,7 @@ const escenas: Escena[] = [
       <>
         <div className="scr-title">Ficha de pago</div>
         <div className="receipt">
-          <div className="li"><span>Derecho de examen</span><span>$115.00</span></div>
+          <div className="li"><span>Derecho de examen</span><span>$101.00</span></div>
           <div className="li"><span className="hl">Cuota de uso de plataforma</span><span className="hl">$20.00</span></div>
           <div className="li tot"><span>Total a pagar</span><span>$135.00</span></div>
           <div className="ref"><span>Referencia única</span><span className="code">EDU 2026 0014 887</span></div>

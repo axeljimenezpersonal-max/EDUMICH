@@ -91,7 +91,7 @@ export default function MisPagos() {
 
   const sinPagar = inscripcionesActivas.filter((e) => estadoPagoDe(e.id) === 'sin_pagar');
   const pagados = inscripcionesActivas.filter((e) => estadoPagoDe(e.id) === 'pagado');
-  const costoExamen = configPago?.costoExamen ?? 145;
+  const costoExamen = configPago?.costoExamen ?? 131;
 
   async function solicitarOrden() {
     if (sinPagar.length === 0) return;
