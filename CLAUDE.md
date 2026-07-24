@@ -70,7 +70,15 @@ dice con claridad qué se comprobó y qué no.
 - **Ventanas de solicitud con candado estricto**: fuera de la ventana no se
   puede inscribir ni pagar. Son 8 etapas al año, de 4-5 días cada una.
 - **Pagos**: Módula **no cobra**. La línea de captura la emite el Estado; aquí
-  sólo se almacena, se sirve y se concilia. $145 por examen.
+  sólo se almacena, se sirve y se concilia. **$131 por examen** ($101 IEMSyS +
+  $30 Synapsis; el split es interno). **Un cambio de precio aplica SOLO a fichas
+  nuevas**: las fichas ya creadas conservan el monto con que nacieron (no se
+  recalcula hacia atrás).
+- **Matrícula oficial (DGB/GIMS)**: la genera el Estado, no la app (aquí se
+  captura). Estructura de 14 dígitos `AAAA 16 01 NNNNNN`: año de inscripción +
+  `16` (Michoacán, INEGI) + subcódigo (`01`; era `33` en 2022) + un consecutivo
+  global de 6 dígitos que **nunca reinicia** y crece con el tiempo (con huecos,
+  porque el contador es compartido). No es aleatorio.
 - **Expediente**: 5 documentos obligatorios (CURP, acta, identificación,
   comprobante de domicilio, certificado de secundaria).
 - **Admin titular vs operativo**: `administradores.es_jefe`. El operativo NO da
