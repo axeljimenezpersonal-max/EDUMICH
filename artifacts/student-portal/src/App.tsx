@@ -41,6 +41,7 @@ import AutoRegistroCodigo from './pages/publico/AutoRegistroCodigo';
 import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
 import AutoRegistroExito from './pages/publico/AutoRegistroExito';
 import SolicitarCuenta from './pages/publico/SolicitarCuenta';
+import Landing from './pages/publico/Landing';
 import EncontrarCuenta from './pages/publico/EncontrarCuenta';
 import AvisoPrivacidad from './pages/publico/AvisoPrivacidad';
 import RecuperarPassword from './pages/RecuperarPassword';
@@ -119,6 +120,9 @@ export default function App() {
     <Confirmador />
     <TelemetriaDeUso />
     <Switch>
+      {/* Landing pública indexable — puerta de entrada en la raíz. El portal
+          interno sigue detrás de /login. */}
+      <Route path="/" component={Landing} />
       <Route path="/login" component={Login} />
 
       {/* Demo pública: ingreso de un alumno nuevo (sin login, datos ficticios) */}

@@ -1,0 +1,7 @@
+# Módula 22 — Preparatoria Abierta Michoacán
+# El portal interno (rutas de sesión) no aporta a buscadores, pero tampoco
+# expone datos sin login, así que dejamos rastrear todo el sitio público.
+User-agent: *
+Allow: /
+
+Sitemap: https://modula22.mx/sitemap.xml
