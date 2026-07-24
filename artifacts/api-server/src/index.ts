@@ -238,13 +238,17 @@ if (fs.existsSync(STATIC_DIR)) {
       }
     },
   }));
-  // Un asset que no existe debe fallar como 404 limpio. Si cayera al SPA
-  // fallback de abajo, el navegador recibiría index.html (HTML) donde esperaba
-  // JS o CSS y se rompería con un error de MIME confuso en vez de un 404 claro.
-  app.get('/assets/*', (_req, res) => res.status(404).end());
-  // SPA fallback: cualquier ruta de navegación (no-API, no-asset) sirve
-  // index.html, también sin caché para que el shell nunca quede viejo.
-  app.use((_req, res) => {
+  // SPA fallback: cualquier ruta de navegación (no-API) sirve index.html, sin
+  // caché para que el shell nunca quede viejo. PERO un archivo de /assets que
+  // no existe debe fallar como 404 limpio: si le sirviéramos index.html, el
+  // navegador recibiría HTML donde espera JS o CSS y se rompería con un error
+  // de MIME confuso. (Se comprueba con startsWith en vez de una ruta comodín
+  // porque Express 5 no acepta '*' sin nombre.)
+  app.use((req, res) => {
+    if (req.path.startsWith('/assets/')) {
+      res.status(404).end();
+      return;
+    }
     res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(STATIC_DIR, 'index.html'));
   });
