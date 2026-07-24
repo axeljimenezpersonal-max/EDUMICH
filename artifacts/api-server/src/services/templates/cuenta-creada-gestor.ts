@@ -1,4 +1,5 @@
 import { escapeHtml } from '../../utils/escapeHtml';
+import { emailLayout, emailBoton, EMAIL_COLORS } from './_shell';
 
 export interface CuentaCreadaGestorData {
   nombreGestor: string;
@@ -8,69 +9,71 @@ export interface CuentaCreadaGestorData {
   portalUrl: string;
 }
 
+/**
+ * Bienvenida para un gestor (centro de asesoría). Usa el shell compartido, así
+ * que hereda el encabezado Módula 22 igual que los correos de alumno y admin.
+ * La contraseña es temporal: se cambia en el primer ingreso.
+ */
 export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
   subject: string;
   html: string;
   textPlain: string;
 } {
-  const subject = `Bienvenido al sistema de gestión — Preparatoria Abierta Michoacán`;
+  const subject = 'Tu acceso a Módula 22 · Gestor de Preparatoria Abierta';
+  const { guinda, dorado, texto, borde } = EMAIL_COLORS;
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#f8f4ec;font-family:Arial,Helvetica,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f4ec;padding:32px 0;">
-    <tr><td align="center">
-      <table width="580" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:10px;overflow:hidden;border:1px solid #e2d9d0;max-width:580px;">
-        <tr><td style="background:#6b1530;padding:24px 32px;">
-          <div style="color:#fff;font-size:16px;font-weight:bold;line-height:1.2;">Preparatoria Abierta · IEMSyS</div>
-          <div style="color:rgba(255,255,255,0.7);font-size:11px;letter-spacing:1.5px;text-transform:uppercase;">Gobierno de Michoacán</div>
+  const responsabilidades = [
+    'Dar de alta a aspirantes de tu municipio.',
+    'Revisar y subir los documentos del expediente.',
+    'Dar seguimiento al proceso de inscripción.',
+    'Orientar a los alumnos durante su trayectoria.',
+  ];
+
+  const contenido = `
+    <tr><td style="padding:30px 32px 8px 32px;">
+      <div style="font-size:11px;font-weight:bold;letter-spacing:1.8px;color:${dorado};text-transform:uppercase;margin-bottom:8px;">Designación como gestor</div>
+      <h1 style="color:#1c1917;font-size:24px;margin:0 0 10px 0;font-family:Georgia,serif;">¡Bienvenido(a), ${escapeHtml(data.nombreGestor)}!</h1>
+      <p style="color:${texto};font-size:14.5px;line-height:1.75;margin:0;">Fuiste designado(a) como <strong>Gestor de ${escapeHtml(data.municipio)}</strong> en <strong>Módula 22</strong>, la plataforma de Preparatoria Abierta del Gobierno de Michoacán. Desde tu panel acompañas a los alumnos de tu centro de asesoría.</p>
+    </td></tr>
+
+    <tr><td style="padding:22px 32px 8px 32px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#fdf8f9;border:1px solid #eccdd6;border-radius:14px;overflow:hidden;">
+        <tr><td style="background:${guinda};padding:10px 20px;">
+          <span style="color:#fff;font-size:10.5px;font-weight:bold;letter-spacing:1.6px;text-transform:uppercase;">Tus datos de acceso</span>
         </td></tr>
-        <tr><td style="padding:32px 32px 20px 32px;">
-          <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#6b1530;text-transform:uppercase;margin-bottom:10px;">Designación como gestor municipal</div>
-          <h1 style="color:#1c1917;font-size:22px;margin:0 0 12px 0;font-family:Georgia,serif;">Bienvenido(a), ${escapeHtml(data.nombreGestor)}</h1>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0 0 12px 0;">Has sido designado(a) como <strong>Gestor Municipal de ${escapeHtml(data.municipio)}</strong> en el Sistema de Preparatoria Abierta del Gobierno de Michoacán.</p>
-          <p style="color:#44403c;font-size:14px;line-height:1.7;margin:0;">Como gestor podrás dar de alta aspirantes, subir documentación de expediente y dar seguimiento personalizado a cada alumno de tu municipio.</p>
-        </td></tr>
-        <tr><td style="padding:0 32px 24px 32px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#fdf8f9;border:2px solid #6b1530;border-radius:8px;overflow:hidden;">
-            <tr><td style="background:#6b1530;padding:10px 18px;"><span style="color:#fff;font-size:11px;font-weight:bold;letter-spacing:2px;text-transform:uppercase;">Tus credenciales de acceso</span></td></tr>
-            <tr><td style="padding:20px 18px;">
-              <div style="font-size:11px;color:#78716c;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Correo institucional</div>
-              <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:#1c1917;background:#f0e8e8;padding:8px 12px;border-radius:4px;margin-bottom:14px;">${data.email}</div>
-              <div style="font-size:11px;color:#78716c;font-weight:bold;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;">Contraseña temporal</div>
-              <div style="font-family:'Courier New',Courier,monospace;font-size:24px;font-weight:bold;color:#6b1530;letter-spacing:6px;background:#fdf2f4;border:1px dashed #c43759;padding:12px 18px;border-radius:4px;">${data.passwordTemporal}</div>
-              <div style="font-size:12px;color:#a02440;margin-top:8px;font-style:italic;">Cambia esta contraseña al ingresar por primera vez.</div>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:0 32px 24px 32px;">
-          <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:20px;">
-            <tr><td>
-              <div style="font-size:11px;font-weight:bold;letter-spacing:2px;color:#166534;text-transform:uppercase;margin-bottom:10px;">Tus responsabilidades</div>
-              <ul style="color:#14532d;font-size:14px;line-height:1.9;margin:0;padding-left:20px;">
-                <li>Dar de alta a aspirantes de tu municipio</li>
-                <li>Revisar y subir documentos del expediente</li>
-                <li>Dar seguimiento al proceso de inscripción</li>
-                <li>Orientar a los alumnos durante su trayectoria</li>
-              </ul>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:0 32px 28px 32px;" align="center">
-          <a href="${data.portalUrl}" style="display:inline-block;background:#6b1530;color:#ffffff;text-decoration:none;font-size:15px;font-weight:bold;padding:16px 40px;border-radius:8px;letter-spacing:1px;text-transform:uppercase;">ACCEDER AL PANEL</a>
-        </td></tr>
-        <tr><td style="background:#f8f4ec;padding:16px 32px;border-top:1px solid #e2d9d0;">
-          <p style="color:#78716c;font-size:11px;margin:0;text-align:center;"><strong>Instituto de Educación Media Superior y Superior — Gobierno de Michoacán</strong></p>
-          <p style="color:#a8a29e;font-size:10px;margin:6px 0 0 0;text-align:center;line-height:1.5;">Este correo fue enviado desde <strong>Modula</strong> · Mensaje generado automáticamente.</p>
+        <tr><td style="padding:20px;">
+          <div style="font-size:10.5px;color:#9a8f86;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;">Correo</div>
+          <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:#1c1917;background:#f3ebeb;padding:9px 13px;border-radius:7px;margin-bottom:14px;">${escapeHtml(data.email)}</div>
+          <div style="font-size:10.5px;color:#9a8f86;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;">Contraseña temporal</div>
+          <div style="font-family:'Courier New',Courier,monospace;font-size:22px;font-weight:bold;color:${guinda};letter-spacing:4px;background:#fdf2f4;border:1px dashed #d08ba0;padding:12px 16px;border-radius:8px;text-align:center;">${escapeHtml(data.passwordTemporal)}</div>
+          <div style="font-size:12px;color:#a24a63;margin-top:9px;text-align:center;">La cambiarás al entrar por primera vez.</div>
         </td></tr>
       </table>
     </td></tr>
-  </table>
-</body>
-</html>`;
 
-  const textPlain = `Bienvenido(a) ${data.nombreGestor},\n\nFuiste designado(a) Gestor Municipal de ${data.municipio} en Preparatoria Abierta Michoacán.\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n\nAccede en: ${data.portalUrl}`;
+    <tr><td style="padding:22px 32px 6px 32px;" align="center">
+      ${emailBoton(data.portalUrl, 'Entrar al panel →')}
+    </td></tr>
+
+    <tr><td style="padding:20px 32px 26px 32px;">
+      <div style="font-size:11px;font-weight:bold;letter-spacing:1.6px;color:${guinda};text-transform:uppercase;margin-bottom:12px;">Tus responsabilidades</div>
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        ${responsabilidades.map((r, i) => `
+        <tr>
+          <td width="26" valign="top" style="padding:0 0 10px 0;">
+            <div style="width:16px;height:16px;background:#f6ede0;border:1px solid ${dorado};border-radius:50%;color:${guinda};font-size:10px;font-weight:bold;text-align:center;line-height:16px;">✓</div>
+          </td>
+          <td valign="top" style="padding:0 0 10px 0;border-bottom:${i < responsabilidades.length - 1 ? `1px solid ${borde}` : '0'};">
+            <div style="font-size:13.5px;color:#4b453f;line-height:1.5;">${r}</div>
+          </td>
+        </tr>`).join('')}
+      </table>
+    </td></tr>
+  `;
+
+  const html = emailLayout({ preheader: 'Tu acceso como gestor ya está listo. Aquí están tus datos.', contenido });
+
+  const textPlain = `Bienvenido(a) ${data.nombreGestor},\n\nFuiste designado(a) como Gestor de ${data.municipio} en Módula 22 (Preparatoria Abierta Michoacán).\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }
