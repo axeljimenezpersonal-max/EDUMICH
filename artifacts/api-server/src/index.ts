@@ -69,7 +69,11 @@ app.use(helmet({ contentSecurityPolicy: false }));
 const ALLOWED_ORIGINS = [
   ...(process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',').map((s) => s.trim()).filter(Boolean)
-    : ['https://edumich.up.railway.app']),
+    : [
+        'https://modula22.mx',
+        'https://www.modula22.mx',
+        'https://edumich.up.railway.app',
+      ]),
   ...(process.env.NODE_ENV !== 'production'
     ? ['http://localhost:5173', 'http://localhost:3001']
     : []),
@@ -79,7 +83,13 @@ app.use(
     origin: (origin, cb) => {
       // Permite peticiones sin Origin (same-origin, curl, apps nativas, health checks).
       if (!origin || ALLOWED_ORIGINS.includes(origin)) return cb(null, true);
-      return cb(new Error('CORS: origen no permitido'));
+      // Origen no permitido: se NIEGA el permiso CORS sin lanzar un Error.
+      // Lanzar convertía cualquier petición con Origin no listado —incluidos los
+      // propios /assets del portal— en un 500, y dejaba la página en blanco.
+      // Con cb(null, false) simplemente no se añaden cabeceras CORS: el
+      // navegador bloquea lo cross-origin real, pero el same-origin (el propio
+      // portal cargando su JS/CSS) sigue funcionando.
+      return cb(null, false);
     },
     credentials: true,
   })
