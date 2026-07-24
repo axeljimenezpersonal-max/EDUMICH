@@ -5,7 +5,7 @@
  * escribe datos; el resto es solo lectura.
  */
 import { useEffect, useState } from 'react';
-import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock } from 'lucide-react';
+import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock, Pencil, Trash2 } from 'lucide-react';
 import { DireccionLayout } from './DireccionLayout';
 import { api } from '../../lib/api';
 import { avisar } from '../../components/Avisador';
@@ -19,11 +19,17 @@ type Acceso = {
   rol: 'admin' | 'gestor';
   nombre: string;
   detalle: string;
+  municipioId: number | null;
+  telefono: string | null;
+  puesto: string | null;
+  esJefe: boolean;
   activo: boolean;
   estado: 'sin_entrar' | 'activo';
   correoEnviadoEn: string | null;
   puedeReenviar: boolean;
 };
+
+type FormEdit = { nombreCompleto: string; email: string; municipioId: number | ''; telefono: string; puesto: string; esJefe: boolean };
 
 type Tipo = 'gestor' | 'admin';
 type Municipio = { id: number; nombre: string };
@@ -51,6 +57,64 @@ export default function DireccionAcceso() {
   const [accesos, setAccesos] = useState<Acceso[]>([]);
   const [cargandoAccesos, setCargandoAccesos] = useState(true);
   const [reenviando, setReenviando] = useState<number | null>(null);
+  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [edit, setEdit] = useState<FormEdit>({ nombreCompleto: '', email: '', municipioId: '', telefono: '', puesto: '', esJefe: false });
+  const [guardandoEdit, setGuardandoEdit] = useState(false);
+  const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+
+  function abrirEdicion(a: Acceso) {
+    setEditandoId(a.userId);
+    setEdit({
+      nombreCompleto: a.nombre,
+      email: a.email,
+      municipioId: a.municipioId ?? '',
+      telefono: a.telefono ?? '',
+      puesto: a.puesto ?? '',
+      esJefe: a.esJefe,
+    });
+  }
+
+  async function guardarEdicion(a: Acceso) {
+    setGuardandoEdit(true);
+    try {
+      const cuerpo: Record<string, unknown> = { nombreCompleto: edit.nombreCompleto.trim(), email: edit.email.trim() };
+      if (a.rol === 'gestor') {
+        if (edit.municipioId !== '') cuerpo.municipioId = Number(edit.municipioId);
+        cuerpo.telefono = edit.telefono.trim() || null;
+      } else {
+        cuerpo.puesto = edit.puesto.trim() || null;
+        cuerpo.esJefe = edit.esJefe;
+      }
+      await api.patch(`/direccion/accesos/${a.userId}`, cuerpo);
+      avisar('Cambios guardados.', 'ok');
+      setEditandoId(null);
+      cargarAccesos();
+    } catch (e) {
+      avisar((e as Error).message || 'No se pudo guardar.', 'error');
+    } finally {
+      setGuardandoEdit(false);
+    }
+  }
+
+  async function eliminar(a: Acceso) {
+    const ok = await confirmar({
+      title: 'Eliminar cuenta',
+      message: `Se eliminará la cuenta de ${formatearNombre(a.nombre)} (${a.email}) y perderá el acceso. Esta acción no se puede deshacer.`,
+      confirmLabel: 'Eliminar',
+      danger: true,
+    });
+    if (!ok) return;
+    setEliminandoId(a.userId);
+    try {
+      await api.delete(`/direccion/accesos/${a.userId}`);
+      avisar('Cuenta eliminada.', 'ok');
+      cargarAccesos();
+    } catch (e) {
+      avisar((e as Error).message || 'No se pudo eliminar.', 'error');
+    } finally {
+      setEliminandoId(null);
+    }
+  }
 
   function cargarAccesos() {
     setCargandoAccesos(true);
@@ -244,37 +308,82 @@ export default function DireccionAcceso() {
           ) : (
             <div className="space-y-2">
               {accesos.map((a) => (
-                <div key={a.userId} className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="truncate text-sm font-semibold text-stone-900">{formatearNombre(a.nombre)}</span>
-                      <span className="shrink-0 rounded-full bg-[var(--color-crema-100)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)' }}>
-                        {a.rol === 'admin' ? `Admin · ${a.detalle}` : `Gestor · ${a.detalle}`}
-                      </span>
+                <div key={a.userId} className="rounded-xl border border-stone-200 bg-white p-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-stone-900">{formatearNombre(a.nombre)}</span>
+                        <span className="shrink-0 rounded-full bg-[var(--color-crema-100)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)' }}>
+                          {a.rol === 'admin' ? `Admin · ${a.detalle}` : `Gestor · ${a.detalle}`}
+                        </span>
+                      </div>
+                      <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                        {a.estado === 'activo' ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo · ya entró</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 font-semibold text-amber-700"><Clock size={11} /> Sin entrar · contraseña temporal</span>
+                        )}
+                        <span className="inline-flex items-center gap-1 text-stone-400">
+                          <Mail size={11} /> {a.correoEnviadoEn ? `Correo enviado ${fechaCorta(a.correoEnviadoEn)}` : 'Correo no enviado'}
+                        </span>
+                      </div>
                     </div>
-                    <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                      {a.estado === 'activo' ? (
-                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo · ya entró</span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 font-semibold text-amber-700"><Clock size={11} /> Sin entrar · contraseña temporal</span>
+                    <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                      {a.puedeReenviar && (
+                        <button type="button" onClick={() => reenviar(a)} disabled={reenviando === a.userId}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-guinda-700)]/30 px-2.5 py-1.5 text-xs font-semibold text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] disabled:opacity-50">
+                          <RefreshCw size={13} /> {reenviando === a.userId ? 'Reenviando…' : 'Reenviar'}
+                        </button>
                       )}
-                      <span className="inline-flex items-center gap-1 text-stone-400">
-                        <Mail size={11} /> {a.correoEnviadoEn ? `Correo enviado ${fechaCorta(a.correoEnviadoEn)}` : 'Correo no enviado'}
-                      </span>
+                      <button type="button" onClick={() => (editandoId === a.userId ? setEditandoId(null) : abrirEdicion(a))}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-semibold text-stone-600 hover:border-stone-300">
+                        <Pencil size={13} /> Editar
+                      </button>
+                      <button type="button" onClick={() => eliminar(a)} disabled={eliminandoId === a.userId}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                        <Trash2 size={13} /> {eliminandoId === a.userId ? 'Eliminando…' : 'Eliminar'}
+                      </button>
                     </div>
                   </div>
-                  {a.puedeReenviar ? (
-                    <button
-                      type="button"
-                      onClick={() => reenviar(a)}
-                      disabled={reenviando === a.userId}
-                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--color-guinda-700)]/30 px-3 py-2 text-xs font-semibold text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] disabled:opacity-50"
-                    >
-                      <RefreshCw size={13} /> {reenviando === a.userId ? 'Reenviando…' : 'Reenviar acceso'}
-                    </button>
-                  ) : (
-                    <span className="shrink-0 text-[11px] text-stone-400">—</span>
+
+                  {/* Formulario de edición en línea */}
+                  {editandoId === a.userId && (
+                    <div className="mt-4 border-t border-stone-100 pt-4">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <Campo label="Nombre completo" value={edit.nombreCompleto} onChange={(v) => setEdit((s) => ({ ...s, nombreCompleto: v }))} />
+                        <Campo label="Correo" type="email" value={edit.email} onChange={(v) => setEdit((s) => ({ ...s, email: v }))} />
+                        {a.rol === 'gestor' ? (
+                          <>
+                            <div>
+                              <label className="mb-1 block text-sm font-medium text-stone-700">Municipio</label>
+                              <select value={edit.municipioId} onChange={(e) => setEdit((s) => ({ ...s, municipioId: e.target.value ? Number(e.target.value) : '' }))} className="gov-input w-full">
+                                <option value="">Selecciona…</option>
+                                {municipios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+                              </select>
+                            </div>
+                            <Campo label="Teléfono" value={edit.telefono} onChange={(v) => setEdit((s) => ({ ...s, telefono: v }))} />
+                          </>
+                        ) : (
+                          <>
+                            <Campo label="Puesto" value={edit.puesto} onChange={(v) => setEdit((s) => ({ ...s, puesto: v }))} />
+                            <label className="flex items-center gap-2.5 self-end rounded-xl border border-stone-200 px-3 py-2.5">
+                              <input type="checkbox" checked={edit.esJefe} onChange={(e) => setEdit((s) => ({ ...s, esJefe: e.target.checked }))} className="h-4 w-4 accent-[var(--color-guinda-700)]" />
+                              <span className="text-sm text-stone-700">Administrador titular (jefe)</span>
+                            </label>
+                          </>
+                        )}
+                      </div>
+                      <div className="mt-3 flex gap-2">
+                        <button type="button" onClick={() => guardarEdicion(a)} disabled={guardandoEdit || !edit.nombreCompleto.trim() || !/\S+@\S+\.\S+/.test(edit.email)}
+                          className="rounded-lg bg-[var(--color-guinda-800)] px-4 py-2 text-xs font-bold text-white hover:bg-[var(--color-guinda-700)] disabled:opacity-50">
+                          {guardandoEdit ? 'Guardando…' : 'Guardar cambios'}
+                        </button>
+                        <button type="button" onClick={() => setEditandoId(null)} className="rounded-lg border border-stone-200 px-4 py-2 text-xs font-semibold text-stone-600 hover:border-stone-300">
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
               ))}

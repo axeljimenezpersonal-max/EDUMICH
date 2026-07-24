@@ -885,8 +885,11 @@ router.get('/accesos', async (_req, res) => {
         createdAt: users.createdAt,
         adminNombre: administradores.nombreCompleto,
         esJefe: administradores.esJefe,
+        puesto: administradores.puesto,
         gestorNombre: gestores.nombreCompleto,
         municipio: municipios.nombre,
+        municipioId: gestores.municipioId,
+        telefono: gestores.telefono,
       })
       .from(users)
       .leftJoin(administradores, eq(administradores.userId, users.id))
@@ -901,6 +904,11 @@ router.get('/accesos', async (_req, res) => {
       rol: r.rol as 'admin' | 'gestor',
       nombre: (r.rol === 'admin' ? r.adminNombre : r.gestorNombre) ?? r.email,
       detalle: r.rol === 'admin' ? (r.esJefe ? 'Titular' : 'Operativo') : (r.municipio ?? 'Sin municipio'),
+      // Campos para prellenar el formulario de edición:
+      municipioId: r.municipioId ?? null,
+      telefono: r.telefono ?? null,
+      puesto: r.puesto ?? null,
+      esJefe: r.esJefe ?? false,
       activo: r.activo,
       // "sin_entrar" = sigue con la contraseña temporal (nunca entró);
       // "activo" = ya la cambió en su primer ingreso.
@@ -984,6 +992,128 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
   } catch (e) {
     console.error('[direccion/accesos/reenviar]', e);
     res.status(500).json({ error: 'No se pudo reenviar el acceso' });
+  }
+});
+
+const editarAccesoSchema = z.object({
+  nombreCompleto: z.string().trim().min(1).max(200).optional(),
+  email: z.string().trim().email().optional(),
+  municipioId: z.number().int().positive().optional(),
+  telefono: z.string().trim().max(30).nullable().optional(),
+  puesto: z.string().trim().max(120).nullable().optional(),
+  esJefe: z.boolean().optional(),
+});
+
+router.patch('/accesos/:userId', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+  const parse = editarAccesoSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
+    return;
+  }
+  const d = parse.data;
+  try {
+    const [u] = await db.select({ rol: users.rol }).from(users).where(eq(users.id, userId));
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
+
+    if (d.email) {
+      const email = d.email.toLowerCase();
+      const [dup] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+      if (dup && dup.id !== userId) {
+        res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
+        return;
+      }
+      await db.update(users).set({ email, updatedAt: new Date() }).where(eq(users.id, userId));
+    }
+
+    if (u.rol === 'gestor') {
+      const set: Partial<typeof gestores.$inferInsert> = {};
+      if (d.nombreCompleto !== undefined) set.nombreCompleto = d.nombreCompleto;
+      if (d.municipioId !== undefined) set.municipioId = d.municipioId;
+      if (d.telefono !== undefined) set.telefono = d.telefono ?? null;
+      if (Object.keys(set).length) await db.update(gestores).set(set).where(eq(gestores.userId, userId));
+    } else {
+      const set: Partial<typeof administradores.$inferInsert> = {};
+      if (d.nombreCompleto !== undefined) set.nombreCompleto = d.nombreCompleto;
+      if (d.puesto !== undefined) set.puesto = d.puesto ?? null;
+      if (d.esJefe !== undefined) set.esJefe = d.esJefe;
+      if (Object.keys(set).length) await db.update(administradores).set(set).where(eq(administradores.userId, userId));
+    }
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'editar_acceso',
+      entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
+      entidadId: userId,
+      detalle: `El creador editó la cuenta ${u.rol} #${userId}`,
+      metadata: { cambios: Object.keys(d) },
+      req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[direccion/accesos/editar]', e);
+    res.status(500).json({ error: 'No se pudo editar la cuenta' });
+  }
+});
+
+router.delete('/accesos/:userId', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+  if (userId === req.user!.userId) {
+    res.status(400).json({ error: 'No puedes eliminar tu propia cuenta.' });
+    return;
+  }
+  try {
+    const [u] = await db.select({ rol: users.rol, email: users.email }).from(users).where(eq(users.id, userId));
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
+
+    // Un gestor con alumnos no se puede borrar: sus alumnos lo referencian.
+    if (u.rol === 'gestor') {
+      const [{ n }] = await db.select({ n: count() }).from(estudiantes).where(eq(estudiantes.gestorId, userId));
+      if (Number(n) > 0) {
+        res.status(409).json({
+          error: `Este gestor tiene ${n} alumno(s) asignado(s). Reasígnalos a otro centro antes de eliminarlo.`,
+        });
+        return;
+      }
+    }
+
+    try {
+      await db.delete(users).where(eq(users.id, userId));
+    } catch {
+      // Borrado duro bloqueado por historial (bitácora, etc.).
+      res.status(409).json({
+        error: 'No se puede eliminar: la cuenta ya tiene actividad registrada en el sistema. Si necesitas retirarla, avísame y agregamos "desactivar" (deja el historial, quita el acceso).',
+      });
+      return;
+    }
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'eliminar_acceso',
+      entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
+      entidadId: userId,
+      detalle: `El creador eliminó la cuenta ${u.rol} ${u.email}`,
+      metadata: { rol: u.rol, email: u.email },
+      req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[direccion/accesos/eliminar]', e);
+    res.status(500).json({ error: 'No se pudo eliminar la cuenta' });
   }
 });
 
