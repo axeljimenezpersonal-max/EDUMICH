@@ -1697,6 +1697,7 @@ export const notificaciones = pgTable('notificaciones', {
 export const outboxEventoEnum = pgEnum('outbox_evento', [
   'cuenta_creada_alumno',
   'cuenta_creada_gestor',
+  'cuenta_creada_admin',
   'autoregistro_alumno',
   'notificacion_admin_autoregistro',
   'aviso_eliminacion_cuenta',

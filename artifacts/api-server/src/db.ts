@@ -56,6 +56,7 @@ const migrations = [
      WHERE folio_preregistro LIKE 'PRE-%MICH-%'`,
   // Correo de solicitud rechazada (outbox).
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'solicitud_rechazada'`,
+  `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'cuenta_creada_admin'`,
   // Solicitud de cuenta: preferencia de gestor.
   `ALTER TABLE solicitudes_cuenta ADD COLUMN IF NOT EXISTS quiere_info_gestores boolean NOT NULL DEFAULT false`,
   // Admin: perfil confirmado (bloquea nombre/cargo/tel tras la primera vez).

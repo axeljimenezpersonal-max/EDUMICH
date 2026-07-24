@@ -3,6 +3,7 @@ import { db } from '../db';
 import { outbox } from '@workspace/db/schema';
 import { cuentaCreadaAlumnoTemplate } from './templates/cuenta-creada-alumno';
 import { cuentaCreadaGestorTemplate } from './templates/cuenta-creada-gestor';
+import { cuentaCreadaAdminTemplate } from './templates/cuenta-creada-admin';
 import { solicitudRechazadaTemplate, type SolicitudRechazadaData } from './templates/solicitud-rechazada';
 import { escapeHtml } from '../utils/escapeHtml';
 
@@ -71,6 +72,7 @@ export function advertirConfiguracionCorreo(): void {
 type OutboxEvento =
   | 'cuenta_creada_alumno'
   | 'cuenta_creada_gestor'
+  | 'cuenta_creada_admin'
   | 'autoregistro_alumno'
   | 'notificacion_admin_autoregistro'
   | 'aviso_eliminacion_cuenta'
@@ -232,6 +234,25 @@ export async function sendBienvenidaGestor(
     triggeredBy: opts?.triggeredBy,
     relatedUserId: opts?.relatedUserId,
     metadata: { municipio: data.municipio },
+  });
+}
+
+export async function sendBienvenidaAdmin(
+  email: string,
+  data: { nombre: string; email: string; passwordTemporal: string; portalUrl: string; esJefe: boolean },
+  opts?: { triggeredBy?: number; relatedUserId?: number }
+): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
+  const { subject, html, textPlain } = cuentaCreadaAdminTemplate(data);
+  return sendEmail({
+    to: email,
+    toName: data.nombre,
+    subject,
+    html,
+    textPlain,
+    evento: 'cuenta_creada_admin',
+    triggeredBy: opts?.triggeredBy,
+    relatedUserId: opts?.relatedUserId,
+    metadata: { esJefe: data.esJefe },
   });
 }
 

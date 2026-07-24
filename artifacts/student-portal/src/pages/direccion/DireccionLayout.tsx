@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   LogOut, LayoutDashboard, GraduationCap, Activity, TrendingUp,
-  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle, Menu, X, MousePointerClick, Gem, Database,
+  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle, Menu, X, MousePointerClick, Gem, Database, UserPlus,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AppFooter } from '../../components/AppFooter';
@@ -69,6 +69,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
     { href: '/direccion/reportes',     icon: BarChart2,       label: 'Reportes',          tour: 'nav-reportes' },
     { href: '/direccion/uso',          icon: MousePointerClick, label: 'Uso de la plataforma', tour: 'nav-uso' },
     { href: '/direccion/padron',       icon: Database,        label: 'Padrón histórico',  tour: 'nav-padron' },
+    { href: '/direccion/acceso',       icon: UserPlus,        label: 'Dar acceso',        tour: 'nav-acceso' },
   ];
 
   return (

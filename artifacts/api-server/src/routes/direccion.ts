@@ -14,6 +14,8 @@
  */
 
 import { Router } from 'express';
+import { z } from 'zod';
+import bcrypt from 'bcryptjs';
 import { sql, eq, count, gte, isNull, and, countDistinct } from 'drizzle-orm';
 import { db } from '../db';
 import {
@@ -21,6 +23,7 @@ import {
   directores,
   estudiantes,
   gestores,
+  administradores,
   municipios,
   solicitudesCuenta,
   expedienteDocumentos,
@@ -31,6 +34,9 @@ import {
   outbox,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
+import { generarPasswordTemporal } from '../utils/password';
+import { tryAuditLog } from '../utils/audit';
+import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
 import { resumenMetricas, serieMetricas, PROCESS_START } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
@@ -689,6 +695,176 @@ router.get('/tendencias', async (req, res) => {
   } catch (e) {
     console.error('[direccion/tendencias]', e);
     res.status(500).json({ error: 'No se pudieron cargar las tendencias' });
+  }
+});
+
+// ─── Onboarding: el creador (Sinapsis) da el primer acceso ───────────────
+// Excepción consciente al "solo lectura" de este panel: por decisión de
+// producto, el creador puede dar de alta administradores y gestores y enviarles
+// su primer acceso por correo. La contraseña es temporal y se cambia al entrar.
+
+const onboardingGestorSchema = z.object({
+  nombre: z.string().trim().min(1).max(100),
+  apellidos: z.string().trim().min(1).max(100),
+  email: z.string().trim().email(),
+  municipioId: z.number().int().positive(),
+  telefono: z.string().trim().max(30).optional(),
+  capacidadMaxima: z.number().int().positive().max(500).optional(),
+});
+
+router.post('/onboarding/gestor', async (req, res) => {
+  const parse = onboardingGestorSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
+    return;
+  }
+  const data = parse.data;
+  const email = data.email.toLowerCase();
+  const nombreCompleto = `${data.nombre} ${data.apellidos}`.trim();
+  try {
+    const [existe] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+    if (existe) {
+      res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
+      return;
+    }
+    const [mun] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, data.municipioId));
+    if (!mun) {
+      res.status(400).json({ error: 'Municipio no válido' });
+      return;
+    }
+
+    const tempPassword = generarPasswordTemporal();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const nuevo = await db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({ email, passwordHash, rol: 'gestor', activo: true, passwordTemporal: true })
+        .returning();
+      await tx.insert(gestores).values({
+        userId: user.id,
+        nombreCompleto,
+        municipioId: data.municipioId,
+        capacidadMaxima: data.capacidadMaxima ?? 50,
+        telefono: data.telefono ?? undefined,
+        estado: 'activo',
+      });
+      return user;
+    });
+
+    let correoEnviado = false;
+    try {
+      const r = await sendBienvenidaGestor(
+        email,
+        {
+          nombreGestor: nombreCompleto,
+          email,
+          passwordTemporal: tempPassword,
+          municipio: mun.nombre,
+          portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+        },
+        { triggeredBy: req.user!.userId, relatedUserId: nuevo.id },
+      );
+      correoEnviado = r.enviado;
+      if (correoEnviado) await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, nuevo.id));
+    } catch { /* el alta ya quedó; el correo se puede reenviar */ }
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'onboarding_gestor',
+      entidad: 'gestores',
+      entidadId: nuevo.id,
+      detalle: `El creador dio primer acceso al gestor ${nombreCompleto} (${mun.nombre})`,
+      metadata: { email },
+      req,
+    });
+
+    res.status(201).json({
+      ok: true,
+      correoEnviado,
+      ...(puedeRevelarCredenciales() ? { credencialTemporal: tempPassword } : {}),
+    });
+  } catch (e) {
+    console.error('[direccion/onboarding/gestor]', e);
+    res.status(500).json({ error: 'No se pudo crear el gestor' });
+  }
+});
+
+const onboardingAdminSchema = z.object({
+  nombre: z.string().trim().min(1).max(100),
+  apellidos: z.string().trim().min(1).max(100),
+  email: z.string().trim().email(),
+  esJefe: z.boolean().optional(),
+  puesto: z.string().trim().max(120).optional(),
+});
+
+router.post('/onboarding/admin', async (req, res) => {
+  const parse = onboardingAdminSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
+    return;
+  }
+  const data = parse.data;
+  const email = data.email.toLowerCase();
+  const nombreCompleto = `${data.nombre} ${data.apellidos}`.trim();
+  const esJefe = data.esJefe ?? false;
+  try {
+    const [existe] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+    if (existe) {
+      res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
+      return;
+    }
+
+    const tempPassword = generarPasswordTemporal();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    const nuevo = await db.transaction(async (tx) => {
+      const [user] = await tx
+        .insert(users)
+        .values({ email, passwordHash, rol: 'admin', activo: true, passwordTemporal: true })
+        .returning();
+      await tx.insert(administradores).values({
+        userId: user.id,
+        nombreCompleto,
+        puesto: data.puesto ?? undefined,
+        esJefe,
+      });
+      return user;
+    });
+
+    let correoEnviado = false;
+    try {
+      const r = await sendBienvenidaAdmin(
+        email,
+        {
+          nombre: nombreCompleto,
+          email,
+          passwordTemporal: tempPassword,
+          portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+          esJefe,
+        },
+        { triggeredBy: req.user!.userId, relatedUserId: nuevo.id },
+      );
+      correoEnviado = r.enviado;
+      if (correoEnviado) await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, nuevo.id));
+    } catch { /* el alta ya quedó; el correo se puede reenviar */ }
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'onboarding_admin',
+      entidad: 'administradores',
+      entidadId: nuevo.id,
+      detalle: `El creador dio primer acceso a Administración ${nombreCompleto}${esJefe ? ' (titular)' : ''}`,
+      metadata: { email, esJefe },
+      req,
+    });
+
+    res.status(201).json({
+      ok: true,
+      correoEnviado,
+      ...(puedeRevelarCredenciales() ? { credencialTemporal: tempPassword } : {}),
+    });
+  } catch (e) {
+    console.error('[direccion/onboarding/admin]', e);
+    res.status(500).json({ error: 'No se pudo crear la cuenta de administración' });
   }
 });
 

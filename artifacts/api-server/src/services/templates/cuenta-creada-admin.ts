@@ -1,0 +1,58 @@
+import { escapeHtml } from '../../utils/escapeHtml';
+import { emailLayout, emailBoton, EMAIL_COLORS } from './_shell';
+
+export interface CuentaCreadaAdminData {
+  nombre: string;
+  email: string;
+  passwordTemporal: string;
+  portalUrl: string;
+  esJefe: boolean;
+}
+
+/**
+ * Bienvenida para una cuenta de Administración creada desde el panel del
+ * creador (Sinapsis). Usa el shell compartido, así que hereda el encabezado
+ * Módula 22. La contraseña es temporal: se cambia en el primer ingreso.
+ */
+export function cuentaCreadaAdminTemplate(data: CuentaCreadaAdminData): {
+  subject: string;
+  html: string;
+  textPlain: string;
+} {
+  const subject = 'Tu acceso a Módula 22 · Administración';
+  const { guinda, dorado, texto } = EMAIL_COLORS;
+  const rolLabel = data.esJefe ? 'Administración · Titular' : 'Administración';
+
+  const contenido = `
+    <tr><td style="padding:30px 32px 8px 32px;">
+      <div style="font-size:11px;font-weight:bold;letter-spacing:1.8px;color:${dorado};text-transform:uppercase;margin-bottom:8px;">Acceso al sistema</div>
+      <h1 style="color:#1c1917;font-size:24px;margin:0 0 10px 0;font-family:Georgia,serif;">¡Hola, ${escapeHtml(data.nombre)}!</h1>
+      <p style="color:${texto};font-size:14.5px;line-height:1.75;margin:0;">Se te dio acceso como <strong>${escapeHtml(rolLabel)}</strong> en <strong>Módula 22</strong>, la plataforma de Preparatoria Abierta del Gobierno de Michoacán. Desde aquí administras el programa: solicitudes, expedientes, calificaciones y pagos.</p>
+    </td></tr>
+
+    <tr><td style="padding:22px 32px 8px 32px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#fdf8f9;border:1px solid #eccdd6;border-radius:14px;overflow:hidden;">
+        <tr><td style="background:${guinda};padding:10px 20px;">
+          <span style="color:#fff;font-size:10.5px;font-weight:bold;letter-spacing:1.6px;text-transform:uppercase;">Tus datos de acceso</span>
+        </td></tr>
+        <tr><td style="padding:20px;">
+          <div style="font-size:10.5px;color:#9a8f86;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;">Correo</div>
+          <div style="font-family:'Courier New',Courier,monospace;font-size:14px;color:#1c1917;background:#f3ebeb;padding:9px 13px;border-radius:7px;margin-bottom:14px;">${escapeHtml(data.email)}</div>
+          <div style="font-size:10.5px;color:#9a8f86;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:5px;">Contraseña temporal</div>
+          <div style="font-family:'Courier New',Courier,monospace;font-size:22px;font-weight:bold;color:${guinda};letter-spacing:4px;background:#fdf2f4;border:1px dashed #d08ba0;padding:12px 16px;border-radius:8px;text-align:center;">${escapeHtml(data.passwordTemporal)}</div>
+          <div style="font-size:12px;color:#a24a63;margin-top:9px;text-align:center;">La cambiarás al entrar por primera vez.</div>
+        </td></tr>
+      </table>
+    </td></tr>
+
+    <tr><td style="padding:22px 32px 26px 32px;" align="center">
+      ${emailBoton(data.portalUrl, 'Entrar al panel →')}
+    </td></tr>
+  `;
+
+  const html = emailLayout({ preheader: 'Tu acceso a Módula 22 ya está listo. Aquí están tus datos de acceso.', contenido });
+
+  const textPlain = `Hola ${data.nombre},\n\nSe te dio acceso como ${rolLabel} en Módula 22 (Preparatoria Abierta Michoacán).\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+
+  return { subject, html, textPlain };
+}
