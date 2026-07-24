@@ -61,18 +61,23 @@ export default function ConvocatoriasLista() {
   const [data, setData] = useState<ConvocatoriasData | null>(null);
   const [loading, setLoading] = useState(true);
   const [precargaOpen, setPrecargaOpen] = useState(false);
-  // Selector de gestor para "Exámenes solicitados"
+  // Selector de gestor para "Exámenes solicitados" e "Inscritos pagados"
   const [pickerEtapa, setPickerEtapa] = useState<Etapa | null>(null);
+  const [pickerTipo, setPickerTipo] = useState<'solicitados' | 'pagados'>('solicitados');
   const [gestoresPicker, setGestoresPicker] = useState<{ gestorId: number; nombre: string; examenes: number }[] | null>(null);
 
   function abrirPdf(url: string) { window.open(url, '_blank', 'noopener'); }
-  function abrirRelacionPicker(etapa: Etapa) {
+  function abrirRelacionPicker(etapa: Etapa, tipo: 'solicitados' | 'pagados' = 'solicitados') {
     setPickerEtapa(etapa);
+    setPickerTipo(tipo);
     setGestoresPicker(null);
     api.get<{ gestores: { gestorId: number; nombre: string; examenes: number }[] }>(`/admin/etapas/${etapa.id}/gestores-con-inscritos`)
       .then((r) => setGestoresPicker(r.gestores))
       .catch(() => setGestoresPicker([]));
   }
+  // Endpoint del PDF según el tipo elegido.
+  const urlPdfPicker = (etapaId: number, gestorId: number | 'todos') =>
+    `/api/admin/${pickerTipo === 'pagados' ? 'inscritos-pagados' : 'relacion-examenes'}/pdf?etapaId=${etapaId}&gestorId=${gestorId}`;
 
   function BotonesDocs({ etapa, dark }: { etapa: Etapa; dark?: boolean }) {
     const cls = dark
@@ -83,7 +88,7 @@ export default function ConvocatoriasLista() {
         <button onClick={() => abrirRelacionPicker(etapa)} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${cls}`}>
           <FileText size={13} /> Exámenes solicitados
         </button>
-        <button onClick={() => abrirPdf(`/api/admin/inscritos-pagados/pdf?etapaId=${etapa.id}`)} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${cls}`}>
+        <button onClick={() => abrirRelacionPicker(etapa, 'pagados')} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${cls}`}>
           <FileCheck2 size={13} /> Inscritos pagados
         </button>
       </div>
@@ -429,13 +434,15 @@ export default function ConvocatoriasLista() {
       </>
       )}
 
-      {/* Selector de gestor para "Exámenes solicitados" */}
+      {/* Selector de centro para "Exámenes solicitados" e "Inscritos pagados" */}
       {pickerEtapa && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setPickerEtapa(null)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
               <div>
-                <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-guinda-700)' }}>Exámenes solicitados</div>
+                <div className="text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--color-guinda-700)' }}>
+                  {pickerTipo === 'pagados' ? 'Inscritos pagados' : 'Exámenes solicitados'}
+                </div>
                 <h3 className="font-serif text-base font-bold text-stone-900">Etapa {pickerEtapa.clave}</h3>
               </div>
               <button onClick={() => setPickerEtapa(null)} className="text-stone-400 hover:text-stone-700"><X size={18} /></button>
@@ -443,7 +450,7 @@ export default function ConvocatoriasLista() {
             <div className="p-4">
               <p className="text-xs text-stone-500 mb-3">Elige un centro de asesoría, o descarga la relación de todos.</p>
               <button
-                onClick={() => { abrirPdf(`/api/admin/relacion-examenes/pdf?etapaId=${pickerEtapa.id}&gestorId=todos`); setPickerEtapa(null); }}
+                onClick={() => { abrirPdf(urlPdfPicker(pickerEtapa.id, 'todos')); setPickerEtapa(null); }}
                 className="w-full flex items-center gap-2.5 rounded-xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] px-3.5 py-3 mb-3 text-left hover:bg-[var(--color-guinda-100,#f3dbe4)] transition-colors"
               >
                 <FileText size={18} className="text-[var(--color-guinda-700)] shrink-0" />
@@ -462,7 +469,7 @@ export default function ConvocatoriasLista() {
                   gestoresPicker.map((g) => (
                     <button
                       key={g.gestorId}
-                      onClick={() => { abrirPdf(`/api/admin/relacion-examenes/pdf?etapaId=${pickerEtapa.id}&gestorId=${g.gestorId}`); setPickerEtapa(null); }}
+                      onClick={() => { abrirPdf(urlPdfPicker(pickerEtapa.id, g.gestorId)); setPickerEtapa(null); }}
                       className="w-full flex items-center gap-2.5 py-2.5 px-2 text-left hover:bg-stone-50 rounded-lg"
                     >
                       <Building2 size={15} className="text-stone-400 shrink-0" />

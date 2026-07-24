@@ -3055,14 +3055,18 @@ router.get('/relacion-examenes/pdf', async (req, res) => {
   }
 });
 
-// ─── GET /admin/inscritos-pagados/pdf?etapaId= ─────────────────────────────
-// "Relación de inscritos pagados": consolidado de la etapa (todos los centros),
-// solo alumnos con ficha pagada. Mismo formato institucional que la Relación.
+// ─── GET /admin/inscritos-pagados/pdf?etapaId=&gestorId= ───────────────────
+// "Relación de inscritos pagados": con `gestorId` = un centro; sin él (o
+// gestorId=todos) = todos los centros de la etapa. Solo alumnos con ficha
+// pagada. Mismo formato institucional que la Relación de exámenes.
 router.get('/inscritos-pagados/pdf', async (req, res) => {
   const etapaId = Number(req.query.etapaId);
-  if (!etapaId) { res.status(400).json({ error: 'Falta la etapa' }); return; }
+  const gestorParam = String(req.query.gestorId ?? '').trim();
+  const todos = gestorParam === '' || gestorParam === 'todos';
+  const gestorId = Number(gestorParam);
+  if (!etapaId || (!todos && !gestorId)) { res.status(400).json({ error: 'Falta la etapa' }); return; }
   try {
-    const { pdf, nombreArchivo } = await generarInscritosPagados(etapaId);
+    const { pdf, nombreArchivo } = await generarInscritosPagados(etapaId, todos ? undefined : gestorId);
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
     res.send(Buffer.from(pdf));

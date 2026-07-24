@@ -188,7 +188,9 @@ function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boo
             </div>
             {gestor && (
               <a
-                href={`/api/gestor/etapas/${encodeURIComponent(e.clave)}/participantes.csv`}
+                href={`/api/gestor/etapas/${encodeURIComponent(e.clave)}/relacion.pdf`}
+                target="_blank"
+                rel="noopener"
                 className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-bold transition-colors hover:bg-white"
                 style={{ borderColor: borde, background: '#ffffffcc', color: acento }}
               >

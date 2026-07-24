@@ -33,9 +33,11 @@ function fechaLarga(iso: string): { dia: string; mes: string } {
 
 export async function generarInscritosPagados(
   etapaId: number,
+  gestorId?: number,
 ): Promise<{ pdf: Uint8Array; nombreArchivo: string }> {
   const [etapa] = await db.select().from(convocatoriasEtapas).where(eq(convocatoriasEtapas.id, etapaId));
   if (!etapa) throw new Error('Etapa no encontrada');
+  const filtroGestor = gestorId ? sql`AND e.gestor_id = ${gestorId}` : sql``;
 
   const [concepto] = await db
     .select({ monto: conceptosPago.monto })
@@ -61,7 +63,7 @@ export async function generarInscritosPagados(
     LEFT JOIN gestores g ON g.user_id = e.gestor_id
     JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id
     JOIN pagos_examen pe ON pe.id = pei.pago_examen_id AND pe.estado = 'pagado'
-    WHERE ei.etapa_id = ${etapaId} AND ei.estado <> 'cancelado'
+    WHERE ei.etapa_id = ${etapaId} AND ei.estado <> 'cancelado' ${filtroGestor}
     GROUP BY e.user_id, e.matricula_oficial_dgb, e.apellido_paterno, e.apellido_materno,
              e.nombres, e.nombre_completo, e.curp, g.centro_asesoria, g.nombre_completo
     ORDER BY centro NULLS LAST, e.apellido_paterno NULLS LAST, e.apellido_materno NULLS LAST, e.nombres NULLS LAST

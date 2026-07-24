@@ -60,6 +60,7 @@ import { generarCredencialPdf, obtenerDatosCredencial } from '../services/creden
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { tryAuditLog } from '../utils/audit';
 import { avisarOrdenPorEmitir } from '../utils/notificarPago';
+import { generarRelacionExamenes } from '../services/relacionExamenesPdf';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 import { validarEdad } from '../utils/edad';
@@ -1094,6 +1095,27 @@ router.get('/etapas/:clave/participantes.csv', async (req, res) => {
     res.send(csv);
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'No se pudo generar la lista' });
+  }
+});
+
+// GET /gestor/etapas/:clave/relacion.pdf
+// La MISMA "Relación de exámenes solicitados" (PDF institucional) que ve la
+// administración, pero solo con los alumnos de ESTE gestor. Reemplaza al CSV.
+router.get('/etapas/:clave/relacion.pdf', async (req, res) => {
+  try {
+    const userId = req.user!.userId;
+    const clave = String(req.params.clave).toUpperCase();
+    const etapaRes = await db.execute<{ id: number }>(sql`
+      SELECT id FROM convocatorias_etapas WHERE upper(clave) = ${clave} LIMIT 1
+    `);
+    const etapa = etapaRes.rows[0];
+    if (!etapa) { res.status(404).json({ error: 'Etapa no encontrada' }); return; }
+    const { pdf, nombreArchivo } = await generarRelacionExamenes(etapa.id, userId);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${nombreArchivo}"`);
+    res.send(Buffer.from(pdf));
+  } catch (err) {
+    res.status(500).json({ error: err instanceof Error ? err.message : 'No se pudo generar la relación' });
   }
 });
 
