@@ -167,6 +167,45 @@ html, body {
   }
 }
 
+/* --- Selector de estados de la landing ---------------------------------- */
+/* Cada tarjeta entra con un pequeño ascenso (escalonado por índice desde el
+   componente) y su ícono de línea flota suavemente, cada uno en su propio
+   compás. La mariposa de Michoacán aletea. Todo cede ante reduce-motion. */
+@keyframes estado-entrada {
+  from { opacity: 0; transform: translateY(14px) scale(0.96); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes estado-flota {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes estado-aleteo {
+  0%, 100% { transform: scaleX(1); }
+  50%      { transform: scaleX(0.66); }
+}
+.estado-card {
+  opacity: 0;
+  animation: estado-entrada 0.55s ease-out both;
+}
+.estado-glyph {
+  animation: estado-flota 4.5s ease-in-out infinite;
+  will-change: transform;
+}
+.estado-ala {
+  transform-box: view-box;
+  transform-origin: 12px 12px;
+  animation: estado-aleteo 1.5s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .estado-card,
+  .estado-glyph,
+  .estado-ala {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 /* ── Componentes utilitarios ──────────────────────────── */
 @layer components {
   .gov-card {

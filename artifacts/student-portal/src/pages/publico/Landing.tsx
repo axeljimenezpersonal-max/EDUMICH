@@ -1,71 +1,109 @@
 /**
- * Landing pública de Módula 22 (raíz `/`). Puerta de entrada indexable y, sobre
- * todo, la cara del proyecto: Módula 22 se presenta como una iniciativa
- * NACIONAL para acercar la Preparatoria Abierta a los 32 estados de México, con
- * un fuerte acento social. Abajo, el visitante elige su estado; hoy solo
- * Michoacán está disponible y es el único que entra al portal. El resto se
- * muestran como "Próximamente" para dejar clara la vocación nacional.
+ * Landing pública de Módula 22 (raíz `/`). Puerta de entrada indexable y la cara
+ * del proyecto: Módula 22 se presenta como una iniciativa NACIONAL de impacto
+ * social para acercar la Preparatoria Abierta a los 32 estados de México. Abajo,
+ * el visitante elige su estado; hoy solo Michoacán está disponible y es el único
+ * que entra al portal.
+ *
+ * Los estados se ilustran con íconos de LÍNEA (nada de emojis): un guiño
+ * geográfico/cultural por estado, en la paleta de la marca, con animación propia
+ * (entrada escalonada + flotación; la mariposa monarca de Michoacán aletea).
  */
 import { Link } from 'wouter';
-import { ArrowRight, GraduationCap, HeartHandshake, MapPin } from 'lucide-react';
+import {
+  ArrowRight, GraduationCap, HeartHandshake, MapPin,
+  FerrisWheel, Waves, Fish, Ship, Trees, Sun, Building2, Mountain, Flame,
+  TreePine, MountainSnow, Gem, TreePalm, Sprout, Guitar, Leaf, Sailboat,
+  Flower, Flower2, Landmark, Shell, Droplets, Music, Wheat, Anchor, Church,
+  Coffee, Pyramid, Pickaxe,
+  type LucideIcon,
+} from 'lucide-react';
 import ModulaLogo from '../../components/ModulaLogo';
 
 const DORADO = 'var(--color-dorado-soft, #e6c78a)';
 
+/** Mariposa monarca de línea — símbolo de Michoacán. Alas que aletean. */
+function Mariposa({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.4}
+      strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden
+    >
+      <path d="M12 7.6V17" />
+      <path d="M12 7.6c-.4-1.2-1.2-2-2.3-2.5M12 7.6c.4-1.2 1.2-2 2.3-2.5" />
+      <g className="estado-ala">
+        <path d="M12 9C9 5.4 4.4 5 3.9 8.3c-.4 2.7 3.6 3.7 8.1 2.2" />
+        <path d="M12 12.6c-2.6-.3-5.3.7-5.5 3.2-.15 2 2.7 2.4 5.5-.2" />
+      </g>
+      <g className="estado-ala">
+        <path d="M12 9c3-3.6 7.6-4 8.1-.7.4 2.7-3.6 3.7-8.1 2.2" />
+        <path d="M12 12.6c2.6-.3 5.3.7 5.5 3.2.15 2-2.7 2.4-5.5-.2" />
+      </g>
+    </svg>
+  );
+}
+
 /**
- * Los 32 estados. `emoji` es un guiño representativo (placeholder: se pueden
- * sustituir por los escudos oficiales cuando se tengan como assets). Solo
- * Michoacán está `disponible`; entrar ahí lleva al portal.
+ * Los 32 estados. `Icono` es un ícono de línea (o la mariposa para Michoacán,
+ * el único `disponible`). Se pueden sustituir por los escudos oficiales cuando
+ * se tengan como assets.
  */
-type Estado = { nombre: string; emoji: string; disponible?: boolean };
+type Estado = { nombre: string; Icono: LucideIcon | typeof Mariposa; disponible?: boolean };
 const ESTADOS: Estado[] = [
-  { nombre: 'Aguascalientes', emoji: '🎡' },
-  { nombre: 'Baja California', emoji: '🌊' },
-  { nombre: 'Baja California Sur', emoji: '🐋' },
-  { nombre: 'Campeche', emoji: '🏰' },
-  { nombre: 'Chiapas', emoji: '🌿' },
-  { nombre: 'Chihuahua', emoji: '🏜️' },
-  { nombre: 'Ciudad de México', emoji: '🏙️' },
-  { nombre: 'Coahuila', emoji: '🦕' },
-  { nombre: 'Colima', emoji: '🌋' },
-  { nombre: 'Durango', emoji: '🌵' },
-  { nombre: 'Estado de México', emoji: '🏔️' },
-  { nombre: 'Guanajuato', emoji: '⛏️' },
-  { nombre: 'Guerrero', emoji: '🏖️' },
-  { nombre: 'Hidalgo', emoji: '🌾' },
-  { nombre: 'Jalisco', emoji: '🥃' },
-  { nombre: 'Michoacán', emoji: '🦋', disponible: true },
-  { nombre: 'Morelos', emoji: '🌸' },
-  { nombre: 'Nayarit', emoji: '🏝️' },
-  { nombre: 'Nuevo León', emoji: '⛰️' },
-  { nombre: 'Oaxaca', emoji: '🎭' },
-  { nombre: 'Puebla', emoji: '🌶️' },
-  { nombre: 'Querétaro', emoji: '🏛️' },
-  { nombre: 'Quintana Roo', emoji: '🐠' },
-  { nombre: 'San Luis Potosí', emoji: '🏜️' },
-  { nombre: 'Sinaloa', emoji: '🎶' },
-  { nombre: 'Sonora', emoji: '🌵' },
-  { nombre: 'Tabasco', emoji: '🐊' },
-  { nombre: 'Tamaulipas', emoji: '🌊' },
-  { nombre: 'Tlaxcala', emoji: '🌽' },
-  { nombre: 'Veracruz', emoji: '☕' },
-  { nombre: 'Yucatán', emoji: '🏛️' },
-  { nombre: 'Zacatecas', emoji: '⛏️' },
+  { nombre: 'Aguascalientes', Icono: FerrisWheel },
+  { nombre: 'Baja California', Icono: Waves },
+  { nombre: 'Baja California Sur', Icono: Fish },
+  { nombre: 'Campeche', Icono: Ship },
+  { nombre: 'Chiapas', Icono: Trees },
+  { nombre: 'Chihuahua', Icono: Sun },
+  { nombre: 'Ciudad de México', Icono: Building2 },
+  { nombre: 'Coahuila', Icono: Mountain },
+  { nombre: 'Colima', Icono: Flame },
+  { nombre: 'Durango', Icono: TreePine },
+  { nombre: 'Estado de México', Icono: MountainSnow },
+  { nombre: 'Guanajuato', Icono: Gem },
+  { nombre: 'Guerrero', Icono: TreePalm },
+  { nombre: 'Hidalgo', Icono: Sprout },
+  { nombre: 'Jalisco', Icono: Guitar },
+  { nombre: 'Michoacán', Icono: Mariposa, disponible: true },
+  { nombre: 'Morelos', Icono: Leaf },
+  { nombre: 'Nayarit', Icono: Sailboat },
+  { nombre: 'Nuevo León', Icono: Mountain },
+  { nombre: 'Oaxaca', Icono: Flower },
+  { nombre: 'Puebla', Icono: Flower2 },
+  { nombre: 'Querétaro', Icono: Landmark },
+  { nombre: 'Quintana Roo', Icono: Shell },
+  { nombre: 'San Luis Potosí', Icono: Droplets },
+  { nombre: 'Sinaloa', Icono: Music },
+  { nombre: 'Sonora', Icono: Wheat },
+  { nombre: 'Tabasco', Icono: Waves },
+  { nombre: 'Tamaulipas', Icono: Anchor },
+  { nombre: 'Tlaxcala', Icono: Church },
+  { nombre: 'Veracruz', Icono: Coffee },
+  { nombre: 'Yucatán', Icono: Pyramid },
+  { nombre: 'Zacatecas', Icono: Pickaxe },
 ];
 
-function TarjetaEstado({ estado }: { estado: Estado }) {
+function TarjetaEstado({ estado, index }: { estado: Estado; index: number }) {
+  const { Icono } = estado;
+  // Retrasos escalonados: la entrada barre en cascada y la flotación queda
+  // desfasada para que cada estado tenga "su propia" animación.
+  const entrada = { animationDelay: `${(index * 0.035).toFixed(3)}s` };
+  const flota = { animationDelay: `${(index * 0.13).toFixed(2)}s` };
+
   if (estado.disponible) {
     return (
       <Link
         href="/login"
-        className="group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-800)] p-4 text-center text-white shadow-lg transition-transform hover:-translate-y-0.5"
+        style={entrada}
+        className="estado-card group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-800)] p-4 text-center text-white shadow-lg transition-transform hover:-translate-y-1"
       >
         <span className="absolute right-2 top-2 rounded-full bg-emerald-400 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-950">
           Disponible
         </span>
-        <span className="text-3xl leading-none" aria-hidden>{estado.emoji}</span>
+        <Icono className="estado-glyph h-7 w-7" style={{ ...flota, color: DORADO }} strokeWidth={1.4} />
         <span className="text-sm font-bold leading-tight">{estado.nombre}</span>
-        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--color-dorado-soft,#e6c78a)]">
+        <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: DORADO }}>
           Entrar al portal <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
         </span>
       </Link>
@@ -73,14 +111,15 @@ function TarjetaEstado({ estado }: { estado: Estado }) {
   }
   return (
     <div
-      className="relative flex cursor-default flex-col items-center justify-center gap-1.5 rounded-2xl border border-stone-200 bg-white/70 p-4 text-center"
+      style={entrada}
+      className="estado-card group relative flex cursor-default flex-col items-center justify-center gap-1.5 rounded-2xl border border-stone-200 bg-white/70 p-4 text-center transition-colors hover:border-[var(--color-guinda-700)]/30"
       aria-disabled
     >
       <span className="absolute right-2 top-2 rounded-full bg-stone-200 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-stone-500">
         Pronto
       </span>
-      <span className="text-3xl leading-none opacity-40 grayscale" aria-hidden>{estado.emoji}</span>
-      <span className="text-sm font-semibold leading-tight text-stone-500">{estado.nombre}</span>
+      <Icono className="estado-glyph h-7 w-7 text-[var(--color-guinda-700)]" style={flota} strokeWidth={1.4} />
+      <span className="text-sm font-semibold leading-tight text-stone-600">{estado.nombre}</span>
       <span className="mt-0.5 text-[11px] text-stone-400">Próximamente</span>
     </div>
   );
@@ -166,8 +205,8 @@ export default function Landing() {
           </div>
 
           <div className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {ESTADOS.map((e) => (
-              <TarjetaEstado key={e.nombre} estado={e} />
+            {ESTADOS.map((e, i) => (
+              <TarjetaEstado key={e.nombre} estado={e} index={i} />
             ))}
           </div>
 
