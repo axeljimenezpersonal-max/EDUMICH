@@ -35,6 +35,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarPasswordTemporal } from '../utils/password';
+import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
 import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
@@ -1114,6 +1115,92 @@ router.delete('/accesos/:userId', async (req, res) => {
   } catch (e) {
     console.error('[direccion/accesos/eliminar]', e);
     res.status(500).json({ error: 'No se pudo eliminar la cuenta' });
+  }
+});
+
+// Desactivar = quitar el acceso SIN borrar (reversible, conserva el historial).
+// Es lo correcto para cuentas que ya trabajaron. Doble candado: no te desactivas
+// a ti mismo, ni al único administrador titular activo.
+router.post('/accesos/:userId/desactivar', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+  if (userId === req.user!.userId) {
+    res.status(400).json({ error: 'No puedes desactivar tu propia cuenta.' });
+    return;
+  }
+  try {
+    const [u] = await db.select({ rol: users.rol, email: users.email }).from(users).where(eq(users.id, userId));
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
+
+    if (u.rol === 'admin') {
+      const [a] = await db.select({ esJefe: administradores.esJefe }).from(administradores).where(eq(administradores.userId, userId));
+      if (a?.esJefe) {
+        const [{ n }] = await db
+          .select({ n: count() })
+          .from(administradores)
+          .innerJoin(users, eq(users.id, administradores.userId))
+          .where(and(eq(administradores.esJefe, true), eq(users.activo, true)));
+        if (Number(n) <= 1) {
+          res.status(409).json({ error: 'Es el único administrador titular activo. Nombra a otro titular antes de desactivarlo.' });
+          return;
+        }
+      }
+    }
+
+    await db.update(users).set({ activo: false, updatedAt: new Date() }).where(eq(users.id, userId));
+    if (u.rol === 'gestor') await db.update(gestores).set({ estado: 'inactivo' }).where(eq(gestores.userId, userId));
+    await invalidarSesiones(userId);
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'desactivar_acceso',
+      entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
+      entidadId: userId,
+      detalle: `El creador desactivó la cuenta ${u.rol} ${u.email}`,
+      metadata: { rol: u.rol, email: u.email },
+      req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[direccion/accesos/desactivar]', e);
+    res.status(500).json({ error: 'No se pudo desactivar la cuenta' });
+  }
+});
+
+router.post('/accesos/:userId/reactivar', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+  try {
+    const [u] = await db.select({ rol: users.rol, email: users.email }).from(users).where(eq(users.id, userId));
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
+    await db.update(users).set({ activo: true, updatedAt: new Date() }).where(eq(users.id, userId));
+    if (u.rol === 'gestor') await db.update(gestores).set({ estado: 'activo' }).where(eq(gestores.userId, userId));
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'reactivar_acceso',
+      entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
+      entidadId: userId,
+      detalle: `El creador reactivó la cuenta ${u.rol} ${u.email}`,
+      metadata: { rol: u.rol, email: u.email },
+      req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[direccion/accesos/reactivar]', e);
+    res.status(500).json({ error: 'No se pudo reactivar la cuenta' });
   }
 });
 

@@ -5,7 +5,7 @@
  * escribe datos; el resto es solo lectura.
  */
 import { useEffect, useState } from 'react';
-import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock, Pencil, Trash2 } from 'lucide-react';
+import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock, Pencil, Trash2, Ban, Power } from 'lucide-react';
 import { DireccionLayout } from './DireccionLayout';
 import { api } from '../../lib/api';
 import { avisar } from '../../components/Avisador';
@@ -93,6 +93,39 @@ export default function DireccionAcceso() {
       avisar((e as Error).message || 'No se pudo guardar.', 'error');
     } finally {
       setGuardandoEdit(false);
+    }
+  }
+
+  async function desactivar(a: Acceso) {
+    const ok = await confirmar({
+      title: 'Desactivar cuenta',
+      message: `${formatearNombre(a.nombre)} perderá el acceso de inmediato (se cierra su sesión). Su historial se conserva y puedes reactivarla cuando quieras.`,
+      confirmLabel: 'Desactivar',
+      danger: true,
+    });
+    if (!ok) return;
+    setEliminandoId(a.userId);
+    try {
+      await api.post(`/direccion/accesos/${a.userId}/desactivar`, {});
+      avisar('Cuenta desactivada.', 'ok');
+      cargarAccesos();
+    } catch (e) {
+      avisar((e as Error).message || 'No se pudo desactivar.', 'error');
+    } finally {
+      setEliminandoId(null);
+    }
+  }
+
+  async function reactivar(a: Acceso) {
+    setEliminandoId(a.userId);
+    try {
+      await api.post(`/direccion/accesos/${a.userId}/reactivar`, {});
+      avisar('Cuenta reactivada.', 'ok');
+      cargarAccesos();
+    } catch (e) {
+      avisar((e as Error).message || 'No se pudo reactivar.', 'error');
+    } finally {
+      setEliminandoId(null);
     }
   }
 
@@ -319,7 +352,9 @@ export default function DireccionAcceso() {
                       </div>
                       <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
-                        {a.estado === 'activo' ? (
+                        {!a.activo ? (
+                          <span className="inline-flex items-center gap-1 font-semibold text-stone-500"><Ban size={11} /> Inactiva · sin acceso</span>
+                        ) : a.estado === 'activo' ? (
                           <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo · ya entró</span>
                         ) : (
                           <span className="inline-flex items-center gap-1 font-semibold text-amber-700"><Clock size={11} /> Sin entrar · contraseña temporal</span>
@@ -330,10 +365,21 @@ export default function DireccionAcceso() {
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                      {a.puedeReenviar && (
+                      {a.puedeReenviar && a.activo && (
                         <button type="button" onClick={() => reenviar(a)} disabled={reenviando === a.userId}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-guinda-700)]/30 px-2.5 py-1.5 text-xs font-semibold text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] disabled:opacity-50">
                           <RefreshCw size={13} /> {reenviando === a.userId ? 'Reenviando…' : 'Reenviar'}
+                        </button>
+                      )}
+                      {a.activo ? (
+                        <button type="button" onClick={() => desactivar(a)} disabled={eliminandoId === a.userId}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 px-2.5 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50">
+                          <Ban size={13} /> Desactivar
+                        </button>
+                      ) : (
+                        <button type="button" onClick={() => reactivar(a)} disabled={eliminandoId === a.userId}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-300 px-2.5 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50">
+                          <Power size={13} /> Reactivar
                         </button>
                       )}
                       <button type="button" onClick={() => (editandoId === a.userId ? setEditandoId(null) : abrirEdicion(a))}
