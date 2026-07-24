@@ -5,10 +5,25 @@
  * escribe datos; el resto es solo lectura.
  */
 import { useEffect, useState } from 'react';
-import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle } from 'lucide-react';
+import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock } from 'lucide-react';
 import { DireccionLayout } from './DireccionLayout';
 import { api } from '../../lib/api';
 import { avisar } from '../../components/Avisador';
+import { confirmar } from '../../components/Confirmador';
+import { formatearNombre } from '../../lib/nombre';
+import { fechaCorta } from '../../lib/fechas';
+
+type Acceso = {
+  userId: number;
+  email: string;
+  rol: 'admin' | 'gestor';
+  nombre: string;
+  detalle: string;
+  activo: boolean;
+  estado: 'sin_entrar' | 'activo';
+  correoEnviadoEn: string | null;
+  puedeReenviar: boolean;
+};
 
 type Tipo = 'gestor' | 'admin';
 type Municipio = { id: number; nombre: string };
@@ -32,9 +47,42 @@ export default function DireccionAcceso() {
   const [exito, setExito] = useState<{ nombre: string; email: string; correoEnviado: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Seguimiento
+  const [accesos, setAccesos] = useState<Acceso[]>([]);
+  const [cargandoAccesos, setCargandoAccesos] = useState(true);
+  const [reenviando, setReenviando] = useState<number | null>(null);
+
+  function cargarAccesos() {
+    setCargandoAccesos(true);
+    api.get<{ accesos: Acceso[] }>('/direccion/accesos')
+      .then((r) => setAccesos(r.accesos))
+      .catch(() => setAccesos([]))
+      .finally(() => setCargandoAccesos(false));
+  }
+
   useEffect(() => {
     api.get<Municipio[]>('/publico/municipios').then(setMunicipios).catch(() => setMunicipios([]));
+    cargarAccesos();
   }, []);
+
+  async function reenviar(a: Acceso) {
+    const ok = await confirmar({
+      title: 'Reenviar primer acceso',
+      message: `Se generará una NUEVA contraseña temporal para ${formatearNombre(a.nombre)} y se enviará a ${a.email}. La contraseña anterior dejará de funcionar.`,
+      confirmLabel: 'Reenviar',
+    });
+    if (!ok) return;
+    setReenviando(a.userId);
+    try {
+      const r = await api.post<{ correoEnviado: boolean }>(`/direccion/accesos/${a.userId}/reenviar`, {});
+      avisar(r.correoEnviado ? 'Acceso reenviado.' : 'Se regeneró la contraseña, pero el correo no salió (revisa la configuración).', r.correoEnviado ? 'ok' : 'error');
+      cargarAccesos();
+    } catch (e) {
+      avisar((e as Error).message || 'No se pudo reenviar.', 'error');
+    } finally {
+      setReenviando(null);
+    }
+  }
 
   function limpiar() {
     setNombre(''); setApellidos(''); setEmail('');
@@ -59,6 +107,7 @@ export default function DireccionAcceso() {
       setExito({ nombre: `${nombre.trim()} ${apellidos.trim()}`, email: email.trim(), correoEnviado: r.correoEnviado });
       limpiar();
       avisar('Acceso creado.', 'ok');
+      cargarAccesos();
     } catch (e) {
       setError((e as Error).message || 'No se pudo crear la cuenta.');
     } finally {
@@ -68,7 +117,7 @@ export default function DireccionAcceso() {
 
   return (
     <DireccionLayout>
-      <div className="mx-auto max-w-2xl px-1 py-2">
+      <div className="mx-auto max-w-3xl px-1 py-2">
         <div className="mb-6 flex items-start gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl" style={{ background: 'var(--color-crema-100)', color: GUINDA }}>
             <UserPlus size={22} />
@@ -177,6 +226,60 @@ export default function DireccionAcceso() {
           >
             <Send size={16} /> {enviando ? 'Creando y enviando…' : 'Crear y enviar primer acceso'}
           </button>
+        </div>
+
+        {/* Seguimiento */}
+        <div className="mt-8">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-bold uppercase tracking-wide text-stone-500">Seguimiento de accesos</h2>
+            <button type="button" onClick={cargarAccesos} className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-500 hover:text-[var(--color-guinda-700)]">
+              <RefreshCw size={13} /> Actualizar
+            </button>
+          </div>
+
+          {cargandoAccesos ? (
+            <div className="rounded-xl border border-stone-200 bg-white p-6 text-center text-sm text-stone-400">Cargando…</div>
+          ) : accesos.length === 0 ? (
+            <div className="rounded-xl border border-stone-200 bg-white p-6 text-center text-sm text-stone-400">Aún no has dado de alta a nadie.</div>
+          ) : (
+            <div className="space-y-2">
+              {accesos.map((a) => (
+                <div key={a.userId} className="flex flex-col gap-2 rounded-xl border border-stone-200 bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-semibold text-stone-900">{formatearNombre(a.nombre)}</span>
+                      <span className="shrink-0 rounded-full bg-[var(--color-crema-100)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)' }}>
+                        {a.rol === 'admin' ? `Admin · ${a.detalle}` : `Gestor · ${a.detalle}`}
+                      </span>
+                    </div>
+                    <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
+                      {a.estado === 'activo' ? (
+                        <span className="inline-flex items-center gap-1 font-semibold text-emerald-700"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Activo · ya entró</span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-semibold text-amber-700"><Clock size={11} /> Sin entrar · contraseña temporal</span>
+                      )}
+                      <span className="inline-flex items-center gap-1 text-stone-400">
+                        <Mail size={11} /> {a.correoEnviadoEn ? `Correo enviado ${fechaCorta(a.correoEnviadoEn)}` : 'Correo no enviado'}
+                      </span>
+                    </div>
+                  </div>
+                  {a.puedeReenviar ? (
+                    <button
+                      type="button"
+                      onClick={() => reenviar(a)}
+                      disabled={reenviando === a.userId}
+                      className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-[var(--color-guinda-700)]/30 px-3 py-2 text-xs font-semibold text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] disabled:opacity-50"
+                    >
+                      <RefreshCw size={13} /> {reenviando === a.userId ? 'Reenviando…' : 'Reenviar acceso'}
+                    </button>
+                  ) : (
+                    <span className="shrink-0 text-[11px] text-stone-400">—</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DireccionLayout>

@@ -16,7 +16,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { sql, eq, count, gte, isNull, and, countDistinct } from 'drizzle-orm';
+import { sql, eq, count, gte, isNull, and, countDistinct, inArray, desc } from 'drizzle-orm';
 import { db } from '../db';
 import {
   users,
@@ -865,6 +865,125 @@ router.post('/onboarding/admin', async (req, res) => {
   } catch (e) {
     console.error('[direccion/onboarding/admin]', e);
     res.status(500).json({ error: 'No se pudo crear la cuenta de administración' });
+  }
+});
+
+// ─── Seguimiento de accesos: cuentas de staff y su estado ────────────────
+// Lista los administradores y gestores para que el creador vea a quién dio de
+// alta, si el correo salió y si la persona ya entró (cambió su temporal).
+
+router.get('/accesos', async (_req, res) => {
+  try {
+    const rows = await db
+      .select({
+        userId: users.id,
+        email: users.email,
+        rol: users.rol,
+        activo: users.activo,
+        passwordTemporal: users.passwordTemporal,
+        bienvenidaEnviadaEn: users.bienvenidaEnviadaEn,
+        createdAt: users.createdAt,
+        adminNombre: administradores.nombreCompleto,
+        esJefe: administradores.esJefe,
+        gestorNombre: gestores.nombreCompleto,
+        municipio: municipios.nombre,
+      })
+      .from(users)
+      .leftJoin(administradores, eq(administradores.userId, users.id))
+      .leftJoin(gestores, eq(gestores.userId, users.id))
+      .leftJoin(municipios, eq(municipios.id, gestores.municipioId))
+      .where(inArray(users.rol, ['admin', 'gestor']))
+      .orderBy(desc(users.createdAt));
+
+    const accesos = rows.map((r) => ({
+      userId: r.userId,
+      email: r.email,
+      rol: r.rol as 'admin' | 'gestor',
+      nombre: (r.rol === 'admin' ? r.adminNombre : r.gestorNombre) ?? r.email,
+      detalle: r.rol === 'admin' ? (r.esJefe ? 'Titular' : 'Operativo') : (r.municipio ?? 'Sin municipio'),
+      activo: r.activo,
+      // "sin_entrar" = sigue con la contraseña temporal (nunca entró);
+      // "activo" = ya la cambió en su primer ingreso.
+      estado: r.passwordTemporal ? 'sin_entrar' : 'activo',
+      correoEnviadoEn: r.bienvenidaEnviadaEn,
+      creadoEn: r.createdAt,
+      puedeReenviar: r.passwordTemporal,
+    }));
+    res.json({ accesos });
+  } catch (e) {
+    console.error('[direccion/accesos]', e);
+    res.status(500).json({ error: 'No se pudieron cargar los accesos' });
+  }
+});
+
+router.post('/accesos/:userId/reenviar', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+  try {
+    const [u] = await db
+      .select({ email: users.email, rol: users.rol, passwordTemporal: users.passwordTemporal })
+      .from(users)
+      .where(eq(users.id, userId));
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
+    if (!u.passwordTemporal) {
+      res.status(400).json({
+        error: 'La persona ya cambió su contraseña. Por seguridad no se reenvía la temporal; debe usar "Recuperar contraseña" desde el login.',
+      });
+      return;
+    }
+
+    const nueva = generarPasswordTemporal();
+    const passwordHash = await bcrypt.hash(nueva, 10);
+    await db.update(users).set({ passwordHash, bienvenidaEnviadaEn: null, updatedAt: new Date() }).where(eq(users.id, userId));
+
+    const portalUrl = process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login';
+    let correoEnviado = false;
+    if (u.rol === 'gestor') {
+      const [g] = await db
+        .select({ nombre: gestores.nombreCompleto, municipio: municipios.nombre })
+        .from(gestores)
+        .leftJoin(municipios, eq(municipios.id, gestores.municipioId))
+        .where(eq(gestores.userId, userId));
+      const r = await sendBienvenidaGestor(
+        u.email,
+        { nombreGestor: g?.nombre ?? u.email, email: u.email, passwordTemporal: nueva, municipio: g?.municipio ?? '', portalUrl },
+        { triggeredBy: req.user!.userId, relatedUserId: userId },
+      );
+      correoEnviado = r.enviado;
+    } else {
+      const [a] = await db
+        .select({ nombre: administradores.nombreCompleto, esJefe: administradores.esJefe })
+        .from(administradores)
+        .where(eq(administradores.userId, userId));
+      const r = await sendBienvenidaAdmin(
+        u.email,
+        { nombre: a?.nombre ?? u.email, email: u.email, passwordTemporal: nueva, portalUrl, esJefe: a?.esJefe ?? false },
+        { triggeredBy: req.user!.userId, relatedUserId: userId },
+      );
+      correoEnviado = r.enviado;
+    }
+    if (correoEnviado) await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, userId));
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'reenviar_acceso',
+      entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
+      entidadId: userId,
+      detalle: `El creador reenvió el primer acceso a ${u.email}`,
+      metadata: { rol: u.rol },
+      req,
+    });
+
+    res.json({ ok: true, correoEnviado, ...(puedeRevelarCredenciales() ? { credencialTemporal: nueva } : {}) });
+  } catch (e) {
+    console.error('[direccion/accesos/reenviar]', e);
+    res.status(500).json({ error: 'No se pudo reenviar el acceso' });
   }
 });
 

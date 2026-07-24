@@ -69,7 +69,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
     { href: '/direccion/reportes',     icon: BarChart2,       label: 'Reportes',          tour: 'nav-reportes' },
     { href: '/direccion/uso',          icon: MousePointerClick, label: 'Uso de la plataforma', tour: 'nav-uso' },
     { href: '/direccion/padron',       icon: Database,        label: 'Padrón histórico',  tour: 'nav-padron' },
-    { href: '/direccion/acceso',       icon: UserPlus,        label: 'Dar acceso',        tour: 'nav-acceso' },
+    { href: '/direccion/acceso',       icon: UserPlus,        label: 'Accesos',           tour: 'nav-acceso' },
   ];
 
   return (
