@@ -12,10 +12,13 @@ function pick(chars: string, n: number): string {
   return s;
 }
 
-// Returns a human-friendly temp password like "Mh-7342-kn".
-// Se usa para cuentas de STAFF (gestores), que no tienen cambio forzoso.
+// Contraseña temporal legible: una sola "palabra" alfanumérica, SIN guiones ni
+// símbolos, para que se seleccione de un doble clic y se copie entera desde el
+// correo (los guiones/símbolos rompen esa selección). El alfabeto ya excluye
+// caracteres que se confunden (I/l/1, O/0). Ej.: "Mkrp7342".
+// ~1,000 millones de combinaciones; además todas caducan en el primer ingreso.
 export function generarPasswordTemporal(): string {
-  return `${pick(UPPER, 1)}${pick(LOWER, 1)}-${pick(DIGITS, 4)}-${pick(LOWER, 2)}`;
+  return `${pick(UPPER, 1)}${pick(LOWER, 3)}${pick(DIGITS, 4)}`;
 }
 
 /**

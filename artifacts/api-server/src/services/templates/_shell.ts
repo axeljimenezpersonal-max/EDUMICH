@@ -5,6 +5,13 @@
  * de correo: layout con tablas + estilos inline + fallbacks por bgcolor.
  */
 
+// Pila de fuentes moderna y segura para correo (no se pueden incrustar webfonts
+// de forma confiable): Segoe UI en Windows/Outlook, San Francisco en Apple Mail,
+// Roboto en Android/Gmail; Arial como último respaldo.
+export const EMAIL_FONT =
+  "'Segoe UI', Roboto, -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
+export const EMAIL_SERIF = "Georgia, 'Times New Roman', 'Iowan Old Style', serif";
+
 export const EMAIL_COLORS = {
   guinda: '#6b1530',
   guindaDark: '#4a0e20',
@@ -21,7 +28,7 @@ export const EMAIL_COLORS = {
 export function emailBoton(href: string, texto: string): string {
   return `<table cellpadding="0" cellspacing="0" align="center" role="presentation"><tr>
     <td style="border-radius:10px;background:${EMAIL_COLORS.guinda};">
-      <a href="${href}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:bold;text-decoration:none;border-radius:10px;">${texto}</a>
+      <a href="${href}" style="display:inline-block;padding:14px 36px;color:#ffffff;font-family:${EMAIL_FONT};font-size:15px;font-weight:bold;text-decoration:none;border-radius:10px;">${texto}</a>
     </td>
   </tr></table>`;
 }
@@ -35,7 +42,7 @@ export function emailLayout(opts: { preheader?: string; contenido: string }): st
   return `<!DOCTYPE html>
 <html lang="es">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:${crema};font-family:Arial,Helvetica,sans-serif;">
+<body style="margin:0;padding:0;background:${crema};font-family:${EMAIL_FONT};">
   ${preheader}
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${crema};padding:32px 0;">
     <tr><td align="center">
