@@ -14,7 +14,6 @@ import { Loader2, AlertTriangle, TrendingUp, MapPin, Users } from 'lucide-react'
 import { api } from '../../lib/api';
 import { DireccionLayout, TarjetaKPI, SeccionCard } from './DireccionLayout';
 import { Tendencias } from './Tendencias';
-import { AvisoModuloReportes, REPORTES_LISTOS } from '../../components/AvisoModuloReportes';
 
 const GUINDA = '#6B1530';
 const DORADO = '#8a6f3f';
@@ -101,13 +100,8 @@ export default function DireccionInsights() {
         </p>
       </div>
 
-      {/* Métricas de depuración: SIEMPRE visibles (aunque los reportes estén en
-          preparación), porque son para tomar decisiones de limpieza de la base. */}
+      {/* Métricas de depuración para decidir la limpieza de la base. */}
       <div className="mb-4"><MetricasDepuracion /></div>
-
-      {/* Hasta que haya un mes de datos reales, no se muestra nada interactivo. */}
-      {REPORTES_LISTOS ? (
-      <>
 
       {/* ── Dinero ───────────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
@@ -289,10 +283,6 @@ export default function DireccionInsights() {
           </p>
         </SeccionCard>
       </div>
-      </>
-      ) : (
-        <AvisoModuloReportes />
-      )}
     </DireccionLayout>
   );
 }
