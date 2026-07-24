@@ -82,6 +82,7 @@ import DireccionUso from './pages/direccion/DireccionUso';
 import DireccionInsights from './pages/direccion/DireccionInsights';
 import DireccionPadron from './pages/direccion/DireccionPadron';
 import DireccionAcceso from './pages/direccion/DireccionAcceso';
+import DireccionNotas from './pages/direccion/DireccionNotas';
 import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
@@ -221,6 +222,7 @@ export default function App() {
       <Route path="/direccion/uso" component={DireccionUso} />
       <Route path="/direccion/padron" component={DireccionPadron} />
       <Route path="/direccion/acceso" component={DireccionAcceso} />
+      <Route path="/direccion/notas" component={DireccionNotas} />
       <Route path="/direccion" component={DireccionPanorama} />
 
       {/* Notificaciones — accesible desde todos los perfiles */}

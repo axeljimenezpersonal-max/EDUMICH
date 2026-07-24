@@ -119,6 +119,10 @@ function ActivityIcon({ tipo }: { tipo: string }) {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 
+// "Vista general del sistema" (KPIs) oculta por ahora para simplificar el
+// panel. Poner en true para reactivarla. (Recordatorio en Notas del creador.)
+const MOSTRAR_VISTA_GENERAL = false;
+
 export default function AdminInicio() {
   const [, setLocation] = useLocation();
   const [data, setData] = useState<DashboardData | null>(null);
@@ -193,7 +197,11 @@ export default function AdminInicio() {
           )}
           </div>
 
-          {/* KPIs generales — Vista general del sistema */}
+          {/* KPIs generales — "Vista general del sistema".
+              OCULTA temporalmente por decisión de producto (que el panel no se
+              vea complejo). Reactivar = poner MOSTRAR_VISTA_GENERAL en true.
+              Recordatorio guardado en Notas del panel del creador. */}
+          {MOSTRAR_VISTA_GENERAL && (
           <div data-tour="a-ini-kpis" className="mb-8">
             <div
               className="flex items-center gap-2.5 mb-4 font-bold text-base tracking-tight"
@@ -254,6 +262,7 @@ export default function AdminInicio() {
               />
             </div>
           </div>
+          )}
 
           {/* Tareas pendientes */}
           <div data-tour="a-ini-tareas" className="mb-8">

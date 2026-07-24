@@ -394,6 +394,23 @@ const migrations = [
      nombre varchar(60) PRIMARY KEY,
      bloqueado_hasta timestamp NOT NULL
    )`,
+
+  // Notas tipo post-it del panel del creador.
+  `CREATE TABLE IF NOT EXISTS notas_creador (
+     id serial PRIMARY KEY,
+     user_id integer NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+     contenido text NOT NULL,
+     color varchar(16) NOT NULL DEFAULT 'amarillo',
+     created_at timestamp NOT NULL DEFAULT now(),
+     updated_at timestamp NOT NULL DEFAULT now()
+   )`,
+  // Recordatorio sembrado: reactivar la "Vista general del sistema" del admin.
+  // Se agrega una sola vez por usuario de dirección que aún no tenga notas.
+  `INSERT INTO notas_creador (user_id, contenido, color)
+   SELECT u.id, 'Volver a poner la "Vista general del sistema" (los KPIs) en el panel del administrador cuando el equipo esté listo. Se ocultó para simplificar; se reactiva con MOSTRAR_VISTA_GENERAL = true.', 'amarillo'
+   FROM users u
+   WHERE u.rol = 'direccion'
+     AND NOT EXISTS (SELECT 1 FROM notas_creador n WHERE n.user_id = u.id)`,
 ];
 
 export async function runStartupMigrations() {

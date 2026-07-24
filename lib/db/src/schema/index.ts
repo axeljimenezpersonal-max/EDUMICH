@@ -550,6 +550,17 @@ export const jobLocks = pgTable('job_locks', {
   bloqueadoHasta: timestamp('bloqueado_hasta').notNull(),
 });
 
+// Notas tipo post-it del panel del creador (Sinapsis). Recordatorios sueltos,
+// visibles solo para quien los escribe.
+export const notasCreador = pgTable('notas_creador', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  contenido: text('contenido').notNull(),
+  color: varchar('color', { length: 16 }).notNull().default('amarillo'),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // Pagos — comprobantes de pago del alumno
 // ─────────────────────────────────────────────────────────────────────────

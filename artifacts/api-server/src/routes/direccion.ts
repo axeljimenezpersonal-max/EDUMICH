@@ -32,6 +32,7 @@ import {
   examenesInscripciones,
   convocatoriasEtapas,
   outbox,
+  notasCreador,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarPasswordTemporal } from '../utils/password';
@@ -1202,6 +1203,85 @@ router.post('/accesos/:userId/reactivar', async (req, res) => {
   } catch (e) {
     console.error('[direccion/accesos/reactivar]', e);
     res.status(500).json({ error: 'No se pudo reactivar la cuenta' });
+  }
+});
+
+// ─── Notas tipo post-it del panel del creador ────────────────────────────
+const COLORES_NOTA = ['amarillo', 'rosa', 'azul', 'verde', 'guinda'] as const;
+
+router.get('/notas', async (req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(notasCreador)
+      .where(eq(notasCreador.userId, req.user!.userId))
+      .orderBy(desc(notasCreador.updatedAt));
+    res.json({ notas: rows });
+  } catch (e) {
+    console.error('[direccion/notas]', e);
+    res.status(500).json({ error: 'No se pudieron cargar las notas' });
+  }
+});
+
+const notaSchema = z.object({
+  contenido: z.string().trim().min(1).max(2000),
+  color: z.enum(COLORES_NOTA).optional(),
+});
+
+router.post('/notas', async (req, res) => {
+  const parse = notaSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: 'Datos inválidos' });
+    return;
+  }
+  try {
+    const [nota] = await db
+      .insert(notasCreador)
+      .values({ userId: req.user!.userId, contenido: parse.data.contenido, color: parse.data.color ?? 'amarillo' })
+      .returning();
+    res.status(201).json({ nota });
+  } catch (e) {
+    console.error('[direccion/notas/crear]', e);
+    res.status(500).json({ error: 'No se pudo crear la nota' });
+  }
+});
+
+const notaEditSchema = z.object({
+  contenido: z.string().trim().min(1).max(2000).optional(),
+  color: z.enum(COLORES_NOTA).optional(),
+});
+
+router.patch('/notas/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const parse = notaEditSchema.safeParse(req.body);
+  if (!parse.success) { res.status(400).json({ error: 'Datos inválidos' }); return; }
+  try {
+    const set: Partial<typeof notasCreador.$inferInsert> = { updatedAt: new Date() };
+    if (parse.data.contenido !== undefined) set.contenido = parse.data.contenido;
+    if (parse.data.color !== undefined) set.color = parse.data.color;
+    const [nota] = await db
+      .update(notasCreador)
+      .set(set)
+      .where(and(eq(notasCreador.id, id), eq(notasCreador.userId, req.user!.userId)))
+      .returning();
+    if (!nota) { res.status(404).json({ error: 'Nota no encontrada' }); return; }
+    res.json({ nota });
+  } catch (e) {
+    console.error('[direccion/notas/editar]', e);
+    res.status(500).json({ error: 'No se pudo editar la nota' });
+  }
+});
+
+router.delete('/notas/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (Number.isNaN(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  try {
+    await db.delete(notasCreador).where(and(eq(notasCreador.id, id), eq(notasCreador.userId, req.user!.userId)));
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[direccion/notas/eliminar]', e);
+    res.status(500).json({ error: 'No se pudo eliminar la nota' });
   }
 });
 

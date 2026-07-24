@@ -194,14 +194,6 @@ const ADMIN: TourStep[] = [
     body: 'Aquí ves la etapa abierta: cuándo abrió, cuándo cierra la solicitud y el pago, y las fechas de examen. Es lo primero que conviene revisar.',
   },
   {
-    id: 'adm-vista',
-    anchor: 'a-ini-kpis',
-    placement: 'top',
-    icon: 'BarChart3',
-    title: 'Vista general del sistema',
-    body: 'Los números del estado de un vistazo: alumnos activos, gestores, expedientes completos y egresados. Un pulso rápido del programa.',
-  },
-  {
     id: 'adm-dia',
     anchor: 'a-ini-tareas',
     placement: 'top',
