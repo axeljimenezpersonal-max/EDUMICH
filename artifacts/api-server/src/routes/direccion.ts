@@ -31,6 +31,7 @@ import {
   outbox,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
+import { metricasSinMovimiento } from '../services/depuracion';
 import { resumenMetricas, serieMetricas, PROCESS_START } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
 import { serie, METRICAS } from '../services/metricasDiarias';
@@ -38,6 +39,12 @@ import { pool } from '@workspace/db';
 
 const router = Router();
 router.use(authRequired, requireRol('direccion'));
+
+// Métricas de cuentas sin movimiento (para decidir la depuración consciente).
+// El creador (dirección) las ve aunque el resto del panel esté en preparación.
+router.get('/depuracion-metricas', async (_req, res) => {
+  res.json(await metricasSinMovimiento());
+});
 
 const DOCS_OBLIGATORIOS = `('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')`;
 const TOTAL_MODULOS = 22;

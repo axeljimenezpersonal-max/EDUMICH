@@ -101,6 +101,10 @@ export default function DireccionInsights() {
         </p>
       </div>
 
+      {/* Métricas de depuración: SIEMPRE visibles (aunque los reportes estén en
+          preparación), porque son para tomar decisiones de limpieza de la base. */}
+      <div className="mb-4"><MetricasDepuracion /></div>
+
       {/* Hasta que haya un mes de datos reales, no se muestra nada interactivo. */}
       {REPORTES_LISTOS ? (
       <>
@@ -290,5 +294,39 @@ export default function DireccionInsights() {
         <AvisoModuloReportes />
       )}
     </DireccionLayout>
+  );
+}
+
+// ── Métricas de cuentas sin movimiento (para depurar la base con criterio) ──
+interface MetricasDep {
+  sinDocumentos25d: number;
+  conDocsSinInscripcion3a6m: number;
+  conDocsSinInscripcion6m: number;
+  enBajaLogica: number;
+}
+function MetricasDepuracion() {
+  const [m, setM] = useState<MetricasDep | null>(null);
+  useEffect(() => {
+    api.get<MetricasDep>('/direccion/depuracion-metricas').then(setM).catch(() => {});
+  }, []);
+  if (!m) return null;
+  const cards = [
+    { label: 'Sin documentos (+25 días)', v: m.sinDocumentos25d, sub: 'Candidatas a baja por la regla de 30 días' },
+    { label: 'Con docs, sin examen (3–6 meses)', v: m.conDocsSinInscripcion3a6m, sub: 'Se acercan a la regla de 6 meses' },
+    { label: 'Con docs, sin examen (+6 meses)', v: m.conDocsSinInscripcion6m, sub: 'Ya elegibles para depuración' },
+    { label: 'En baja lógica', v: m.enBajaLogica, sub: 'Por borrarse a los 90 días' },
+  ];
+  return (
+    <SeccionCard titulo="Cuentas sin movimiento" sub="Para depurar la base con criterio, sin sobresaturarla">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((c) => (
+          <div key={c.label} className="rounded-lg border border-stone-200 p-3">
+            <div className="text-[22px] font-bold tabular-nums" style={{ fontFamily: "'Poppins', sans-serif", color: GUINDA }}>{c.v}</div>
+            <div className="text-[12px] font-semibold text-stone-700 mt-0.5">{c.label}</div>
+            <div className="text-[11px] text-stone-400 mt-0.5">{c.sub}</div>
+          </div>
+        ))}
+      </div>
+    </SeccionCard>
   );
 }

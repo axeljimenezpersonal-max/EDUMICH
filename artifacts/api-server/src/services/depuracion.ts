@@ -40,6 +40,48 @@ export async function registrarActividad(estudianteId: number): Promise<void> {
   }
 }
 
+// ── Métricas de cuentas sin movimiento (para decidir la depuración) ────────
+
+export interface MetricasSinMovimiento {
+  sinDocumentos25d: number;         // candidatas a la regla de 30 días
+  conDocsSinInscripcion3a6m: number; // con docs sin inscripción, se acercan a los 6 meses
+  conDocsSinInscripcion6m: number;   // con docs sin inscripción, ya elegibles (regla de 6 meses)
+  enBajaLogica: number;              // por borrarse a los 90 días
+}
+
+export async function metricasSinMovimiento(): Promise<MetricasSinMovimiento> {
+  const r = await db.execute<{
+    sin_docs_25d: string; con_docs_sin_insc_3a6m: string;
+    con_docs_sin_insc_6m: string; en_baja_logica: string;
+  }>(sql`
+    SELECT
+      count(*) FILTER (WHERE e.estado_cuenta IN ('activa','aviso_enviado')
+        AND NOT EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)
+        AND COALESCE(e.ultima_actividad_en, e.created_at) <= now() - interval '25 days'
+      )::text AS sin_docs_25d,
+      count(*) FILTER (WHERE e.estado_cuenta IN ('activa','aviso_enviado')
+        AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)
+        AND NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = e.user_id AND ei.estado <> 'cancelado')
+        AND COALESCE(e.ultima_actividad_en, e.created_at) <= now() - interval '3 months'
+        AND COALESCE(e.ultima_actividad_en, e.created_at) > now() - interval '6 months'
+      )::text AS con_docs_sin_insc_3a6m,
+      count(*) FILTER (WHERE e.estado_cuenta IN ('activa','aviso_enviado')
+        AND EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id)
+        AND NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = e.user_id AND ei.estado <> 'cancelado')
+        AND COALESCE(e.ultima_actividad_en, e.created_at) <= now() - interval '6 months'
+      )::text AS con_docs_sin_insc_6m,
+      count(*) FILTER (WHERE e.estado_cuenta = 'soft_deleted')::text AS en_baja_logica
+    FROM estudiantes e
+  `);
+  const x = r.rows[0];
+  return {
+    sinDocumentos25d: Number(x?.sin_docs_25d ?? 0),
+    conDocsSinInscripcion3a6m: Number(x?.con_docs_sin_insc_3a6m ?? 0),
+    conDocsSinInscripcion6m: Number(x?.con_docs_sin_insc_6m ?? 0),
+    enBajaLogica: Number(x?.en_baja_logica ?? 0),
+  };
+}
+
 // ── Evaluar si está protegida ─────────────────────────────────────────────
 
 export async function evaluarProteccion(
