@@ -326,6 +326,59 @@ router.post('/cambiar-password', authRequired, async (req, res) => {
   res.json({ ok: true });
 });
 
+// ─── POST /auth/establecer-password ──────────────────────────────────────
+// Primer ingreso: el usuario entró con la contraseña TEMPORAL y ahora define la
+// suya. No se pide la temporal otra vez (la sesión ya prueba que la sabe) y NO
+// se cierra la sesión actual, para que pase directo a su panel. Requiere aceptar
+// términos y condiciones.
+const establecerPasswordSchema = z.object({
+  passwordNueva: z
+    .string()
+    .min(8, 'La contraseña debe tener al menos 8 caracteres')
+    .regex(/[A-Z]/, 'Debe incluir al menos una letra mayúscula')
+    .regex(/[0-9]/, 'Debe incluir al menos un número'),
+  aceptaTerminos: z.literal(true, { errorMap: () => ({ message: 'Debes aceptar los términos y condiciones' }) }),
+});
+
+router.post('/establecer-password', authRequired, async (req, res) => {
+  const userId = req.user!.userId;
+  const parse = establecerPasswordSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
+    return;
+  }
+  const [user] = await db.select().from(users).where(eq(users.id, userId));
+  if (!user) {
+    res.status(404).json({ error: 'Usuario no encontrado' });
+    return;
+  }
+  if (!user.passwordTemporal) {
+    res.status(400).json({ error: 'Tu contraseña ya no es temporal.' });
+    return;
+  }
+  const mismaClave = await bcrypt.compare(parse.data.passwordNueva, user.passwordHash);
+  if (mismaClave) {
+    res.status(400).json({ error: 'Elige una contraseña distinta a la temporal.' });
+    return;
+  }
+  const nuevoHash = await bcrypt.hash(parse.data.passwordNueva, 10);
+  await db
+    .update(users)
+    .set({ passwordHash: nuevoHash, passwordTemporal: false, passwordCambiadoEn: new Date(), updatedAt: new Date() })
+    .where(eq(users.id, userId));
+
+  await tryAuditLog({
+    userId,
+    accion: 'establecer_password_inicial',
+    entidad: 'users',
+    entidadId: userId,
+    detalle: 'Definió su contraseña en el primer ingreso y aceptó los términos y condiciones',
+    metadata: { via: 'primer_ingreso', aceptoTerminos: true },
+    req,
+  });
+  res.json({ ok: true });
+});
+
 // ─── POST /auth/recuperar-password ───────────────────────────────────────
 const recuperarSchema = z.object({ email: z.string().email() });
 

@@ -27,14 +27,16 @@ export default function Login() {
         '/auth/login',
         { email, password }
       );
-      if (r.user.rol === 'gestor') {
+      // Primer ingreso (contraseña temporal): TODOS los roles deben crear su
+      // contraseña antes de entrar. Se comprueba ANTES del destino por rol.
+      if (r.user.passwordTemporal) {
+        setLocation('/cambiar-password');
+      } else if (r.user.rol === 'gestor') {
         setLocation('/gestor');
       } else if (r.user.rol === 'admin') {
         setLocation('/admin');
       } else if (r.user.rol === 'direccion') {
         setLocation('/direccion');
-      } else if (r.user.passwordTemporal) {
-        setLocation('/estudiante/cambiar-password');
       } else {
         setLocation('/estudiante');
       }

@@ -10,6 +10,7 @@ import { Switch, Route, Redirect, useLocation } from 'wouter';
 import { iniciarTelemetria, registrarPantalla } from './lib/uso';
 import { demoActive } from './lib/demo';
 import Login from './pages/Login';
+import CambiarPasswordInicial from './pages/CambiarPasswordInicial';
 import GestorDashboard from './pages/gestor/GestorDashboard';
 import AlumnosList from './pages/gestor/AlumnosList';
 import NuevoAlumno from './pages/gestor/NuevoAlumno';
@@ -130,6 +131,8 @@ export default function App() {
           redirects internos (logout, catch-all) apuntan ahí. */}
       <Route path="/prepaabierta/michoacan" component={PrepaAbiertaMichoacan} />
       <Route path="/login" component={Login} />
+      {/* Primer ingreso: crear contraseña + aceptar términos (todos los roles) */}
+      <Route path="/cambiar-password" component={CambiarPasswordInicial} />
 
       {/* Demo pública: ingreso de un alumno nuevo (sin login, datos ficticios) */}
       <Route path="/demo/estudiante" component={DemoEstudiante} />
