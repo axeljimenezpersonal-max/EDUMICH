@@ -71,7 +71,8 @@ export default function ConvocatoriasLista() {
     setPickerEtapa(etapa);
     setPickerTipo(tipo);
     setGestoresPicker(null);
-    api.get<{ gestores: { gestorId: number; nombre: string; examenes: number }[] }>(`/admin/etapas/${etapa.id}/gestores-con-inscritos`)
+    const qs = tipo === 'pagados' ? '?pagados=true' : '';
+    api.get<{ gestores: { gestorId: number; nombre: string; examenes: number }[] }>(`/admin/etapas/${etapa.id}/gestores-con-inscritos${qs}`)
       .then((r) => setGestoresPicker(r.gestores))
       .catch(() => setGestoresPicker([]));
   }
@@ -464,7 +465,9 @@ export default function ConvocatoriasLista() {
                 {gestoresPicker === null ? (
                   <div className="flex items-center gap-2 text-sm text-stone-400 py-4"><Loader2 size={15} className="animate-spin" /> Cargando centros…</div>
                 ) : gestoresPicker.length === 0 ? (
-                  <div className="text-sm text-stone-400 py-6 text-center">Ningún centro tiene exámenes en esta etapa.</div>
+                  <div className="text-sm text-stone-400 py-6 text-center">
+                    {pickerTipo === 'pagados' ? 'Ningún centro tiene exámenes pagados en esta etapa.' : 'Ningún centro tiene exámenes en esta etapa.'}
+                  </div>
                 ) : (
                   gestoresPicker.map((g) => (
                     <button
@@ -474,7 +477,7 @@ export default function ConvocatoriasLista() {
                     >
                       <Building2 size={15} className="text-stone-400 shrink-0" />
                       <span className="min-w-0 flex-1 truncate text-sm text-stone-800">{g.nombre}</span>
-                      <span className="text-[11px] text-stone-400 shrink-0">{g.examenes} examen(es)</span>
+                      <span className="text-[11px] text-stone-400 shrink-0">{g.examenes} {pickerTipo === 'pagados' ? 'pagado(s)' : 'examen(es)'}</span>
                     </button>
                   ))
                 )}

@@ -3081,6 +3081,12 @@ router.get('/inscritos-pagados/pdf', async (req, res) => {
 router.get('/etapas/:etapaId/gestores-con-inscritos', async (req, res) => {
   const etapaId = Number(req.params.etapaId);
   if (!etapaId) { res.status(400).json({ error: 'Etapa inválida' }); return; }
+  // ?pagados=true → solo centros con exámenes PAGADOS, y el conteo son los pagados.
+  const soloPagados = String(req.query.pagados ?? '') === 'true' || req.query.pagados === '1';
+  const joinPago = soloPagados
+    ? sql`JOIN pagos_examen_inscripciones pei ON pei.examen_inscripcion_id = ei.id
+          JOIN pagos_examen pe ON pe.id = pei.pago_examen_id AND pe.estado = 'pagado'`
+    : sql``;
   try {
     const filas = await db.execute<{ gestor_id: number; nombre: string; centro: string | null; n: number }>(sql`
       SELECT e.gestor_id AS gestor_id, g.nombre_completo AS nombre, g.centro_asesoria AS centro,
@@ -3088,6 +3094,7 @@ router.get('/etapas/:etapaId/gestores-con-inscritos', async (req, res) => {
       FROM examenes_inscripciones ei
       JOIN estudiantes e ON e.user_id = ei.estudiante_id
       JOIN gestores g ON g.user_id = e.gestor_id
+      ${joinPago}
       WHERE ei.etapa_id = ${etapaId} AND ei.estado <> 'cancelado' AND e.gestor_id IS NOT NULL
       GROUP BY e.gestor_id, g.nombre_completo, g.centro_asesoria
       ORDER BY g.centro_asesoria NULLS LAST, g.nombre_completo
