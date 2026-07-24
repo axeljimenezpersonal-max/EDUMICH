@@ -225,9 +225,27 @@ const STATIC_DIR =
   path.resolve(__dirname, '..', '..', 'student-portal', 'dist', 'public');
 
 if (fs.existsSync(STATIC_DIR)) {
-  app.use(express.static(STATIC_DIR));
-  // SPA fallback: cualquier ruta no-API sirve index.html
+  app.use(express.static(STATIC_DIR, {
+    // Los archivos de /assets llevan hash en el nombre (index-ABC123.js): son
+    // inmutables, se pueden cachear un año. Pero index.html NO debe cachearse:
+    // si el navegador se queda con un index.html viejo, éste pide bundles con
+    // hashes que un redeploy ya borró → pantalla en blanco. Revalidar siempre.
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      } else if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  }));
+  // Un asset que no existe debe fallar como 404 limpio. Si cayera al SPA
+  // fallback de abajo, el navegador recibiría index.html (HTML) donde esperaba
+  // JS o CSS y se rompería con un error de MIME confuso en vez de un 404 claro.
+  app.get('/assets/*', (_req, res) => res.status(404).end());
+  // SPA fallback: cualquier ruta de navegación (no-API, no-asset) sirve
+  // index.html, también sin caché para que el shell nunca quede viejo.
   app.use((_req, res) => {
+    res.setHeader('Cache-Control', 'no-cache');
     res.sendFile(path.join(STATIC_DIR, 'index.html'));
   });
   console.log(`📁 Sirviendo frontend desde ${STATIC_DIR}`);
