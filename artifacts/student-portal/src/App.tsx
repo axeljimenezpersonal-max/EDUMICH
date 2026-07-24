@@ -42,6 +42,7 @@ import AutoRegistroDatos from './pages/publico/AutoRegistroDatos';
 import AutoRegistroExito from './pages/publico/AutoRegistroExito';
 import SolicitarCuenta from './pages/publico/SolicitarCuenta';
 import Landing from './pages/publico/Landing';
+import PrepaAbiertaMichoacan from './pages/publico/PrepaAbiertaMichoacan';
 import EncontrarCuenta from './pages/publico/EncontrarCuenta';
 import AvisoPrivacidad from './pages/publico/AvisoPrivacidad';
 import RecuperarPassword from './pages/RecuperarPassword';
@@ -121,8 +122,12 @@ export default function App() {
     <TelemetriaDeUso />
     <Switch>
       {/* Landing pública indexable — puerta de entrada en la raíz. El portal
-          interno sigue detrás de /login. */}
+          interno sigue detrás del login. */}
       <Route path="/" component={Landing} />
+      {/* Entrada por estado: hoy solo Michoacán. Es la URL "de marca" del
+          portal; muestra el mismo login. /login se conserva porque muchos
+          redirects internos (logout, catch-all) apuntan ahí. */}
+      <Route path="/prepaabierta/michoacan" component={PrepaAbiertaMichoacan} />
       <Route path="/login" component={Login} />
 
       {/* Demo pública: ingreso de un alumno nuevo (sin login, datos ficticios) */}

@@ -94,7 +94,7 @@ function TarjetaEstado({ estado, index }: { estado: Estado; index: number }) {
   if (estado.disponible) {
     return (
       <Link
-        href="/login"
+        href="/prepaabierta/michoacan"
         style={entrada}
         className="estado-card group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-800)] p-4 text-center text-white shadow-lg transition-transform hover:-translate-y-1"
       >
