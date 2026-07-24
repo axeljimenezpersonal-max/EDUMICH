@@ -203,16 +203,26 @@ function AsignarGestorModal({
 
 // ─── Stats card ───────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub }: { label: string; value: number | string; sub?: string }) {
+type TonoStat = 'guinda' | 'verde' | 'amarillo' | 'azul';
+const TONOS_STAT: Record<TonoStat, { bg: string; borde: string; label: string; num: string; sub: string }> = {
+  // Guinda sólido (la marca) para el total: destaca como tarjeta principal.
+  guinda:   { bg: 'var(--color-guinda-800)', borde: 'var(--color-guinda-800)', label: 'rgba(255,255,255,0.72)', num: '#ffffff', sub: 'rgba(255,255,255,0.6)' },
+  verde:    { bg: '#ecfdf5', borde: '#a7f3d0', label: '#047857', num: '#059669', sub: '#5b9c86' },
+  amarillo: { bg: '#fffbeb', borde: '#fde68a', label: '#b45309', num: '#d97706', sub: '#b58a4e' },
+  azul:     { bg: '#eff6ff', borde: '#bfdbfe', label: '#1d4ed8', num: '#2563eb', sub: '#6b8fce' },
+};
+
+function StatCard({ label, value, sub, tono = 'guinda' }: { label: string; value: number | string; sub?: string; tono?: TonoStat }) {
+  const t = TONOS_STAT[tono];
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex-1 min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#6b635e' }}>
+    <div className="rounded-xl px-5 py-4 flex-1 min-w-0" style={{ background: t.bg, border: `1px solid ${t.borde}` }}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: t.label }}>
         {label}
       </div>
-      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: t.num }}>
         {typeof value === 'number' ? value.toLocaleString('es-MX') : value}
       </div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: t.sub }}>{sub}</div>}
     </div>
   );
 }
@@ -417,10 +427,10 @@ export default function AlumnosLista() {
       {/* Stats bar */}
       {resumen && (
         <div data-tour="a-alu-stats" className="flex gap-3 mb-5 flex-wrap">
-          <StatCard label="Total alumnos" value={resumen.totalAlumnos} />
-          <StatCard label="Expediente completo" value={resumen.expedienteCompleto} sub={`${resumen.totalAlumnos > 0 ? Math.round(resumen.expedienteCompleto / resumen.totalAlumnos * 100) : 0}% del total`} />
-          <StatCard label="Pendientes" value={resumen.pendientes} sub="Con docs por completar" />
-          <StatCard label="Egresados" value={resumen.egresados} sub="22 módulos aprobados" />
+          <StatCard label="Total alumnos" value={resumen.totalAlumnos} tono="guinda" />
+          <StatCard label="Expediente completo" value={resumen.expedienteCompleto} sub={`${resumen.totalAlumnos > 0 ? Math.round(resumen.expedienteCompleto / resumen.totalAlumnos * 100) : 0}% del total`} tono="verde" />
+          <StatCard label="Pendientes" value={resumen.pendientes} sub="Con docs por completar" tono="amarillo" />
+          <StatCard label="Egresados" value={resumen.egresados} sub="22 módulos aprobados" tono="azul" />
         </div>
       )}
 
