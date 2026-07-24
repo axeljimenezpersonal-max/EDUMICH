@@ -40,17 +40,12 @@ export function emailLayout(opts: { preheader?: string; contenido: string }): st
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${crema};padding:32px 0;">
     <tr><td align="center">
       <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid ${borde};max-width:560px;box-shadow:0 1px 3px rgba(74,14,32,0.06);">
-        <!-- Encabezado -->
-        <tr><td style="background-color:${guinda};background:linear-gradient(120deg,${guindaDark} 0%,${guinda} 55%,${guindaSoft} 100%);padding:26px 32px;">
-          <table cellpadding="0" cellspacing="0" role="presentation"><tr>
-            <td style="padding-right:14px;vertical-align:middle;">
-              <div style="width:46px;height:46px;border-radius:12px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.28);text-align:center;line-height:46px;color:#ffffff;font-family:Georgia,serif;font-size:19px;font-weight:bold;letter-spacing:0.5px;">PA</div>
-            </td>
-            <td style="vertical-align:middle;">
-              <div style="color:#ffffff;font-family:Georgia,serif;font-size:19px;font-weight:bold;line-height:1.2;">Preparatoria Abierta</div>
-              <div style="color:rgba(255,255,255,0.72);font-size:10.5px;letter-spacing:1.4px;text-transform:uppercase;margin-top:2px;">Modula · Plan 22 · IEMSyS · Gobierno de Michoacán</div>
-            </td>
-          </tr></table>
+        <!-- Encabezado: wordmark Módula 22 (texto, no SVG: los clientes de
+             correo no renderizan SVG y bloquean imágenes; el texto siempre se ve) -->
+        <tr><td style="background-color:${guinda};background:linear-gradient(120deg,${guindaDark} 0%,${guinda} 55%,${guindaSoft} 100%);padding:30px 32px 26px 32px;" align="center">
+          <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;font-weight:bold;color:#ffffff;letter-spacing:0.5px;line-height:1;">MÓDULA<span style="color:${dorado};font-size:15px;font-weight:bold;vertical-align:super;letter-spacing:1px;">&nbsp;22</span></div>
+          <div style="height:1px;background:rgba(255,255,255,0.22);width:54px;margin:12px auto 0 auto;line-height:1px;font-size:0;">&nbsp;</div>
+          <div style="color:rgba(255,255,255,0.78);font-size:10.5px;letter-spacing:2px;text-transform:uppercase;margin-top:11px;">Preparatoria Abierta · Plan 22 · Gobierno de Michoacán</div>
         </td></tr>
         <!-- Acento dorado -->
         <tr><td style="height:4px;background:${dorado};line-height:4px;font-size:0;">&nbsp;</td></tr>
