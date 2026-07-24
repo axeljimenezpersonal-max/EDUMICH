@@ -19,6 +19,7 @@ import { api } from '../../lib/api';
 import { fechaCorta } from '../../lib/fechas';
 import { confirmar } from '../../components/Confirmador';
 import { avisar } from '../../components/Avisador';
+import { formatearNombre } from '../../lib/nombre';
 
 interface ModuloDisp { moduloId: number; numero: number; nombre: string; dia: string; hora: string; }
 interface ModuloInscrito { id: number; numero: number; }
@@ -387,7 +388,7 @@ export default function GestorInscripcion() {
                         <Lock size={10} className="text-stone-400" />
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-stone-500 truncate">{a.nombre}</div>
+                        <div className="text-sm font-semibold text-stone-500 truncate">{formatearNombre(a.nombre)}</div>
                         <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
                         {chips}
                       </div>
@@ -408,7 +409,7 @@ export default function GestorInscripcion() {
                         {on && <CheckCircle2 size={12} className="text-white" />}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-stone-900 truncate">{a.nombre}</div>
+                        <div className="text-sm font-semibold text-stone-900 truncate">{formatearNombre(a.nombre)}</div>
                         <div className="text-[11px] font-mono text-stone-400">{a.matricula ?? '—'}</div>
                         {chips}
                       </div>
@@ -439,7 +440,7 @@ export default function GestorInscripcion() {
                   {noElegibles.map((a) => (
                     <div key={a.userId} className="flex items-center gap-2 text-xs text-stone-500 px-2 py-1">
                       <Lock size={11} className="text-stone-400 shrink-0" />
-                      <span className="truncate">{a.nombre}</span>
+                      <span className="truncate">{formatearNombre(a.nombre)}</span>
                       <span className="ml-auto text-amber-700 shrink-0">{a.motivo}</span>
                       <Link
                         href={`/gestor/alumnos/${a.userId}`}
@@ -527,7 +528,7 @@ export default function GestorInscripcion() {
                     {r.inscritos > 0
                       ? <CheckCircle2 size={14} className="text-green-600 shrink-0" />
                       : <AlertCircle size={14} className="text-amber-500 shrink-0" />}
-                    <span className="min-w-0 flex-1 truncate text-stone-800">{r.nombre}</span>
+                    <span className="min-w-0 flex-1 truncate text-stone-800">{formatearNombre(r.nombre)}</span>
                     <span className="text-xs text-stone-500 shrink-0">
                       {r.inscritos > 0 ? `+${r.inscritos} examen(es)` : (r.motivo ?? 'sin cambios')}
                     </span>

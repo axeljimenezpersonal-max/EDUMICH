@@ -61,6 +61,7 @@ import { ConfirmModal } from '../../components/ConfirmModal';
 import { avisar } from '../../components/Avisador';
 import { useBloqueoEdicion } from '../../lib/useBloqueoEdicion';
 import AvisoBloqueo from '../../components/AvisoBloqueo';
+import { formatearNombre } from '../../lib/nombre';
 
 interface AlumnoConMatricula {
   userId: number;
@@ -489,7 +490,7 @@ export default function AlumnoDetalle() {
             <div style={{ flex: 1, minWidth: 220 }}>
               <div className="text-xs font-bold uppercase tracking-widest" style={{ color: 'rgba(255,255,255,0.65)' }}>Alumno</div>
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight leading-none mt-1" style={{ fontFamily: "'Poppins', sans-serif", color: '#ffffff' }}>
-                {alumno.nombreCompleto}
+                {formatearNombre(alumno.nombreCompleto)}
               </h1>
               {inscripcionActiva && (
                 <div className="flex items-center gap-2 mt-3">

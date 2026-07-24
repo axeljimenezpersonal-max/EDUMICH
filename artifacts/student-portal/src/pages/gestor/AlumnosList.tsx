@@ -13,6 +13,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_ALUMNOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
+import { formatearNombre } from '../../lib/nombre';
 
 // Estado del alumno en el proceso (pipeline), del más urgente al final.
 const ESTADO_PROCESO: Record<string, { label: string; bg: string; color: string; dot: string }> = {
@@ -166,7 +167,7 @@ export default function AlumnosList() {
                 <FilaCard
                   key={a.userId}
                   onClick={() => setLocation(`/gestor/alumnos/${a.userId}`)}
-                  titulo={a.nombreCompleto}
+                  titulo={formatearNombre(a.nombreCompleto)}
                   sub={`${a.inscripcion?.convocatoriaNombre ?? 'Sin convocatoria'}${a.telefono ? ` · ${a.telefono}` : ''}`}
                   derecha={
                     <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: cfg.bg, color: cfg.color }}>
@@ -216,7 +217,7 @@ export default function AlumnosList() {
                       href={`/gestor/alumnos/${a.userId}`}
                       className="font-medium text-stone-900 hover:text-[var(--color-guinda-700)]"
                     >
-                      {a.nombreCompleto}
+                      {formatearNombre(a.nombreCompleto)}
                     </Link>
                     <div className="text-xs text-stone-500 mt-0.5">
                       {a.inscripcion?.convocatoriaNombre ?? 'Sin convocatoria'}

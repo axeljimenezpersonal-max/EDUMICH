@@ -15,6 +15,7 @@ import CalificacionesTabContent from '../../components/CalificacionesTabContent'
 import { CedulaEditor } from '../../components/CedulaEditor';
 import { CredencialPreview } from '../../components/CredencialPreview';
 import { confirmar } from '../../components/Confirmador';
+import { formatearNombre } from '../../lib/nombre';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -1149,7 +1150,7 @@ export default function AdminAlumnoDetalle() {
                 ALUMNO · ID-{alumno.id}
               </div>
               <h1 className="text-2xl font-bold tracking-tight leading-tight" style={{ fontFamily: "'Poppins', sans-serif", color: '#ffffff' }}>
-                {alumno.nombreCompleto}
+                {formatearNombre(alumno.nombreCompleto)}
               </h1>
               <div className="flex items-center gap-2 flex-wrap mt-2">
                 <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded-full" style={{ background: expCfg.bg, color: expCfg.color }}>
@@ -1163,7 +1164,7 @@ export default function AdminAlumnoDetalle() {
                 )}
                 {alumno.gestor && (
                   <span className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full" style={{ background: '#ede9fe', color: '#7c3aed' }}>
-                    <Users size={11} /> {alumno.gestor.nombreCompleto.split(' ').slice(0, 2).join(' ')}
+                    <Users size={11} /> {formatearNombre(alumno.gestor.nombreCompleto.split(' ').slice(0, 2).join(' '))}
                   </span>
                 )}
                 {alumno.passwordTemporal && (

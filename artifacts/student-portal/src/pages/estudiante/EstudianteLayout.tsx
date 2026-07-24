@@ -11,6 +11,7 @@ import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 import { BottomNav } from '../../components/BottomNav';
 import { demoActive, disableDemo } from '../../lib/demo';
+import { formatearNombre } from '../../lib/nombre';
 
 const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
@@ -74,7 +75,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-[var(--color-crema-100)] flex flex-col">
       <InstitutionalHeader
-        userName={me?.perfil?.nombreCompleto ?? me?.email}
+        userName={me?.perfil?.nombreCompleto ? formatearNombre(me.perfil.nombreCompleto) : me?.email}
         userRole="Estudiante"
         userPhotoUrl="/api/estudiante/mi-foto"
         onLogout={handleLogout}
@@ -177,7 +178,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
 
       <OnboardingTour
         rol={me?.rol}
-        nombre={me?.perfil?.nombreCompleto}
+        nombre={me?.perfil?.nombreCompleto ? formatearNombre(me.perfil.nombreCompleto) : undefined}
         municipio={me?.perfil?.municipio}
       />
 
