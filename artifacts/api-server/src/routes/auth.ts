@@ -334,12 +334,7 @@ router.post('/recuperar-password', async (req, res) => {
     res.status(400).json({ error: 'Correo inválido' });
     return;
   }
-  const { email } = parse.data;
-
-  const RESPUESTA_GENERICA = {
-    ok: true,
-    mensaje: 'Si el correo existe en el sistema, recibirás instrucciones para recuperar tu contraseña.',
-  };
+  const email = parse.data.email.toLowerCase();
 
   try {
     const [user] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.email, email));
@@ -351,15 +346,28 @@ router.post('/recuperar-password', async (req, res) => {
 
       await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiraEn });
 
-      const portalBase = process.env.PORTAL_URL || 'http://localhost:5173';
+      // El enlace debe apuntar al sitio real. Se usa PORTAL_URL y, si no está,
+      // se deriva de PUBLIC_PORTAL_URL (quitándole el /login) para no depender
+      // de una variable extra. localhost solo como último recurso (desarrollo).
+      const portalBase =
+        process.env.PORTAL_URL ||
+        (process.env.PUBLIC_PORTAL_URL
+          ? process.env.PUBLIC_PORTAL_URL.replace(/\/login\/?$/, '')
+          : 'http://localhost:5173');
       const resetUrl = `${portalBase}/reset-password?token=${token}`;
 
       await sendRecuperarPassword(email, { nombre: email.split('@')[0], resetUrl, token });
+      res.json({ ok: true, existe: true });
+      return;
     }
 
-    res.json(RESPUESTA_GENERICA);
+    // Por decisión de producto se informa cuando la cuenta NO existe (mejor UX:
+    // se ofrece "solicitar cuenta" en vez de esperar un correo que no llega).
+    // Compensación aceptada: esto permite enumerar qué correos tienen cuenta.
+    res.json({ ok: true, existe: false });
   } catch {
-    res.json(RESPUESTA_GENERICA);
+    // Ante un error interno no delatamos: se responde como si existiera.
+    res.json({ ok: true, existe: true });
   }
 });
 

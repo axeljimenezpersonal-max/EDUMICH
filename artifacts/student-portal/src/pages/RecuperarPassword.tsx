@@ -11,6 +11,7 @@ export default function RecuperarPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [existeCuenta, setExisteCuenta] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   async function handleEnviarCorreo(e: React.FormEvent) {
@@ -18,9 +19,12 @@ export default function RecuperarPassword() {
     setError(null);
     setLoading(true);
     try {
-      await api.post('/auth/recuperar-password', { email });
+      const r = await api.post<{ ok: boolean; existe?: boolean }>('/auth/recuperar-password', { email });
+      setExisteCuenta(r.existe !== false);
       setEnviado(true);
     } catch {
+      // Ante un fallo de red no delatamos: se muestra "revisa tu correo".
+      setExisteCuenta(true);
       setEnviado(true);
     } finally {
       setLoading(false);
@@ -213,8 +217,8 @@ export default function RecuperarPassword() {
                     ← Volver al inicio de sesión
                   </button>
                 </>
-              ) : (
-                /* Estado de éxito */
+              ) : existeCuenta ? (
+                /* La cuenta existe → se envió el correo */
                 <div className="text-center">
                   <div
                     className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
@@ -224,10 +228,10 @@ export default function RecuperarPassword() {
                   </div>
                   <h2 className="font-serif font-bold text-stone-900 mb-3" style={{ fontSize: 24 }}>Revisa tu correo</h2>
                   <p className="text-sm text-stone-600 mb-2" style={{ lineHeight: 1.6 }}>
-                    Si <strong>{email}</strong> existe en nuestro sistema, recibirás un correo con un enlace para restablecer tu contraseña en los próximos minutos.
+                    Enviamos a <strong>{email}</strong> un correo con un enlace para restablecer tu contraseña. Debería llegar en los próximos minutos.
                   </p>
                   <p className="text-xs text-stone-400 mb-6" style={{ lineHeight: 1.5 }}>
-                    ¿No ves el correo? Revisa tu carpeta de spam o asegúrate de haber escrito bien el correo.
+                    ¿No ves el correo? Revisa tu carpeta de spam. El enlace vence en 1 hora.
                   </p>
                   <div className="space-y-2">
                     <button
@@ -242,6 +246,45 @@ export default function RecuperarPassword() {
                       style={{ paddingTop: 10, paddingBottom: 10 }}
                     >
                       Volver al inicio de sesión
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* La cuenta NO existe → se avisa y se ofrece solicitar cuenta */
+                <div className="text-center">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+                    style={{ background: '#fef3c7' }}
+                  >
+                    <Info size={30} style={{ color: '#b45309' }} />
+                  </div>
+                  <h2 className="font-serif font-bold text-stone-900 mb-3" style={{ fontSize: 24 }}>Esta cuenta no está en el sistema</h2>
+                  <p className="text-sm text-stone-600 mb-2" style={{ lineHeight: 1.6 }}>
+                    No encontramos ninguna cuenta con el correo <strong>{email}</strong>. Puedes:
+                  </p>
+                  <p className="text-xs text-stone-400 mb-6" style={{ lineHeight: 1.5 }}>
+                    1) Revisar que escribiste bien tu correo, o 2) solicitar una cuenta si aún no tienes.
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => { setEnviado(false); setEmail(''); }}
+                      className="w-full gov-btn-secondary text-sm"
+                    >
+                      Revisar mi correo e intentar de nuevo
+                    </button>
+                    <button
+                      onClick={() => setLocation('/solicitar-cuenta')}
+                      className="gov-btn-primary w-full text-sm"
+                      style={{ paddingTop: 10, paddingBottom: 10 }}
+                    >
+                      Solicitar cuenta
+                    </button>
+                    <button
+                      onClick={() => setLocation('/login')}
+                      className="mt-1 text-sm font-medium hover:opacity-70 transition-opacity"
+                      style={{ color: 'var(--color-guinda-700)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                    >
+                      ← Volver al inicio de sesión
                     </button>
                   </div>
                 </div>
