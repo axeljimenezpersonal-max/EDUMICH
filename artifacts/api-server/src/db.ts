@@ -375,6 +375,12 @@ const migrations = [
      updated_at timestamp NOT NULL DEFAULT now()
    )`,
   `CREATE INDEX IF NOT EXISTS padron_historico_curp_idx ON padron_historico (curp)`,
+
+  // Lock por arrendamiento para trabajos programados (ver schema.jobLocks).
+  `CREATE TABLE IF NOT EXISTS job_locks (
+     nombre varchar(60) PRIMARY KEY,
+     bloqueado_hasta timestamp NOT NULL
+   )`,
 ];
 
 export async function runStartupMigrations() {

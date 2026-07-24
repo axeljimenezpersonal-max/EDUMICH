@@ -542,6 +542,14 @@ export const padronHistorico = pgTable('padron_historico', {
   curpIdx: index('padron_historico_curp_idx').on(t.curp),
 }));
 
+// Lock por arrendamiento (lease) para trabajos programados. Evita que, con más
+// de una instancia, el job de depuración (que BORRA cuentas) corra N veces. Es
+// pool-safe: no depende de mantener una conexión, solo de la fecha de expiración.
+export const jobLocks = pgTable('job_locks', {
+  nombre: varchar('nombre', { length: 60 }).primaryKey(),
+  bloqueadoHasta: timestamp('bloqueado_hasta').notNull(),
+});
+
 // ─────────────────────────────────────────────────────────────────────────
 // Pagos — comprobantes de pago del alumno
 // ─────────────────────────────────────────────────────────────────────────

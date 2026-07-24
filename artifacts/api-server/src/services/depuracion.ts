@@ -136,6 +136,23 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
   const hace25Dias = new Date(ahora.getTime() - 25 * 24 * 60 * 60 * 1000);
   const hace30Dias = new Date(ahora.getTime() - 30 * 24 * 60 * 60 * 1000);
   const hace90Dias = new Date(ahora.getTime() - 90 * 24 * 60 * 60 * 1000);
+  const hace6Meses = new Date(ahora.getTime() - 182 * 24 * 60 * 60 * 1000);
+
+  // ── Lock: solo en corridas reales. Con más de una instancia, evita que el job
+  // que BORRA cuentas corra en paralelo. Arrendamiento de 2 h (se auto-libera si
+  // el proceso muere a la mitad); se libera explícitamente al terminar. ──────
+  if (!ensayo) {
+    const lock = await db.execute(sql`
+      INSERT INTO job_locks (nombre, bloqueado_hasta)
+      VALUES ('depuracion', now() + interval '2 hours')
+      ON CONFLICT (nombre) DO UPDATE SET bloqueado_hasta = now() + interval '2 hours'
+      WHERE job_locks.bloqueado_hasta < now()
+      RETURNING nombre`);
+    if (lock.rows.length === 0) {
+      console.log('[DEPURACION] Otra instancia tiene el lock; se salta esta corrida.');
+      return { avisos: 0, softDelete: 0, hardDelete: 0, ensayo, archivosHuerfanos: [] };
+    }
+  }
 
   // ── FASE 1: Aviso a 25 días ─────────────────────────────────────────────
 
@@ -310,6 +327,81 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
     });
   }
 
+  // ── FASE 4: Baja lógica a 6 meses (con documentos pero SIN inscripción) ──
+  // Cuentas que ya subieron algún documento (por eso pasaron la regla de 30
+  // días) pero que nunca se inscribieron a un examen de ninguna convocatoria.
+  // A los 6 meses se dan de baja lógica y se les revoca la credencial digital.
+  // Después caen en la FASE 3 (borrado definitivo a los 90 días). El padrón
+  // histórico NO se toca: el rastro del alumno se conserva para siempre.
+  const candidatosSeisMeses = await db
+    .select()
+    .from(estudiantes)
+    .where(
+      and(
+        inArray(estudiantes.estadoCuenta, ['activa', 'aviso_enviado']),
+        lte(sql`COALESCE(${estudiantes.ultimaActividadEn}, ${estudiantes.createdAt})`, hace6Meses),
+        sql`EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = ${estudiantes.userId})`,
+        sql`NOT EXISTS (SELECT 1 FROM examenes_inscripciones ei WHERE ei.estudiante_id = ${estudiantes.userId} AND ei.estado <> 'cancelado')`,
+      )
+    );
+
+  for (const est of candidatosSeisMeses) {
+    // Protecciones de largo plazo: pago verificado o egresado (la inscripción
+    // ya se excluyó en la consulta). Sin estas, la cuenta se depura aunque tenga
+    // matrícula — su registro ya vive en el padrón histórico.
+    const [pagoVerif] = await db
+      .select({ id: pagos.id })
+      .from(pagos)
+      .where(and(eq(pagos.estudianteId, est.userId), eq(pagos.estado, 'verificado')))
+      .limit(1);
+    if (pagoVerif) continue;
+    const rawCal = await db.execute<{ total: string }>(sql`
+      SELECT count(DISTINCT modulo_id)::text AS total FROM calificaciones
+      WHERE estudiante_id = ${est.userId} AND aprobado = true`);
+    if (Number(rawCal.rows[0]?.total ?? 0) >= 22) continue;
+
+    const baseDate = est.ultimaActividadEn ?? est.createdAt;
+    const diasInactivo = Math.floor((ahora.getTime() - new Date(baseDate).getTime()) / (1000 * 60 * 60 * 24));
+
+    if (ensayo) { softDeletedCount++; continue; }
+
+    const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, est.userId));
+
+    await db.insert(eliminacionesAuditoria).values({
+      estudianteId: est.userId,
+      nombreCompleto: est.nombreCompleto,
+      curp: est.curp ?? null,
+      email: userRow?.email ?? null,
+      municipioNombre: null,
+      folioPreregistro: est.folioPreregistro ?? null,
+      tipo: 'soft_delete',
+      motivo: `6 meses con documentos pero sin inscripción a examen (${diasInactivo} días)`,
+      diasSinActividad: diasInactivo,
+      teniaMatriculaDGB: !!est.matriculaOficialDGB,
+      ejecutadoPorSistema: true,
+    });
+
+    await db
+      .update(estudiantes)
+      .set({
+        estadoCuenta: 'soft_deleted',
+        softDeletedEn: ahora,
+        softDeleteMotivo: '6 meses con documentos pero sin inscripción a examen',
+        licenciaDigital: null, // se revoca la credencial digital
+        protegidaContraEliminacion: false,
+      })
+      .where(eq(estudiantes.userId, est.userId));
+
+    await db
+      .update(users)
+      .set({ activo: false, sesionesInvalidadasEn: new Date() })
+      .where(eq(users.id, est.userId));
+    registrarCorteLocal(est.userId);
+
+    softDeletedCount++;
+    console.log(`[DEPURACION] Soft delete (6 meses sin inscripción): ${est.nombreCompleto} (#${est.userId})`);
+  }
+
   // ── FASE 3: Hard delete tras 90 días en soft delete ────────────────────
 
   const candidatosHardDelete = await db
@@ -416,6 +508,12 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
         enlace: '/admin/alumnos',
       }).catch(() => {});
     }
+  }
+
+  // Liberar el lock (en corridas reales). Si algo falló antes, el arrendamiento
+  // de 2 h lo suelta solo.
+  if (!ensayo) {
+    await db.execute(sql`UPDATE job_locks SET bloqueado_hasta = now() WHERE nombre = 'depuracion'`).catch(() => {});
   }
 
   console.log(`[DEPURACION] Resumen: ${avisosCount} avisos, ${softDeletedCount} soft delete, ${hardDeletedCount} hard delete`);

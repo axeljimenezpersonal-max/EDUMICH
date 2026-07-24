@@ -8,6 +8,7 @@ import { Router } from 'express';
 import { and, eq, ne, sql, desc, gte, count, countDistinct, isNull, inArray, isNotNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
 import { guardarSubida, archivoStream, archivoExiste, archivoEliminar, archivoBuffer } from '../services/storage';
+import { registrarEnPadronHistorico } from '../services/padronHistorico';
 import { parsearRelacionCalificaciones } from '../services/relacionCalificacionesPdf';
 import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
 import fsp from 'node:fs/promises';
@@ -5179,6 +5180,10 @@ router.post('/alumnos/:id/matricula', async (req, res) => {
     metadata: { matricula },
     req,
   });
+
+  // El alumno oficial queda registrado en el padrón histórico permanente (que
+  // nunca se depura), aunque su cuenta se elimine después por inactividad.
+  await registrarEnPadronHistorico(alumnoId);
 
   res.json({ ok: true, matricula });
 });
