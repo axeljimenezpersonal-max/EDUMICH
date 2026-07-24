@@ -39,6 +39,33 @@ export function puedeRevelarCredenciales(): boolean {
 
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
+/**
+ * Aviso de arranque para que la configuración de correo NO falle en silencio.
+ * El envío real solo ocurre con EMAIL_MODE=prod y RESEND_API_KEY presente; si
+ * falta algo en producción, se grita en los logs de Railway en vez de que los
+ * correos simplemente no salgan.
+ */
+export function advertirConfiguracionCorreo(): void {
+  const mode = getEmailMode();
+  if (process.env.NODE_ENV === 'production' && mode !== 'prod') {
+    console.warn(
+      `⚠️  [CORREO] EMAIL_MODE="${process.env.EMAIL_MODE ?? '(sin definir)'}" → los correos NO se envían (modo ${mode}). ` +
+        'Define EMAIL_MODE=prod para activar el envío real.',
+    );
+    return;
+  }
+  if (mode === 'prod' && !resend) {
+    console.warn('⚠️  [CORREO] EMAIL_MODE=prod pero falta RESEND_API_KEY → los envíos fallarán.');
+    return;
+  }
+  if (mode === 'prod') {
+    console.log(
+      `📧 [CORREO] Envío activo (Resend) desde ${process.env.EMAIL_FROM ?? 'noreply@edumich.up.railway.app'}` +
+        `${process.env.EMAIL_REPLY_TO ? ` · responder a ${process.env.EMAIL_REPLY_TO}` : ''}.`,
+    );
+  }
+}
+
 // ─── Tipos ────────────────────────────────────────────────────────────────
 
 type OutboxEvento =

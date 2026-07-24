@@ -52,6 +52,7 @@ import { recordarCierreDeVentana } from './utils/recordarCierreVentana';
 import { runStartupMigrations } from './db';
 import { metricsMiddleware } from './middleware/metrics';
 import { iniciarRevocacion } from './utils/revocacion';
+import { advertirConfiguracionCorreo } from './services/email';
 
 const app = express();
 
@@ -275,6 +276,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 const PORT = Number(process.env.PORT) || 3001;
 app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 Preparatoria Abierta Michoacán API escuchando en :${PORT}`);
+  advertirConfiguracionCorreo();
   await runStartupMigrations();
   console.log('✅ Migraciones de arranque completadas');
 
