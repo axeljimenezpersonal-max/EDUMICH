@@ -35,6 +35,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { generarPasswordTemporal } from '../utils/password';
+import { urlPortalLogin } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
 import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin } from '../services/email';
@@ -761,7 +762,7 @@ router.post('/onboarding/gestor', async (req, res) => {
           email,
           passwordTemporal: tempPassword,
           municipio: mun.nombre,
-          portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+          portalUrl: urlPortalLogin(),
         },
         { triggeredBy: req.user!.userId, relatedUserId: nuevo.id },
       );
@@ -839,7 +840,7 @@ router.post('/onboarding/admin', async (req, res) => {
           nombre: nombreCompleto,
           email,
           passwordTemporal: tempPassword,
-          portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+          portalUrl: urlPortalLogin(),
           esJefe,
         },
         { triggeredBy: req.user!.userId, relatedUserId: nuevo.id },
@@ -951,7 +952,7 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
     const passwordHash = await bcrypt.hash(nueva, 10);
     await db.update(users).set({ passwordHash, bienvenidaEnviadaEn: null, updatedAt: new Date() }).where(eq(users.id, userId));
 
-    const portalUrl = process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login';
+    const portalUrl = urlPortalLogin();
     let correoEnviado = false;
     if (u.rol === 'gestor') {
       const [g] = await db

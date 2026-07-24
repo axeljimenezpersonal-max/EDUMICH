@@ -47,6 +47,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { idsAlumnosConExamenPagado, sqlTieneExamenPagado } from '../utils/pagoAlumno';
+import { urlPortalLogin, urlPortalBase } from '../utils/portal';
 import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
@@ -994,7 +995,7 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
       nombreAlumno: solicitud.nombreCompleto,
       email: solicitud.email,
       passwordTemporal: tempPassword,
-      portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+      portalUrl: urlPortalLogin(),
       gestor: gestorInfo,
     });
     emailEnviado = emailResult.enviado;
@@ -1114,7 +1115,7 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
       nombreAlumno: alumno.nombreCompleto,
       email: userRow.email,
       passwordTemporal: newPassword,
-      portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+      portalUrl: urlPortalLogin(),
       gestor: gestorInfo,
     });
     emailEnviado = result.enviado;
@@ -2939,7 +2940,7 @@ router.post('/gestores', soloJefe, async (req, res) => {
         email: data.email,
         passwordTemporal: tempPassword,
         municipio: municipioNombre,
-        portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+        portalUrl: urlPortalLogin(),
       }, { triggeredBy: req.user!.userId, relatedUserId: newGestor.user.id });
       emailEnviado = emailResult.enviado;
       if (emailEnviado) {
@@ -3139,7 +3140,7 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
         nombreAlumno: gestor.nombreCompleto,
         email: userRow.email,
         passwordTemporal: tempPassword,
-        portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+        portalUrl: urlPortalLogin(),
       });
       emailEnviado = emailResult.enviado;
       if (emailEnviado) {
@@ -3726,7 +3727,7 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
       nombreAlumno: solicitud.nombreCompleto,
       email: solicitud.email,
       passwordTemporal: tempPassword,
-      portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+      portalUrl: urlPortalLogin(),
       gestor: gestorInfo,
     });
     emailEnviado = emailResult.enviado;
@@ -3800,7 +3801,7 @@ router.post('/solicitudes/:solicitudId/rechazar', async (req, res) => {
       nombre: solicitud.nombreCompleto,
       motivo: motivoRechazo,
       detalle: detallesRechazo ?? null,
-      portalUrl: (process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login').replace('/login', '/solicitar-cuenta'),
+      portalUrl: (urlPortalLogin()).replace('/login', '/solicitar-cuenta'),
     }, { triggeredBy: req.user!.userId });
     emailEnviado = r.enviado;
   } catch { /* no bloquea el rechazo */ }
@@ -3819,7 +3820,7 @@ router.get('/solicitudes/:solicitudId/correo/aprobacion', async (req, res) => {
     nombreAlumno: s.nombreCompleto,
     email: s.email,
     passwordTemporal: '•••••', // código de 5 dígitos — se genera al aprobar
-    portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+    portalUrl: urlPortalLogin(),
   });
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(html);
@@ -3837,7 +3838,7 @@ router.get('/solicitudes/:solicitudId/correo/rechazo', async (req, res) => {
     nombre: s.nombreCompleto,
     motivo,
     detalle,
-    portalUrl: (process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login').replace('/login', '/solicitar-cuenta'),
+    portalUrl: (urlPortalLogin()).replace('/login', '/solicitar-cuenta'),
   });
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(html);
@@ -5418,7 +5419,7 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
     fotoPath: await rutaFotoAprobada(alumnoId),
-    qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
+    qrVerifUrl: `${urlPortalBase()}/verificar/${est.folioPreregistro}`,
   });
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');

@@ -47,6 +47,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { puedeRevelarCredenciales, sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
+import { urlPortalLogin, urlPortalBase } from '../utils/portal';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
 import {
@@ -404,7 +405,7 @@ router.post('/alumnos', async (req, res) => {
       nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
       email: data.email.toLowerCase(),
       passwordTemporal: tempPassword,
-      portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+      portalUrl: urlPortalLogin(),
       gestor: {
         nombre: ctx.nombreCompleto,
         telefono: null,
@@ -640,7 +641,7 @@ router.post(
           nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
           email: data.email.toLowerCase(),
           passwordTemporal: result.credencialTemporal,
-          portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+          portalUrl: urlPortalLogin(),
           gestor: {
             nombre: ctx.nombreCompleto,
             telefono: null,
@@ -1441,7 +1442,7 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
       nombreAlumno: alumno.nombreCompleto,
       email: userRow.email,
       passwordTemporal: newPassword,
-      portalUrl: process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173/login',
+      portalUrl: urlPortalLogin(),
       gestor: { nombre: ctx.nombreCompleto, telefono: null, municipio: ctx.nombreMunicipio ?? null },
     });
     emailEnviado = result.enviado;
@@ -1698,7 +1699,7 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
     fotoPath: await rutaFotoAprobada(est.userId),
-    qrVerifUrl: `${process.env.PUBLIC_PORTAL_URL || 'http://localhost:5173'}/verificar/${est.folioPreregistro}`,
+    qrVerifUrl: `${urlPortalBase()}/verificar/${est.folioPreregistro}`,
   });
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');

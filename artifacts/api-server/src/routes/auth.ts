@@ -23,6 +23,7 @@ import {
 } from '../middleware/auth';
 import { sendRecuperarPassword } from '../services/email';
 import { tryAuditLog } from '../utils/audit';
+import { urlPortalBase } from '../utils/portal';
 import { bloqueoDeCuenta, registrarFalloDeCuenta, limpiarFallosDeCuenta } from '../utils/bloqueoCuenta';
 import { registrarCorteLocal } from '../utils/revocacion';
 
@@ -346,15 +347,9 @@ router.post('/recuperar-password', async (req, res) => {
 
       await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiraEn });
 
-      // El enlace debe apuntar al sitio real. Se usa PORTAL_URL y, si no está,
-      // se deriva de PUBLIC_PORTAL_URL (quitándole el /login) para no depender
-      // de una variable extra. localhost solo como último recurso (desarrollo).
-      const portalBase =
-        process.env.PORTAL_URL ||
-        (process.env.PUBLIC_PORTAL_URL
-          ? process.env.PUBLIC_PORTAL_URL.replace(/\/login\/?$/, '')
-          : 'http://localhost:5173');
-      const resetUrl = `${portalBase}/reset-password?token=${token}`;
+      // El enlace apunta al sitio real (modula22.mx), ignorando valores viejos
+      // de dominios muertos. Ver utils/portal.
+      const resetUrl = `${urlPortalBase()}/reset-password?token=${token}`;
 
       await sendRecuperarPassword(email, { nombre: email.split('@')[0], resetUrl, token });
       res.json({ ok: true, existe: true });

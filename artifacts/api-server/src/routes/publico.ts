@@ -29,6 +29,7 @@ import {
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { urlPortalBase } from '../utils/portal';
 import { patronLike } from '../utils/like';
 import { puedeRevelarCredenciales, sendVerificationCode, sendEmail, sendRecuperarPassword } from '../services/email';
 import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
@@ -201,7 +202,7 @@ router.post('/buscar-cuenta/recuperar', buscarCuentaLimiter, async (req, res) =>
       const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
       const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
       await db.insert(passwordResetTokens).values({ userId: user.id, tokenHash, expiraEn });
-      const portalBase = process.env.PUBLIC_PORTAL_URL || process.env.PORTAL_URL || 'http://localhost:5173';
+      const portalBase = urlPortalBase();
       const resetUrl = `${portalBase}/reset-password?token=${resetToken}`;
       await sendRecuperarPassword(datos.email, { nombre: datos.email.split('@')[0], resetUrl, token: resetToken });
     }
@@ -699,7 +700,7 @@ router.post('/solicitudes-cuenta', async (req, res) => {
   // Correos outbox (sin bloquear la respuesta)
   const [munRow] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, data.municipioId));
   const municipioNombre = munRow?.nombre ?? 'Michoacán';
-  const portalUrl = process.env.PUBLIC_PORTAL_URL ?? 'https://edumich.up.railway.app';
+  const portalUrl = urlPortalBase();
   const panelUrl = `${portalUrl}/admin/solicitudes`;
 
   sendEmail({
