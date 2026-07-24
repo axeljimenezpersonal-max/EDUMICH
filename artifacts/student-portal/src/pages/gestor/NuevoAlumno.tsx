@@ -191,6 +191,9 @@ export default function NuevoAlumno() {
 
   const [loading, setLoading] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // El alumno ya tiene cuenta activa (CURP duplicada). No se puede volver a
+  // registrar; hay que seguir el proceso con la Secretaría.
+  const [cuentaDuplicada, setCuentaDuplicada] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ curp?: string; email?: string }>({});
   const [validandoCurp, setValidandoCurp] = useState(false);
   const [exito, setExito] = useState<RegistroExito | null>(null);
@@ -419,6 +422,9 @@ export default function NuevoAlumno() {
       setPaso(1);
     } else if (msg.includes('CURP') || msg.toLowerCase().includes('curp')) {
       setFieldErrors((prev) => ({ ...prev, curp: msg }));
+      // "Ya existe un alumno con ese CURP" = cuenta activa duplicada. Se muestra
+      // el aviso con el proceso a seguir (contactar a la Secretaría).
+      if (msg.toLowerCase().includes('ya existe')) setCuentaDuplicada(true);
       setPaso(1);
     } else {
       setSubmitError(msg);
@@ -432,6 +438,7 @@ export default function NuevoAlumno() {
     setLoading(true);
     setSubmitError(null);
     setFieldErrors({});
+    setCuentaDuplicada(false);
 
     const fd = new FormData();
     fd.append('nombres', datos.nombres.trim());
@@ -1066,6 +1073,36 @@ export default function NuevoAlumno() {
             <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
               <AlertCircle size={15} className="flex-shrink-0 mt-0.5" />
               {submitError}
+            </div>
+          )}
+
+          {/* Alumno ya registrado: no se puede volver a dar de alta. Se explica
+              el proceso a seguir con la Secretaría (dos escenarios). */}
+          {cuentaDuplicada && (
+            <div className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <div className="flex items-start gap-2">
+                <AlertCircle size={16} className="mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">Este alumno ya tiene una cuenta en Módula 22.</p>
+                  <p className="mt-1 text-amber-800">
+                    Un alumno solo puede tener una cuenta y pertenecer a un centro de asesoría a la
+                    vez, así que no se puede volver a registrar. Puede deberse a dos situaciones:
+                  </p>
+                  <ul className="mt-2 list-disc space-y-1 pl-5 text-amber-800">
+                    <li>
+                      <strong>Ya está inscrito con otro gestor.</strong> Para moverlo a tu centro, el
+                      otro gestor o la Secretaría debe liberarlo primero.
+                    </li>
+                    <li>
+                      <strong>No tiene gestor asignado.</strong> Pídele al alumno que solicite un
+                      gestor a la Secretaría.
+                    </li>
+                  </ul>
+                  <p className="mt-2 font-medium">
+                    En ambos casos, contacta a la Secretaría (IEMSyS) para resolverlo.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 

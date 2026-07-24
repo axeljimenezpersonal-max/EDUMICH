@@ -362,6 +362,14 @@ const migrations = [
    ) AS v(pregunta, respuesta, categoria, audiencia, orden, principal)
    WHERE NOT EXISTS (SELECT 1 FROM preguntas_frecuentes pf WHERE pf.pregunta = v.pregunta)`,
 
+  // Escenario "el alumno ya existe": qué hacer cuando el sistema no deja
+  // registrarlo de nuevo. Proceso definido con la Secretaría.
+  `INSERT INTO preguntas_frecuentes (pregunta, respuesta, categoria, audiencia, orden, principal)
+   SELECT v.pregunta, v.respuesta, v.categoria, v.audiencia, v.orden, v.principal FROM (VALUES
+     ('¿Qué pasa si el alumno ya existe o ya está registrado?', 'Un alumno solo puede tener una cuenta y pertenecer a un centro de asesoría (gestor) a la vez. Si al registrarlo el sistema avisa que ya existe, no se puede volver a dar de alta. Puede ser por dos motivos: (1) ya está inscrito con otro gestor, y para moverlo a tu centro el otro gestor o la Secretaría debe liberarlo primero; o (2) no tiene gestor asignado, y entonces el alumno debe solicitar un gestor a la Secretaría. En ambos casos, contacta a la Secretaría (IEMSyS) para resolverlo.', 'Alumnos', 'ambos', 111, true)
+   ) AS v(pregunta, respuesta, categoria, audiencia, orden, principal)
+   WHERE NOT EXISTS (SELECT 1 FROM preguntas_frecuentes pf WHERE pf.pregunta = v.pregunta)`,
+
   // Padrón histórico (alumnos que ya existen en la base del Estado). Ver
   // schema.padronHistorico. Los datos se cargan por la pantalla de importación,
   // nunca desde el repo (son datos personales reales).
