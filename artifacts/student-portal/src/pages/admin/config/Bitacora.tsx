@@ -29,7 +29,7 @@ type BitacoraRow = {
   accion: Accion;
   entidad: Entidad;
   detalle: string;
-  ip: string;
+  ip: string | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -95,7 +95,11 @@ function rolStyle(rol: Rol): React.CSSProperties {
   }
 }
 
-function maskIp(ip: string): string {
+// Muchas acciones (procesos del servidor, tareas programadas) NO tienen IP: el
+// backend las manda como null. Sin este guardo, `null.split(...)` reventaba TODA
+// la bitácora y dejaba la pantalla en blanco.
+function maskIp(ip: string | null | undefined): string {
+  if (!ip) return '—';
   const parts = ip.split('.');
   if (parts.length === 4) {
     return `${parts[0]}.${parts[1]}.x.x`;
@@ -106,7 +110,8 @@ function maskIp(ip: string): string {
 // ─── Date/time formatting ─────────────────────────────────────────────────
 
 // Tiempos SIEMPRE vía lib/fechas: la BD guarda UTC sin zona (ver parseDbDate).
-function formatDateTime(iso: string): { date: string; time: string } {
+function formatDateTime(iso: string | null | undefined): { date: string; time: string } {
+  if (!iso) return { date: '—', time: '' };
   const d = parseDbDate(iso);
   const date = d.toLocaleDateString('es-MX', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Mexico_City' });
   const time = d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false, timeZone: 'America/Mexico_City' });
@@ -267,11 +272,12 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
       try {
         const res = await fetch(`/api/admin/configuracion/bitacora?${params}`, { credentials: 'include' });
         if (!res.ok) throw new Error();
-        const data: BitacoraResp = await res.json();
-        setRows(data.rows);
-        setTotal(data.total);
-        setTotalPages(data.totalPages);
-        setPage(data.page);
+        const data: BitacoraResp & { limit?: number } = await res.json();
+        setRows(data.rows ?? []);
+        setTotal(data.total ?? 0);
+        // El backend manda `limit`, no `totalPages`: lo calculamos aquí.
+        setTotalPages(data.totalPages ?? Math.max(1, Math.ceil((data.total ?? 0) / LIMIT)));
+        setPage(data.page ?? 1);
       } catch {
         // silent fail: show empty state
         setRows([]);

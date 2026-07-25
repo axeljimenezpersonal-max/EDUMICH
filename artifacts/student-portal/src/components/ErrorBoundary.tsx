@@ -55,22 +55,39 @@ export class ErrorBoundary extends Component<Props, State> {
       // Si es de chunk y ya intentamos recargar, mostramos la tarjeta (no
       // volvemos a recargar por el flag).
       return (
-        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#faf7f4' }}>
-          <div style={{ maxWidth: 420, textAlign: 'center', background: '#fff', border: '1px solid #eadfd7', borderRadius: 16, padding: '32px 28px', boxShadow: '0 8px 30px rgba(0,0,0,0.06)' }}>
-            <div style={{ fontSize: 40, marginBottom: 8 }}>🙏</div>
-            <h1 style={{ fontFamily: "'Poppins', sans-serif", fontSize: 18, fontWeight: 700, color: '#2a2a2a', margin: '0 0 6px' }}>
-              Algo se interrumpió
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: '#0e0e11', fontFamily: "'Poppins', system-ui, sans-serif" }}>
+          <div style={{ width: '100%', maxWidth: 380, background: '#17171b', border: '1px solid #26262c', borderRadius: 14, padding: '28px 26px' }}>
+            {/* Marca de estado: glifo de línea, monocromático */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+              <div style={{ width: 34, height: 34, borderRadius: 8, border: '1px solid #33333b', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e5e5ea" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                  <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+                </svg>
+              </div>
+              <div style={{ fontFamily: "'JetBrains Mono', ui-monospace, monospace", fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#6f6f79' }}>
+                Error de carga
+              </div>
+            </div>
+
+            <h1 style={{ fontSize: 17, fontWeight: 600, color: '#f4f4f6', margin: '0 0 6px', letterSpacing: '-0.01em' }}>
+              La vista se interrumpió
             </h1>
-            <p style={{ fontSize: 14, color: '#6b635e', margin: '0 0 20px', lineHeight: 1.5 }}>
-              La página no cargó bien. Suele pasar justo después de una actualización.
-              Recarga y debería quedar listo.
+            <p style={{ fontSize: 13.5, color: '#9a9aa4', margin: '0 0 22px', lineHeight: 1.55 }}>
+              No se cargó bien, normalmente por una actualización reciente. Recarga para traer la versión más nueva.
             </p>
+
             <button
               type="button"
               onClick={() => { try { sessionStorage.removeItem(RECARGA_FLAG); } catch { /* noop */ } window.location.reload(); }}
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'var(--color-guinda-700, #6B1530)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}
+              style={{ width: '100%', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: '#f4f4f6', color: '#111114', border: 'none', borderRadius: 9, padding: '11px 18px', fontSize: 13.5, fontWeight: 600, cursor: 'pointer' }}
             >
-              Recargar la página
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8" /><path d="M21 3v5h-5" />
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16" /><path d="M8 16H3v5" />
+              </svg>
+              Recargar
             </button>
           </div>
         </div>
