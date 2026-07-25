@@ -407,34 +407,34 @@ function AnuncioCard({
       style={{
         background: '#fff',
         border: `1px solid ${pCfg.border}`,
-        borderLeft: `4px solid ${pCfg.color}`,
-        borderRadius: 10,
-        padding: '14px 16px',
-        marginBottom: 12,
+        borderLeft: `5px solid ${pCfg.color}`,
+        borderRadius: 14,
+        padding: '20px 24px',
+        marginBottom: 14,
       }}
     >
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-2">
-        <div className="flex items-start gap-2" style={{ flex: 1 }}>
-          <PCfgIcon size={14} style={{ color: pCfg.color, flexShrink: 0, marginTop: 2 }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: '#2a2a2a', lineHeight: 1.35 }}>
+      <div className="flex items-start justify-between gap-3 mb-2.5">
+        <div className="flex items-start gap-2.5" style={{ flex: 1 }}>
+          <PCfgIcon size={20} style={{ color: pCfg.color, flexShrink: 0, marginTop: 2 }} />
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#1f1f1f', lineHeight: 1.3, fontFamily: "'Poppins', sans-serif" }}>
             {anuncio.titulo || 'Sin título'}
           </span>
         </div>
         {!preview && (
-          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 20, background: estadoCfg.bg, color: estadoCfg.color, fontWeight: 600, flexShrink: 0 }}>
+          <span style={{ fontSize: 12, padding: '4px 12px', borderRadius: 20, background: estadoCfg.bg, color: estadoCfg.color, fontWeight: 600, flexShrink: 0 }}>
             {estadoCfg.label}
           </span>
         )}
       </div>
 
-      <p style={{ fontSize: 12, color: '#57504a', lineHeight: 1.5, marginBottom: 10 }}>
+      <p style={{ fontSize: 15, color: '#4a443f', lineHeight: 1.6, marginBottom: 14 }}>
         {anuncio.contenido || 'Sin contenido'}
       </p>
 
-      <div className="flex items-center gap-3 flex-wrap" style={{ marginBottom: 8 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#6b635e' }}>
-          <ACfgIcon size={11} />
+      <div className="flex items-center gap-4 flex-wrap" style={{ marginBottom: 10 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#6b635e' }}>
+          <ACfgIcon size={15} />
           {audienciaOverrideLabel ?? (
             <>
               {aCfg.label}
@@ -442,38 +442,38 @@ function AnuncioCard({
             </>
           )}
         </span>
-        <span style={{ fontSize: 11, color: '#a89a8e' }}>
+        <span style={{ fontSize: 13, color: '#a89a8e' }}>
           {fmt((anuncio as Anuncio).publicadoEn ?? anuncio.createdAt)}
         </span>
         {anuncio.activoHasta && (
-          <span style={{ fontSize: 11, color: '#d97706' }}>hasta {fmt(anuncio.activoHasta)}</span>
+          <span style={{ fontSize: 13, color: '#d97706' }}>hasta {fmt(anuncio.activoHasta)}</span>
         )}
       </div>
 
       {anuncio.ctaTexto && (
-        <div style={{ marginBottom: 10 }}>
-          <span style={{ fontSize: 11, padding: '4px 10px', borderRadius: 6, background: '#eff6ff', color: '#1d4ed8', fontWeight: 600 }}>
+        <div style={{ marginBottom: 12 }}>
+          <span style={{ fontSize: 13, padding: '5px 12px', borderRadius: 7, background: '#eff6ff', color: '#1d4ed8', fontWeight: 600 }}>
             {anuncio.ctaTexto} →
           </span>
         </div>
       )}
 
       {!preview && (
-        <div className="flex items-center gap-1.5" style={{ borderTop: '1px solid #f0ece8', paddingTop: 10, marginTop: 4 }}>
-          <button onClick={onEdit} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#443e39' }}>
-            <Edit2 size={11} /> Editar
+        <div className="flex items-center gap-2" style={{ borderTop: '1px solid #f0ece8', paddingTop: 14, marginTop: 6 }}>
+          <button onClick={onEdit} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '8px 14px', border: '1px solid #eadfd7', borderRadius: 8, background: '#fff', cursor: 'pointer', color: '#443e39' }}>
+            <Edit2 size={15} /> Editar
           </button>
           {(anuncio as Anuncio).estado !== 'archivado' ? (
-            <button onClick={onArchive} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#443e39' }}>
-              <Archive size={11} /> Archivar
+            <button onClick={onArchive} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '8px 14px', border: '1px solid #eadfd7', borderRadius: 8, background: '#fff', cursor: 'pointer', color: '#443e39' }}>
+              <Archive size={15} /> Archivar
             </button>
           ) : (
-            <button onClick={onUnarchive} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', border: '1px solid #eadfd7', borderRadius: 6, background: '#fff', cursor: 'pointer', color: '#443e39' }}>
-              <ArchiveRestore size={11} /> Desarchivar
+            <button onClick={onUnarchive} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '8px 14px', border: '1px solid #eadfd7', borderRadius: 8, background: '#fff', cursor: 'pointer', color: '#443e39' }}>
+              <ArchiveRestore size={15} /> Desarchivar
             </button>
           )}
-          <button onClick={onDelete} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '4px 10px', border: '1px solid #fecdd3', borderRadius: 6, background: '#fff1f2', cursor: 'pointer', color: '#be123c', marginLeft: 'auto' }}>
-            <Trash2 size={11} /> Eliminar
+          <button onClick={onDelete} style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, padding: '8px 14px', border: '1px solid #fecdd3', borderRadius: 8, background: '#fff1f2', cursor: 'pointer', color: '#be123c', marginLeft: 'auto' }}>
+            <Trash2 size={15} /> Eliminar
           </button>
         </div>
       )}
@@ -556,8 +556,8 @@ export default function AnunciosLista() {
               <Megaphone size={20} style={{ color: 'var(--color-guinda-700)' }} />
             </div>
             <div>
-              <h1 style={{ fontSize: 20, fontWeight: 700, color: '#2a2a2a', margin: 0 }}>Anuncios</h1>
-              <p style={{ fontSize: 12, color: '#6b635e', margin: 0 }}>Comunicados institucionales para alumnos y gestores</p>
+              <h1 style={{ fontSize: 24, fontWeight: 700, color: '#2a2a2a', margin: 0, fontFamily: "'Poppins', sans-serif" }}>Anuncios</h1>
+              <p style={{ fontSize: 14, color: '#6b635e', margin: '2px 0 0' }}>Comunicados institucionales para alumnos y gestores</p>
             </div>
           </div>
           <button
