@@ -9,6 +9,8 @@ import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
 import { confirmar } from '../../components/Confirmador';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_GESTOR_DETALLE, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -772,7 +774,7 @@ export default function GestorDetalle() {
           </div>
 
           {/* Acciones */}
-          <div style={{ paddingTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+          <div data-tour="gesdet-acciones" style={{ paddingTop: 16, display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
             <button
               onClick={() => setModal('editar')}
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold border border-stone-200 rounded-lg hover:bg-stone-50 transition-colors"
@@ -825,7 +827,7 @@ export default function GestorDetalle() {
         </div>
 
         {/* Aula virtual (módulo "plus" del gestor) */}
-        <div className="mx-8 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3"
+        <div data-tour="gesdet-aula" className="mx-8 mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-3"
           style={gestor.aulaHabilitada ? { borderColor: '#bbf7d0', background: '#f0fdf4' } : { borderColor: '#e7e5e4', background: '#fafaf9' }}>
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
@@ -851,7 +853,7 @@ export default function GestorDetalle() {
         </div>
 
         {/* Permisos de pago de derecho de examen (por centro de asesoría) */}
-        <div className="mx-8 mt-4 rounded-xl border px-4 py-3.5" style={{ borderColor: '#e7e5e4', background: '#fafaf9' }}>
+        <div data-tour="gesdet-permisos" className="mx-8 mt-4 rounded-xl border px-4 py-3.5" style={{ borderColor: '#e7e5e4', background: '#fafaf9' }}>
           <div className="flex items-center gap-2 mb-1">
             <Landmark size={16} style={{ color: 'var(--color-guinda-700)' }} />
             <div className="text-sm font-bold" style={{ color: '#443e39' }}>Permisos de pago de derecho de examen</div>
@@ -930,7 +932,7 @@ export default function GestorDetalle() {
       </div>
 
       {/* ── METRIC CARDS ────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div data-tour="gesdet-metricas" className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <MetricCard
           icon={Users}
           label="Alumnos asignados"
@@ -966,7 +968,7 @@ export default function GestorDetalle() {
       </div>
 
       {/* ── TASA DE ÉXITO ────────────────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl p-5 mb-6">
+      <div data-tour="gesdet-tasa" className="bg-white border border-stone-200 rounded-xl p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <TrendingUp size={14} style={{ color: tc.text }} />
@@ -1024,7 +1026,7 @@ export default function GestorDetalle() {
       </div>
 
       {/* ── ALUMNOS ASIGNADOS ─────────────────────────────────────── */}
-      <div className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
+      <div data-tour="gesdet-alumnos" className="bg-white border border-stone-200 rounded-xl overflow-x-auto">
         {/* Section header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
           <div>
@@ -1131,6 +1133,13 @@ export default function GestorDetalle() {
           }}
         />
       )}
+
+      <SectionTour
+        steps={TOUR_A_GESTOR_DETALLE}
+        storageKey="sec_admin_gestor_detalle"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial del gestor"
+      />
     </AdminLayout>
   );
 }

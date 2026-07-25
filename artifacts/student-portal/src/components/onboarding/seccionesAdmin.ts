@@ -205,6 +205,14 @@ export const TOUR_A_GESTORES: TourStep[] = [
     body: 'El resumen de la red de gestores: cuántos están activos y su tasa de éxito promedio. Te ayuda a detectar dónde apoyar y qué municipios están mejor cubiertos.',
   },
   {
+    id: 'a-ges-abrir',
+    anchor: 'a-ges-grid',
+    placement: 'top',
+    icon: 'MousePointerClick',
+    title: 'Entra a un centro de asesoría',
+    body: 'Da clic en cualquier tarjeta para abrir la ficha del centro: ahí ves su información, su capacidad, su aula virtual, sus permisos de pago y todos sus alumnos. Esa ficha tiene su propio tutorial cuando entres.',
+  },
+  {
     id: 'a-ges-fin',
     anchor: 'btn-seccion-tutorial',
     placement: 'left',
@@ -214,14 +222,86 @@ export const TOUR_A_GESTORES: TourStep[] = [
   },
 ];
 
+// ── Gestor · detalle (ficha del centro de asesoría) ────────────
+export const TOUR_A_GESTOR_DETALLE: TourStep[] = [
+  {
+    id: 'a-gesdet-intro',
+    icon: 'UserCheck',
+    title: 'La ficha del centro de asesoría',
+    body: 'Todo sobre este gestor (centro de asesoría) en un solo lugar: su información, su capacidad, sus beneficios, sus permisos de pago, su desempeño y sus alumnos. Te muestro qué hay en cada parte.',
+  },
+  {
+    id: 'a-gesdet-acciones',
+    anchor: 'gesdet-acciones',
+    placement: 'bottom',
+    icon: 'Wrench',
+    title: 'Acciones sobre el gestor',
+    body: 'Sus herramientas rápidas: “Editar” sus datos y capacidad, “Reset password” y “Reenviar credenciales” para su acceso, “Ver alumnos” para toda su lista, y —si eres la titular— activar o desactivar el centro.',
+  },
+  {
+    id: 'a-gesdet-aula',
+    anchor: 'gesdet-aula',
+    placement: 'bottom',
+    icon: 'GraduationCap',
+    title: 'Aula virtual · beneficio extra',
+    body: 'Un beneficio adicional del centro: foro, tareas, materiales y videos para sus alumnos. Se enciende o apaga desde aquí; cuando está “Inactiva”, ni el gestor ni sus alumnos la ven todavía.',
+  },
+  {
+    id: 'a-gesdet-permisos',
+    anchor: 'gesdet-permisos',
+    placement: 'bottom',
+    icon: 'Landmark',
+    title: 'Permisos de pago',
+    body: 'Controlas cómo puede solicitar fichas este centro: pago individual (un alumno por ficha) y pago grupal (varios en una sola). Al menos uno debe quedar activo, o no podría pagar exámenes.',
+  },
+  {
+    id: 'a-gesdet-metricas',
+    anchor: 'gesdet-metricas',
+    placement: 'bottom',
+    icon: 'BarChart3',
+    title: 'Sus números clave',
+    body: 'De un vistazo: alumnos asignados (y qué tanto de su capacidad ocupan), expedientes completos, egresados y documentos por revisar. El pulso del centro.',
+  },
+  {
+    id: 'a-gesdet-tasa',
+    anchor: 'gesdet-tasa',
+    placement: 'top',
+    icon: 'TrendingUp',
+    title: 'Tasa de éxito y ocupación',
+    body: 'Su tasa de éxito (expedientes completos sobre el total) y su ocupación (cuántos de sus lugares están usados). Para saber qué tan bien va y si aún tiene cupo para más alumnos.',
+  },
+  {
+    id: 'a-gesdet-alumnos',
+    anchor: 'gesdet-alumnos',
+    placement: 'top',
+    icon: 'Users',
+    title: 'Sus alumnos asignados',
+    body: 'La lista de todos los alumnos de este centro, con su estado y avance. Entra a cualquiera para abrir su expediente, o usa “Ver todos” para la lista completa filtrada por este gestor.',
+  },
+  {
+    id: 'a-gesdet-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esa es la ficha del centro!',
+    body: 'Todo su desempeño y su gente, en un lugar. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
 // ── Solicitudes ────────────────────────────────────────────────
 export const TOUR_A_SOLICITUDES: TourStep[] = [
   {
     id: 'a-sol-intro',
     icon: 'Inbox',
-    title: 'Solicitudes de cuenta',
-    body: 'Esta es la PUERTA DE ENTRADA al sistema: aquí caen las personas que pidieron una cuenta desde la página pública. Nadie entra sin pasar por aquí. Tú decides: al aprobar se crea su cuenta de alumno, se le asigna un gestor y se le envían sus credenciales; al rechazar, se le explica el motivo.',
+    title: 'Solicitudes de cuenta · algo nuevo',
+    body: 'Esto es NUEVO: antes las cuentas solo nacían con el gestor. Ahora cualquier persona puede pedir su cuenta desde la página pública —por ejemplo, alguien que quiere estudiar por su cuenta o cambiarse de centro— y su solicitud cae AQUÍ. Es la puerta de entrada: nadie entra sin pasar por esta bandeja, y quien decide eres tú.',
     illustration: 'solicitudFlow',
+  },
+  {
+    id: 'a-sol-como',
+    icon: 'GitBranch',
+    title: 'Cómo funciona: aprobar o rechazar',
+    body: 'Revisas la solicitud y decides. Al APROBAR, el sistema crea la cuenta de alumno, le ASIGNA el gestor (centro de asesoría) que tú elijas y le manda sus credenciales por correo, listo para entrar. Al RECHAZAR, escribes el motivo y esa persona lo recibe. Simple: tú eres el filtro entre “quiero entrar” y “ya estoy dentro”.',
   },
   {
     id: 'a-sol-stats',
@@ -252,8 +332,8 @@ export const TOUR_A_SOLICITUDES: TourStep[] = [
     anchor: 'a-sol-lista',
     placement: 'top',
     icon: 'ListChecks',
-    title: 'Aprueba o rechaza',
-    body: 'Cada renglón muestra al solicitante con su CURP, municipio y cuánto lleva esperando. Ábrelo para revisar sus datos: verifica que la CURP sea correcta y no esté duplicada. Al aprobar, eliges el gestor de su municipio; al rechazar, escribe un motivo claro (esa persona lo va a leer).',
+    title: 'El ejemplo: una solicitud de principio a fin',
+    body: 'Tomemos una: cada renglón muestra al solicitante con su CURP, municipio y cuánto lleva esperando. 1) Ábrelo y revisa sus datos —que la CURP sea correcta y no esté duplicada—. 2) Si todo cuadra, das “Aprobar” y eliges el gestor de su municipio: en ese instante nace su cuenta y le llega su correo. 3) Si algo no procede, das “Rechazar” con un motivo claro (esa persona lo va a leer). Así de fácil pasa de solicitante a alumno.',
   },
   {
     id: 'a-sol-fin',

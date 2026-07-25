@@ -481,16 +481,26 @@ function DropItem({ onClick, icon, label }: { onClick: () => void; icon: React.R
 
 // ─── Stats mini card ──────────────────────────────────────────────────────
 
-function StatCard({ num, label, sub }: { num: number | string; label: string; sub?: string }) {
+type TonoStat = 'guinda' | 'verde' | 'amarillo' | 'azul';
+const TONOS_STAT: Record<TonoStat, { bg: string; borde: string; label: string; num: string; sub: string }> = {
+  // Guinda sólido (la marca) para el total: destaca como tarjeta principal.
+  guinda:   { bg: 'var(--color-guinda-800)', borde: 'var(--color-guinda-800)', label: 'rgba(255,255,255,0.72)', num: '#ffffff', sub: 'rgba(255,255,255,0.6)' },
+  verde:    { bg: '#ecfdf5', borde: '#a7f3d0', label: '#047857', num: '#059669', sub: '#5b9c86' },
+  amarillo: { bg: '#fffbeb', borde: '#fde68a', label: '#b45309', num: '#d97706', sub: '#b58a4e' },
+  azul:     { bg: '#eff6ff', borde: '#bfdbfe', label: '#1d4ed8', num: '#2563eb', sub: '#6b8fce' },
+};
+
+function StatCard({ num, label, sub, tono = 'guinda' }: { num: number | string; label: string; sub?: string; tono?: TonoStat }) {
+  const t = TONOS_STAT[tono];
   return (
-    <div className="bg-white border border-stone-200 rounded-xl px-5 py-4 flex-1 min-w-0">
-      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: '#6b635e' }}>
+    <div className="rounded-xl px-5 py-4 flex-1 min-w-0" style={{ background: t.bg, border: `1px solid ${t.borde}` }}>
+      <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: t.label }}>
         {label}
       </div>
-      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
+      <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: t.num }}>
         {typeof num === 'number' ? num.toLocaleString('es-MX') : num}
       </div>
-      {sub && <div className="text-[11px] mt-0.5" style={{ color: '#a89a8e' }}>{sub}</div>}
+      {sub && <div className="text-[11px] mt-0.5" style={{ color: t.sub }}>{sub}</div>}
     </div>
   );
 }
@@ -628,10 +638,10 @@ export default function GestoresLista() {
       {/* Stats */}
       {resumen && (
         <div data-tour="a-ges-stats" className="flex gap-3 mb-5 flex-wrap">
-          <StatCard num={resumen.totalActivos} label="Total activos" />
-          <StatCard num={`${resumen.tasaExitoPromedio}%`} label="Tasa de éxito" sub="Promedio general" />
-          <StatCard num={resumen.alumnosPorGestor} label="Alumnos por gestor" sub="Promedio activos" />
-          <StatCard num={resumen.inactivos} label="Inactivos" />
+          <StatCard num={resumen.totalActivos} label="Total activos" tono="guinda" />
+          <StatCard num={`${resumen.tasaExitoPromedio}%`} label="Tasa de éxito" sub="Promedio general" tono="verde" />
+          <StatCard num={resumen.alumnosPorGestor} label="Alumnos por gestor" sub="Promedio activos" tono="azul" />
+          <StatCard num={resumen.inactivos} label="Inactivos" tono="amarillo" />
         </div>
       )}
 
@@ -695,7 +705,7 @@ export default function GestoresLista() {
         </div>
       ) : (
         <>
-          <div className="grid gap-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+          <div data-tour="a-ges-grid" className="grid gap-4" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
             {data.gestores.map((g) => (
               <GestorCard
                 key={g.id}
