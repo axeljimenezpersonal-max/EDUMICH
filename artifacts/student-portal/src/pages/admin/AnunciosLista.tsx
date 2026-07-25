@@ -567,17 +567,18 @@ export default function AnunciosLista() {
           </button>
         </div>
 
-        {/* Stats grid */}
-        <div data-tour="a-anun-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
+        {/* Stats grid — mismo acomodo que Alumnos: etiqueta (MAYÚSCULAS) arriba,
+            número grande abajo, Poppins y rounded-xl. Colores semánticos. */}
+        <div data-tour="a-anun-stats" className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
           {[
-            { label: 'Publicados',  value: resumen.publicados, color: '#16a34a', bg: '#f0fdf4' },
-            { label: 'Urgentes',    value: resumen.urgentes,   color: '#be123c', bg: '#fff1f2' },
-            { label: 'Borradores',  value: resumen.borradores, color: '#6b7280', bg: '#f3f4f6' },
-            { label: 'Archivados',  value: resumen.archivados, color: '#94a3b8', bg: '#f8fafc' },
+            { label: 'Publicados',  value: resumen.publicados, color: '#16a34a', bg: '#f0fdf4', borde: '#bbf7d0' },
+            { label: 'Urgentes',    value: resumen.urgentes,   color: '#be123c', bg: '#fff1f2', borde: '#fecdd3' },
+            { label: 'Borradores',  value: resumen.borradores, color: '#6b7280', bg: '#f3f4f6', borde: '#e5e7eb' },
+            { label: 'Archivados',  value: resumen.archivados, color: '#64748b', bg: '#f8fafc', borde: '#e2e8f0' },
           ].map(s => (
-            <div key={s.label} style={{ background: s.bg, border: `1px solid ${s.color}22`, borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontSize: 22, fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: 11, color: '#6b635e', marginTop: 2 }}>{s.label}</div>
+            <div key={s.label} className="rounded-xl px-5 py-4 min-w-0" style={{ background: s.bg, border: `1px solid ${s.borde}` }}>
+              <div className="text-[11px] font-semibold uppercase tracking-wider mb-1" style={{ color: s.color }}>{s.label}</div>
+              <div className="text-2xl font-bold" style={{ fontFamily: "'Poppins', sans-serif", color: s.color }}>{s.value}</div>
             </div>
           ))}
         </div>
