@@ -335,10 +335,13 @@ export default function AdminInicio() {
         </>
       )}
 
+      {/* autoStart espera a que el panel cargue: si arranca antes, los bloques
+          anchados aún no existen en el DOM y el tour se quedaba en 2 pasos. */}
       <SectionTour
         steps={TOUR_A_INICIO}
         storageKey="modula_sec_a_inicio_v1"
         gateKey={GATE_ADMIN}
+        autoStart={!loading && !!data}
         buttonLabel="Tutorial de inicio"
       />
     </AdminLayout>

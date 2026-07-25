@@ -85,7 +85,7 @@ export default function ConvocatoriasLista() {
       ? 'bg-white/15 text-white hover:bg-white/25'
       : 'border border-stone-200 text-stone-700 hover:bg-stone-50 bg-white';
     return (
-      <div className="flex items-center gap-2 flex-wrap">
+      <div data-tour="a-conv-docs" className="flex items-center gap-2 flex-wrap">
         <button onClick={() => abrirRelacionPicker(etapa)} className={`inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors ${cls}`}>
           <FileText size={13} /> Exámenes solicitados
         </button>

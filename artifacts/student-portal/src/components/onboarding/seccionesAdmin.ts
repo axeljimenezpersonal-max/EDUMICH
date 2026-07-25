@@ -31,14 +31,6 @@ export const TOUR_A_INICIO: TourStep[] = [
     body: 'Arriba ves la convocatoria en curso y sus fechas clave. Todo el trabajo del periodo (inscripciones, pagos y exámenes) gira alrededor de ella; si no hay ninguna activa, aquí lo sabrás de inmediato.',
   },
   {
-    id: 'a-ini-kpis',
-    anchor: 'a-ini-kpis',
-    placement: 'bottom',
-    icon: 'BarChart3',
-    title: 'Vista general del sistema',
-    body: 'Los indicadores del estado en tiempo real: alumnos activos, gestores y municipios cubiertos, expedientes completos y egresados. Te dan el pulso general antes de entrar al detalle.',
-  },
-  {
     id: 'a-ini-tareas',
     anchor: 'a-ini-tareas',
     placement: 'top',
@@ -375,8 +367,8 @@ export const TOUR_A_PAGOS: TourStep[] = [
     anchor: 'a-pag-tabla',
     placement: 'top',
     icon: 'ReceiptText',
-    title: 'Emite y verifica',
-    body: 'Cada orden muestra su estado. Ábrela para emitir su línea de captura cuando esté solicitada, o para verificar el comprobante contra el banco cuando ya se pagó. Al confirmar, el alumno queda listo para su examen.',
+    title: 'Entra a una orden',
+    body: 'Cada renglón es una orden con su estado. Da clic en cualquiera para abrirla: ahí emites su línea de captura cuando está solicitada, o verificas el comprobante cuando ya se pagó. Ábrela ahora —esa vista tiene su propio tutorial paso a paso.',
   },
   {
     id: 'a-pag-fin',
@@ -385,6 +377,73 @@ export const TOUR_A_PAGOS: TourStep[] = [
     icon: 'RefreshCw',
     title: '¡Eso es Pagos!',
     body: 'El circuito del dinero, bajo control. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Orden de pago · detalle (una ficha) ────────────────────────
+export const TOUR_A_ORDEN_DETALLE: TourStep[] = [
+  {
+    id: 'a-orddet-intro',
+    icon: 'ReceiptText',
+    title: 'Una orden de pago por dentro',
+    body: 'Aquí administras UNA ficha de examen de principio a fin. Recuerda la regla: Módula no cobra ni genera líneas de captura; la línea la emite la plataforma del Estado y aquí tú la CARGAS y luego CONCILIAS el pago. Te muestro cada parte.',
+    illustration: 'pagoFlow',
+  },
+  {
+    id: 'a-orddet-folio',
+    anchor: 'orddet-folio',
+    placement: 'bottom',
+    icon: 'Hash',
+    title: 'El folio y su estado',
+    body: 'Arriba, el folio de la orden y su estado actual (por emitir, emitida, en revisión, pagada…). Es la identidad de esta ficha; con ese folio la ubicas en cualquier lado.',
+  },
+  {
+    id: 'a-orddet-stepper',
+    anchor: 'orddet-stepper',
+    placement: 'bottom',
+    icon: 'GitBranch',
+    title: 'Las 4 etapas',
+    body: 'El camino de toda ficha: 1) Solicitada (alguien pidió la ficha), 2) Emisión (tú cargas la línea de captura), 3) Pago (el alumno o gestor paga y sube su comprobante) y 4) Confirmado (tú validas y queda inscrito). Aquí ves en cuál va.',
+  },
+  {
+    id: 'a-orddet-datos',
+    anchor: 'orddet-datos',
+    placement: 'top',
+    icon: 'ClipboardList',
+    title: 'Concepto, exámenes y total',
+    body: 'El resumen: concepto (derecho de examen), cuántos exámenes cubre, el total y el vencimiento. Esos exámenes son justo los que se registran para armar la ficha de pago del Estado.',
+  },
+  {
+    id: 'a-orddet-fiscal',
+    anchor: 'orddet-fiscal',
+    placement: 'top',
+    icon: 'Building2',
+    title: 'Datos fiscales del centro',
+    body: 'Los datos fiscales a nombre de quien se emite la ficha (razón social, RFC, clave de centro). Toca cualquier dato para copiarlo y pégalo tal cual en la plataforma del Estado cuando generes la línea de captura.',
+  },
+  {
+    id: 'a-orddet-alumnos',
+    anchor: 'orddet-alumnos',
+    placement: 'top',
+    icon: 'Users',
+    title: 'Alumnos y módulos incluidos',
+    body: 'Quiénes van en esta ficha y qué módulos cubre cada uno (con su folio). En una ficha grupal verás varios alumnos juntos; puedes abrir el expediente de cualquiera con “Ver alumno”.',
+  },
+  {
+    id: 'a-orddet-cargar',
+    anchor: 'orddet-cargar',
+    placement: 'left',
+    icon: 'FileUp',
+    title: 'Cargar la orden de pago',
+    body: 'El paso clave. Pegas la LÍNEA DE CAPTURA que te dio la plataforma del Estado (queda para tu control), pones el VENCIMIENTO (te sugiere una semana antes del examen), opcionalmente un LINK de pago, y subes el PDF de la ficha. Con la línea, el PDF o el link basta. Al dar “Emitir orden”, el alumno ya puede pagar.',
+  },
+  {
+    id: 'a-orddet-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esa es la orden de pago!',
+    body: 'De solicitada a confirmada, todo desde aquí. Repite este tutorial con el botón cuando quieras.',
   },
 ];
 
@@ -400,9 +459,9 @@ export const TOUR_A_CALIFICACIONES: TourStep[] = [
     id: 'a-cal-cargar',
     anchor: 'a-cal-cargar',
     placement: 'bottom',
-    icon: 'Upload',
-    title: 'Sube la Relación de la SEP',
-    body: 'Carga el PDF oficial tal como llega. El sistema lo lee y te muestra una PREVIA con semáforos (qué folios reconoció y qué revisar) antes de aplicar. Si prefieres, “Captura manual” te deja registrar calificaciones a mano.',
+    icon: 'Sparkles',
+    title: 'Sube la Relación de la SEP · tecnología nueva',
+    body: 'Esto es NUEVO: cargas el PDF oficial de la SEP tal como llega y el sistema lo LEE solo —no capturas folio por folio a mano—. Te muestra una PREVIA con semáforos (qué folios reconoció y qué revisar) antes de aplicar. Si algún caso no se leyó, “Captura manual” te deja registrarlo a mano.',
   },
   {
     id: 'a-cal-tabla',
@@ -410,7 +469,7 @@ export const TOUR_A_CALIFICACIONES: TourStep[] = [
     placement: 'top',
     icon: 'Table',
     title: 'El histórico completo',
-    body: 'La tabla general reúne todas las calificaciones aplicadas. Búscala por alumno, matrícula o CURP para consultar o auditar cualquier resultado. Recuerda: un módulo se aprueba con 6 (60 de 100).',
+    body: 'La tabla reúne todas las calificaciones aplicadas. Búscala por alumno, matrícula o CURP para consultar o auditar cualquier resultado. Y algo útil: al dar clic en un renglón te lleva directo al perfil de ese alumno. Recuerda: un módulo se aprueba con 6 (60 de 100).',
   },
   {
     id: 'a-cal-fin',
@@ -426,9 +485,9 @@ export const TOUR_A_CALIFICACIONES: TourStep[] = [
 export const TOUR_A_VERIFICACION: TourStep[] = [
   {
     id: 'a-ver-intro',
-    icon: 'ScanLine',
-    title: 'Verificación de identidad',
-    body: 'Tu herramienta de ventanilla: escanea el QR de la credencial digital de un alumno y su expediente se abre al instante. El QR está firmado, así que además te confirma que la credencial es AUTÉNTICA y no una imagen falsificada.',
+    icon: 'Smartphone',
+    title: 'Verificación · úsala desde el teléfono',
+    body: 'Esta pantalla está pensada para usarse DESDE TU CELULAR, en la ventanilla o el día del examen: con la cámara del teléfono escaneas el QR de la credencial del alumno y su expediente se abre solito. El QR está firmado, así que te confirma que la credencial es REAL y no una foto falsa.',
     illustration: 'verificaFlow',
   },
   {
@@ -437,15 +496,15 @@ export const TOUR_A_VERIFICACION: TourStep[] = [
     placement: 'bottom',
     icon: 'LayoutGrid',
     title: 'Qué puedes escanear hoy',
-    body: 'Por ahora solo “Alumno (credencial)” está disponible. “Pase de examen” aparece marcado como Próximamente: esa función aún no entra, así que no la ofrezcas todavía en sede.',
+    body: 'Por ahora solo funciona “Alumno (credencial)”. “Pase de examen” dice Próximamente: todavía no sirve, así que no lo uses aún en la sede.',
   },
   {
     id: 'a-ver-escaner',
     anchor: 'a-ver-escaner',
     placement: 'top',
     icon: 'QrCode',
-    title: 'Cómo se usa',
-    body: 'Pide al alumno que muestre el QR de su credencial en su teléfono y apúntalo a la cámara. El navegador te pedirá permiso de cámara la primera vez. Al leerlo, se abre su expediente completo sin teclear nada.',
+    title: 'Paso a paso, muy fácil',
+    body: '1) Pide al alumno que abra su credencial en su teléfono y te muestre el QR. 2) Apunta la cámara de TU teléfono a ese QR. 3) La primera vez el teléfono te preguntará si permites usar la cámara: toca “Permitir”. Listo: se abre su expediente sin escribir nada.',
   },
   {
     id: 'a-ver-fin',
@@ -488,6 +547,14 @@ export const TOUR_A_CONVOCATORIAS: TourStep[] = [
     icon: 'Flag',
     title: 'La etapa activa',
     body: 'Esta es la etapa que está corriendo. Es la que ven alumnos y gestores en sus paneles, y de la que depende su ventana de inscripción. Antes de cambiar sus fechas, considera que afecta a todos en ese momento.',
+  },
+  {
+    id: 'a-conv-docs',
+    anchor: 'a-conv-docs',
+    placement: 'bottom',
+    icon: 'FileText',
+    title: 'Los dos documentos clave de cada etapa',
+    body: 'MUY IMPORTANTE: después de la cédula de inscripción, estos dos son los papeles que más vas a usar. “Exámenes solicitados” te dice cuántos exámenes se pidieron en la etapa (y por qué centro), para saber cuántos faltan de pago. “Inscritos pagados” es la lista oficial de quienes ya pagaron y quedan inscritos. Cada uno se genera en PDF por etapa y por gestor.',
   },
   {
     id: 'a-conv-fin',

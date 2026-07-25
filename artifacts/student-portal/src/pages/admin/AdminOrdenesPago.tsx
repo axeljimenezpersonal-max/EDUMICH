@@ -15,7 +15,7 @@ import {
 import { Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
-import { TOUR_A_PAGOS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
+import { TOUR_A_PAGOS, TOUR_A_ORDEN_DETALLE, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
 import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { ConfirmModal } from '../../components/ConfirmModal';
@@ -282,12 +282,15 @@ export default function AdminOrdenesPago() {
         </>
       )}
 
-      <SectionTour
-        steps={TOUR_A_PAGOS}
-        storageKey="modula_sec_a_pagos_v1"
-        gateKey={GATE_ADMIN}
-        buttonLabel="Tutorial de pagos"
-      />
+      {/* El tutorial de la lista solo en la lista; el detalle trae el suyo. */}
+      {sel === null && !nuevo && !reporte && (
+        <SectionTour
+          steps={TOUR_A_PAGOS}
+          storageKey="modula_sec_a_pagos_v1"
+          gateKey={GATE_ADMIN}
+          buttonLabel="Tutorial de pagos"
+        />
+      )}
     </AdminLayout>
   );
 }
@@ -349,7 +352,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
       </button>
 
       {/* Folio de la orden — protagonista arriba */}
-      <div className="rounded-xl overflow-hidden border border-[#e8c4d4] mb-5">
+      <div data-tour="orddet-folio" className="rounded-xl overflow-hidden border border-[#e8c4d4] mb-5">
         <div className="px-5 py-4 flex items-start justify-between gap-3" style={{ background: 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)' }}>
           <div className="text-white">
             <div className="text-[10px] font-semibold uppercase tracking-[0.18em] opacity-80">Folio de la orden de pago</div>
@@ -364,14 +367,14 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
         </div>
       </div>
 
-      <div className="mb-5">
+      <div data-tour="orddet-stepper" className="mb-5">
         <PagoStepper estado={p.estado} perspectiva="admin" />
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
         {/* Columna izq: datos + exámenes */}
         <div className="md:col-span-2 space-y-4">
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
+          <div data-tour="orddet-datos" className="bg-white border border-stone-200 rounded-xl p-4">
             <div className="grid grid-cols-2 gap-3 text-sm">
               <Dato label="Concepto" val="Derecho de examen" />
               <Dato label="Exámenes" val={String(p.cantidadExamenes)} />
@@ -381,9 +384,11 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
           </div>
 
           {/* Datos fiscales del centro (persona moral) — para emitir la orden */}
-          <CentroFiscalCard centro={p.centroFiscal} />
+          <div data-tour="orddet-fiscal">
+            <CentroFiscalCard centro={p.centroFiscal} />
+          </div>
 
-          <div className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+          <div data-tour="orddet-alumnos" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
             <div className="px-4 py-2.5 bg-[var(--color-crema-100)] border-b border-stone-200 text-xs font-bold uppercase tracking-wide text-stone-600 flex items-center justify-between">
               <span>Alumnos involucrados</span>
               <span className="text-[10px] text-stone-400 font-semibold">{nAlumnos(p)} · {p.examenes.length} examen{p.examenes.length === 1 ? '' : 'es'}</span>
@@ -503,7 +508,7 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
 
           {/* ── Formulario de emisión / edición ── */}
           {(p.estado === 'pendiente_emision' || p.estado === 'vencido' || editando) && (
-            <div className="rounded-xl overflow-hidden border-2 border-[#e8c4d4]">
+            <div data-tour="orddet-cargar" className="rounded-xl overflow-hidden border-2 border-[#e8c4d4]">
               <div className="px-4 py-2.5 flex items-center justify-between text-white" style={{ background: 'linear-gradient(90deg, var(--color-guinda-800) 0%, var(--color-guinda-600) 100%)' }}>
                 <div className="text-sm font-bold">
                   {editando ? 'Editar orden emitida' : p.estado === 'vencido' ? 'Re-emitir orden' : 'Cargar orden de pago'}
@@ -633,6 +638,13 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
           onClose={() => setModal(null)}
         />
       )}
+
+      <SectionTour
+        steps={TOUR_A_ORDEN_DETALLE}
+        storageKey="sec_admin_orden_detalle"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial de esta orden"
+      />
     </>
   );
 }
