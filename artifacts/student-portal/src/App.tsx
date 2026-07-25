@@ -64,6 +64,7 @@ import ConvocatoriasLista from './pages/admin/ConvocatoriasLista';
 import ConvocatoriaDetalle from './pages/admin/ConvocatoriaDetalle';
 import { Avisador } from './components/Avisador';
 import { Confirmador } from './components/Confirmador';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import AnunciosLista from './pages/admin/AnunciosLista';
 import AdminFaq from './pages/admin/AdminFaq';
 import AdminPadron from './pages/admin/AdminPadron';
@@ -116,8 +117,13 @@ function TelemetriaDeUso() {
 }
 
 export default function App() {
+  // Si llegamos aquí es que la app montó bien: limpia la bandera de recarga por
+  // chunk viejo, para que una futura falla (otro deploy) sí pueda recargar.
+  useEffect(() => {
+    try { sessionStorage.removeItem('modula_recarga_chunk'); } catch { /* noop */ }
+  }, []);
   return (
-    <>
+    <ErrorBoundary>
     {/* Avisos breves y confirmaciones (reemplazan alert() y confirm() del
         navegador). Se montan una sola vez para toda la app. */}
     <Avisador />
@@ -239,7 +245,7 @@ export default function App() {
         <Redirect to="/login" />
       </Route>
     </Switch>
-    </>
+    </ErrorBoundary>
   );
 }
 

@@ -104,7 +104,7 @@ export default function AdminFaq() {
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 flex-wrap mb-0.5">
                     <span className="text-sm font-bold text-stone-900">{f.pregunta}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">{f.categoria}</span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-500">#{f.categoria}</span>
                     {f.principal && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[var(--color-crema-100)] text-[var(--color-guinda-700)]">Principal</span>}
                     <span className="text-[10px] text-stone-400">{AUDIENCIAS.find((a) => a.v === f.audiencia)?.l ?? f.audiencia}</span>
                     {!f.activa && <span className="text-[10px] font-bold text-amber-700">Oculta</span>}
@@ -150,8 +150,12 @@ export default function AdminFaq() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-stone-500 mb-1">Categoría (badge)</label>
-                  <input className={inputCls} value={modal.form.categoria} onChange={(e) => set('categoria', e.target.value)} placeholder="Pagos, Alumnos…" />
+                  <label className="block text-xs font-semibold text-stone-500 mb-1">Etiqueta (#categoría)</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 font-bold pointer-events-none">#</span>
+                    <input className={`${inputCls} pl-6`} value={modal.form.categoria} onChange={(e) => set('categoria', e.target.value)} placeholder="Pagos, Alumnos…" />
+                  </div>
+                  <p className="text-[11px] text-stone-400 mt-1">Agrupa la pregunta con una etiqueta, como un #hashtag.</p>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-stone-500 mb-1">Se muestra a</label>

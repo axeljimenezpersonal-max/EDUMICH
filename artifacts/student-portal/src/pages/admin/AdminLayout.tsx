@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
-  LogOut, Users, UserCheck, Inbox, Calendar, BarChart2, Settings,
+  LogOut, Users, UserCheck, Inbox, Calendar, Settings,
   Home, Bell, Megaphone, FileText, CreditCard, UserPlus,
   CheckCircle, XCircle, Star, ChevronRight, Mail, ScanLine, Landmark, ClipboardList,
   MessageSquare, GraduationCap, HelpCircle, Menu, X, MapPin, Database,
@@ -408,7 +408,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     { href: '/admin/anuncios',      icon: Megaphone,  label: 'Anuncios', tour: 'nav-anuncios' },
     { href: '/admin/faq',           icon: HelpCircle, label: 'Preguntas frecuentes', tour: 'nav-faq' },
     { href: '/admin/padron',        icon: Database,   label: 'Padrón histórico', tour: 'nav-padron' },
-    { href: '/admin/reportes',      icon: BarChart2,  label: 'Reportes', tour: 'nav-reportes' },
+    // Reportes se oculta del menú por decisión de producto (no saturar el panel).
+    // La página sigue existiendo en /admin/reportes; solo no se lista aquí.
     { href: '/admin/configuracion', icon: Settings,   label: 'Configuración', tour: 'nav-configuracion' },
   ];
 

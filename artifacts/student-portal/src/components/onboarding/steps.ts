@@ -282,14 +282,6 @@ const ADMIN: TourStep[] = [
     body: 'El padrón del Estado: consultas y buscas en el historial de matrículas, y lo exportas cuando lo necesites.',
   },
   {
-    id: 'adm-reportes',
-    anchor: 'nav-reportes nav-mas',
-    placement: 'right',
-    icon: 'BarChart2',
-    title: 'Reportes',
-    body: 'Descargas reportes del programa para rendir cuentas y tomar decisiones.',
-  },
-  {
     id: 'adm-configuracion',
     anchor: 'nav-configuracion nav-mas',
     placement: 'right',

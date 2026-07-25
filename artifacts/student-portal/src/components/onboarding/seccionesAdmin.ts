@@ -664,7 +664,7 @@ export const TOUR_A_FAQ: TourStep[] = [
     placement: 'bottom',
     icon: 'Plus',
     title: 'Crea (o precarga) preguntas',
-    body: 'Con “Nueva pregunta” capturas la duda y su respuesta, le pones una categoría y eliges a quién se muestra (alumno, gestor o ambos). Puedes dejar preparadas todas las que quieras de una vez.',
+    body: 'Con “Nueva pregunta” capturas la duda y su respuesta, le pones una etiqueta (#categoría, como un hashtag) para agruparla, y eliges a quién se muestra (alumno, gestor o ambos). Puedes dejar preparadas todas las que quieras de una vez.',
   },
   {
     id: 'a-faq-lista',
