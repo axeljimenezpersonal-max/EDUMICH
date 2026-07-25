@@ -546,7 +546,9 @@ export default function AnunciosLista() {
 
   return (
     <AdminLayout>
-      <div style={{ maxWidth: 860 }}>
+      {/* Sin cap de ancho: la página ocupa todo el espacio como Alumnos/Pagos;
+          antes tenía maxWidth 860 y dejaba un hueco muerto a la derecha. */}
+      <div>
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
