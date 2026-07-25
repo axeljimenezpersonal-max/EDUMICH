@@ -16,6 +16,8 @@ import { CedulaEditor } from '../../components/CedulaEditor';
 import { CredencialPreview } from '../../components/CredencialPreview';
 import { confirmar } from '../../components/Confirmador';
 import { formatearNombre } from '../../lib/nombre';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_ALUMNO_DETALLE, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -1176,7 +1178,7 @@ export default function AdminAlumnoDetalle() {
             </div>
 
             {/* Acciones (sobre el guinda) */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
+            <div data-tour="aludet-acciones" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
               <button onClick={handleResetPassword} disabled={resettingPwd}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                 style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
@@ -1342,6 +1344,7 @@ export default function AdminAlumnoDetalle() {
           {TABS.map((t) => (
             <button
               key={t.key}
+              data-tour={`aludet-tab-${t.key}`}
               onClick={() => setActiveTab(t.key)}
               className="flex items-center gap-2 px-5 py-3 text-sm font-semibold transition-colors"
               style={{
@@ -1696,6 +1699,13 @@ export default function AdminAlumnoDetalle() {
           </div>
         </div>
       )}
+
+      <SectionTour
+        steps={TOUR_A_ALUMNO_DETALLE}
+        storageKey="sec_admin_alumno_detalle"
+        gateKey={GATE_ADMIN}
+        buttonLabel="Tutorial del alumno"
+      />
     </AdminLayout>
   );
 }

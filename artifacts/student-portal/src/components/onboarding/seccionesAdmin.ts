@@ -69,16 +69,16 @@ export const TOUR_A_ALUMNOS: TourStep[] = [
   {
     id: 'a-alu-intro',
     icon: 'Users',
-    title: 'Todos los alumnos del estado',
-    body: 'El padrón completo de alumnos de Preparatoria Abierta en Michoacán. Desde aquí revisas expedientes, validas documentos y das seguimiento a cualquier alumno, sin importar su municipio o gestor.',
+    title: 'Los alumnos activos de la convocatoria',
+    body: 'Aquí están los alumnos ACTIVOS de la convocatoria en curso — no el padrón histórico completo del estado (ese vive en “Padrón histórico”). Desde aquí revisas expedientes, validas documentos y das seguimiento a cualquiera, sin importar su municipio o gestor.',
   },
   {
     id: 'a-alu-stats',
     anchor: 'a-alu-stats',
     placement: 'bottom',
     icon: 'BarChart3',
-    title: 'Resumen del padrón',
-    body: 'De un vistazo: total de alumnos, cuántos tienen expediente completo, cuántos están pendientes y cuántos ya egresaron. El termómetro general antes de filtrar.',
+    title: 'Resumen de un vistazo',
+    body: 'El termómetro de los alumnos activos: cuántos son en total, cuántos tienen expediente completo, cuántos están pendientes y cuántos ya egresaron. El panorama antes de filtrar.',
   },
   {
     id: 'a-alu-filtros',
@@ -102,7 +102,81 @@ export const TOUR_A_ALUMNOS: TourStep[] = [
     placement: 'left',
     icon: 'RefreshCw',
     title: '¡Esos son tus alumnos!',
-    body: 'El padrón estatal, siempre a tu alcance. Repite este tutorial con el botón cuando quieras.',
+    body: 'Los alumnos activos de la convocatoria, siempre a tu alcance. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Alumno · detalle (ficha individual) ────────────────────────
+export const TOUR_A_ALUMNO_DETALLE: TourStep[] = [
+  {
+    id: 'a-aludet-intro',
+    icon: 'UserCircle2',
+    title: 'La ficha del alumno',
+    body: 'Todo lo de este alumno en un solo lugar: su expediente, su cédula, sus módulos, sus pagos, sus calificaciones y su credencial. Desde aquí resuelves cualquier cosa de su trámite. Te muestro qué hay en cada parte.',
+  },
+  {
+    id: 'a-aludet-acciones',
+    anchor: 'aludet-acciones',
+    placement: 'bottom',
+    icon: 'Wrench',
+    title: 'Acciones sobre el alumno',
+    body: 'Las herramientas rápidas: “Reset password” le manda una contraseña temporal, “Reenviar credenciales” le vuelve a mandar sus datos de acceso por correo, y también puedes cambiar o asignar su gestor (centro de asesoría).',
+  },
+  {
+    id: 'a-aludet-docs',
+    anchor: 'aludet-tab-docs',
+    placement: 'bottom',
+    icon: 'FileText',
+    title: 'Documentos · revisa y decide',
+    body: 'El alumno o su gestor suben los 5 documentos del expediente. Aquí los abres en PDF y los APRUEBAS o los DENIEGAS con un motivo. El expediente no avanza hasta que estén los cinco aprobados.',
+  },
+  {
+    id: 'a-aludet-cedula',
+    anchor: 'aludet-tab-cedula',
+    placement: 'bottom',
+    icon: 'ClipboardList',
+    title: 'Cédula · edítala y fírmala',
+    body: 'Los datos de la cédula de inscripción, con “Editar cédula” para corregirlos. Y algo nuevo: se puede FIRMAR de forma digital directo en pantalla — la firma queda guardada y se descarga con la cédula. Antes no lo teníamos.',
+  },
+  {
+    id: 'a-aludet-modulos',
+    anchor: 'aludet-tab-modulos',
+    placement: 'bottom',
+    icon: 'CalendarClock',
+    title: 'Módulos inscritos',
+    body: 'En qué módulos está inscrito el alumno y qué solicitudes ha hecho, agrupados por convocatoria. Desde aquí también puedes inscribirle o quitarle módulos (máximo 4 por convocatoria).',
+  },
+  {
+    id: 'a-aludet-pagos',
+    anchor: 'aludet-tab-pagos',
+    placement: 'bottom',
+    icon: 'CreditCard',
+    title: 'Pagos · todo cruzado',
+    body: 'En qué ficha de pago está incluido el alumno y cuál ya está pagada. El sistema cruza los módulos con sus órdenes de pago, así que de un vistazo sabes qué examen ya quedó cubierto y cuál falta.',
+  },
+  {
+    id: 'a-aludet-califs',
+    anchor: 'aludet-tab-examenes',
+    placement: 'bottom',
+    icon: 'GraduationCap',
+    title: 'Calificaciones',
+    body: 'Los resultados del alumno módulo por módulo: qué presentó, qué aprobó (60 o más) y qué le falta. Su historial académico completo.',
+  },
+  {
+    id: 'a-aludet-credencial',
+    anchor: 'aludet-tab-credencial',
+    placement: 'bottom',
+    icon: 'BadgeCheck',
+    title: 'Credencial digital',
+    body: 'Aquí se emite y descarga la credencial. Ojo con el orden: PRIMERO se captura la matrícula oficial de la DGB; sin ella la credencial aparece “sin emitir”. Una vez capturada la matrícula, ya puedes emitir la credencial.',
+  },
+  {
+    id: 'a-aludet-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esa es la ficha del alumno!',
+    body: 'Todo su trámite, bajo tu control. Repite este tutorial con el botón cuando quieras.',
   },
 ];
 

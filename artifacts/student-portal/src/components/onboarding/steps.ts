@@ -206,8 +206,8 @@ const ADMIN: TourStep[] = [
     anchor: 'nav-alumnos nav-mas',
     placement: 'right',
     icon: 'Users',
-    title: 'Alumnos · aquí están todos',
-    body: 'Tu sección más usada: TODOS los alumnos del estado. Entra a cualquiera para ver su expediente, documentos, pagos y avance, y aprobar o rechazar lo que suben.',
+    title: 'Alumnos · los activos de la convocatoria',
+    body: 'Tu sección más usada: los alumnos ACTIVOS de la convocatoria en curso (no es el padrón histórico completo del estado). Entra a cualquiera para ver su expediente, documentos, pagos y avance, y aprobar o rechazar lo que suben.',
   },
   {
     id: 'adm-gestores',
