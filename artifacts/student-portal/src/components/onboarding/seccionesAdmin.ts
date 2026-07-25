@@ -551,10 +551,10 @@ export const TOUR_A_CONVOCATORIAS: TourStep[] = [
   {
     id: 'a-conv-docs',
     anchor: 'a-conv-docs',
-    placement: 'bottom',
+    placement: 'left',
     icon: 'FileText',
-    title: 'Los dos documentos clave de cada etapa',
-    body: 'MUY IMPORTANTE: después de la cédula de inscripción, estos dos son los papeles que más vas a usar. “Exámenes solicitados” te dice cuántos exámenes se pidieron en la etapa (y por qué centro), para saber cuántos faltan de pago. “Inscritos pagados” es la lista oficial de quienes ya pagaron y quedan inscritos. Cada uno se genera en PDF por etapa y por gestor.',
+    title: 'Los dos documentos de cada etapa',
+    body: 'Los dos PDF que más vas a descargar (después de la cédula): “Exámenes solicitados” —cuántos exámenes se pidieron y por qué centro, para ver qué falta de pago— e “Inscritos pagados” —la lista oficial de quienes ya pagaron—. Se descargan por etapa y por gestor.',
   },
   {
     id: 'a-conv-fin',
