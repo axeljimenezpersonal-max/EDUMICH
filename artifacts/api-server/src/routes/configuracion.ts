@@ -486,6 +486,11 @@ router.get('/bitacora', soloJefeBitacora, async (req, res) => {
   }).from(auditLog).$dynamic();
 
   const conditions: ReturnType<typeof eq>[] = [];
+  // La bitácora del ADMIN NO muestra lo que hace el creador (rol 'direccion'):
+  // ese es el trabajo de operación/desarrollo de Sinapsis, no del equipo de la
+  // Secretaría. El creador tiene su propia bitácora, que sí lo incluye todo.
+  // IS DISTINCT FROM conserva las filas con rol NULL (procesos del sistema).
+  conditions.push(sql`${auditLog.userRol} IS DISTINCT FROM 'direccion'` as any);
   if (accion) conditions.push(eq(auditLog.accion, accion));
   if (entidad) conditions.push(eq(auditLog.entidad, entidad));
   if (usuarioId) conditions.push(eq(auditLog.userId, Number(usuarioId)));
@@ -499,7 +504,8 @@ router.get('/bitacora', soloJefeBitacora, async (req, res) => {
 
   const rows = await query.orderBy(desc(auditLog.createdAt)).limit(limit).offset(offset);
 
-  const totalRes = await db.select({ total: count() }).from(auditLog);
+  const totalRes = await db.select({ total: count() }).from(auditLog)
+    .where(sql`${auditLog.userRol} IS DISTINCT FROM 'direccion'`);
 
   // Mask IPs
   const masked = rows.map((r) => ({

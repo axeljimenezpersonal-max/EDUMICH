@@ -16,7 +16,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { sql, eq, count, gte, isNull, and, countDistinct, inArray, desc } from 'drizzle-orm';
+import { sql, eq, count, gte, lte, like, isNull, and, countDistinct, inArray, desc } from 'drizzle-orm';
 import { db } from '../db';
 import {
   users,
@@ -33,8 +33,10 @@ import {
   convocatoriasEtapas,
   outbox,
   notasCreador,
+  auditLog,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
+import { patronLike } from '../utils/like';
 import { generarPasswordTemporal } from '../utils/password';
 import { urlPortalLogin } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
@@ -1282,6 +1284,65 @@ router.delete('/notas/:id', async (req, res) => {
   } catch (e) {
     console.error('[direccion/notas/eliminar]', e);
     res.status(500).json({ error: 'No se pudo eliminar la nota' });
+  }
+});
+
+// ── Bitácora de actividad (creador) ──────────────────────────────────
+// El creador (Sinapsis) SÍ ve todo el historial —incluidas sus propias
+// acciones de operación— para auditar "quién hizo qué" en el equipo. La
+// bitácora del admin, en cambio, oculta las acciones del creador.
+function maskIpBitacora(ip: string | null): string | null {
+  if (!ip) return null;
+  const p = ip.split('.');
+  return p.length === 4 ? `${p[0]}.${p[1]}.x.x` : ip;
+}
+
+router.get('/bitacora', async (req, res) => {
+  const page = Math.max(1, Number(req.query.page ?? 1));
+  const limit = Math.min(Number(req.query.limit ?? 50), 200);
+  const offset = (page - 1) * limit;
+  const { buscar, accion, entidad, fechaInicio, fechaFin } = req.query as Record<string, string>;
+
+  try {
+    const conditions: any[] = [];
+    if (accion) conditions.push(eq(auditLog.accion, accion));
+    if (entidad) conditions.push(eq(auditLog.entidad, entidad));
+    if (buscar) conditions.push(like(auditLog.detalle, patronLike(buscar)));
+    if (fechaInicio) conditions.push(gte(auditLog.createdAt, new Date(fechaInicio)));
+    if (fechaFin) conditions.push(lte(auditLog.createdAt, new Date(fechaFin + 'T23:59:59')));
+    const where = conditions.length ? and(...conditions) : undefined;
+
+    const base = db.select({
+      id: auditLog.id,
+      userId: auditLog.userId,
+      userNombre: auditLog.userNombre,
+      userRol: auditLog.userRol,
+      accion: auditLog.accion,
+      entidad: auditLog.entidad,
+      entidadId: auditLog.entidadId,
+      detalle: auditLog.detalle,
+      metadata: auditLog.metadata,
+      ip: auditLog.ip,
+      createdAt: auditLog.createdAt,
+    }).from(auditLog).$dynamic();
+    const rows = await (where ? base.where(where) : base)
+      .orderBy(desc(auditLog.createdAt)).limit(limit).offset(offset);
+
+    const totalRes = where
+      ? await db.select({ total: count() }).from(auditLog).where(where)
+      : await db.select({ total: count() }).from(auditLog);
+    const total = Number(totalRes[0]?.total ?? 0);
+
+    res.json({
+      rows: rows.map((r) => ({ ...r, ip: maskIpBitacora(r.ip) })),
+      total,
+      page,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      limit,
+    });
+  } catch (e) {
+    console.error('[direccion/bitacora]', e);
+    res.status(500).json({ error: 'No se pudo cargar la bitácora' });
   }
 });
 

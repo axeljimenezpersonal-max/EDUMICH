@@ -240,7 +240,7 @@ function DetailModal({ row, onClose }: { row: BitacoraRow; onClose: () => void }
 
 // ─── Main ─────────────────────────────────────────────────────────────────
 
-export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean) => void }) {
+export default function Bitacora({ onDirty: _onDirty, endpoint = '/api/admin/configuracion/bitacora' }: { onDirty?: (d: boolean) => void; endpoint?: string }) {
   const [rows, setRows] = useState<BitacoraRow[]>([]);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -270,7 +270,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
       if (fechaFin) params.set('fechaFin', fechaFin);
 
       try {
-        const res = await fetch(`/api/admin/configuracion/bitacora?${params}`, { credentials: 'include' });
+        const res = await fetch(`${endpoint}?${params}`, { credentials: 'include' });
         if (!res.ok) throw new Error();
         const data: BitacoraResp & { limit?: number } = await res.json();
         setRows(data.rows ?? []);
@@ -287,7 +287,7 @@ export default function Bitacora({ onDirty: _onDirty }: { onDirty?: (d: boolean)
         setLoading(false);
       }
     },
-    [buscar, accion, entidad, fechaInicio, fechaFin],
+    [buscar, accion, entidad, fechaInicio, fechaFin, endpoint],
   );
 
   useEffect(() => {

@@ -166,8 +166,12 @@ export default function Login() {
                   <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
                     id="email"
+                    name="email"
                     type="email"
-                    autoComplete="email"
+                    // "username" (no "email") es el token que Chrome/Safari
+                    // reconocen como el identificador de un login, y lo que
+                    // dispara el "¿Guardar contraseña?" al entrar.
+                    autoComplete="username"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
@@ -185,6 +189,7 @@ export default function Login() {
                   <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                   <input
                     id="password"
+                    name="password"
                     type="password"
                     autoComplete="current-password"
                     required
