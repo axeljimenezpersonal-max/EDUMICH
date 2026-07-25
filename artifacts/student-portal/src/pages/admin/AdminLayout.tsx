@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
+import { formatearNombre } from '../../lib/nombre';
 import { safeUrl } from '../../lib/safeUrl';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
@@ -35,11 +36,6 @@ type Notif = {
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-
-function apellido(nombre: string): string {
-  const parts = nombre.trim().split(/\s+/);
-  return parts[parts.length - 1] ?? nombre;
-}
 
 function tiempoRelativo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -480,8 +476,8 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
             <NotifBell />
             <div className="flex items-center gap-2.5">
               <div className="text-right hidden sm:block" style={{ lineHeight: 1.2 }}>
-                <div className="text-[13px] font-semibold" style={{ color: '#2a2a2a' }}>
-                  {apellido(sidebar.nombreAdmin)}
+                <div className="text-[13px] font-semibold max-w-[220px] truncate" style={{ color: '#2a2a2a' }}>
+                  {formatearNombre(sidebar.nombreAdmin) || 'Administrador'}
                 </div>
                 <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)', letterSpacing: '0.1em' }}>
                   {esJefe ? 'Administradora · Titular' : 'Administración · Operativo'}

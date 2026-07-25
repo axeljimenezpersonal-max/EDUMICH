@@ -49,8 +49,16 @@ async function log(
   });
 }
 
+// El middleware de auth expone `req.user` como { userId, rol } — NO trae `id`
+// ni `email`. Antes esta función lo casteaba a { id, email, rol } a ciegas, así
+// que `u.id` salía undefined y TODA consulta de este router (Mi cuenta, guardar
+// perfil, preferencias, sesiones…) filtraba por userId=undefined y no devolvía
+// ni guardaba nada: por eso Mi cuenta se veía en blanco ("Sin nombre" + correo
+// vacío). El `id` real es `userId`. `email` no viaja en la sesión; se deja vacío
+// (los handlers que lo usan para la bitácora ya guardan también el userId).
 function reqUser(req: any) {
-  return req.user as { id: number; email: string; rol: string; nombre?: string };
+  const u = (req.user ?? {}) as { userId: number; rol: string };
+  return { id: u.userId, email: '', rol: u.rol };
 }
 
 // ─────────────────────────────────────────────────────────────
