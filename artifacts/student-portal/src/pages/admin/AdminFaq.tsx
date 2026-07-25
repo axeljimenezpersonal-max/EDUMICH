@@ -7,6 +7,8 @@ import { useEffect, useState } from 'react';
 import { AdminLayout } from './AdminLayout';
 import { api } from '../../lib/api';
 import { HelpCircle, Plus, Pencil, Trash2, Loader2, X, Check, AlertCircle } from 'lucide-react';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_A_FAQ, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 
 interface Faq {
   id: number;
@@ -80,7 +82,7 @@ export default function AdminFaq() {
           </div>
           <h1 className="font-serif text-2xl font-bold text-stone-900">Preguntas frecuentes</h1>
         </div>
-        <button onClick={abrirNueva} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white text-sm font-semibold hover:bg-[var(--color-guinda-800)]">
+        <button data-tour="faq-nueva" onClick={abrirNueva} className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[var(--color-guinda-700)] text-white text-sm font-semibold hover:bg-[var(--color-guinda-800)]">
           <Plus size={15} /> Nueva pregunta
         </button>
       </div>
@@ -95,7 +97,7 @@ export default function AdminFaq() {
           <p className="text-sm text-stone-500">Agrega la primera con "Nueva pregunta".</p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div data-tour="faq-lista" className="space-y-2">
           {faqs.map((f) => (
             <div key={f.id} className={`rounded-xl border bg-white p-4 ${f.activa ? 'border-stone-200' : 'border-stone-100 opacity-60'}`}>
               <div className="flex items-start gap-3">
@@ -186,6 +188,14 @@ export default function AdminFaq() {
           </div>
         </div>
       )}
+
+      <SectionTour
+        steps={TOUR_A_FAQ}
+        storageKey="sec_admin_faq"
+        gateKey={GATE_ADMIN}
+        autoStart={faqs !== null}
+        buttonLabel="Tutorial de preguntas"
+      />
     </AdminLayout>
   );
 }

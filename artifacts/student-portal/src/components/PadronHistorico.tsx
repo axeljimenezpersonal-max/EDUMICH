@@ -107,7 +107,7 @@ export function PadronHistorico() {
       </div>
 
       {/* Cargar Excel */}
-      <div className="bg-white border border-stone-200 rounded-xl p-4 mb-5">
+      <div data-tour="pad-cargar" className="bg-white border border-stone-200 rounded-xl p-4 mb-5">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="min-w-0">
             <div className="text-sm font-bold text-stone-800">Cargar padrón (Excel)</div>
@@ -141,7 +141,7 @@ export function PadronHistorico() {
       </div>
 
       {/* Buscar */}
-      <div className="relative mb-3">
+      <div data-tour="pad-buscar" className="relative mb-3">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
         <input
           value={q}

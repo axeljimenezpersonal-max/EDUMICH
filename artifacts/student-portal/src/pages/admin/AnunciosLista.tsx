@@ -612,7 +612,7 @@ export default function AnunciosLista() {
             <p style={{ fontSize: 12, marginTop: 4 }}>Crea uno con el botón "Nuevo anuncio"</p>
           </div>
         ) : (
-          <div>
+          <div data-tour="a-anun-item">
             {visible.map(a => (
               <div key={a.id} style={{ opacity: actionLoading === a.id ? 0.5 : 1 }}>
                 <AnuncioCard

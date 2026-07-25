@@ -596,7 +596,15 @@ export const TOUR_A_ANUNCIOS: TourStep[] = [
     placement: 'bottom',
     icon: 'LayoutGrid',
     title: 'Publica, guarda o archiva',
-    body: 'Un anuncio en borrador no lo ve nadie: puedes prepararlo con calma y publicarlo cuando toque. Cuando ya no aplique, archívalo para que deje de mostrarse sin borrar el registro.',
+    body: 'Un anuncio en borrador no lo ve nadie: puedes dejarlos preparados con calma —incluso varios de golpe— y publicarlos cuando toque. Cuando ya no aplique, archívalo para que deje de mostrarse sin borrar el registro.',
+  },
+  {
+    id: 'a-anun-item',
+    anchor: 'a-anun-item',
+    placement: 'top',
+    icon: 'Megaphone',
+    title: 'Cada anuncio, a la mano',
+    body: 'Cada tarjeta es un anuncio (como este “Recordatorio”). Desde ahí lo administras todo: “Editar” para corregir el texto o la prioridad, “Archivar” para retirarlo sin borrarlo, y “Eliminar” cuando ya no lo necesites. Todo el trabajo del día vive en estas tarjetas.',
   },
   {
     id: 'a-anun-fin',
@@ -605,6 +613,74 @@ export const TOUR_A_ANUNCIOS: TourStep[] = [
     icon: 'RefreshCw',
     title: '¡Esos son los Anuncios!',
     body: 'Tu canal de comunicación masiva. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Padrón histórico ───────────────────────────────────────────
+export const TOUR_A_PADRON: TourStep[] = [
+  {
+    id: 'a-pad-intro',
+    icon: 'Database',
+    title: 'El padrón del Estado',
+    body: 'Aquí vive la base histórica de alumnos que YA existen ante el Estado. Es confidencial: solo administración y dirección la ven completa. Sirve para un detalle clave: al dar de alta, si la CURP ya está en este padrón, el sistema avisa que el alumno ya existe.',
+  },
+  {
+    id: 'a-pad-cargar',
+    anchor: 'pad-cargar',
+    placement: 'bottom',
+    icon: 'Upload',
+    title: 'Cargar el padrón (Excel)',
+    body: 'Subes el Excel oficial con sus columnas (matrícula, CURP, apellidos, nombre…). Volver a subirlo NO duplica: actualiza por matrícula. Así mantienes el padrón al día sin ensuciarlo.',
+  },
+  {
+    id: 'a-pad-buscar',
+    anchor: 'pad-buscar',
+    placement: 'bottom',
+    icon: 'Search',
+    title: 'Buscar y descargar',
+    body: 'Busca por CURP, matrícula o nombre para confirmar si alguien ya está en el padrón. Y con “Descargar Excel” te llevas la lista completa o el resultado filtrado.',
+  },
+  {
+    id: 'a-pad-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Ese es el Padrón!',
+    body: 'La memoria del Estado, a tu alcance. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
+// ── Preguntas frecuentes ───────────────────────────────────────
+export const TOUR_A_FAQ: TourStep[] = [
+  {
+    id: 'a-faq-intro',
+    icon: 'HelpCircle',
+    title: 'Preguntas frecuentes',
+    body: 'Aquí armas las dudas resueltas que verán alumnos y gestores en su Centro de ayuda. Tú decides qué se responde y a quién le aparece. Es la forma de bajar la carga de soporte: lo que dejes bien explicado aquí, ya no te lo preguntan.',
+  },
+  {
+    id: 'a-faq-nueva',
+    anchor: 'faq-nueva',
+    placement: 'bottom',
+    icon: 'Plus',
+    title: 'Crea (o precarga) preguntas',
+    body: 'Con “Nueva pregunta” capturas la duda y su respuesta, le pones una categoría y eliges a quién se muestra (alumno, gestor o ambos). Puedes dejar preparadas todas las que quieras de una vez.',
+  },
+  {
+    id: 'a-faq-lista',
+    anchor: 'faq-lista',
+    placement: 'top',
+    icon: 'ListChecks',
+    title: 'Ordénalas y marca las principales',
+    body: 'Cada pregunta se puede editar, ocultar o eliminar. Lo importante: marca como “Principal” las más útiles (unas 5 por categoría) — esas salen en el Centro de ayuda; las demás solo aparecen cuando alguien las busca.',
+  },
+  {
+    id: 'a-faq-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Esas son las Preguntas frecuentes!',
+    body: 'Menos dudas repetidas, más autoservicio. Repite este tutorial con el botón cuando quieras.',
   },
 ];
 
