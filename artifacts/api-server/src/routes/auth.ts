@@ -210,8 +210,12 @@ router.post('/login', async (req, res) => {
     // devuelve el texto real del error para identificar la causa de raíz. Se
     // QUITA en cuanto se confirme el origen. No expone datos de usuarios, solo
     // el mensaje/código del fallo técnico.
-    const detalle = e instanceof Error ? e.message : String(e);
-    const codigo = (e as { code?: string })?.code ?? null;
+    // El error de Drizzle envuelve el real en `cause`; ahí está el motivo de
+    // Postgres (p. ej. "column ... does not exist" y su code).
+    const causa = (e as { cause?: unknown })?.cause;
+    const real = causa instanceof Error ? causa : e;
+    const detalle = real instanceof Error ? real.message : String(real);
+    const codigo = (real as { code?: string })?.code ?? null;
     res.status(503).json({
       error: `No pudimos iniciar tu sesión. [diagnóstico: ${detalle}${codigo ? ` · code=${codigo}` : ''}]`,
     });

@@ -10,6 +10,22 @@ const migrations = [
   // Corte de sesiones por usuario (revocación real sin consultar por petición)
   `ALTER TABLE users
      ADD COLUMN IF NOT EXISTS sesiones_invalidadas_en timestamp`,
+  // Columnas de `users` que estaban en el esquema Drizzle pero NUNCA se
+  // agregaron aquí (el footgun del CLAUDE.md): en producción, que no corre
+  // drizzle-kit push, la columna faltante hacía fallar TODO login con
+  // "column ... does not exist". IF NOT EXISTS = idempotente: si ya existe, no
+  // hace nada. Los timestamp son anulables (cero riesgo). password_temporal ya
+  // existía (el login funcionaba antes), así que aquí solo se salta.
+  `ALTER TABLE users
+     ADD COLUMN IF NOT EXISTS password_temporal boolean NOT NULL DEFAULT true`,
+  `ALTER TABLE users
+     ADD COLUMN IF NOT EXISTS bienvenida_enviada_en timestamp`,
+  `ALTER TABLE users
+     ADD COLUMN IF NOT EXISTS privacidad_aceptada_en timestamp`,
+  `ALTER TABLE users
+     ADD COLUMN IF NOT EXISTS ultimo_login timestamp`,
+  `ALTER TABLE users
+     ADD COLUMN IF NOT EXISTS password_cambiado_en timestamp`,
   `ALTER TABLE estudiantes_modulos_progreso
      ADD COLUMN IF NOT EXISTS temas_debiles jsonb`,
   // Búsqueda de cuenta por nombre sin sensibilidad a acentos
