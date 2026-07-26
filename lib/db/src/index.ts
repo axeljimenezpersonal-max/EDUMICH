@@ -24,8 +24,11 @@ if (!process.env.DATABASE_URL) {
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   max: 10,
+  // Cerramos NOSOTROS el cliente ocioso antes de que Neon lo mate del lado del
+  // servidor (su corte ronda 1-5 min). Esto es lo que evita el 500 intermitente.
   idleTimeoutMillis: 30_000,
-  connectionTimeoutMillis: 10_000,
+  // NO se pone connectionTimeoutMillis: un arranque en frío de Neon puede tardar
+  // varios segundos y un tope agresivo convertiría una espera en un fallo duro.
   keepAlive: true,
 });
 

@@ -205,11 +205,15 @@ router.post('/login', async (req, res) => {
     });
   } catch (e) {
     // Red de seguridad: pase lo que pase, el login NO devuelve un 500 opaco.
-    // Se registra el error real en el servidor y al usuario se le da un mensaje
-    // honesto y accionable en vez de "Error interno del servidor".
     console.error('[auth] fallo inesperado en /login:', e);
+    // DIAGNÓSTICO TEMPORAL: como no hay acceso a los logs del servidor, se
+    // devuelve el texto real del error para identificar la causa de raíz. Se
+    // QUITA en cuanto se confirme el origen. No expone datos de usuarios, solo
+    // el mensaje/código del fallo técnico.
+    const detalle = e instanceof Error ? e.message : String(e);
+    const codigo = (e as { code?: string })?.code ?? null;
     res.status(503).json({
-      error: 'No pudimos iniciar tu sesión en este momento. Espera unos segundos e inténtalo de nuevo.',
+      error: `No pudimos iniciar tu sesión. [diagnóstico: ${detalle}${codigo ? ` · code=${codigo}` : ''}]`,
     });
   }
 });
