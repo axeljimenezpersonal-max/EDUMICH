@@ -11,9 +11,15 @@ import { GraduationCap, Lock, Mail, Loader2, Edit3, HelpCircle } from 'lucide-re
 import { BrandLogo } from '../components/BrandLogo';
 import ModulaLogo from '../components/ModulaLogo';
 
+const CLAVE_CORREO = 'modula_ultimo_correo';
+
 export default function Login() {
   const [, setLocation] = useLocation();
-  const [email, setEmail] = useState('');
+  // Recordar el correo: se precarga el último con el que se entró (como en la
+  // mayoría de los sitios). Solo el correo, nunca la contraseña.
+  const [email, setEmail] = useState(() => {
+    try { return localStorage.getItem(CLAVE_CORREO) ?? ''; } catch { return ''; }
+  });
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +33,8 @@ export default function Login() {
         '/auth/login',
         { email, password }
       );
+      // Se recuerda el correo para la próxima vez (no la contraseña).
+      try { localStorage.setItem(CLAVE_CORREO, email); } catch { /* noop */ }
       // Primer ingreso (contraseña temporal): TODOS los roles deben crear su
       // contraseña antes de entrar. Se comprueba ANTES del destino por rol.
       if (r.user.passwordTemporal) {

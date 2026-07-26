@@ -7,6 +7,7 @@ import {
 import { api, type MeResponse } from '../../lib/api';
 import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
+import { PantallaVerificando } from '../../components/PantallaVerificando';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 import { BottomNav } from '../../components/BottomNav';
@@ -71,6 +72,11 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
     await api.post('/auth/logout');
     setLocation('/login');
   }
+
+  // Candado: sin sesión de estudiante confirmada, no se pinta el panel (mientras
+  // se verifica o si se va a redirigir, `me` sigue null). Cierra el acceso por
+  // enlace directo sin agregar consultas: reutiliza el /auth/me de arriba.
+  if (!me) return <PantallaVerificando />;
 
   return (
     <div className="min-h-screen bg-[var(--color-crema-100)] flex flex-col">

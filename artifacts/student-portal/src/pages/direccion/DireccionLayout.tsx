@@ -18,6 +18,7 @@ import { api } from '../../lib/api';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
+import { PantallaVerificando } from '../../components/PantallaVerificando';
 
 function apellido(nombre: string): string {
   const parts = nombre.trim().split(/\s+/);
@@ -27,17 +28,29 @@ function apellido(nombre: string): string {
 export function DireccionLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
   const [nombre, setNombre] = useState('Creador');
+  const [verificado, setVerificado] = useState(false);
   const [menuAbierto, setMenuAbierto] = useState(false);
 
   // Al navegar, el cajón móvil se cierra solo: los enlaces son <a> y en móvil
   // el usuario espera que la pantalla nueva llegue sin el menú encima.
   useEffect(() => { setMenuAbierto(false); }, [location]);
 
+  // Candado de sesión. Antes solo se leía el nombre y se tragaba el error, así
+  // que cualquiera podía abrir /direccion por enlace directo. Ahora se exige rol
+  // 'direccion': sin sesión → al login; otro rol → a su propio panel. Reutiliza
+  // el /auth/me que ya se hacía (no agrega consultas).
   useEffect(() => {
-    api.get<{ perfil?: { nombreCompleto?: string } }>('/auth/me')
-      .then((r) => setNombre(r.perfil?.nombreCompleto ?? 'Creador'))
-      .catch(() => {});
-  }, []);
+    api.get<{ rol?: string; perfil?: { nombreCompleto?: string } }>('/auth/me')
+      .then((r) => {
+        if (r.rol !== 'direccion') {
+          setLocation(r.rol === 'admin' ? '/admin' : r.rol === 'gestor' ? '/gestor' : r.rol === 'estudiante' ? '/estudiante' : '/login');
+          return;
+        }
+        setNombre(r.perfil?.nombreCompleto ?? 'Creador');
+        setVerificado(true);
+      })
+      .catch(() => setLocation('/login'));
+  }, [setLocation]);
 
   async function handleLogout() {
     await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
@@ -73,6 +86,9 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
     { href: '/direccion/bitacora',     icon: ClipboardList,   label: 'Bitácora',          tour: 'nav-bitacora' },
     { href: '/direccion/notas',        icon: StickyNote,      label: 'Notas',             tour: 'nav-notas' },
   ];
+
+  // Nada del panel del creador hasta confirmar sesión y rol.
+  if (!verificado) return <PantallaVerificando />;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>

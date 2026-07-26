@@ -13,6 +13,7 @@ import { safeUrl } from '../../lib/safeUrl';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 import { BuscadorGlobal } from '../../components/buscador/BuscadorGlobal';
+import { PantallaVerificando } from '../../components/PantallaVerificando';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -341,7 +342,18 @@ function SidebarSecciones({
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { esJefe } = useAdminPerfil();
+  const { esJefe, cargando, autenticado, rol } = useAdminPerfil();
+
+  // Candado de sesión. Reutiliza el /auth/me que useAdminPerfil ya hacía (no
+  // agrega consultas). Sin sesión → al login; con sesión de otro rol → a su
+  // propio panel. Entrar por enlace directo a /admin ya no muestra nada.
+  useEffect(() => {
+    if (cargando) return;
+    if (!autenticado) { setLocation('/login'); return; }
+    if (rol && rol !== 'admin') {
+      setLocation(rol === 'gestor' ? '/gestor' : rol === 'estudiante' ? '/estudiante' : rol === 'direccion' ? '/direccion' : '/login');
+    }
+  }, [cargando, autenticado, rol, setLocation]);
   // Cajón de navegación en móvil (el sidebar de siempre, deslizando desde la izquierda).
   const [menuAbierto, setMenuAbierto] = useState(false);
   const [sidebar, setSidebar] = useState<SidebarSnapshot>({
@@ -412,6 +424,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     // La página sigue existiendo en /admin/reportes; solo no se lista aquí.
     { href: '/admin/configuracion', icon: Settings,   label: 'Configuración', tour: 'nav-configuracion' },
   ];
+
+  // Nada de contenido de admin hasta confirmar sesión y rol.
+  if (cargando || !autenticado || (rol && rol !== 'admin')) {
+    return <PantallaVerificando />;
+  }
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: '#f2ece5', fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}>
