@@ -75,42 +75,6 @@ const loginSchema = z.object({
 });
 
 /**
- * ¿El error viene de la CONEXIÓN (no de la lógica de la consulta)?
- *
- * Son los cortes de conexión típicos de Neon/Postgres gestionado: el servidor
- * cierra una conexión ociosa y el cliente que quedó en el pool se entera al
- * usarlo. Estos SÍ se pueden reintentar; un error de SQL o de datos NO.
- */
-function esErrorDeConexion(e: unknown): boolean {
-  const msg = e instanceof Error ? e.message : String(e);
-  const code = (e as { code?: string })?.code ?? '';
-  return (
-    /terminated|ECONNRESET|ETIMEDOUT|EPIPE|connection.*(closed|reset|timeout)|server closed the connection|timeout expired/i.test(
-      msg,
-    ) ||
-    // 57P01 admin shutdown · 08006 connection failure · 08003 connection does not exist
-    ['ECONNRESET', 'ETIMEDOUT', 'EPIPE', '57P01', '08006', '08003'].includes(code)
-  );
-}
-
-/**
- * Ejecuta una consulta y, si falla por un error de CONEXIÓN, la reintenta UNA
- * vez. El pool ya descartó al cliente muerto, así que el segundo intento toma
- * uno sano. No reintenta errores que no sean de conexión.
- */
-async function conReintentoConexion<T>(fn: () => Promise<T>): Promise<T> {
-  try {
-    return await fn();
-  } catch (e) {
-    if (esErrorDeConexion(e)) {
-      console.warn('[auth] reintentando consulta tras corte de conexión:', e);
-      return await fn();
-    }
-    throw e;
-  }
-}
-
-/**
  * Registro de sesiones abiertas.
  *
  * La tabla `sesiones` existía y la pantalla de seguridad la leía para mostrar
@@ -178,13 +142,10 @@ router.post('/login', async (req, res) => {
   const { email, password } = parse.data;
 
   try {
-    // La consulta que abre la sesión se protege con un reintento: si el pool
-    // entrega un cliente que Neon ya cerró por ocioso, el primer intento falla
-    // por conexión, el pool lo descarta, y el segundo toma uno sano. Antes esto
-    // era el "Error interno del servidor" que aparecía sin patrón al entrar.
-    const [user] = await conReintentoConexion(() =>
-      db.select().from(users).where(eq(users.email, email)),
-    );
+    // El pool reintenta solo si la consulta falla por un corte de conexión (el
+    // "Error interno del servidor" que aparecía sin patrón al entrar). Aquí solo
+    // queda la red de seguridad del try/catch para un mensaje honesto.
+    const [user] = await db.select().from(users).where(eq(users.email, email));
 
     const hashValido =
       !!user && typeof user.passwordHash === 'string' && user.passwordHash.length > 0;
@@ -222,9 +183,7 @@ router.post('/login', async (req, res) => {
 
     limpiarFallosDeCuenta(user.id);
 
-    await conReintentoConexion(() =>
-      db.update(users).set({ ultimoLogin: new Date() }).where(eq(users.id, user.id)),
-    );
+    await db.update(users).set({ ultimoLogin: new Date() }).where(eq(users.id, user.id));
 
     await tryAuditLog({
       userId: user.id,

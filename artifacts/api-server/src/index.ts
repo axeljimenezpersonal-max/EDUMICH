@@ -266,11 +266,40 @@ if (fs.existsSync(STATIC_DIR)) {
   console.log(`📁 Sirviendo frontend desde ${STATIC_DIR}`);
 }
 
+// ¿El error es un corte de CONEXIÓN con la base (no un fallo de lógica/SQL)?
+// Copia local del mismo criterio que usa el pool en lib/db, para no acoplar la
+// capa HTTP a los tipos construidos del paquete de base.
+function esErrorDeConexion(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  const code = (e as { code?: string })?.code ?? '';
+  return (
+    /terminated|ECONNRESET|ETIMEDOUT|EPIPE|connection.*(closed|reset|timeout)|server closed the connection|timeout expired/i.test(
+      msg,
+    ) ||
+    ['ECONNRESET', 'ETIMEDOUT', 'EPIPE', '57P01', '08006', '08003'].includes(code)
+  );
+}
+
 // Error handler — no filtrar detalles internos al cliente en producción.
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[API Error]', err);
+  // Último cerrojo: si un corte de conexión llegara hasta aquí (el reintento del
+  // pool ya cubre casi todo), se responde 503 con un mensaje honesto y
+  // accionable en vez del "Error interno del servidor" que alarma sin explicar.
+  if (esErrorDeConexion(err)) {
+    res.status(503).json({
+      error: 'El servicio está ocupado por un instante. Espera unos segundos e inténtalo de nuevo.',
+    });
+    return;
+  }
   const isProd = process.env.NODE_ENV === 'production';
   res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message || 'Error interno' });
+});
+
+// Nada de fallos silenciosos: una promesa rechazada sin capturar se registra en
+// vez de desaparecer. Con esto, si algo se escapa, queda rastro para verlo.
+process.on('unhandledRejection', (motivo) => {
+  console.error('[proceso] promesa rechazada sin capturar:', motivo);
 });
 
 const PORT = Number(process.env.PORT) || 3001;
