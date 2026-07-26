@@ -75,6 +75,42 @@ const loginSchema = z.object({
 });
 
 /**
+ * ¿El error viene de la CONEXIÓN (no de la lógica de la consulta)?
+ *
+ * Son los cortes de conexión típicos de Neon/Postgres gestionado: el servidor
+ * cierra una conexión ociosa y el cliente que quedó en el pool se entera al
+ * usarlo. Estos SÍ se pueden reintentar; un error de SQL o de datos NO.
+ */
+function esErrorDeConexion(e: unknown): boolean {
+  const msg = e instanceof Error ? e.message : String(e);
+  const code = (e as { code?: string })?.code ?? '';
+  return (
+    /terminated|ECONNRESET|ETIMEDOUT|EPIPE|connection.*(closed|reset|timeout)|server closed the connection|timeout expired/i.test(
+      msg,
+    ) ||
+    // 57P01 admin shutdown · 08006 connection failure · 08003 connection does not exist
+    ['ECONNRESET', 'ETIMEDOUT', 'EPIPE', '57P01', '08006', '08003'].includes(code)
+  );
+}
+
+/**
+ * Ejecuta una consulta y, si falla por un error de CONEXIÓN, la reintenta UNA
+ * vez. El pool ya descartó al cliente muerto, así que el segundo intento toma
+ * uno sano. No reintenta errores que no sean de conexión.
+ */
+async function conReintentoConexion<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (e) {
+    if (esErrorDeConexion(e)) {
+      console.warn('[auth] reintentando consulta tras corte de conexión:', e);
+      return await fn();
+    }
+    throw e;
+  }
+}
+
+/**
  * Registro de sesiones abiertas.
  *
  * La tabla `sesiones` existía y la pantalla de seguridad la leía para mostrar
@@ -141,64 +177,82 @@ router.post('/login', async (req, res) => {
   }
   const { email, password } = parse.data;
 
-  const [user] = await db.select().from(users).where(eq(users.email, email));
+  try {
+    // La consulta que abre la sesión se protege con un reintento: si el pool
+    // entrega un cliente que Neon ya cerró por ocioso, el primer intento falla
+    // por conexión, el pool lo descarta, y el segundo toma uno sano. Antes esto
+    // era el "Error interno del servidor" que aparecía sin patrón al entrar.
+    const [user] = await conReintentoConexion(() =>
+      db.select().from(users).where(eq(users.email, email)),
+    );
 
-  if (!user || !user.activo) {
-    // Se compara contra un hash señuelo para que responder "no existe" tarde lo
-    // mismo que responder "contraseña incorrecta". Sin esto, la diferencia de
-    // tiempo (~80 ms de bcrypt) revela qué correos tienen cuenta, aunque el
-    // mensaje sea genérico.
-    await bcrypt.compare(password, HASH_SENUELO);
-    await auditarAccesoFallido(email, user ? 'cuenta_inactiva' : 'no_existe', req);
-    res.status(401).json({ error: 'Credenciales incorrectas' });
-    return;
-  }
+    const hashValido =
+      !!user && typeof user.passwordHash === 'string' && user.passwordHash.length > 0;
 
-  // Bloqueo POR CUENTA. El límite por IP no basta: con varias direcciones se
-  // puede insistir sobre el mismo correo sin activar nada, y la contraseña
-  // temporal del alumno es corta.
-  const bloqueo = bloqueoDeCuenta(user.id);
-  if (bloqueo) {
-    await auditarAccesoFallido(email, 'cuenta_bloqueada', req, user.id);
-    res.status(429).json({
-      error: `Demasiados intentos fallidos. Vuelve a intentar en ${bloqueo} minuto(s).`,
+    if (!user || !user.activo || !hashValido) {
+      // Se compara contra un hash señuelo para que responder "no existe" tarde lo
+      // mismo que responder "contraseña incorrecta". Sin esto, la diferencia de
+      // tiempo (~80 ms de bcrypt) revela qué correos tienen cuenta, aunque el
+      // mensaje sea genérico.
+      await bcrypt.compare(password, HASH_SENUELO);
+      await auditarAccesoFallido(email, user ? 'cuenta_inactiva' : 'no_existe', req);
+      res.status(401).json({ error: 'Credenciales incorrectas' });
+      return;
+    }
+
+    // Bloqueo POR CUENTA. El límite por IP no basta: con varias direcciones se
+    // puede insistir sobre el mismo correo sin activar nada, y la contraseña
+    // temporal del alumno es corta.
+    const bloqueo = bloqueoDeCuenta(user.id);
+    if (bloqueo) {
+      await auditarAccesoFallido(email, 'cuenta_bloqueada', req, user.id);
+      res.status(429).json({
+        error: `Demasiados intentos fallidos. Vuelve a intentar en ${bloqueo} minuto(s).`,
+      });
+      return;
+    }
+
+    const ok = await bcrypt.compare(password, user.passwordHash);
+    if (!ok) {
+      registrarFalloDeCuenta(user.id);
+      await auditarAccesoFallido(email, 'password_incorrecta', req, user.id);
+      res.status(401).json({ error: 'Credenciales incorrectas' });
+      return;
+    }
+
+    limpiarFallosDeCuenta(user.id);
+
+    await conReintentoConexion(() =>
+      db.update(users).set({ ultimoLogin: new Date() }).where(eq(users.id, user.id)),
+    );
+
+    await tryAuditLog({
+      userId: user.id,
+      accion: 'login_exitoso',
+      entidad: 'users',
+      entidadId: user.id,
+      detalle: `Inicio de sesión (${user.rol})`,
+      metadata: { rol: user.rol },
+      req,
     });
-    return;
+
+    const session: SessionUser = { userId: user.id, rol: user.rol };
+    const cookie = setSessionCookie(res, session);
+    await registrarSesion(user.id, cookie, req);
+
+    res.json({
+      ok: true,
+      user: { id: user.id, email: user.email, rol: user.rol, passwordTemporal: user.passwordTemporal },
+    });
+  } catch (e) {
+    // Red de seguridad: pase lo que pase, el login NO devuelve un 500 opaco.
+    // Se registra el error real en el servidor y al usuario se le da un mensaje
+    // honesto y accionable en vez de "Error interno del servidor".
+    console.error('[auth] fallo inesperado en /login:', e);
+    res.status(503).json({
+      error: 'No pudimos iniciar tu sesión en este momento. Espera unos segundos e inténtalo de nuevo.',
+    });
   }
-
-  const ok = await bcrypt.compare(password, user.passwordHash);
-  if (!ok) {
-    registrarFalloDeCuenta(user.id);
-    await auditarAccesoFallido(email, 'password_incorrecta', req, user.id);
-    res.status(401).json({ error: 'Credenciales incorrectas' });
-    return;
-  }
-
-  limpiarFallosDeCuenta(user.id);
-
-  await db
-    .update(users)
-    .set({ ultimoLogin: new Date() })
-    .where(eq(users.id, user.id));
-
-  await tryAuditLog({
-    userId: user.id,
-    accion: 'login_exitoso',
-    entidad: 'users',
-    entidadId: user.id,
-    detalle: `Inicio de sesión (${user.rol})`,
-    metadata: { rol: user.rol },
-    req,
-  });
-
-  const session: SessionUser = { userId: user.id, rol: user.rol };
-  const cookie = setSessionCookie(res, session);
-  await registrarSesion(user.id, cookie, req);
-
-  res.json({
-    ok: true,
-    user: { id: user.id, email: user.email, rol: user.rol, passwordTemporal: user.passwordTemporal },
-  });
 });
 
 router.post('/logout', async (req, res) => {
