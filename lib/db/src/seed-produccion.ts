@@ -19,7 +19,7 @@
  *
  * ── Uso ─────────────────────────────────────────────────────────────────────
  *   SEED_CONFIRMO_NO_ES_PRODUCCION=si \
- *   SEED_ADMIN_EMAIL=prepa@modula22.mx \
+ *   SEED_ADMIN_EMAIL='<correo del admin>' \
  *   SEED_ADMIN_PASSWORD='<contraseña segura>' \
  *   DATABASE_URL='postgresql://...?sslmode=verify-full&sslrootcert=/app/rds-ca.pem' \
  *     pnpm --filter @workspace/db exec tsx src/seed-produccion.ts
@@ -63,7 +63,11 @@ async function main() {
     );
   }
 
-  const adminEmail = (process.env.SEED_ADMIN_EMAIL ?? 'prepa@modula22.mx').trim().toLowerCase();
+  // Sin default: el correo del admin NO se hornea en el repo. Se pasa al correr.
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!adminEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(adminEmail)) {
+    abortar('Falta SEED_ADMIN_EMAIL (un correo válido). NO se hardcodea en el repo.');
+  }
   const adminPassword = process.env.SEED_ADMIN_PASSWORD;
   if (!adminPassword || adminPassword.length < 12) {
     abortar('Falta SEED_ADMIN_PASSWORD (mínimo 12 caracteres). NO se hardcodea en el repo.');
