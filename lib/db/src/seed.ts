@@ -10,6 +10,7 @@
 
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { sslDeEntorno } from './ssl';
 import bcrypt from 'bcryptjs';
 import { eq, sql } from 'drizzle-orm';
 import {
@@ -96,7 +97,7 @@ function abortarSiNoEsBaseDePruebas(url: string | undefined): void {
 async function main() {
   abortarSiNoEsBaseDePruebas(process.env.DATABASE_URL);
 
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, ssl: sslDeEntorno() });
   const db = drizzle(pool);
 
   console.log('🌱 Iniciando seed de Preparatoria Abierta Michoacán...\n');

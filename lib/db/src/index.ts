@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+import { sslDeEntorno } from "./ssl";
 
 const { Pool } = pg;
 
@@ -23,6 +24,9 @@ if (!process.env.DATABASE_URL) {
 // conexión en silencio, y con un tope de espera para no colgar la petición.
 export const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
+  // TLS por entorno (DATABASE_SSL). Default 'require': cifra sin validar el CA
+  // —lo que ya hacía Neon vía la URL—; en RDS se pondrá 'verify' + PGSSLROOTCERT.
+  ssl: sslDeEntorno(),
   max: 10,
   // Cerramos NOSOTROS el cliente ocioso antes de que Neon lo mate del lado del
   // servidor (su corte ronda 1-5 min). Esto es lo que evita el 500 intermitente.
