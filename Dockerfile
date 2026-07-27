@@ -5,7 +5,7 @@ WORKDIR /app
 RUN npm install -g pnpm@11
 
 # Copy workspace manifest files
-COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json ./
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml* tsconfig.base.json .npmrc ./
 
 # Copy all source packages
 COPY lib/ lib/
