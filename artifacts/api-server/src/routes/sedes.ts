@@ -45,6 +45,82 @@ const sedeSchema = z.object({
   longitud: coordSchema,
 });
 
+// ─── POST /admin/sedes/resolver-mapa ─────────────────────────────────────────
+// Resuelve un enlace CORTO de Google Maps (maps.app.goo.gl / goo.gl) a
+// coordenadas. Es la ÚNICA salida a internet del API y está ACOTADA a dominios
+// de Google: sigue redirecciones solo entre hosts de Google y saca lat/lng de la
+// URL/HTML final. Solo admins (el router ya exige rol admin). Se guardan siempre
+// coordenadas, nunca la URL (ver lib/ubicacionMaps.ts en el portal).
+const HOSTS_GOOGLE = new Set([
+  'maps.app.goo.gl', 'goo.gl', 'www.google.com', 'google.com',
+  'maps.google.com', 'google.com.mx', 'www.google.com.mx', 'consent.google.com',
+]);
+
+function coordsDeTexto(t: string): { lat: number; lng: number } | null {
+  const patrones = [
+    /@(-?\d{1,3}\.\d+),(-?\d{1,3}\.\d+)/,
+    /!3d(-?\d{1,3}\.\d+)!4d(-?\d{1,3}\.\d+)/,
+    /[?&](?:q|ll|query|center|destination)=(-?\d{1,3}\.\d+),\s*(-?\d{1,3}\.\d+)/i,
+  ];
+  for (const re of patrones) {
+    const m = t.match(re);
+    if (m) {
+      const lat = parseFloat(m[1]);
+      const lng = parseFloat(m[2]);
+      if (Number.isFinite(lat) && Number.isFinite(lng) && Math.abs(lat) <= 90 && Math.abs(lng) <= 180) {
+        return { lat, lng };
+      }
+    }
+  }
+  return null;
+}
+
+async function resolverEnlaceGoogle(url: string): Promise<{ lat: number; lng: number } | null> {
+  let actual = url;
+  for (let hop = 0; hop < 6; hop++) {
+    let host: string;
+    try { host = new URL(actual).hostname.toLowerCase(); } catch { return null; }
+    if (!HOSTS_GOOGLE.has(host)) return null; // corta SSRF: solo se sigue dentro de Google
+    const yaEnUrl = coordsDeTexto(actual);
+    if (yaEnUrl) return yaEnUrl;
+
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 4000);
+    let resp: Awaited<ReturnType<typeof fetch>>;
+    try {
+      resp = await fetch(actual, { method: 'GET', redirect: 'manual', signal: ctrl.signal, headers: { 'User-Agent': 'Mozilla/5.0 (Modula22)' } });
+    } finally { clearTimeout(t); }
+
+    const loc = resp.headers.get('location');
+    if (resp.status >= 300 && resp.status < 400 && loc) {
+      actual = new URL(loc, actual).toString();
+      continue;
+    }
+    if (resp.ok) {
+      const html = await resp.text();
+      return coordsDeTexto(html);
+    }
+    return null;
+  }
+  return null;
+}
+
+router.post('/resolver-mapa', async (req, res) => {
+  const url = String(req.body?.url ?? '').trim();
+  if (!/^https:\/\/(maps\.app\.goo\.gl|goo\.gl)\//i.test(url)) {
+    return res.status(400).json({ error: 'Pega el enlace de "Compartir" de Google Maps (empieza con maps.app.goo.gl).' });
+  }
+  try {
+    const coords = await resolverEnlaceGoogle(url);
+    if (!coords) {
+      return res.status(422).json({ error: 'No pude sacar la ubicación de ese enlace. Prueba con la URL larga (la de la barra del navegador) o pega las coordenadas.' });
+    }
+    return res.json(coords);
+  } catch {
+    return res.status(422).json({ error: 'No pude abrir ese enlace. Revisa la conexión o pega las coordenadas a mano.' });
+  }
+});
+
 // ─── GET /admin/sedes ────────────────────────────────────────────────────────
 // Catálogo completo con municipio y cuántas veces está en uso (para avisar antes
 // de borrar). `usos` = inscripciones que la referencian.

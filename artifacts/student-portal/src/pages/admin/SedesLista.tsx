@@ -65,6 +65,58 @@ function SinMarco({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ── Selector de horario con "mini reloj" ───────────────────────────────────
+// Días (preset) + hora de apertura y cierre con <input type="time">. Compone y
+// guarda un texto tipo "L–V 9:00–15:00". Vive fuera del render (como SinMarco).
+const HORARIO_DIAS = [
+  { v: 'L–V', label: 'Lun a Vie' },
+  { v: 'L–S', label: 'Lun a Sáb' },
+  { v: 'Todos los días', label: 'Todos los días' },
+  { v: 'Sáb–Dom', label: 'Sáb y Dom' },
+  { v: 'custom', label: 'Otro…' },
+];
+function bonitoHora(hhmm: string): string {
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  return m ? `${Number(m[1])}:${m[2]}` : hhmm; // "09:00" → "9:00"
+}
+function a24(hhmm: string): string {
+  const m = hhmm.match(/^(\d{1,2}):(\d{2})$/);
+  return m ? `${m[1].padStart(2, '0')}:${m[2]}` : ''; // "9:00" → "09:00" (para el input)
+}
+function parseHorario(v: string): { dias: string; ini: string; fin: string } {
+  const m = (v ?? '').trim().match(/^(.*?)\s+(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*$/);
+  if (m) return { dias: m[1].trim(), ini: m[2], fin: m[3] };
+  return { dias: (v ?? '').trim(), ini: '', fin: '' };
+}
+function componerHorario(dias: string, ini: string, fin: string): string {
+  const d = dias.trim();
+  if (d && ini && fin) return `${d} ${bonitoHora(ini)}–${bonitoHora(fin)}`;
+  if (d) return d;
+  if (ini && fin) return `${bonitoHora(ini)}–${bonitoHora(fin)}`;
+  return '';
+}
+function HorarioPicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const init = parseHorario(value);
+  const [dias, setDias] = useState(init.dias || 'L–V');
+  const [ini, setIni] = useState(init.ini);
+  const [fin, setFin] = useState(init.fin);
+  const esPreset = HORARIO_DIAS.some((o) => o.v !== 'custom' && o.v === dias);
+  const presetSel = esPreset ? dias : 'custom';
+  const emit = (d: string, i: string, f: string) => { setDias(d); setIni(i); setFin(f); onChange(componerHorario(d, i, f)); };
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 6 }}>
+      <select style={inputStyle} value={presetSel} onChange={(e) => emit(e.target.value === 'custom' ? '' : e.target.value, ini, fin)}>
+        {HORARIO_DIAS.map((o) => <option key={o.v} value={o.v}>{o.label}</option>)}
+      </select>
+      <input type="time" style={inputStyle} value={a24(ini)} onChange={(e) => emit(dias, e.target.value, fin)} aria-label="Hora de apertura" />
+      <input type="time" style={inputStyle} value={a24(fin)} onChange={(e) => emit(dias, ini, e.target.value)} aria-label="Hora de cierre" />
+      {presetSel === 'custom' && (
+        <input style={{ ...inputStyle, gridColumn: '1 / -1' }} placeholder="Días (ej. Mar y Jue)" value={dias} onChange={(e) => emit(e.target.value, ini, fin)} />
+      )}
+    </div>
+  );
+}
+
 export default function SedesLista({ embebido = false }: { embebido?: boolean } = {}) {
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -157,6 +209,34 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
   function setF(patch: Partial<FormSede>) {
     setModal((m) => (m ? { ...m, form: { ...m.form, ...patch } } : m));
   }
+
+  // Enlace CORTO de Google Maps (maps.app.goo.gl): no trae coordenadas dentro,
+  // así que el servidor sigue la redirección (solo dominios de Google) y las
+  // saca. Al pegarlo, se resuelve solo y el campo pasa a mostrar las coordenadas.
+  const [resolviendoMapa, setResolviendoMapa] = useState(false);
+  const [errorMapa, setErrorMapa] = useState<string | null>(null);
+  const ubicacionTexto = modal?.form.ubicacionTexto ?? '';
+  useEffect(() => {
+    const r = parseUbicacion(ubicacionTexto);
+    if (r.ok || r.motivo !== 'enlace_corto') { setErrorMapa(null); setResolviendoMapa(false); return; }
+    let vivo = true;
+    setErrorMapa(null);
+    const t = setTimeout(async () => {
+      setResolviendoMapa(true);
+      try {
+        const c = await api.post<{ lat: number; lng: number }>('/admin/sedes/resolver-mapa', { url: ubicacionTexto.trim() });
+        if (vivo && c && typeof c.lat === 'number' && typeof c.lng === 'number') {
+          setF({ ubicacionTexto: `${c.lat}, ${c.lng}` });
+        }
+      } catch (e) {
+        if (vivo) setErrorMapa(e instanceof Error ? e.message : 'No pude resolver el enlace.');
+      } finally {
+        if (vivo) setResolviendoMapa(false);
+      }
+    }, 700);
+    return () => { vivo = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ubicacionTexto]);
 
   const Envoltura = embebido ? SinMarco : AdminLayout;
 
@@ -306,15 +386,13 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
                 <label style={labelStyle}>Dirección</label>
                 <input style={inputStyle} value={modal.form.direccion} onChange={(e) => setF({ direccion: e.target.value })} placeholder="Av. Madero Pte. 1234, Centro" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label style={labelStyle}>Teléfono</label>
-                  <input style={inputStyle} value={modal.form.telefono} onChange={(e) => setF({ telefono: e.target.value })} placeholder="443 000 0000" />
-                </div>
-                <div>
-                  <label style={labelStyle}>Horario</label>
-                  <input style={inputStyle} value={modal.form.horarioAtencion} onChange={(e) => setF({ horarioAtencion: e.target.value })} placeholder="L-V 9:00-15:00" />
-                </div>
+              <div>
+                <label style={labelStyle}>Teléfono</label>
+                <input style={inputStyle} value={modal.form.telefono} onChange={(e) => setF({ telefono: e.target.value })} placeholder="443 000 0000" />
+              </div>
+              <div>
+                <label style={labelStyle}>Horario de atención</label>
+                <HorarioPicker value={modal.form.horarioAtencion} onChange={(v) => setF({ horarioAtencion: v })} />
               </div>
               {/* Ubicación: se pega el enlace de Google Maps y de ahí se sacan las
                   coordenadas. Se guardan coordenadas y no el enlace porque
@@ -329,7 +407,7 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
                   style={inputStyle}
                   value={modal.form.ubicacionTexto}
                   onChange={(e) => setF({ ubicacionTexto: e.target.value })}
-                  placeholder="Pega aquí el enlace de Google Maps"
+                  placeholder="Pega el enlace de Google Maps (el de «Compartir» funciona)"
                 />
                 {(() => {
                   const r = parseUbicacion(modal.form.ubicacionTexto);
@@ -352,10 +430,27 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
                   if (r.motivo === 'vacio') {
                     return (
                       <p style={{ fontSize: 11, color: '#a89a8e', lineHeight: 1.5, marginTop: 6 }}>
-                        Abre el lugar en Google Maps y pega aquí la dirección de la barra del navegador.
-                        También sirve hacer clic derecho sobre el punto y copiar los dos números.
+                        Pega el enlace de Google Maps: sirve el de «Compartir» (maps.app.goo.gl), la
+                        dirección de la barra del navegador, o las coordenadas (clic derecho sobre el punto).
                         Sin esto el alumno igual puede buscar la sede por su nombre y dirección.
                       </p>
+                    );
+                  }
+                  // Enlace corto: se resuelve solo en el servidor.
+                  if (r.motivo === 'enlace_corto') {
+                    if (resolviendoMapa) {
+                      return (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, fontSize: 12, color: '#6b635e' }}>
+                          <Loader2 size={13} className="animate-spin" />
+                          <span>Detectando la ubicación del enlace…</span>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, fontSize: 12, color: '#b45309', lineHeight: 1.5 }}>
+                        <AlertTriangle size={13} style={{ flexShrink: 0, marginTop: 2 }} />
+                        <span>{errorMapa ?? 'Detectando la ubicación del enlace…'}</span>
+                      </div>
                     );
                   }
                   return (
