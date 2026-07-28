@@ -71,7 +71,7 @@ type GestorSimple = { id: number; nombreCompleto: string; iniciales: string; mun
 
 const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; color: string }> = {
   activo:              { label: 'Activo',                dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
-  esperando_matricula: { label: 'Esperando matrícula',   dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
+  esperando_matricula: { label: 'Matrícula pendiente',      dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
   pago_pendiente:      { label: 'Pago pendiente',        dot: '#b45309', bg: '#fff7ed', color: '#b45309' },
   en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
   rechazado:           { label: 'Doc. rechazado',        dot: '#b91c1c', bg: '#fee2e2', color: '#b91c1c' },

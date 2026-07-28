@@ -57,7 +57,7 @@ const FILTRO_DESC: Record<string, string> = {
 
 const ESTADO_CONFIG: Record<string, { label: string; dot: string; bg: string; color: string }> = {
   activo:              { label: 'Activo',                dot: '#2d7d46', bg: '#d1fae5', color: '#2d7d46' },
-  esperando_matricula: { label: 'Esperando matrícula',   dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
+  esperando_matricula: { label: 'Matrícula pendiente',      dot: '#1d4ed8', bg: '#dbeafe', color: '#1d4ed8' },
   modulos_pendientes:  { label: 'Módulos pendientes',    dot: '#2563eb', bg: '#dbeafe', color: '#1e40af' },
   pago_pendiente:      { label: 'Pago pendiente',        dot: '#ea580c', bg: '#ffedd5', color: '#c2410c' },
   en_proceso:          { label: 'En proceso',            dot: '#92400e', bg: '#fef9c3', color: '#92400e' },
@@ -76,7 +76,7 @@ const ESTADO_CUENTA_OPTIONS = [
 const ESTADO_OPTIONS = [
   { value: '', label: 'Estado' },
   { value: 'activo', label: 'Activo' },
-  { value: 'esperando_matricula', label: 'Esperando matrícula' },
+  { value: 'esperando_matricula', label: 'Matrícula pendiente' },
   { value: 'modulos_pendientes', label: 'Módulos pendientes' },
   { value: 'pago_pendiente', label: 'Pago pendiente' },
   { value: 'en_proceso', label: 'En proceso' },
