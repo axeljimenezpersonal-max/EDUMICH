@@ -157,7 +157,7 @@ router.post('/login', async (req, res) => {
       // mensaje sea genérico.
       await bcrypt.compare(password, HASH_SENUELO);
       await auditarAccesoFallido(email, user ? 'cuenta_inactiva' : 'no_existe', req);
-      res.status(401).json({ error: 'Credenciales incorrectas' });
+      res.status(401).json({ error: 'Correo o contraseña incorrectos. Revisa que ambos estén bien escritos (mayúsculas y espacios) e inténtalo de nuevo.' });
       return;
     }
 
@@ -177,7 +177,7 @@ router.post('/login', async (req, res) => {
     if (!ok) {
       registrarFalloDeCuenta(user.id);
       await auditarAccesoFallido(email, 'password_incorrecta', req, user.id);
-      res.status(401).json({ error: 'Credenciales incorrectas' });
+      res.status(401).json({ error: 'Correo o contraseña incorrectos. Revisa que ambos estén bien escritos (mayúsculas y espacios) e inténtalo de nuevo.' });
       return;
     }
 
