@@ -348,6 +348,49 @@ export const TOUR_G_CALIFICACIONES: TourStep[] = [
   },
 ];
 
+// ── Preguntas frecuentes / Centro de ayuda ─────────────────────
+export const TOUR_G_FAQ: TourStep[] = [
+  {
+    id: 'g-faq-intro',
+    icon: 'Sparkles',
+    title: 'Centro de ayuda',
+    body: 'Tu duda, resuelta al instante. Dos formas: escribir tu pregunta o explorar por tema.',
+  },
+  {
+    id: 'g-faq-buscador',
+    anchor: 'faq-buscador',
+    placement: 'bottom',
+    icon: 'Search',
+    title: 'Buscador inteligente',
+    body: 'Escribe tu duda en palabras normales. Busca en TODAS las respuestas —no solo las que ves— y te muestra la mejor al instante.',
+    illustration: 'buscadorSmart',
+  },
+  {
+    id: 'g-faq-categorias',
+    anchor: 'faq-categorias',
+    placement: 'bottom',
+    icon: 'LayoutGrid',
+    title: 'O explora por tema',
+    body: 'Si prefieres, navega por categorías: Alumnos, Pagos, Documentos, Inscripción… Toca una y ve sus preguntas.',
+  },
+  {
+    id: 'g-faq-contacto',
+    anchor: 'faq-contacto',
+    placement: 'top',
+    icon: 'LifeBuoy',
+    title: '¿No la encontraste?',
+    body: 'Abajo tienes el contacto directo con la Secretaría: correo, teléfono y horario de atención. Escríbenos y te ayudamos.',
+  },
+  {
+    id: 'g-faq-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Eso es el Centro de ayuda!',
+    body: 'Búscalo, explóralo o contáctanos. Repite este tutorial con el botón cuando quieras.',
+  },
+];
+
 // ── Mensajes ───────────────────────────────────────────────────
 export const TOUR_G_MENSAJES: TourStep[] = [
   {

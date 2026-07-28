@@ -725,8 +725,50 @@ function StatsCalifAnimation() {
   );
 }
 
+/** Buscador inteligente: se escribe una duda y aparece la respuesta al instante. */
+function BuscadorAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [fase, setFase] = useState(reduce ? 2 : 0); // 0 vacío · 1 escribe · 2 respuesta · 3 pausa
+  useEffect(() => {
+    if (reduce) { setFase(2); return; }
+    const t = setInterval(() => setFase((f) => (f >= 3 ? 0 : f + 1)), 1150);
+    return () => clearInterval(t);
+  }, [reduce]);
+  return (
+    <div
+      className="mt-4 space-y-2 rounded-xl border p-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)', minHeight: 104 }}
+      aria-hidden
+    >
+      <div className="flex items-center gap-2 rounded-lg border bg-white px-3 py-2.5" style={{ borderColor: 'var(--color-crema-200)' }}>
+        <Search size={15} style={{ color: 'var(--color-guinda-700)' }} />
+        <span className="text-[12px]">
+          {fase === 0
+            ? <span style={{ color: '#a8a29e' }}>Escribe tu pregunta…</span>
+            : <span style={{ color: '#44403c' }}>¿cuándo se paga el examen?</span>}
+        </span>
+      </div>
+      {fase >= 2 && (
+        <motion.div
+          className="flex items-start gap-2 rounded-lg border bg-white px-3 py-2"
+          style={{ borderColor: 'var(--color-crema-200)' }}
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          <CheckCircle2 size={14} style={{ color: '#15803d', marginTop: 1, flexShrink: 0 }} />
+          <span className="text-[11px] leading-snug" style={{ color: '#57534e' }}>
+            El pago es después de inscribir, en las fechas que indica la Secretaría.
+          </span>
+        </motion.div>
+      )}
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
+  buscadorSmart: BuscadorAnimation,
   altaDosPasos: () => <FlowAnimation pasos={PASOS_ALTA_DOS} />,
   estadoFlow: () => <FlowAnimation pasos={PASOS_ESTADO} />,
   fichaFlow: () => <FlowAnimation pasos={PASOS_FICHA} />,

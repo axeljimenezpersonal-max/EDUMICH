@@ -8,7 +8,7 @@
  * - Sin texto, se navega por categoría con tarjetas grandes tipo acordeón.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { Search, X, HelpCircle, ChevronDown, Loader2, Sparkles } from 'lucide-react';
+import { Search, X, HelpCircle, ChevronDown, Loader2, Sparkles, Mail, Phone, Clock, LifeBuoy } from 'lucide-react';
 import { api } from '../lib/api';
 import { buscar } from '../lib/buscador/motor';
 import { INDICE } from '../lib/buscador/indice';
@@ -21,6 +21,12 @@ interface Faq {
   categoria: string;
   principal: boolean;
 }
+
+interface Contacto { nombre: string; correo: string; telefono: string }
+
+// Horario de atención de la Secretaría. Aún no vive en Configuración; si cambia,
+// se ajusta aquí (o se mueve a datos_institucionales más adelante).
+const HORARIO_ATENCION = 'Lunes a viernes, 9:00 a 16:00 h';
 
 // Paleta suave para las badges de categoría (color estable por texto).
 const PALETA = [
@@ -86,8 +92,11 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
   const [cat, setCat] = useState<string | null>(null);
   const [abierta, setAbierta] = useState<string | null>(null);
 
+  const [contacto, setContacto] = useState<Contacto | null>(null);
+
   useEffect(() => {
     api.get<{ preguntas: Faq[] }>('/faq').then((r) => setFaqs(r.preguntas)).catch(() => setFaqs([]));
+    api.get<Contacto>('/publico/contacto').then(setContacto).catch(() => {});
   }, []);
 
   // Índice combinado para el motor: respuestas curadas + preguntas frecuentes
@@ -136,7 +145,7 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
         </div>
         <h1 className="font-serif text-2xl sm:text-3xl font-bold leading-tight mb-1">¿En qué te ayudamos?</h1>
         <p className="text-sm opacity-90 mb-5 max-w-lg">Escribe tu duda y te respondemos al instante, o explora por categoría.</p>
-        <div className="relative">
+        <div data-tour="faq-buscador" className="relative">
           <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" />
           <input
             value={q}
@@ -189,7 +198,7 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
         /* ── Navegación por categoría ── */
         <>
           {categorias.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div data-tour="faq-categorias" className="flex flex-wrap gap-2 mb-6">
               <button
                 onClick={() => setCat(null)}
                 className={`rounded-full px-4 py-2 text-sm font-bold transition-colors ${cat === null ? 'bg-[var(--color-guinda-700)] text-white' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}
@@ -233,6 +242,60 @@ export function PreguntasFrecuentes({ rol }: { rol: string }) {
           )}
         </>
       )}
+
+      {/* ── ¿No encontraste tu respuesta? · contacto con la Secretaría ── */}
+      <div
+        data-tour="faq-contacto"
+        className="mt-8 overflow-hidden rounded-2xl border"
+        style={{ borderColor: 'var(--color-crema-200)', background: 'var(--color-crema-100)' }}
+      >
+        <div className="flex items-start gap-3.5 p-5 sm:p-6">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--color-guinda-700)] text-white">
+            <LifeBuoy size={22} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-serif text-lg font-bold text-stone-900">¿No encontraste tu respuesta?</h2>
+            <p className="mt-0.5 text-sm text-stone-600">
+              Escríbenos a la Secretaría (IEMSyS) y con gusto te ayudamos.
+            </p>
+
+            <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+              <a
+                href={`mailto:${contacto?.correo ?? ''}`}
+                className="flex items-center gap-2.5 rounded-xl border bg-white px-3.5 py-3 transition-colors hover:border-[var(--color-guinda-300,#e8c4d4)]"
+                style={{ borderColor: 'var(--color-crema-200)' }}
+              >
+                <Mail size={16} className="shrink-0 text-[var(--color-guinda-700)]" />
+                <span className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-stone-400">Correo</span>
+                  <span className="block truncate text-[13px] font-semibold text-stone-800">{contacto?.correo ?? '—'}</span>
+                </span>
+              </a>
+              <a
+                href={`tel:${(contacto?.telefono ?? '').replace(/\s+/g, '')}`}
+                className="flex items-center gap-2.5 rounded-xl border bg-white px-3.5 py-3 transition-colors hover:border-[var(--color-guinda-300,#e8c4d4)]"
+                style={{ borderColor: 'var(--color-crema-200)' }}
+              >
+                <Phone size={16} className="shrink-0 text-[var(--color-guinda-700)]" />
+                <span className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-stone-400">Teléfono</span>
+                  <span className="block truncate text-[13px] font-semibold text-stone-800">{contacto?.telefono ?? '—'}</span>
+                </span>
+              </a>
+              <div
+                className="flex items-center gap-2.5 rounded-xl border bg-white px-3.5 py-3"
+                style={{ borderColor: 'var(--color-crema-200)' }}
+              >
+                <Clock size={16} className="shrink-0 text-[var(--color-guinda-700)]" />
+                <span className="min-w-0">
+                  <span className="block text-[10px] font-bold uppercase tracking-widest text-stone-400">Horario</span>
+                  <span className="block text-[13px] font-semibold text-stone-800">{HORARIO_ATENCION}</span>
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
