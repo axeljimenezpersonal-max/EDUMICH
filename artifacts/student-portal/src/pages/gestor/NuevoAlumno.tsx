@@ -57,7 +57,8 @@ interface Archivos {
 
 interface RegistroExito {
   alumno: { userId: number; nombreCompleto: string; email: string; curp: string };
-  inscripcionId: number;
+  // null cuando se registra sin convocatoria activa (no se crea inscripción).
+  inscripcionId: number | null;
   credencialTemporal: string;
   documentos: Array<{ id: number; nombre: string; tipoSugerido: string | null }>;
 }
@@ -332,9 +333,10 @@ export default function NuevoAlumno() {
   if (!datos.cp.trim()) faltantesObligatorios.push('código postal');
   if (!datos.ciudad.trim()) faltantesObligatorios.push('ciudad');
 
+  // Registrar a un alumno NO exige convocatoria activa: siempre se puede dar de
+  // alta. Si hay convocatoria, además se le crea la inscripción.
   const paso1Valid =
     faltantesObligatorios.length === 0 &&
-    conv !== null &&
     edadError === null &&
     !fieldErrors.curp &&
     !fieldErrors.email;
@@ -434,7 +436,7 @@ export default function NuevoAlumno() {
 
   // ── Submit ───────────────────────────────────────────────────────────
   async function handleSubmit() {
-    if (!conv || faltanCount > 0) return;
+    if (faltanCount > 0) return;
     setLoading(true);
     setSubmitError(null);
     setFieldErrors({});
@@ -458,7 +460,9 @@ export default function NuevoAlumno() {
     fd.append('cp', datos.cp);
     fd.append('ciudad', datos.ciudad);
     fd.append('estadoDomicilio', datos.estadoDomicilio);
-    fd.append('convocatoriaId', String(conv.id));
+    // Sólo se manda si hay convocatoria activa; sin ella el alumno se da de alta
+    // igual (sin inscripción).
+    if (conv) fd.append('convocatoriaId', String(conv.id));
     fd.append('doc_curp', archivos.curp!);
     fd.append('doc_acta', archivos.acta!);
     fd.append('doc_ine', archivos.ine!);
@@ -477,7 +481,6 @@ export default function NuevoAlumno() {
 
   // ── Guardar sin documentos completos ─────────────────────────────────
   async function handleGuardarSinDocs() {
-    if (!conv) return;
     setMostrarModalSinDocs(false);
     setLoading(true);
     setSubmitError(null);
@@ -501,7 +504,7 @@ export default function NuevoAlumno() {
     fd.append('cp', datos.cp);
     fd.append('ciudad', datos.ciudad);
     fd.append('estadoDomicilio', datos.estadoDomicilio);
-    fd.append('convocatoriaId', String(conv.id));
+    if (conv) fd.append('convocatoriaId', String(conv.id));
     if (archivos.curp) fd.append('doc_curp', archivos.curp);
     if (archivos.acta) fd.append('doc_acta', archivos.acta);
     if (archivos.ine) fd.append('doc_ine', archivos.ine);
@@ -545,8 +548,10 @@ export default function NuevoAlumno() {
             Alumno registrado correctamente
           </h1>
           <p className="text-stone-600 mb-6">
-            <strong>{exito.alumno.nombreCompleto}</strong> fue registrado e inscrito a la
-            convocatoria activa con sus documentos enviados.
+            <strong>{exito.alumno.nombreCompleto}</strong>{' '}
+            {exito.inscripcionId
+              ? 'fue registrado e inscrito a la convocatoria activa con sus documentos enviados.'
+              : 'fue registrado con sus documentos enviados. Se le creará la inscripción cuando abra una convocatoria.'}
           </p>
 
           {/* Credenciales */}
@@ -647,9 +652,13 @@ export default function NuevoAlumno() {
             <strong className="text-stone-800">{conv.nombre}</strong>
           </div>
         ) : (
-          <div className="flex items-center gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 mb-5">
-            <AlertCircle size={15} />
-            No hay una convocatoria activa. No es posible registrar alumnos en este momento.
+          <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 mb-5">
+            <AlertCircle size={15} className="mt-0.5 shrink-0" />
+            <span>
+              No hay una convocatoria activa. Puedes registrar al alumno de todas
+              formas: quedará dado de alta con su expediente, y se le creará la
+              inscripción cuando abra una convocatoria.
+            </span>
           </div>
         )
       )}
@@ -936,8 +945,6 @@ export default function NuevoAlumno() {
                   ? 'Corrige la CURP antes de continuar'
                   : fieldErrors.email
                   ? 'Corrige el correo antes de continuar'
-                  : !conv
-                  ? 'No hay convocatoria activa'
                   : edadError
                   ? edadError
                   // Se listan los campos que faltan por nombre. Un "completa los
@@ -1119,7 +1126,7 @@ export default function NuevoAlumno() {
             {faltanCount > 0 && (
               <button
                 onClick={() => setMostrarModalSinDocs(true)}
-                disabled={loading || !conv}
+                disabled={loading}
                 className="gov-btn-secondary inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Guardar y subir docs después
@@ -1128,7 +1135,7 @@ export default function NuevoAlumno() {
 
             <button
               onClick={handleSubmit}
-              disabled={faltanCount > 0 || loading || !conv}
+              disabled={faltanCount > 0 || loading}
               className="gov-btn-primary inline-flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
             >
               {loading ? (

@@ -298,7 +298,10 @@ const crearAlumnoSchema = z.object({
   ultimoEstudio: z.string().max(120).optional(),
   direccion: z.string().optional(),
   estadoDomicilio: z.string().max(80).optional(),
-  convocatoriaId: z.number().int().positive(),
+  // Opcional: registrar a un alumno NO exige convocatoria activa. Si la hay, se
+  // crea también su inscripción; si no, queda solo dado de alta (la inscripción
+  // se hace después, cuando abra una convocatoria).
+  convocatoriaId: z.number().int().positive().optional(),
 }).refine((d) => (d.nombreCompleto && d.nombreCompleto.trim()) || (d.nombres && d.apellidoPaterno), {
   message: 'Falta el nombre del alumno (nombres y apellido paterno)',
 }).refine(
@@ -387,15 +390,20 @@ router.post('/alumnos', async (req, res) => {
     preregistroVigenteHasta: vigenteHasta.toISOString().split('T')[0],
   });
 
-  const [insc] = await db
-    .insert(inscripciones)
-    .values({
-      estudianteId: user.id,
-      convocatoriaId: data.convocatoriaId,
-      estado: 'pre_registro',
-      creadoPorUserId: userId,
-    })
-    .returning();
+  // La inscripción sólo se crea si hay convocatoria. Registrar al alumno no la
+  // exige: sin convocatoria queda dado de alta y se inscribe después.
+  let insc: { id: number } | undefined;
+  if (data.convocatoriaId) {
+    [insc] = await db
+      .insert(inscripciones)
+      .values({
+        estudianteId: user.id,
+        convocatoriaId: data.convocatoriaId,
+        estado: 'pre_registro',
+        creadoPorUserId: userId,
+      })
+      .returning();
+  }
 
   // Send welcome email
   let emailEnviado = false;
@@ -436,7 +444,7 @@ router.post('/alumnos', async (req, res) => {
       curp: data.curp.toUpperCase(),
       email: data.email.toLowerCase(),
     },
-    inscripcionId: insc.id,
+    inscripcionId: insc?.id ?? null,
     emailEnviado,
     modoEmail,
     ...(puedeRevelarCredenciales() ? { credencialTemporal: tempPassword } : {}),
@@ -495,7 +503,9 @@ router.post(
       cp: body.cp || undefined,
       ciudad: body.ciudad || undefined,
       estadoDomicilio: body.estadoDomicilio || undefined,
-      convocatoriaId: Number(body.convocatoriaId),
+      // Registrar a un alumno NO exige convocatoria. Sólo se pasa si el
+      // formulario la mandó; si no, queda dado de alta sin inscripción.
+      convocatoriaId: body.convocatoriaId ? Number(body.convocatoriaId) : undefined,
     });
     if (!parse.success) {
       for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
@@ -575,36 +585,61 @@ router.post(
           preregistroVigenteHasta: vigenteHastaRC.toISOString().split('T')[0],
         });
 
-        const [insc] = await tx
-          .insert(inscripciones)
-          .values({
-            estudianteId: user.id,
-            convocatoriaId: data.convocatoriaId,
-            estado: 'documentos_pendientes',
-            creadoPorUserId: userId,
-          })
-          .returning();
+        // La inscripción sólo se crea si hay convocatoria. Registrar al alumno
+        // no la exige: sin convocatoria queda dado de alta y se inscribe después
+        // (cuando abra una), sin perder su expediente.
+        let insc: { id: number } | undefined;
+        if (data.convocatoriaId) {
+          [insc] = await tx
+            .insert(inscripciones)
+            .values({
+              estudianteId: user.id,
+              convocatoriaId: data.convocatoriaId,
+              estado: 'documentos_pendientes',
+              creadoPorUserId: userId,
+            })
+            .returning();
+        }
 
+        // Los documentos van a `expediente_documentos` (la tabla que lee toda la
+        // vista de expediente en gestor y administración), con independencia de
+        // la convocatoria. Los `tipo` deben coincidir con TIPOS_EXPEDIENTE.
         const docDefs = [
-          { file: docCurp, tipo: 'curp', nombre: 'CURP' },
-          { file: docActa, tipo: 'acta', nombre: 'Acta de nacimiento' },
-          { file: docIne, tipo: 'ine', nombre: 'Identificación oficial (INE)' },
-          { file: docDomicilio, tipo: 'domicilio', nombre: 'Comprobante de domicilio' },
-          { file: docCertificado, tipo: 'certificado', nombre: 'Certificado de secundaria' },
-        ].filter((d): d is { file: Express.Multer.File; tipo: string; nombre: string } => d.file != null);
+          { file: docCurp, tipo: 'curp' },
+          { file: docActa, tipo: 'acta_nacimiento' },
+          { file: docIne, tipo: 'ine' },
+          { file: docDomicilio, tipo: 'comprobante_domicilio' },
+          { file: docCertificado, tipo: 'certificado_secundaria' },
+        ].filter((d): d is { file: Express.Multer.File; tipo: string } => d.file != null);
         const docsInserted = [];
         for (const def of docDefs) {
+          const ref = await guardarSubida(def.file, 'expediente');
+          const nombreOriginal = nombreArchivoUtf8(def.file.originalname);
           const [doc] = await tx
-            .insert(documentos)
+            .insert(expedienteDocumentos)
             .values({
-              inscripcionId: insc.id,
-              nombre: def.nombre,
-              archivoOriginal: nombreArchivoUtf8(def.file.originalname),
-              storageKey: await guardarSubida(def.file, 'expediente'),
-              tamanoBytes: def.file.size,
-              tipoSugerido: def.tipo,
+              estudianteId: user.id,
+              tipo: def.tipo,
               estado: 'pendiente_revision',
+              rutaArchivo: ref,
+              nombreOriginal,
+              tamanoBytes: def.file.size,
               subidoPorUserId: userId,
+              subidoEn: new Date(),
+              motivoRechazo: null,
+            })
+            .onConflictDoUpdate({
+              target: [expedienteDocumentos.estudianteId, expedienteDocumentos.tipo],
+              set: {
+                estado: 'pendiente_revision',
+                rutaArchivo: ref,
+                nombreOriginal,
+                tamanoBytes: def.file.size,
+                subidoPorUserId: userId,
+                subidoEn: new Date(),
+                motivoRechazo: null,
+                updatedAt: new Date(),
+              },
             })
             .returning();
           docsInserted.push(doc);
@@ -617,7 +652,7 @@ router.post(
             curp: data.curp.toUpperCase(),
             email: data.email.toLowerCase(),
           },
-          inscripcionId: insc.id,
+          inscripcionId: insc?.id ?? null,
           credencialTemporal: tempPassword,
           documentos: docsInserted,
         };
