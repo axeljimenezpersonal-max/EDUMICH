@@ -20,6 +20,8 @@ import { fechaCorta } from '../../lib/fechas';
 import { confirmar } from '../../components/Confirmador';
 import { avisar } from '../../components/Avisador';
 import { formatearNombre } from '../../lib/nombre';
+import { SectionTour } from '../../components/onboarding/SectionTour';
+import { TOUR_G_INSCRIPCION, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 
 interface ModuloDisp { moduloId: number; numero: number; nombre: string; dia: string; hora: string; }
 interface ModuloInscrito { id: number; numero: number; }
@@ -215,7 +217,7 @@ export default function GestorInscripcion() {
       ) : (
         <div className="space-y-5 pb-24">
           {/* Etapa activa — destacada, con la clave en grande */}
-          <div className="rounded-xl border-2 px-5 py-4 flex items-center gap-3.5" style={{ borderColor: '#e8c4d4', background: 'var(--color-crema-100)' }}>
+          <div data-tour="g-insc-etapa" className="rounded-xl border-2 px-5 py-4 flex items-center gap-3.5" style={{ borderColor: '#e8c4d4', background: 'var(--color-crema-100)' }}>
             <div className="w-12 h-12 rounded-xl bg-[var(--color-guinda-700)] text-white flex items-center justify-center shrink-0">
               <CalendarClock size={22} />
             </div>
@@ -229,7 +231,7 @@ export default function GestorInscripcion() {
           </div>
 
           {/* 1. Módulos */}
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
+          <div data-tour="g-insc-modulos" className="bg-white border border-stone-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">1</span>
               <h3 className="text-sm font-bold text-stone-800">Elige el o los módulos</h3>
@@ -309,7 +311,7 @@ export default function GestorInscripcion() {
           </div>
 
           {/* 2. Alumnos */}
-          <div className="bg-white border border-stone-200 rounded-xl p-4">
+          <div data-tour="g-insc-alumnos" className="bg-white border border-stone-200 rounded-xl p-4">
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-[var(--color-guinda-700)] text-white text-xs font-bold flex items-center justify-center">2</span>
@@ -547,6 +549,13 @@ export default function GestorInscripcion() {
           </div>
         </div>
       )}
+
+      <SectionTour
+        steps={TOUR_G_INSCRIPCION}
+        storageKey="modula_sec_g_inscripcion_v1"
+        gateKey={GATE_GESTOR}
+        buttonLabel="Tutorial de inscripción"
+      />
     </GestorLayout>
   );
 }

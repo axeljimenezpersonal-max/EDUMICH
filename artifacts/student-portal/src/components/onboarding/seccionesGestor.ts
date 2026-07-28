@@ -61,7 +61,7 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     id: 'g-alta-intro',
     icon: 'UserPlus',
     title: 'Registrar a un alumno',
-    body: 'Aquí das de alta a un nuevo alumno. Siempre puedes registrarlo, haya o no una convocatoria abierta: capturas sus datos, subes sus documentos y la administración los valida. Si hay convocatoria activa, además queda inscrito en ella.',
+    body: 'Su alta sigue un camino claro: datos, documentos, revisión y aprobación.',
     illustration: 'altaFlow',
   },
   {
@@ -70,7 +70,8 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     placement: 'bottom',
     icon: 'CalendarCheck',
     title: 'La convocatoria es opcional',
-    body: 'Si hay una convocatoria abierta (la que se muestra aquí), el alumno queda vinculado a ella. Si no hay ninguna abierta, no pasa nada: se registra igual —queda con su cuenta lista— y podrá inscribirse cuando abra la próxima ventana. Registrar no es lo mismo que inscribir a examen.',
+    body: 'Siempre puedes registrarlo. Con convocatoria abierta queda inscrito; sin ella, queda registrado y se inscribe después.',
+    illustration: 'altaConvocatoria',
   },
   {
     id: 'g-alta-pasos',
@@ -78,21 +79,24 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     placement: 'bottom',
     icon: 'ListChecks',
     title: 'Son dos pasos',
-    body: 'Paso 1, datos personales; paso 2, DOCUMENTOS: ahí subes tú los documentos del alumno (acta, CURP, comprobante, certificado de secundaria, foto). Avanzas al paso 2 cuando los datos están completos.',
+    body: 'Primero sus datos; luego sus documentos. Pasas al segundo cuando los datos están completos.',
+    illustration: 'altaDosPasos',
   },
   {
     id: 'g-alta-datos',
     anchor: 'g-alta-datos',
     placement: 'top',
     icon: 'IdCard',
-    title: 'Captura sus datos',
-    body: 'Llena los campos marcados con asterisco. La CURP se valida automáticamente para evitar errores y duplicados. El correo es importante: ahí le llegan sus credenciales de acceso.',
+    title: 'La CURP se valida sola',
+    body: 'El sistema revisa su estructura, sus datos y los duplicados al vuelo. Cuida el correo: ahí llegan sus accesos.',
+    illustration: 'curpCheck',
   },
   {
     id: 'g-alta-cuenta',
     icon: 'KeyRound',
     title: 'Se crea su cuenta',
-    body: 'Al registrarlo, el alumno recibe por correo sus credenciales para entrar a SU PROPIO portal, donde consulta su avance, paga y ve sus calificaciones. Avísale que revise su correo (y la carpeta de no deseados). Si no le llegan, puedes reenviárselas desde su ficha.',
+    body: 'Al registrarlo se le envían sus credenciales por correo para entrar a su propio portal. Si no le llegan, puedes reenviárselas.',
+    illustration: 'cuentaCorreo',
   },
   {
     id: 'g-alta-fin',
@@ -100,7 +104,7 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     placement: 'left',
     icon: 'RefreshCw',
     title: '¡Listo para registrar!',
-    body: 'Al terminar, el alumno queda “pendiente de revisión” hasta que la administración valide sus documentos. Después continúas su proceso desde su ficha. Repite este tutorial con el botón cuando quieras.',
+    body: 'Queda “pendiente de revisión” hasta que la administración valide sus documentos. Repite este tutorial cuando quieras.',
   },
 ];
 
@@ -213,6 +217,50 @@ export const TOUR_G_FICHA: TourStep[] = [
   },
 ];
 
+// ── Inscripción en lote ────────────────────────────────────────
+export const TOUR_G_INSCRIPCION: TourStep[] = [
+  {
+    id: 'g-insc-intro',
+    icon: 'ClipboardList',
+    title: 'Inscribe en lote',
+    body: 'Inscribes a varios alumnos a uno o más módulos de una sola vez. Cada examen cuesta $131.',
+    illustration: 'inscribeLote',
+  },
+  {
+    id: 'g-insc-etapa',
+    anchor: 'g-insc-etapa',
+    placement: 'bottom',
+    icon: 'CalendarClock',
+    title: 'Solo con la ventana abierta',
+    body: 'La inscripción únicamente se puede dentro de la ventana de la etapa activa. Fuera de esas fechas queda cerrada.',
+  },
+  {
+    id: 'g-insc-modulos',
+    anchor: 'g-insc-modulos',
+    placement: 'top',
+    icon: 'LayoutGrid',
+    title: 'Elige los módulos',
+    body: 'Máximo 4 por alumno. Un mismo día y hora es un bloque: solo puedes elegir uno de cada bloque, porque no se presentan dos exámenes a la vez.',
+  },
+  {
+    id: 'g-insc-alumnos',
+    anchor: 'g-insc-alumnos',
+    placement: 'top',
+    icon: 'UserCheck',
+    title: 'Solo alumnos elegibles',
+    body: 'Únicamente aparecen quienes tienen matrícula oficial Y expediente 5/5 aprobado. Si un alumno no está, aún le falta uno de esos dos.',
+    illustration: 'elegibleCheck',
+  },
+  {
+    id: 'g-insc-fin',
+    anchor: 'btn-seccion-tutorial',
+    placement: 'left',
+    icon: 'RefreshCw',
+    title: '¡Listo para inscribir!',
+    body: 'Al inscribir, cada examen queda listo para solicitar su ficha en Pagos. Repite este tutorial cuando quieras.',
+  },
+];
+
 // ── Pagos ──────────────────────────────────────────────────────
 export const TOUR_G_PAGOS: TourStep[] = [
   {
@@ -221,6 +269,14 @@ export const TOUR_G_PAGOS: TourStep[] = [
     title: 'Pagos ante la Tesorería',
     body: 'Aquí gestionas el pago de los exámenes de tus alumnos. El pago es ante la Tesorería del Estado; tú solicitas la ficha, la coordinación la emite y tú subes el comprobante.',
     illustration: 'pagoFlow',
+  },
+  {
+    id: 'g-pag-primero-inscritos',
+    anchor: 'nav-inscripcion',
+    placement: 'right',
+    icon: 'AlertCircle',
+    title: 'Primero: que estén inscritos',
+    body: 'Ojo: el pago es POR examen inscrito. Antes de solicitar la ficha, asegúrate de que tus alumnos YA estén inscritos a sus módulos. Si te falta, ve primero a Inscripción (aquí resaltada) y regresa.',
   },
   {
     id: 'g-pag-solicitar',

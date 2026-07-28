@@ -14,7 +14,8 @@ import {
   LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
   MessageCircle, ClipboardList, BookOpen, PlayCircle,
   Inbox, Search, UserCheck, QrCode, ShieldCheck, FolderOpen,
-  UserPlus,
+  UserPlus, Mail, KeyRound, CalendarCheck, Clock, CheckCircle2,
+  Users, IdCard,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -59,6 +60,19 @@ const PASOS_GESTOR: Paso[] = [
   { Icon: ClipboardCheck, label: 'Inscribir' },
   { Icon: Banknote, label: 'Pagar' },
   { Icon: GraduationCap, label: 'Calificar' },
+];
+
+// Alta del alumno, en dos pasos (los del formulario): Datos → Documentos.
+const PASOS_ALTA_DOS: Paso[] = [
+  { Icon: FileText, label: 'Datos' },
+  { Icon: FolderOpen, label: 'Documentos' },
+];
+
+// Inscripción en lote: varios alumnos × módulos → quedan inscritos.
+const PASOS_INSCRIBE: Paso[] = [
+  { Icon: Users, label: 'Alumnos' },
+  { Icon: ClipboardCheck, label: 'Módulos' },
+  { Icon: BadgeCheck, label: 'Inscritos' },
 ];
 
 const PASOS_SOLICITUD: Paso[] = [
@@ -393,8 +407,220 @@ function AulaNavAnimation() {
   );
 }
 
+/**
+ * La convocatoria es OPCIONAL: dos caminos válidos. Se alternan con un realce
+ * suave para dejar claro que registrar funciona en ambos casos.
+ */
+function AltaConvocatoriaAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [on, setOn] = useState(0); // 0 → fila A · 1 → fila B
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setOn((v) => (v + 1) % 2), 1800);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const filas = [
+    { Icon: CalendarCheck, titulo: 'Con convocatoria abierta', cola: 'queda inscrito en ella', ColaIcon: UserCheck },
+    { Icon: Clock, titulo: 'Sin convocatoria', cola: 'queda registrado; se inscribe después', ColaIcon: CheckCircle2 },
+  ];
+
+  return (
+    <div
+      className="mt-4 space-y-2 rounded-xl border px-3 py-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      {filas.map((f, i) => {
+        const activa = on === i || reduce;
+        const F = f.Icon;
+        const Cola = f.ColaIcon;
+        return (
+          <motion.div
+            key={f.titulo}
+            className="flex items-center gap-2.5 rounded-lg border px-3 py-2"
+            initial={false}
+            animate={{
+              background: activa ? '#ffffff' : 'transparent',
+              borderColor: activa ? 'var(--color-guinda-300, #e7b4c2)' : 'transparent',
+              opacity: activa ? 1 : 0.5,
+            }}
+            transition={{ duration: 0.4 }}
+          >
+            <span
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white"
+              style={{ background: 'var(--color-guinda-700)' }}
+            >
+              <F size={16} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[12px] font-bold leading-tight" style={{ color: '#44403c' }}>{f.titulo}</div>
+              <div className="flex items-center gap-1 text-[11px] font-semibold" style={{ color: 'var(--color-guinda-700)' }}>
+                <Cola size={12} /> {f.cola}
+              </div>
+            </div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+}
+
+/**
+ * La CURP se valida sola: una barra "escanea" la CURP y aparece el sello
+ * "válida". Comunica que el sistema revisa estructura, duplicados y datos.
+ */
+function CurpCheckAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [fase, setFase] = useState(reduce ? 2 : 0); // 0 escanea · 1 válida · 2 pausa
+  useEffect(() => {
+    if (reduce) { setFase(1); return; }
+    const t = setInterval(() => setFase((f) => (f >= 2 ? 0 : f + 1)), 1150);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  return (
+    <div
+      className="mt-4 flex items-center gap-3 rounded-xl border px-3 py-4"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      <div className="relative flex-1 overflow-hidden rounded-lg border bg-white px-3 py-2" style={{ borderColor: 'var(--color-crema-200)' }}>
+        <div className="text-[9px] font-semibold uppercase tracking-widest" style={{ color: '#a8a29e' }}>CURP</div>
+        <div className="font-mono text-[13px] font-bold tracking-tight" style={{ color: '#44403c' }}>GOPA950315MMN…</div>
+        {fase === 0 && !reduce && (
+          <motion.span
+            className="absolute inset-y-0 w-1/3"
+            style={{ background: 'linear-gradient(90deg, transparent, rgba(212,163,74,0.35), transparent)' }}
+            initial={{ x: '-120%' }}
+            animate={{ x: '320%' }}
+            transition={{ duration: 1.0, ease: 'easeInOut' }}
+          />
+        )}
+      </div>
+      <motion.span
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white"
+        style={{ background: fase >= 1 ? '#15803d' : 'var(--color-crema-200)' }}
+        initial={false}
+        animate={{ scale: fase >= 1 && !reduce ? [1, 1.15, 1] : 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <BadgeCheck size={18} />
+      </motion.span>
+    </div>
+  );
+}
+
+/**
+ * Al registrar se crea la cuenta del alumno: un sobre con sus credenciales
+ * "sale" hacia su correo. Explica el correo de bienvenida sin párrafos.
+ */
+function CuentaCorreoAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [fase, setFase] = useState(reduce ? 2 : 0); // 0 registrado · 1 enviando · 2 recibido
+  useEffect(() => {
+    if (reduce) { setFase(2); return; }
+    const t = setInterval(() => setFase((f) => (f >= 2 ? 0 : f + 1)), 1200);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const nodo = (activo: boolean, Icon: React.ComponentType<LucideProps>, label: string) => (
+    <div className="flex flex-1 flex-col items-center gap-1.5">
+      <motion.span
+        className="flex h-9 w-9 items-center justify-center rounded-full border-2"
+        initial={false}
+        animate={{
+          background: activo ? 'var(--color-guinda-700)' : '#ffffff',
+          borderColor: activo ? 'var(--color-guinda-700)' : 'var(--color-crema-200)',
+        }}
+      >
+        <Icon size={16} color={activo ? '#ffffff' : '#a8a29e'} strokeWidth={2.4} />
+      </motion.span>
+      <span className="text-center text-[9px] font-semibold" style={{ color: activo ? 'var(--color-guinda-700)' : '#a8a29e' }}>{label}</span>
+    </div>
+  );
+
+  return (
+    <div
+      className="mt-4 flex items-center rounded-xl border px-3 py-4"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      {nodo(fase >= 0, UserPlus, 'Registrado')}
+      <div className="relative h-[3px] flex-1 rounded-full" style={{ background: 'var(--color-crema-200)' }}>
+        <motion.span
+          className="absolute -top-[9px] flex h-5 w-5 items-center justify-center rounded-full text-white"
+          style={{ background: 'var(--color-dorado)' }}
+          initial={false}
+          animate={reduce ? { left: '100%' } : { left: fase === 0 ? '0%' : fase === 1 ? '50%' : '100%' }}
+          transition={{ duration: 0.6, ease: 'easeInOut' }}
+        >
+          <Mail size={12} />
+        </motion.span>
+      </div>
+      {nodo(fase >= 2, KeyRound, 'Credenciales')}
+    </div>
+  );
+}
+
+/**
+ * Elegibilidad para inscribir: DOS requisitos que se encienden —matrícula y
+ * expediente 5/5— y sólo entonces el alumno queda "Elegible".
+ */
+function ElegibleCheckAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [fase, setFase] = useState(reduce ? 3 : 0); // 0 · 1 matrícula · 2 exp · 3 elegible
+  useEffect(() => {
+    if (reduce) { setFase(3); return; }
+    const t = setInterval(() => setFase((f) => (f >= 3 ? 0 : f + 1)), 900);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const chip = (activo: boolean, Icon: React.ComponentType<LucideProps>, label: string) => (
+    <motion.div
+      className="flex items-center gap-1.5 rounded-full border px-3 py-1.5"
+      initial={false}
+      animate={{
+        background: activo ? 'var(--color-guinda-700)' : '#ffffff',
+        borderColor: activo ? 'var(--color-guinda-700)' : 'var(--color-crema-200)',
+      }}
+    >
+      <Icon size={13} color={activo ? '#ffffff' : '#a8a29e'} strokeWidth={2.4} />
+      <span className="text-[11px] font-bold" style={{ color: activo ? '#ffffff' : '#a8a29e' }}>{label}</span>
+    </motion.div>
+  );
+
+  return (
+    <div
+      className="mt-4 flex flex-wrap items-center justify-center gap-2 rounded-xl border px-3 py-4"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      {chip(fase >= 1, IdCard, 'Matrícula')}
+      <span className="text-[13px] font-bold" style={{ color: '#a8a29e' }}>+</span>
+      {chip(fase >= 2, FolderOpen, 'Expediente 5/5')}
+      <span className="text-[13px] font-bold" style={{ color: '#a8a29e' }}>→</span>
+      <motion.div
+        className="flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white"
+        initial={false}
+        animate={{ background: fase >= 3 ? '#15803d' : 'var(--color-crema-200)', scale: fase >= 3 && !reduce ? [1, 1.08, 1] : 1 }}
+        transition={{ duration: 0.4 }}
+      >
+        <CheckCircle2 size={13} />
+        <span className="text-[11px] font-bold">Elegible</span>
+      </motion.div>
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
+  altaDosPasos: () => <FlowAnimation pasos={PASOS_ALTA_DOS} />,
+  inscribeLote: () => <FlowAnimation pasos={PASOS_INSCRIBE} />,
+  elegibleCheck: ElegibleCheckAnimation,
+  altaConvocatoria: AltaConvocatoriaAnimation,
+  curpCheck: CurpCheckAnimation,
+  cuentaCorreo: CuentaCorreoAnimation,
   pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
   gestorFlow: () => <FlowAnimation pasos={PASOS_GESTOR} />,
   pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
