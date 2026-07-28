@@ -1,0 +1,78 @@
+/**
+ * Siembra de CATÁLOGOS base — compartida por el seed mínimo de producción y el
+ * seed de pruebas de AWS, para no duplicar los datos.
+ *
+ * Todo es idempotente: revisa antes de insertar, así que correrlo dos veces no
+ * duplica nada. NO crea cuentas de usuario (eso lo hace cada seed según su caso).
+ */
+import { sql } from 'drizzle-orm';
+import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
+import { municipios, modulos, conceptosPago, convocatoriasEtapas, plantillasCorreo } from '../schema';
+import { MUNICIPIOS_MICHOACAN } from './municipios';
+import { MODULOS_PREPA_ABIERTA } from './modulos';
+import { PLANTILLAS_CORREO } from './plantillas';
+
+// El seed usa `drizzle(pool)` sin genérico de esquema.
+type DB = NodePgDatabase<Record<string, never>>;
+
+export async function sembrarCatalogos(db: DB): Promise<void> {
+  // ── Municipios (113) ──────────────────────────────────────────────────────
+  for (const nombre of MUNICIPIOS_MICHOACAN) {
+    await db.insert(municipios).values({ nombre, estado: 'Michoacán' }).onConflictDoNothing();
+  }
+  const munCount = await db.select({ c: sql<number>`count(*)` }).from(municipios);
+  console.log(`📍 Municipios: ${munCount[0].c}`);
+
+  // ── Módulos (22) ──────────────────────────────────────────────────────────
+  for (const mod of MODULOS_PREPA_ABIERTA) {
+    await db
+      .insert(modulos)
+      .values({ numero: mod.numero, nombre: mod.nombre, nivel: mod.nivel })
+      .onConflictDoUpdate({ target: modulos.numero, set: { nombre: mod.nombre, nivel: mod.nivel } });
+  }
+  const modCount = await db.select({ c: sql<number>`count(*)` }).from(modulos);
+  console.log(`📚 Módulos: ${modCount[0].c}`);
+
+  // ── Conceptos de pago (tarifas 2026) ──────────────────────────────────────
+  const concCount = await db.select({ c: sql<number>`count(*)` }).from(conceptosPago);
+  if (Number(concCount[0].c) === 0) {
+    await db.insert(conceptosPago).values([
+      { clave: 'inscripcion_inicial', nombre: 'Inscripción inicial', descripcion: 'Derecho de inscripción al sistema Preparatoria Abierta', monto: '850.00', vigencia: 2026, activo: true },
+      { clave: 'examen_modulo', nombre: 'Examen por módulo', descripcion: 'Derecho de examen por cada módulo ordinario', monto: '95.00', vigencia: 2026, activo: true },
+      { clave: 'examen_extraordinario', nombre: 'Examen extraordinario', descripcion: 'Derecho de examen en convocatoria extraordinaria', monto: '95.00', vigencia: 2026, activo: true },
+      { clave: 'reposicion_credencial', nombre: 'Reposición de credencial', descripcion: 'Reposición por extravío o deterioro', monto: '44.00', vigencia: 2026, activo: true },
+      { clave: 'certificado_parcial', nombre: 'Certificado parcial', descripcion: 'Constancia de módulos aprobados', monto: '73.00', vigencia: 2026, activo: true },
+      { clave: 'certificado_total', nombre: 'Certificado total', descripcion: 'Certificado de terminación de bachillerato', monto: '51.00', vigencia: 2026, activo: true },
+      { clave: 'constancia_inscripcion', nombre: 'Constancia de inscripción', descripcion: 'Documento de vigencia de inscripción activa', monto: '0.00', vigencia: 2026, activo: true },
+    ]);
+    console.log('💵 Conceptos de pago: 7');
+  } else {
+    console.log(`💵 Conceptos de pago: ${concCount[0].c} (ya existían)`);
+  }
+
+  // ── Etapas DGB 2026 ───────────────────────────────────────────────────────
+  const etapas2026 = [
+    { clave: '2605-A', etapa: '2605', fase: 'A', solicitudInicio: '2026-04-13', solicitudFin: '2026-04-17', examenSabado: '2026-05-09', examenDomingo: '2026-05-10', anio: 2026, estado: 'inscripcion_cerrada' },
+    { clave: '2605-B', etapa: '2605', fase: 'B', solicitudInicio: '2026-04-27', solicitudFin: '2026-04-30', examenSabado: '2026-05-23', examenDomingo: '2026-05-24', anio: 2026, estado: 'inscripcion_cerrada' },
+    { clave: '2606-A', etapa: '2606', fase: 'A', solicitudInicio: '2026-05-11', solicitudFin: '2026-05-15', examenSabado: '2026-06-06', examenDomingo: '2026-06-07', anio: 2026, estado: 'inscripcion_abierta' },
+    { clave: '2606-B', etapa: '2606', fase: 'B', solicitudInicio: '2026-05-25', solicitudFin: '2026-05-29', examenSabado: '2026-06-20', examenDomingo: '2026-06-21', anio: 2026, estado: 'programada' },
+    { clave: '2607-A', etapa: '2607', fase: 'A', solicitudInicio: '2026-06-08', solicitudFin: '2026-06-12', examenSabado: '2026-07-04', examenDomingo: '2026-07-05', anio: 2026, estado: 'programada' },
+    { clave: '2607-B', etapa: '2607', fase: 'B', solicitudInicio: '2026-06-22', solicitudFin: '2026-06-26', examenSabado: '2026-07-18', examenDomingo: '2026-07-19', anio: 2026, estado: 'programada' },
+    { clave: '2608-A', etapa: '2608', fase: 'A', solicitudInicio: '2026-07-13', solicitudFin: '2026-07-17', examenSabado: '2026-08-08', examenDomingo: '2026-08-09', anio: 2026, estado: 'programada' },
+    { clave: '2608-B', etapa: '2608', fase: 'B', solicitudInicio: '2026-07-27', solicitudFin: '2026-07-31', examenSabado: '2026-08-22', examenDomingo: '2026-08-23', anio: 2026, estado: 'programada' },
+  ];
+  for (const etapa of etapas2026) {
+    await db.insert(convocatoriasEtapas).values(etapa).onConflictDoNothing();
+  }
+  const etCount = await db.select({ c: sql<number>`count(*)` }).from(convocatoriasEtapas);
+  console.log(`📅 Etapas DGB: ${etCount[0].c}`);
+
+  // ── Plantillas de correo (8) ──────────────────────────────────────────────
+  const plCount = await db.select({ c: sql<number>`count(*)` }).from(plantillasCorreo);
+  if (Number(plCount[0].c) === 0) {
+    await db.insert(plantillasCorreo).values(PLANTILLAS_CORREO);
+    console.log(`✉️  Plantillas de correo: ${PLANTILLAS_CORREO.length}`);
+  } else {
+    console.log(`✉️  Plantillas de correo: ${plCount[0].c} (ya existían)`);
+  }
+}
