@@ -47,7 +47,7 @@ const POPPINS = "'Poppins', sans-serif";
  * está inscrito y confunde). El alumno tiene su tarjeta personal "Tu próximo
  * examen". El gestor sí ve el calendario completo.
  */
-export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataTour, examenGestor = false }: { ocultarExamen?: boolean; hrefInscripcion?: string; dataTour?: string; examenGestor?: boolean } = {}) {
+export function AvisosCalendario({ ocultarExamen = false, ocultarProxima = false, hrefInscripcion, dataTour, examenGestor = false }: { ocultarExamen?: boolean; ocultarProxima?: boolean; hrefInscripcion?: string; dataTour?: string; examenGestor?: boolean } = {}) {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
 
   useEffect(() => {
@@ -58,7 +58,12 @@ export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataT
     return () => { alive = false; };
   }, []);
 
-  const visibles = ocultarExamen ? eventos.filter((e) => e.tipo !== 'examen') : eventos;
+  // `ocultarProxima`: el gestor no necesita la cuenta regresiva "abre en X días"
+  // antes de que abra la ventana (ya tiene el calendario completo abajo). Solo se
+  // le muestra la ventana cuando REALMENTE está abierta.
+  const visibles = eventos.filter(
+    (e) => !(ocultarExamen && e.tipo === 'examen') && !(ocultarProxima && e.tipo === 'ventana_proxima')
+  );
   // Si no hay ventana/examen próximo no renderiza nada: así el tour de esta
   // sección no encuentra el anclaje y su tarjeta se centra (caso alumno nuevo).
   if (visibles.length === 0) return null;

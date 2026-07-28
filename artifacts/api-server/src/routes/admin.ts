@@ -1772,6 +1772,7 @@ router.get('/etapas', async (_req, res) => {
         fase: r.fase,
         anio: r.anio,
         estado: r.estado,
+        examenSabado: r.examen_sabado,
         inscritosCount: Number(r.inscritos_count),
       })),
     });

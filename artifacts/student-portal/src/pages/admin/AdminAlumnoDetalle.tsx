@@ -694,7 +694,7 @@ function ModulosInscritos({ examenes, alumnoId, onChanged, showToast }: {
 
 // Modal para inscribir módulos (admin): elige convocatoria → módulos (respeta máx. 4).
 type ModuloOpcion = { id: number; numero: number | null; nombre: string | null; dia: string; hora: string; yaInscrito: boolean };
-type EtapaOpcion = { id: number; clave: string; anio: number; estado: string; nombreCompleto: string };
+type EtapaOpcion = { id: number; clave: string; anio: number; estado: string; nombreCompleto: string; examenSabado?: string | null };
 
 function InscribirModuloModal({ alumnoId, onClose, onDone, showToast }: {
   alumnoId: number;
@@ -712,7 +712,16 @@ function InscribirModuloModal({ alumnoId, onClose, onDone, showToast }: {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    api.get<{ etapas: EtapaOpcion[] }>('/admin/etapas').then((r) => setEtapas(r.etapas)).catch(() => {});
+    // Solo se ofrecen etapas ABIERTAS o por venir (examen hoy o a futuro). Las ya
+    // pasadas se ocultan: inscribir en una etapa vieja no tiene sentido y llenaba
+    // el menú con convocatorias antiguas. (El alta es una herramienta de admin;
+    // el backend no pone candado de ventana, pero aquí no las mostramos.)
+    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    api.get<{ etapas: EtapaOpcion[] }>('/admin/etapas')
+      .then((r) => setEtapas(
+        r.etapas.filter((e) => e.estado === 'inscripcion_abierta' || !e.examenSabado || String(e.examenSabado).slice(0, 10) >= hoy)
+      ))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
