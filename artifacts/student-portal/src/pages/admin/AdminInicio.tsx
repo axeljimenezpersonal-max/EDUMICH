@@ -49,7 +49,7 @@ type DashboardData = {
     egresados: { total: number; deltaMes: number };
   };
   graficaInscripciones: {
-    etapas: Array<{ clave: string; inscritos: number; activa: boolean; futura: boolean }>;
+    etapas: Array<{ clave: string; preinscritos: number; inscritos: number; activa: boolean; futura: boolean }>;
   };
   actividadReciente: Array<{
     id: number;
@@ -570,7 +570,9 @@ function KpiCard({
 // ── Gráfica de etapas ──────────────────────────────────────────────────────────
 
 function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones']['etapas'] }) {
-  const maxVal = Math.max(...etapas.map((e) => e.inscritos), 1);
+  // La barra apila INSCRITOS (oficiales: matrícula + cédula firmada) abajo y
+  // PREINSCRITOS (aún sin firma/matrícula) arriba. El máximo es el total mayor.
+  const maxVal = Math.max(...etapas.map((e) => e.preinscritos + e.inscritos), 1);
   return (
     <div className="bg-white border border-stone-200 rounded-xl px-6 py-5">
       <div className="flex items-start justify-between mb-4">
@@ -590,20 +592,26 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
         <>
           <div className="flex items-end gap-3.5 border-b border-stone-200" style={{ height: 150, paddingBottom: 8, paddingTop: 20 }}>
             {etapas.map((etapa) => {
-              const heightPct = Math.max(5, Math.round((etapa.inscritos / maxVal) * 85));
+              const total = etapa.preinscritos + etapa.inscritos;
+              const heightPct = Math.max(5, Math.round((total / maxVal) * 85));
+              const inscritosShare = total > 0 ? (etapa.inscritos / total) * 100 : 0;
               const opacity = etapa.futura ? 0.45 : 1;
               return (
                 <div key={etapa.clave} className="flex-1 flex flex-col items-center justify-end gap-1.5 min-w-0">
                   <div
-                    className="w-full rounded-t-md relative"
-                    style={{ height: `${heightPct}%`, background: 'linear-gradient(to top, #6B1530, #c43759)', opacity, minHeight: 8 }}
-                    title={`${etapa.inscritos} inscritos`}
+                    className="w-full rounded-t-md relative overflow-hidden flex flex-col"
+                    style={{ height: `${heightPct}%`, opacity, minHeight: 8 }}
+                    title={`${etapa.inscritos} inscritos · ${etapa.preinscritos} preinscritos`}
                   >
+                    {/* Preinscritos (claro) arriba */}
+                    <div style={{ height: `${100 - inscritosShare}%`, background: '#f5c2cd', minHeight: etapa.preinscritos > 0 ? 3 : 0 }} />
+                    {/* Inscritos oficiales (guinda) abajo */}
+                    <div style={{ height: `${inscritosShare}%`, background: 'linear-gradient(to top, #6B1530, #c43759)', minHeight: etapa.inscritos > 0 ? 3 : 0 }} />
                     <span
                       className="absolute left-1/2 -translate-x-1/2 text-[11px] font-bold whitespace-nowrap"
                       style={{ top: -22, color: '#2a2a2a', fontFamily: "'Poppins', sans-serif" }}
                     >
-                      {etapa.inscritos}
+                      {total}
                     </span>
                   </div>
                   <div
@@ -623,13 +631,10 @@ function GraficaEtapas({ etapas }: { etapas: DashboardData['graficaInscripciones
           </div>
           <div className="flex gap-6 mt-3.5 pt-3.5 border-t border-stone-100 text-xs flex-wrap" style={{ color: '#6b635e' }}>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#6B1530' }} /> Inscritos cerrados
+              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#6B1530' }} /> Inscritos (matrícula + cédula firmada)
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#c43759' }} /> Convocatoria activa
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#f5c2cd' }} /> Próximas etapas
+              <span className="w-2 h-2 rounded-sm inline-block" style={{ background: '#f5c2cd' }} /> Preinscritos (falta firma o matrícula)
             </div>
           </div>
         </>

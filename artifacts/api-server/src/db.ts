@@ -427,6 +427,17 @@ const migrations = [
    FROM users u
    WHERE u.rol = 'direccion'
      AND NOT EXISTS (SELECT 1 FROM notas_creador n WHERE n.user_id = u.id)`,
+
+  // Firma deliberada de la cédula de inscripción (ver schema.estudiantes). La
+  // cédula deja de firmarse sola: un admin la firma y se guarda una copia
+  // (snapshot) de las firmas y del nombre del firmante. INSCRITO = matrícula +
+  // cédula firmada; sin firma, PREINSCRITO.
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS cedula_firmada_en timestamp,
+     ADD COLUMN IF NOT EXISTS cedula_firmada_por integer REFERENCES users(id),
+     ADD COLUMN IF NOT EXISTS cedula_firmada_por_nombre varchar(200),
+     ADD COLUMN IF NOT EXISTS cedula_firma_responsable_snapshot text,
+     ADD COLUMN IF NOT EXISTS cedula_firma_alumno_snapshot text`,
 ];
 
 export async function runStartupMigrations() {

@@ -194,6 +194,7 @@ router.get('/dashboard', async (req, res) => {
       folioPreregistro: estudiantes.folioPreregistro,
       preregistroVigenteHasta: estudiantes.preregistroVigenteHasta,
       matriculaOficialDGB: estudiantes.matriculaOficialDGB,
+      cedulaFirmadaEn: estudiantes.cedulaFirmadaEn,
       licenciaDigital: estudiantes.licenciaDigital,
       estadoCuenta: estudiantes.estadoCuenta,
       avisoEliminacionEnviadoEn: estudiantes.avisoEliminacionEnviadoEn,
@@ -275,10 +276,12 @@ router.get('/dashboard', async (req, res) => {
   // Siguientes pasos dinámicos
   const siguientesPasos: Array<{ texto: string; urgencia: 'baja' | 'media' | 'alta' }> = [];
 
-  // Tener matrícula DGB = inscripción CONFIRMADA. Manda sobre el estado interno
-  // de la solicitud (que puede quedarse atrás) y sobre un doc en revisión: un
-  // alumno ya inscrito no debe ver "documentos pendientes" como si le faltara algo.
-  const inscritoConfirmado = !!est.matriculaOficialDGB;
+  // Inscripción CONFIRMADA = matrícula DGB capturada Y cédula firmada de forma
+  // deliberada por un administrador. Manda sobre el estado interno de la
+  // solicitud (que puede quedarse atrás) y sobre un doc en revisión: un alumno
+  // ya inscrito no debe ver "documentos pendientes" como si le faltara algo.
+  // (La firma dejó de ser automática: sin ella el alumno es PREINSCRITO.)
+  const inscritoConfirmado = !!est.matriculaOficialDGB && !!est.cedulaFirmadaEn;
 
   if (!insc) {
     siguientesPasos.push({

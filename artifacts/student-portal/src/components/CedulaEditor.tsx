@@ -1,7 +1,9 @@
 import { useEffect, useState, type ReactNode } from 'react';
-import { Lock, Pencil, Copy, AlertCircle, CheckCircle2, Loader2, Download, RefreshCw, PenLine } from 'lucide-react';
+import { Lock, Pencil, Copy, AlertCircle, CheckCircle2, Loader2, Download, RefreshCw, PenLine, ShieldCheck, X } from 'lucide-react';
 import { api, type CedulaDatos, type CedulaDatosEditable } from '../lib/api';
 import { useBloqueoEdicion } from '../lib/useBloqueoEdicion';
+import { fechaHoraCorta } from '../lib/fechas';
+import { confirmar } from './Confirmador';
 import { CampoCopiable } from './CampoCopiable';
 import FirmaPad from './FirmaPad';
 import AvisoBloqueo from './AvisoBloqueo';
@@ -103,6 +105,8 @@ export function CedulaEditor({
   const [error, setError] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState(0);
   const [reintentando, setReintentando] = useState(false);
+  const [firmando, setFirmando] = useState(false);
+  const [firmaError, setFirmaError] = useState<string | null>(null);
 
   // ── Candado de edición concurrente ───────────────────────────────────────
   // Dos personas (gestor y admin, o dos admins) pueden abrir la misma cédula.
@@ -159,6 +163,44 @@ export function CedulaEditor({
       setError(e instanceof Error ? e.message : 'No se pudo guardar');
     } finally {
       setSaving(false);
+    }
+  }
+
+  // ── Firma DELIBERADA de la cédula ────────────────────────────────────────
+  // No es automática: el administrador firma explícitamente. Al hacerlo se
+  // guarda una copia de su firma activa (la que gestiona en el pad de abajo).
+  // El alumno sólo cuenta como INSCRITO con matrícula capturada Y cédula firmada.
+  async function firmarCedulaAlumno() {
+    setFirmando(true);
+    setFirmaError(null);
+    try {
+      await api.post(`${basePath}/cedula/firmar`, {});
+      await cargar();
+      setPreviewKey((k) => k + 1);
+    } catch (e) {
+      setFirmaError(e instanceof Error ? e.message : 'No se pudo firmar la cédula');
+    } finally {
+      setFirmando(false);
+    }
+  }
+
+  async function quitarFirmaCedula() {
+    if (!(await confirmar({
+      title: 'Quitar la firma de la cédula',
+      message: 'La cédula volverá a estado PRELIMINAR y el alumno dejará de contar como inscrito hasta que se firme de nuevo. ¿Continuar?',
+      confirmLabel: 'Quitar firma',
+      danger: true,
+    }))) return;
+    setFirmando(true);
+    setFirmaError(null);
+    try {
+      await api.delete(`${basePath}/cedula/firmar`);
+      await cargar();
+      setPreviewKey((k) => k + 1);
+    } catch (e) {
+      setFirmaError(e instanceof Error ? e.message : 'No se pudo quitar la firma');
+    } finally {
+      setFirmando(false);
     }
   }
 
@@ -274,17 +316,66 @@ export function CedulaEditor({
 
         {firmaSlot}
 
+        {mostrarFirmaResponsable && puedeFirmar && (
+          <div
+            className="rounded-xl border p-4"
+            style={datos.firmada ? { background: '#f0fdf4', borderColor: '#bbf7d0' } : { background: '#fffbeb', borderColor: '#fde68a' }}
+          >
+            <div className="flex items-center gap-2 mb-1">
+              <ShieldCheck size={15} className={datos.firmada ? 'text-green-700' : 'text-amber-600'} />
+              <h3 className="font-serif text-sm font-bold text-stone-900">Firma de la cédula</h3>
+            </div>
+            {datos.firmada ? (
+              <>
+                <p className="text-xs text-stone-600 mb-3">
+                  Cédula <strong className="text-green-800">firmada</strong>
+                  {datos.firmadaEn ? ` el ${fechaHoraCorta(datos.firmadaEn)}` : ''}
+                  {datos.responsableNombre ? ` por ${datos.responsableNombre}` : ''}. El alumno cuenta como
+                  inscrito cuando además tiene matrícula capturada.
+                </p>
+                <button
+                  onClick={quitarFirmaCedula}
+                  disabled={firmando}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-stone-300 text-stone-700 hover:bg-stone-50 disabled:opacity-50"
+                >
+                  {firmando ? <Loader2 size={13} className="animate-spin" /> : <X size={13} />} Quitar firma
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-stone-600 mb-3">
+                  La cédula está en <strong className="text-amber-700">PRELIMINAR</strong>: no se firma sola.
+                  Al firmar se estampa una copia de tu firma activa (la de abajo) y el alumno podrá contar
+                  como inscrito si tiene matrícula.
+                </p>
+                <button
+                  onClick={firmarCedulaAlumno}
+                  disabled={firmando}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg bg-[var(--color-guinda-700)] text-white hover:bg-[var(--color-guinda-800)] disabled:opacity-50"
+                >
+                  {firmando ? <Loader2 size={13} className="animate-spin" /> : <PenLine size={13} />} Firmar cédula
+                </button>
+              </>
+            )}
+            {firmaError && (
+              <div className="mt-2 text-xs text-red-600 bg-red-50 rounded p-2 flex items-center gap-1.5">
+                <AlertCircle size={13} /> {firmaError}
+              </div>
+            )}
+          </div>
+        )}
+
         {mostrarFirmaResponsable && (
           <div className="border border-stone-200 rounded-xl p-4">
             <div className="flex items-center gap-2 mb-1">
               <PenLine size={15} className="text-[var(--color-guinda-700)]" />
-              <h3 className="font-serif text-sm font-bold text-stone-900">Firma del responsable de la inscripción</h3>
+              <h3 className="font-serif text-sm font-bold text-stone-900">Mi firma para las cédulas</h3>
             </div>
             {puedeFirmar ? (
               <>
                 <p className="text-xs text-stone-500 mb-3">
-                  Guarda hasta dos firmas y elige cuál se estampa como responsable en las cédulas de los
-                  alumnos sin gestor. Para cambiar una firma, bórrala y vuelve a dibujarla.
+                  Guarda hasta dos firmas y elige cuál está activa. Al firmar la cédula de un alumno (arriba)
+                  se estampa una copia de tu firma activa. Para cambiar una firma, bórrala y vuelve a dibujarla.
                 </p>
                 <FirmaPad onChange={() => setPreviewKey((k) => k + 1)} />
               </>

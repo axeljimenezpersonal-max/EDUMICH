@@ -290,6 +290,18 @@ export const estudiantes = pgTable(
     matriculaOficialDGB: varchar('matricula_oficial_dgb', { length: 30 }),
     matriculaCapturadaEn: timestamp('matricula_capturada_en'),
     matriculaCapturadaPor: integer('matricula_capturada_por').references(() => users.id),
+    // ── Firma de la cédula de inscripción (deliberada, por un administrador) ──
+    // La cédula NO se firma sola. Un administrador (titular u operativo: cada
+    // quien con la suya) la firma de forma explícita. Al firmar se guarda una
+    // COPIA (snapshot) de la firma del responsable, de la del alumno y del
+    // nombre del firmante, para que el documento quede fijo aunque luego
+    // cambien las firmas guardadas. Un alumno cuenta como INSCRITO sólo cuando
+    // tiene matrícula capturada Y su cédula firmada; sin firma es PREINSCRITO.
+    cedulaFirmadaEn: timestamp('cedula_firmada_en'),
+    cedulaFirmadaPor: integer('cedula_firmada_por').references(() => users.id),
+    cedulaFirmadaPorNombre: varchar('cedula_firmada_por_nombre', { length: 200 }),
+    cedulaFirmaResponsableSnapshot: text('cedula_firma_responsable_snapshot'),
+    cedulaFirmaAlumnoSnapshot: text('cedula_firma_alumno_snapshot'),
     // ── Licencia digital ──
     licenciaDigital: varchar('licencia_digital', { length: 40 }),
     licenciaEmitidaEn: timestamp('licencia_emitida_en'),

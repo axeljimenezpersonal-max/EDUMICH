@@ -545,6 +545,10 @@ export interface CedulaDatos {
   tieneFoto: boolean;
   tieneFirmaAlumno: boolean;
   tieneFirmaResponsable: boolean;
+  // La cédula sólo vale cuando un administrador la firma de forma deliberada.
+  // Mientras `firmada` sea false, el PDF sale como PRELIMINAR.
+  firmada: boolean;
+  firmadaEn: string | null;
 }
 
 /** Campos editables de la cédula (los que se guardan). */

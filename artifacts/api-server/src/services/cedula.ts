@@ -10,14 +10,14 @@
  * "Completar la cédula" = completar los datos del alumno.
  */
 
-import { PDFDocument, StandardFonts, rgb, TextAlignment, pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath } from 'pdf-lib';
+import { PDFDocument, StandardFonts, rgb, degrees, TextAlignment, pushGraphicsState, popGraphicsState, moveTo, lineTo, closePath, clip, endPath } from 'pdf-lib';
 import { winAnsiSafe } from '../utils/pdfText';
 import { existsSync, readFileSync } from 'fs';
 import path from 'path';
 import { z } from 'zod';
-import { and, desc, eq } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { db } from '../db';
-import { estudiantes, users, gestores, administradores, firmasUsuario, expedienteDocumentos, municipios } from '@workspace/db/schema';
+import { estudiantes, users, administradores, firmasUsuario, expedienteDocumentos, municipios } from '@workspace/db/schema';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { archivoBuffer } from './storage';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
@@ -99,6 +99,11 @@ export interface CedulaDatosResueltos {
   tieneFoto: boolean;
   tieneFirmaAlumno: boolean;
   tieneFirmaResponsable: boolean;
+  // La cédula sólo se considera FIRMADA cuando un administrador la firmó de
+  // forma deliberada (ya no se estampa sola). Mientras sea false, el PDF sale
+  // marcado como PRELIMINAR y sin la firma del responsable.
+  firmada: boolean;
+  firmadaEn: string | null;
 }
 
 /** Devuelve la firma "en uso" (la del slot activo) de una fila de firmas_usuario. */
@@ -109,47 +114,67 @@ function firmaActiva(
 }
 
 /**
- * Resuelve el "Responsable de la inscripción" cuando el alumno NO tiene gestor.
+ * Firma DELIBERADA de la cédula por un administrador.
+ *
  * Firmar la cédula es facultad de CUALQUIER administrador (titular u operativo):
- * cada quien firma con la suya. Si quien genera la cédula aún no registró su
- * firma, se toma la de otro admin para no dejar el documento sin firmar.
+ * cada quien firma con la suya. Al firmar se guarda una COPIA (snapshot) de la
+ * firma del responsable, de la del alumno y del nombre del firmante, para que el
+ * documento quede fijo aunque después cambien las firmas guardadas. A partir de
+ * aquí la cédula deja de salir como PRELIMINAR y el alumno puede contar como
+ * INSCRITO (si además tiene matrícula).
+ *
+ * Lanza si quien firma no es administrador o si aún no registró su firma.
  */
-async function resolverAdminResponsable(
-  responsableUserId?: number
-): Promise<{ nombre: string; firma: string | null }> {
-  // 1) Quien procesa la cédula, si es admin (titular u operativo) y YA tiene
-  //    firma registrada: firma con la suya.
-  if (responsableUserId) {
-    const [a] = await db
-      .select({ nombre: administradores.nombreCompleto })
-      .from(administradores)
-      .where(eq(administradores.userId, responsableUserId));
-    if (a) {
-      const [f] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, responsableUserId));
-      const firma = firmaActiva(f);
-      if (firma) return { nombre: a.nombre, firma };
-    }
-  }
-  // 2) Cualquier admin con la firma guardada más reciente (para no dejar la
-  //    cédula sin firmar cuando quien la genera aún no registró la suya).
-  const [row] = await db
-    .select({
-      nombre: administradores.nombreCompleto,
-      imagenDataUrl: firmasUsuario.imagenDataUrl,
-      imagenDataUrl2: firmasUsuario.imagenDataUrl2,
-      activa: firmasUsuario.activa,
-    })
+export async function firmarCedula(estudianteId: number, adminUserId: number): Promise<void> {
+  const [admin] = await db
+    .select({ nombre: administradores.nombreCompleto })
     .from(administradores)
-    .innerJoin(firmasUsuario, eq(firmasUsuario.userId, administradores.userId))
-    .orderBy(desc(firmasUsuario.updatedAt))
-    .limit(1);
-  if (row) return { nombre: row.nombre, firma: firmaActiva(row) };
-  // 3) Ningún admin con firma: al menos el nombre de un admin (línea en blanco).
-  const [a0] = await db.select({ nombre: administradores.nombreCompleto }).from(administradores).limit(1);
-  return { nombre: a0?.nombre ?? '', firma: null };
+    .where(eq(administradores.userId, adminUserId));
+  if (!admin) throw new Error('Solo un administrador puede firmar la cédula');
+
+  const [fAdmin] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, adminUserId));
+  const firmaAdmin = firmaActiva(fAdmin);
+  if (!firmaAdmin) {
+    throw new Error('No tienes una firma registrada. Regístrala en tu perfil antes de firmar la cédula.');
+  }
+
+  const [est] = await db.select({ userId: estudiantes.userId }).from(estudiantes).where(eq(estudiantes.userId, estudianteId));
+  if (!est) throw new Error('Estudiante no encontrado');
+
+  // Copia congelada de la firma del alumno (si ya la registró), para que el
+  // documento firmado sea inmutable.
+  const [fAlumno] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, estudianteId));
+  const firmaAlumno = firmaActiva(fAlumno);
+
+  await db
+    .update(estudiantes)
+    .set({
+      cedulaFirmadaEn: new Date(),
+      cedulaFirmadaPor: adminUserId,
+      cedulaFirmadaPorNombre: admin.nombre,
+      cedulaFirmaResponsableSnapshot: firmaAdmin,
+      cedulaFirmaAlumnoSnapshot: firmaAlumno,
+      updatedAt: new Date(),
+    })
+    .where(eq(estudiantes.userId, estudianteId));
 }
 
-async function reunirDatos(estudianteId: number, responsableUserId?: number): Promise<{
+/** Quita la firma de la cédula (para corregir un error). Vuelve a PRELIMINAR. */
+export async function desfirmarCedula(estudianteId: number): Promise<void> {
+  await db
+    .update(estudiantes)
+    .set({
+      cedulaFirmadaEn: null,
+      cedulaFirmadaPor: null,
+      cedulaFirmadaPorNombre: null,
+      cedulaFirmaResponsableSnapshot: null,
+      cedulaFirmaAlumnoSnapshot: null,
+      updatedAt: new Date(),
+    })
+    .where(eq(estudiantes.userId, estudianteId));
+}
+
+async function reunirDatos(estudianteId: number, _responsableUserId?: number): Promise<{
   datos: CedulaDatosResueltos;
   fotoPath: string | null;
   firmaAlumno: string | null;
@@ -167,32 +192,22 @@ async function reunirDatos(estudianteId: number, responsableUserId?: number): Pr
     municipioNombre = m?.nombre ?? '';
   }
 
-  // Responsable de la inscripción: el gestor si el alumno tiene uno asignado y ese
-  // gestor YA registró su firma. Si el alumno no tiene gestor —o su gestor aún no
-  // tiene firma— firma el administrador que procesa la cédula (nombre + firma
-  // juntos, para que el documento sea coherente y nunca salga la línea en blanco).
-  let responsableNombre = '';
-  let firmaResponsable: string | null = null;
-  let firmaGestor: string | null = null;
-  if (est.gestorId) {
-    const [g] = await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, est.gestorId));
-    const [fr] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, est.gestorId));
-    firmaGestor = firmaActiva(fr);
-    if (firmaGestor) {
-      responsableNombre = g?.nombre ?? '';
-      firmaResponsable = firmaGestor;
-    }
-  }
-  // Sin gestor, o gestor sin firma registrada → responsable = administrador.
-  if (!firmaResponsable) {
-    const admin = await resolverAdminResponsable(responsableUserId);
-    responsableNombre = admin.nombre || responsableNombre;
-    firmaResponsable = admin.firma;
-  }
+  // ── Firma de la cédula: deliberada y con copia congelada (snapshot) ─────────
+  // La cédula ya NO se firma sola. Sólo lleva la firma del responsable cuando un
+  // administrador la firmó explícitamente (POST …/cedula/firmar); en ese momento
+  // se guardó una COPIA de las firmas y del nombre del firmante en `estudiantes`.
+  // Aquí sólo se leen esas copias. Si no está firmada, la línea del responsable
+  // va en blanco y el PDF se marca como PRELIMINAR.
+  const firmada = est.cedulaFirmadaEn != null;
 
-  // Firma del alumno (la activa)
+  // Firma del alumno: firmada → copia congelada; sin firmar → su firma viva (es
+  // su propio acto y puede registrarla antes de que el admin firme).
   const [fa] = await db.select().from(firmasUsuario).where(eq(firmasUsuario.userId, estudianteId));
-  const firmaAlumno = firmaActiva(fa);
+  const firmaAlumno = firmada ? (est.cedulaFirmaAlumnoSnapshot ?? firmaActiva(fa)) : firmaActiva(fa);
+
+  // Responsable: nombre + firma sólo cuando ya se firmó; si no, línea en blanco.
+  const responsableNombre = firmada ? (est.cedulaFirmadaPorNombre ?? '') : '';
+  const firmaResponsable = firmada ? (est.cedulaFirmaResponsableSnapshot ?? null) : null;
 
   // Fotografía del expediente — SOLO si está aprobada (regla única).
   const fotoPath = await rutaFotoAprobada(estudianteId);
@@ -224,6 +239,8 @@ async function reunirDatos(estudianteId: number, responsableUserId?: number): Pr
     tieneFoto: fotoPath !== null,
     tieneFirmaAlumno: firmaAlumno !== null,
     tieneFirmaResponsable: firmaResponsable !== null,
+    firmada,
+    firmadaEn: est.cedulaFirmadaEn ? est.cedulaFirmadaEn.toISOString() : null,
   };
 
   return { datos, fotoPath, firmaAlumno, firmaResponsable };
@@ -437,6 +454,28 @@ export async function generarCedulaPdf(
       maxWidth: 500,
       lineHeight: 10,
     });
+  }
+
+  // ── Marca de agua PRELIMINAR mientras la cédula no esté firmada ──
+  // Deja explícito que el documento aún no tiene validez: falta la firma
+  // deliberada del responsable de la inscripción.
+  if (!datos.firmada) {
+    const { width, height } = page.getSize();
+    const marca = await doc.embedFont(StandardFonts.HelveticaBold);
+    page.drawText('PRELIMINAR', {
+      x: width / 2 - 200,
+      y: height / 2 - 30,
+      size: 58,
+      font: marca,
+      color: rgb(0.85, 0.16, 0.16),
+      opacity: 0.16,
+      rotate: degrees(45),
+    });
+    const nota = await doc.embedFont(StandardFonts.Helvetica);
+    page.drawText(
+      winAnsiSafe('Documento preliminar — pendiente de la firma del responsable de la inscripción.'),
+      { x: 50, y: 38, size: 8, font: nota, color: rgb(0.6, 0.1, 0.1) }
+    );
   }
 
   form.flatten();

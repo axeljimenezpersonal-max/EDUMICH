@@ -68,6 +68,8 @@ import {
   generarCedulaPdf,
   dispositionCedula,
   cedulaDatosSchema,
+  firmarCedula,
+  desfirmarCedula,
 } from '../services/cedula';
 import { generarCredencialPdf, obtenerDatosCredencial } from '../services/credencialPdf';
 import { rutaFotoAprobada } from '../utils/fotoExpediente';
@@ -1234,9 +1236,18 @@ router.get('/dashboard', async (req, res) => {
         const duracionVentana = Math.max(1, diasEntre(inicio, fin));
         const diasDesdeApertura = Math.max(0, Math.min(duracionVentana, diasEntre(inicio, hoy)));
 
+        // Inscritos OFICIALES: alumnos distintos con matrícula capturada Y
+        // cédula firmada (misma definición que la gráfica de etapas). Antes
+        // contaba filas de examen (una por módulo), inflando el número.
         const [{ inscritosCount }] = await db
-          .select({ inscritosCount: count() })
+          .select({
+            inscritosCount: sql<number>`count(distinct case
+              when ${estudiantes.matriculaOficialDGB} is not null
+               and ${estudiantes.cedulaFirmadaEn} is not null
+              then ${examenesInscripciones.estudianteId} end)`,
+          })
           .from(examenesInscripciones)
+          .innerJoin(estudiantes, eq(estudiantes.userId, examenesInscripciones.estudianteId))
           .where(eq(examenesInscripciones.etapaId, etapa.id));
 
         convocatoriaActiva = {
@@ -1379,6 +1390,7 @@ router.get('/dashboard', async (req, res) => {
 
     let graficaEtapas: Array<{
       clave: string;
+      preinscritos: number;
       inscritos: number;
       activa: boolean;
       futura: boolean;
@@ -1393,16 +1405,30 @@ router.get('/dashboard', async (req, res) => {
 
       graficaEtapas = await Promise.all(
         etapasAnio.map(async (etapa) => {
+          // Se cuentan ALUMNOS distintos (no filas de examen) y se separan en:
+          //  · inscritos  → oficialmente inscritos = matrícula capturada Y cédula
+          //                 firmada (regla deliberada; ver estudiantes.cedula_*).
+          //  · preinscritos → el resto (aún les falta matrícula o firma).
           let inscritosEtapa = 0;
+          let totalEtapa = 0;
           try {
-            const [{ cnt }] = await db
-              .select({ cnt: count() })
+            const [row] = await db
+              .select({
+                inscritos: sql<number>`count(distinct case
+                  when ${estudiantes.matriculaOficialDGB} is not null
+                   and ${estudiantes.cedulaFirmadaEn} is not null
+                  then ${examenesInscripciones.estudianteId} end)`,
+                total: sql<number>`count(distinct ${examenesInscripciones.estudianteId})`,
+              })
               .from(examenesInscripciones)
+              .innerJoin(estudiantes, eq(estudiantes.userId, examenesInscripciones.estudianteId))
               .where(eq(examenesInscripciones.etapaId, etapa.id));
-            inscritosEtapa = Number(cnt);
+            inscritosEtapa = Number(row?.inscritos ?? 0);
+            totalEtapa = Number(row?.total ?? 0);
           } catch {}
           return {
             clave: etapa.clave,
+            preinscritos: Math.max(0, totalEtapa - inscritosEtapa),
             inscritos: inscritosEtapa,
             activa: etapa.estado === 'inscripcion_abierta',
             futura: new Date(etapa.solicitudInicio) > today,
@@ -4766,6 +4792,50 @@ router.get('/alumnos/:id/cedula/pdf', async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo generar la cédula' });
   }
+});
+
+// POST /admin/alumnos/:id/cedula/firmar — el admin FIRMA la cédula (deliberado)
+// Cualquier administrador (titular u operativo) puede firmar, cada quien con su
+// firma. Se guarda una copia congelada de la firma. Un alumno cuenta como
+// INSCRITO sólo con matrícula capturada Y cédula firmada.
+router.post('/alumnos/:id/cedula/firmar', async (req, res) => {
+  const adminId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  try {
+    await firmarCedula(alumnoId, adminId);
+  } catch (e) {
+    res.status(400).json({ error: e instanceof Error ? e.message : 'No se pudo firmar la cédula' });
+    return;
+  }
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'firmar_cedula',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Firmó la cédula de inscripción del alumno ID ${alumnoId}`,
+    req,
+  });
+  res.json({ ok: true });
+});
+
+// DELETE /admin/alumnos/:id/cedula/firmar — quita la firma (corregir un error)
+router.delete('/alumnos/:id/cedula/firmar', async (req, res) => {
+  const adminId = req.user!.userId;
+  const alumnoId = Number(req.params.id);
+  if (Number.isNaN(alumnoId)) { res.status(400).json({ error: 'ID inválido' }); return; }
+  if (!(await adminVerAlumno(alumnoId))) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+  await desfirmarCedula(alumnoId);
+  await tryAuditLog({
+    userId: adminId,
+    accion: 'desfirmar_cedula',
+    entidad: 'estudiante',
+    entidadId: alumnoId,
+    detalle: `Quitó la firma de la cédula de inscripción del alumno ID ${alumnoId}`,
+    req,
+  });
+  res.json({ ok: true });
 });
 
 // GET /admin/alumnos/:id/credencial/pdf — carnet de la credencial digital
