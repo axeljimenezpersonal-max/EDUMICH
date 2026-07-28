@@ -58,6 +58,13 @@ const labelStyle: React.CSSProperties = {
  * elige). Sin la prop sigue funcionando como página propia, para que
  * `/admin/sedes` no se rompa.
  */
+// Envoltorio "sin marco" para el modo embebido. DEBE vivir fuera del componente:
+// si se define dentro del render, React lo ve como un componente nuevo en cada
+// tecleo y REMONTA todo (el modal pierde el foco y la pantalla brinca).
+function SinMarco({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
+}
+
 export default function SedesLista({ embebido = false }: { embebido?: boolean } = {}) {
   const [sedes, setSedes] = useState<Sede[]>([]);
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
@@ -151,9 +158,7 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
     setModal((m) => (m ? { ...m, form: { ...m.form, ...patch } } : m));
   }
 
-  const Envoltura = embebido
-    ? ({ children }: { children: React.ReactNode }) => <>{children}</>
-    : AdminLayout;
+  const Envoltura = embebido ? SinMarco : AdminLayout;
 
   return (
     <Envoltura>
