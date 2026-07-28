@@ -928,7 +928,7 @@ export default function SolicitudesLista() {
 
       {/* ── STATS ────────────────────────────────────────────────────── */}
       {resumen && (
-        <div data-tour="a-sol-stats" className="flex gap-3 mb-5 flex-wrap">
+        <div data-tour="a-sol-stats" className="flex gap-3 mb-5 flex-wrap justify-center">
           {estadoParam === 'pendiente' ? (
             <>
               <StatCard icon={<Clock size={14} />} num={resumen.pendientes} label="Pendientes" variant="warning" />
@@ -1404,14 +1404,14 @@ function StatCard({ icon, num, label, variant }: { icon: React.ReactNode; num: n
 
   return (
     <div
-      className="relative flex items-center gap-3 overflow-hidden rounded-xl border bg-white py-3.5 pl-5 pr-6"
+      className="relative flex flex-1 items-center justify-center gap-3 overflow-hidden rounded-xl border bg-white py-3.5 px-5"
       style={{ borderColor: 'var(--color-crema-200)', minWidth: 186 }}
     >
       <span className="absolute inset-y-0 left-0 w-1" style={{ background: accent }} aria-hidden />
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: tint, color: accent }}>
         {icon}
       </div>
-      <div className="min-w-0">
+      <div className="min-w-0 text-center">
         <div
           className="text-2xl font-bold leading-none"
           style={{ fontFamily: "'Poppins', sans-serif", color: activo ? '#1a1a1a' : '#a8a29e' }}
