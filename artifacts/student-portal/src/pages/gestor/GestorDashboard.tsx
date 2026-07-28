@@ -82,7 +82,7 @@ export default function GestorDashboard() {
           {data?.municipio ?? '—'}
         </div>
         <h1 className="font-serif text-3xl font-bold text-stone-900">
-          Hola, {data?.gestorNombre?.split(' ')[0] ?? 'Gestor'}
+          Hola, {data?.gestorNombre ?? 'Gestor'}
         </h1>
         <p className="text-stone-600 mt-1">
           Aquí tienes un resumen de tus alumnos y documentos pendientes.

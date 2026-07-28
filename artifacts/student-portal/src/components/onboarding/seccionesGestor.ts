@@ -66,11 +66,9 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
   },
   {
     id: 'g-alta-conv',
-    anchor: 'g-alta-conv',
-    placement: 'bottom',
     icon: 'CalendarCheck',
-    title: 'La convocatoria es opcional',
-    body: 'Siempre puedes registrarlo. Con convocatoria abierta queda inscrito; sin ella, queda registrado y se inscribe después.',
+    title: 'Registrar no es inscribir',
+    body: 'Aquí solo das de alta al alumno (su cuenta y su expediente). Inscribirlo a examen es aparte, en Inscripción, cuando abra la ventana. Por eso puedes registrarlo cuando quieras.',
     illustration: 'altaConvocatoria',
   },
   {

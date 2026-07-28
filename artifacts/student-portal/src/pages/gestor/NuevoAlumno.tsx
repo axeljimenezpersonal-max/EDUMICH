@@ -16,7 +16,7 @@ import { format } from 'date-fns';
 import { GestorLayout } from './GestorLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
-import { api, ApiError, type Convocatoria } from '../../lib/api';
+import { api, ApiError } from '../../lib/api';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_NUEVO_ALUMNO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
@@ -181,8 +181,6 @@ function StepPill({
 export default function NuevoAlumno() {
   const [, setLocation] = useLocation();
 
-  const [conv, setConv] = useState<Convocatoria | null>(null);
-  const [convCargando, setConvCargando] = useState(true);
 
   const [paso, setPaso] = useState<1 | 2>(1);
   const [datos, setDatos] = useState<DatosPersonales>(DATOS_INIT);
@@ -251,13 +249,6 @@ export default function NuevoAlumno() {
     certificado: null,
   });
 
-  // ── Fetch convocatoria ───────────────────────────────────────────────
-  useEffect(() => {
-    api
-      .get<{ convocatoria: Convocatoria | null }>('/gestor/convocatoria-activa')
-      .then((r) => setConv(r.convocatoria))
-      .finally(() => setConvCargando(false));
-  }, []);
 
   // ── Beforeunload ─────────────────────────────────────────────────────
   const hayProgreso =
@@ -462,7 +453,6 @@ export default function NuevoAlumno() {
     fd.append('estadoDomicilio', datos.estadoDomicilio);
     // Sólo se manda si hay convocatoria activa; sin ella el alumno se da de alta
     // igual (sin inscripción).
-    if (conv) fd.append('convocatoriaId', String(conv.id));
     fd.append('doc_curp', archivos.curp!);
     fd.append('doc_acta', archivos.acta!);
     fd.append('doc_ine', archivos.ine!);
@@ -504,7 +494,6 @@ export default function NuevoAlumno() {
     fd.append('cp', datos.cp);
     fd.append('ciudad', datos.ciudad);
     fd.append('estadoDomicilio', datos.estadoDomicilio);
-    if (conv) fd.append('convocatoriaId', String(conv.id));
     if (archivos.curp) fd.append('doc_curp', archivos.curp);
     if (archivos.acta) fd.append('doc_acta', archivos.acta);
     if (archivos.ine) fd.append('doc_ine', archivos.ine);
@@ -642,26 +631,10 @@ export default function NuevoAlumno() {
         Registrar nuevo alumno
       </h1>
 
-      {/* Convocatoria banner */}
-      {!convCargando && (
-        conv ? (
-          <div data-tour="g-alta-conv" className="bg-[var(--color-crema-100)] border border-stone-200 rounded-md px-4 py-3 mb-5 text-sm flex items-center gap-2">
-            <span className="text-stone-500 uppercase tracking-widest text-xs font-semibold">
-              Inscripción a:
-            </span>
-            <strong className="text-stone-800">{conv.nombre}</strong>
-          </div>
-        ) : (
-          <div className="flex items-start gap-2 text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-4 py-3 mb-5">
-            <AlertCircle size={15} className="mt-0.5 shrink-0" />
-            <span>
-              No hay una convocatoria activa. Puedes registrar al alumno de todas
-              formas: quedará dado de alta con su expediente, y se le creará la
-              inscripción cuando abra una convocatoria.
-            </span>
-          </div>
-        )
-      )}
+      {/* Registrar NO es inscribir a una convocatoria: aquí solo se da de alta al
+          alumno (su cuenta y su expediente). La inscripción a examen se hace
+          aparte, en Inscripción. Por eso ya no se muestra ningún banner de
+          convocatoria ni se liga el alta a una. */}
 
       {/* Step indicator */}
       <div data-tour="g-alta-pasos" className="flex items-center gap-3 mb-6">

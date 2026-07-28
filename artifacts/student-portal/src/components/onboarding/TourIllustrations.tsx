@@ -14,7 +14,7 @@ import {
   LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
   MessageCircle, ClipboardList, BookOpen, PlayCircle,
   Inbox, Search, UserCheck, QrCode, ShieldCheck, FolderOpen,
-  UserPlus, Mail, KeyRound, CalendarCheck, Clock, CheckCircle2,
+  UserPlus, Mail, KeyRound, CalendarCheck, CheckCircle2,
   Users, IdCard,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
@@ -439,8 +439,8 @@ function AltaConvocatoriaAnimation() {
   }, [reduce]);
 
   const filas = [
-    { Icon: CalendarCheck, titulo: 'Con convocatoria abierta', cola: 'queda inscrito en ella', ColaIcon: UserCheck },
-    { Icon: Clock, titulo: 'Sin convocatoria', cola: 'queda registrado; se inscribe después', ColaIcon: CheckCircle2 },
+    { Icon: UserPlus, titulo: 'Registrar (aquí)', cola: 'crea su cuenta y su expediente', ColaIcon: CheckCircle2 },
+    { Icon: ClipboardCheck, titulo: 'Inscribir (en Inscripción)', cola: 'lo anota a examen cuando abre la ventana', ColaIcon: CalendarCheck },
   ];
 
   return (
