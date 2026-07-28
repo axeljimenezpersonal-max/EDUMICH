@@ -75,6 +75,24 @@ const PASOS_INSCRIBE: Paso[] = [
   { Icon: BadgeCheck, label: 'Inscritos' },
 ];
 
+// Etapas del expediente, en orden (coincide con los chips de la lista de alumnos).
+const PASOS_ESTADO: Paso[] = [
+  { Icon: FolderOpen, label: 'Documentos' },
+  { Icon: IdCard, label: 'Matrícula' },
+  { Icon: ClipboardCheck, label: 'Módulos' },
+  { Icon: Banknote, label: 'Pago' },
+  { Icon: BadgeCheck, label: 'Activo' },
+];
+
+// Pestañas de la ficha del alumno, en el orden real del trámite.
+const PASOS_FICHA: Paso[] = [
+  { Icon: FolderOpen, label: 'Documentos' },
+  { Icon: CalendarCheck, label: 'Inscripción' },
+  { Icon: Banknote, label: 'Pago' },
+  { Icon: GraduationCap, label: 'Calif.' },
+  { Icon: IdCard, label: 'Credencial' },
+];
+
 const PASOS_SOLICITUD: Paso[] = [
   { Icon: Inbox, label: 'Solicita' },
   { Icon: Search, label: 'Revisas' },
@@ -710,6 +728,8 @@ function StatsCalifAnimation() {
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   altaDosPasos: () => <FlowAnimation pasos={PASOS_ALTA_DOS} />,
+  estadoFlow: () => <FlowAnimation pasos={PASOS_ESTADO} />,
+  fichaFlow: () => <FlowAnimation pasos={PASOS_FICHA} />,
   dosVistas: DosVistasAnimation,
   statsCalif: StatsCalifAnimation,
   inscribeLote: () => <FlowAnimation pasos={PASOS_INSCRIBE} />,

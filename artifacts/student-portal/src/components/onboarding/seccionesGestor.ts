@@ -114,7 +114,7 @@ export const TOUR_G_ALUMNOS: TourStep[] = [
     id: 'g-alu-intro',
     icon: 'Users',
     title: 'Tus alumnos',
-    body: 'La lista de todos los alumnos de tu centro. Desde aquí das seguimiento a cada uno: su expediente, su inscripción, sus pagos y sus resultados.',
+    body: 'Todos los alumnos de tu centro. Entra a cualquiera para darle seguimiento a su trámite.',
   },
   {
     id: 'g-alu-buscar',
@@ -122,15 +122,16 @@ export const TOUR_G_ALUMNOS: TourStep[] = [
     placement: 'bottom',
     icon: 'Search',
     title: 'Busca y filtra',
-    body: 'Encuentra a un alumno por nombre o CURP, o usa los filtros de estado para ver, por ejemplo, solo a quienes les faltan documentos o ya tienen inscripción. El número en cada filtro te dice cuántos hay.',
+    body: 'Por nombre o CURP, o por estado (a quién le faltan documentos, quién ya tiene inscripción…). El número dice cuántos hay en cada uno.',
   },
   {
     id: 'g-alu-tabla',
     anchor: 'g-alu-tabla',
     placement: 'top',
     icon: 'Table',
-    title: 'Su estado de un vistazo',
-    body: 'Cada fila muestra al alumno, su CURP, su estado y cuántos documentos le faltan. Toca cualquier fila para abrir su expediente completo y actuar sobre él.',
+    title: 'En qué etapa va cada uno',
+    body: 'El chip de cada fila te dice su etapa. El camino es: documentos → matrícula → módulos → pago → activo. Toca una fila para abrir su expediente.',
+    illustration: 'estadoFlow',
   },
   {
     id: 'g-alu-fin',
@@ -149,7 +150,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     id: 'g-ficha-intro',
     icon: 'UserSquare',
     title: 'La ficha del alumno',
-    body: 'Esta es la pantalla donde haces la mayor parte de tu trabajo con cada alumno: subir sus documentos, inscribirlo a los módulos, gestionar su pago, seguir sus calificaciones y su credencial. Todo su trámite, en un solo lugar.',
+    body: 'Todo su trámite en un solo lugar: documentos, inscripción, pago, calificaciones y credencial.',
   },
   {
     id: 'g-ficha-tabs',
@@ -157,7 +158,8 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'PanelsTopLeft',
     title: 'Su trámite, por pestañas',
-    body: 'El proceso va en orden por estas pestañas: Documentos → Inscripción → Pagos → Calificaciones → Credencial. El número de cada una te avisa qué falta. Te muestro para qué sirve cada una.',
+    body: 'Van en orden. El número de cada pestaña te avisa qué falta. Te muestro para qué sirve cada una.',
+    illustration: 'fichaFlow',
   },
   {
     id: 'g-ficha-docs',
@@ -165,7 +167,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'FolderOpen',
     title: '1) Documentos · los subes tú',
-    body: 'Aquí cargas los documentos del expediente del alumno (5 obligatorios) y su cédula de inscripción. Tú y el alumno comparten el mismo expediente: si te trae los papeles físicos, los subes tú; él también puede subirlos desde su portal. La administración los valida.',
+    body: 'Cargas su expediente (5 obligatorios) y su cédula. Tú y el alumno comparten el mismo expediente; la administración lo valida.',
   },
   {
     id: 'g-ficha-cuenta',
@@ -173,7 +175,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'KeyRound',
     title: 'Su cuenta de acceso',
-    body: 'Al registrar al alumno se le crea su propia cuenta y se le envían sus credenciales por correo. Recuérdale que él también tiene su portal, donde ve su avance, paga y consulta calificaciones. Si no le llegaron, aquí puedes reenviárselas.',
+    body: 'Al registrarlo se le envían sus credenciales por correo, para su propio portal. Si no le llegaron, aquí las reenvías.',
   },
   {
     id: 'g-ficha-inscripcion',
@@ -181,7 +183,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'CalendarCheck',
     title: '2) Inscripción · a los módulos',
-    body: 'En esta pestaña inscribes al alumno a los módulos de examen de la convocatoria activa. Los módulos de un mismo bloque comparten día y hora, así que solo se puede inscribir uno de cada bloque. De aquí sale su pase de examen una vez pagado.',
+    body: 'Lo inscribes a los módulos de la convocatoria activa. Un mismo día y hora es un bloque: solo uno por bloque.',
   },
   {
     id: 'g-ficha-pagos',
@@ -189,7 +191,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'Receipt',
     title: '3) Pagos · su examen',
-    body: 'Aquí gestionas el pago de sus exámenes ante la Tesorería. Cuando el pago queda confirmado, su inscripción pasa a “confirmada” y el alumno obtiene su pase para presentarse el día del examen.',
+    body: 'Gestionas el pago ante la Tesorería. Al confirmarse, su inscripción queda “confirmada” y obtiene su pase.',
   },
   {
     id: 'g-ficha-calif',
@@ -197,7 +199,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'GraduationCap',
     title: 'Calificaciones',
-    body: 'Consulta los resultados oficiales del alumno conforme la administración los registra. Solo lectura: aquí das seguimiento, no capturas notas.',
+    body: 'Sus resultados oficiales conforme la administración los registra. Solo lectura: das seguimiento, no capturas notas.',
   },
   {
     id: 'g-ficha-cred',
@@ -205,7 +207,7 @@ export const TOUR_G_FICHA: TourStep[] = [
     placement: 'bottom',
     icon: 'Award',
     title: 'Credencial',
-    body: 'Su identificación oficial como estudiante. Cuando está emitida, puedes consultarla y descargarla desde aquí.',
+    body: 'Su identificación oficial. Cuando está emitida, la consultas y descargas aquí.',
   },
   {
     id: 'g-ficha-fin',
