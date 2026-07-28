@@ -338,6 +338,7 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
           onClose={() => setModal(null)}
           etiqueta={modal.id ? 'Editar sede' : 'Nueva sede'}
           ancho="sm:max-w-lg"
+          descartarAfuera={false}
           pie={
             <div className="flex gap-2 border-t border-stone-100 bg-stone-50 px-5 py-3">
               <button

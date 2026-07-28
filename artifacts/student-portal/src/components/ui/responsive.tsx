@@ -129,6 +129,7 @@ export function ModalHoja({
   onClose,
   etiqueta,
   ancho = 'sm:max-w-md',
+  descartarAfuera = true,
 }: {
   children: ReactNode;
   /** Barra de acciones fija al fondo (botones). Opcional. */
@@ -138,6 +139,13 @@ export function ModalHoja({
   etiqueta: string;
   /** Ancho máximo en ≥sm (clase Tailwind). En teléfono siempre es completo. */
   ancho?: string;
+  /**
+   * ¿El clic FUERA del recuadro (o Escape) cierra la ventana? En modales con
+   * CAPTURA DE DATOS se pasa `false`: así un clic accidental afuera no borra lo
+   * que la persona estaba escribiendo. Con `false`, la ventana solo se cierra
+   * con su botón X o «Cancelar». Por defecto `true` (ventanas informativas).
+   */
+  descartarAfuera?: boolean;
 }) {
   // Con la ventana abierta el fondo no se desplaza.
   useEffect(() => {
@@ -146,18 +154,20 @@ export function ModalHoja({
     return () => { document.body.style.overflow = prev; };
   }, []);
 
-  // Escape cierra, como cualquier ventana del sistema.
+  // Escape cierra, como cualquier ventana del sistema — salvo en las de captura
+  // de datos, donde solo cierran la X o «Cancelar».
   useEffect(() => {
+    if (!descartarAfuera) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  }, [onClose, descartarAfuera]);
 
   return (
     <div
       className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
       style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }}
-      onClick={onClose}
+      onClick={descartarAfuera ? onClose : undefined}
     >
       <motion.div
         role="dialog"
