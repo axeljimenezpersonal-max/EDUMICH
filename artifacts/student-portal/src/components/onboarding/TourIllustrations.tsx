@@ -613,9 +613,105 @@ function ElegibleCheckAnimation() {
   );
 }
 
+const VISTAS_CALIF = [
+  { Icon: BadgeCheck, label: 'Exámenes oficiales', desc: 'Calificaciones DGB. Cuentan para el certificado.' },
+  { Icon: ClipboardCheck, label: 'Evaluaciones de práctica', desc: 'Ensayos en la plataforma para prepararse.' },
+];
+
+/** Dos vistas de calificaciones: la selección alterna y explica cada una. */
+function DosVistasAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setI((v) => (v + 1) % VISTAS_CALIF.length), 1700);
+    return () => clearInterval(t);
+  }, [reduce]);
+  const activa = VISTAS_CALIF[i];
+  const ActivaIcon = activa.Icon;
+  return (
+    <div
+      className="mt-4 rounded-xl border p-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      <div className="flex gap-2">
+        {VISTAS_CALIF.map((v, idx) => {
+          const on = idx === i;
+          const V = v.Icon;
+          return (
+            <div
+              key={v.label}
+              className="flex flex-1 items-center gap-1.5 rounded-lg border px-2.5 py-2 text-[11px] font-bold"
+              style={{
+                background: on ? 'var(--color-guinda-700)' : '#fff',
+                color: on ? '#fff' : '#a8a29e',
+                borderColor: on ? 'var(--color-guinda-700)' : 'var(--color-crema-200)',
+                transition: 'background .35s, color .35s, border-color .35s',
+              }}
+            >
+              <V size={13} /> {v.label}
+            </div>
+          );
+        })}
+      </div>
+      <motion.div
+        key={activa.label}
+        className="mt-2 flex items-center gap-2 rounded-lg border bg-white px-3 py-2"
+        style={{ borderColor: 'var(--color-crema-200)' }}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        <ActivaIcon size={15} style={{ color: 'var(--color-guinda-700)' }} />
+        <span className="text-[11px] leading-snug" style={{ color: '#57534e' }}>{activa.desc}</span>
+      </motion.div>
+    </div>
+  );
+}
+
+/** Mini-resumen de calificaciones: tres contadores que "laten" por turnos. */
+function StatsCalifAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setI((v) => (v + 1) % 3), 900);
+    return () => clearInterval(t);
+  }, [reduce]);
+  const tiles = [
+    { label: 'Aprobados', value: '18', color: '#15803d', bg: '#dcfce7' },
+    { label: 'No aprob.', value: '3', color: '#b91c1c', bg: '#fee2e2' },
+    { label: 'Sin calif.', value: '5', color: '#b45309', bg: '#fef3c7' },
+  ];
+  return (
+    <div
+      className="mt-4 grid grid-cols-3 gap-2 rounded-xl border p-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      {tiles.map((t, idx) => (
+        <motion.div
+          key={t.label}
+          className="flex flex-col items-center rounded-lg border bg-white py-2"
+          style={{ borderColor: 'var(--color-crema-200)' }}
+          initial={false}
+          animate={{ scale: i === idx && !reduce ? 1.06 : 1, borderColor: i === idx ? t.color : 'var(--color-crema-200)' }}
+          transition={{ type: 'spring', stiffness: 320, damping: 20 }}
+        >
+          <span className="flex h-6 items-center rounded-full px-2 text-[13px] font-bold" style={{ background: t.bg, color: t.color }}>{t.value}</span>
+          <span className="mt-1 text-[9px] font-semibold" style={{ color: '#78716c' }}>{t.label}</span>
+        </motion.div>
+      ))}
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   altaDosPasos: () => <FlowAnimation pasos={PASOS_ALTA_DOS} />,
+  dosVistas: DosVistasAnimation,
+  statsCalif: StatsCalifAnimation,
   inscribeLote: () => <FlowAnimation pasos={PASOS_INSCRIBE} />,
   elegibleCheck: ElegibleCheckAnimation,
   altaConvocatoria: AltaConvocatoriaAnimation,

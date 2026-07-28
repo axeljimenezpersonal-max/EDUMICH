@@ -228,7 +228,7 @@ function ExamenesView() {
       )}
 
       {/* KPIs */}
-      <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div data-tour="g-cal-stats" className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         <Kpi label="Exámenes" value={stats.total} />
         <Kpi label="Aprobados" value={stats.aprobados} tone="green" />
         <Kpi label="No aprobados" value={stats.reprobados} tone="red" />
