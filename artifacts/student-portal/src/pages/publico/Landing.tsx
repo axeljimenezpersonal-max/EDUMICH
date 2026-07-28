@@ -130,14 +130,8 @@ export default function Landing() {
     <div className="min-h-screen bg-[var(--color-crema-100)] text-stone-800">
       {/* Barra superior mínima */}
       <header className="sticky top-0 z-30 border-b border-white/10 bg-[var(--color-guinda-800)] text-white">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
           <ModulaLogo titulo="Módula 22" acento={DORADO} className="h-6 w-auto" />
-          <Link
-            href="/login"
-            className="inline-flex items-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-[var(--color-guinda-800)] hover:bg-white/90"
-          >
-            Iniciar sesión
-          </Link>
         </div>
       </header>
 
@@ -224,7 +218,6 @@ export default function Landing() {
             <span className="text-sm text-white/60">Preparatoria Abierta · Iniciativa nacional</span>
           </div>
           <nav className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-white/70">
-            <Link href="/login" className="hover:text-white">Iniciar sesión</Link>
             <Link href="/solicitar-cuenta" className="hover:text-white">Solicitar cuenta</Link>
             <Link href="/capacitacion" className="hover:text-white">Centro de ayuda</Link>
           </nav>
