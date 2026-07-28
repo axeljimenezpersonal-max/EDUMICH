@@ -136,7 +136,7 @@ const GESTOR: TourStep[] = [
     placement: 'right',
     icon: 'FilePlus2',
     title: 'Paso 1 · Da de alta a tu alumno',
-    body: 'Todo empieza aquí: con "Nuevo alumno" registras a quien llega, capturas sus datos y le queda su cuenta lista, ligada a la convocatoria activa.',
+    body: 'Todo empieza aquí: con "Nuevo alumno" registras a quien llega y le queda su cuenta lista. Puedes registrarlo siempre, haya o no convocatoria abierta; si la hay, además queda inscrito en ella.',
   },
   {
     id: 'ges-alumnos',

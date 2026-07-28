@@ -61,7 +61,7 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     id: 'g-alta-intro',
     icon: 'UserPlus',
     title: 'Registrar a un alumno',
-    body: 'Aquí das de alta a un nuevo alumno y lo vinculas a la convocatoria activa. El proceso tiene un camino claro: capturas sus datos, subes sus documentos y la administración los valida.',
+    body: 'Aquí das de alta a un nuevo alumno. Siempre puedes registrarlo, haya o no una convocatoria abierta: capturas sus datos, subes sus documentos y la administración los valida. Si hay convocatoria activa, además queda inscrito en ella.',
     illustration: 'altaFlow',
   },
   {
@@ -69,8 +69,8 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     anchor: 'g-alta-conv',
     placement: 'bottom',
     icon: 'CalendarCheck',
-    title: 'Se registra en esta convocatoria',
-    body: 'El alumno queda vinculado a la convocatoria abierta que se muestra aquí. Si no hay convocatoria activa, no es posible registrar: espera a que abra la ventana.',
+    title: 'La convocatoria es opcional',
+    body: 'Si hay una convocatoria abierta (la que se muestra aquí), el alumno queda vinculado a ella. Si no hay ninguna abierta, no pasa nada: se registra igual —queda con su cuenta lista— y podrá inscribirse cuando abra la próxima ventana. Registrar no es lo mismo que inscribir a examen.',
   },
   {
     id: 'g-alta-pasos',

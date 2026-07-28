@@ -215,7 +215,7 @@ export default function GestorDashboard() {
           to="/gestor/alumnos/nuevo"
           icon={FilePlus2}
           title="Registrar nuevo alumno"
-          desc="Captura los datos básicos y vincúlalo a la convocatoria activa."
+          desc="Captura sus datos básicos. Si hay convocatoria abierta, además queda inscrito en ella."
         />
         <ActionCard
           to="/gestor/alumnos"
