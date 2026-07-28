@@ -131,14 +131,6 @@ const GESTOR: TourStep[] = [
     body: 'Cada día empiezas aquí. En esta pantalla ves cómo van tus alumnos y qué te toca atender. Si te pierdes, regresa a Inicio.',
   },
   {
-    id: 'ges-kpis',
-    anchor: 'g-ini-kpis',
-    placement: 'bottom',
-    icon: 'BarChart3',
-    title: 'Tu resumen de un vistazo',
-    body: 'Tus números clave: cuántos alumnos tienes, cuántos ya están inscritos y cuántos documentos están pendientes de revisar.',
-  },
-  {
     id: 'ges-nuevo',
     anchor: 'nav-nuevo',
     placement: 'right',
@@ -179,14 +171,6 @@ const GESTOR: TourStep[] = [
     body: 'Aquí sigues las calificaciones de tus alumnos: qué presentaron, qué aprobaron y quién ya va avanzando hacia su certificado.',
   },
   {
-    id: 'ges-aula',
-    anchor: 'nav-aula',
-    placement: 'right',
-    icon: 'School',
-    title: 'Mi aula · un extra',
-    body: 'Si tu centro tiene el aula virtual activa, aquí están las clases, materiales y tareas para tus alumnos. Si aparece con candado, aún no está habilitada.',
-  },
-  {
     id: 'ges-faq',
     anchor: 'nav-faq',
     placement: 'right',
@@ -195,10 +179,19 @@ const GESTOR: TourStep[] = [
     body: 'Las dudas comunes del trámite ya resueltas: altas, documentos, inscripción y pagos. Búscalas o léelas al instante.',
   },
   {
+    id: 'ges-aula',
+    anchor: 'nav-aula',
+    placement: 'right',
+    icon: 'School',
+    title: 'Mi aula · muy pronto',
+    body: 'Esta es una función que estamos preparando para el futuro: un aula virtual donde tus alumnos podrán tener clases, materiales y tareas en línea o de forma híbrida. Por ahora aparece con candado; te avisaremos cuando se habilite.',
+  },
+  {
     id: 'ges-fin',
     icon: 'CheckCircle2',
     title: '¡Listo, {nombre}!',
-    body: 'Ese es tu panel, en orden: registrar → documentar → inscribir → pagar → calificar. Puedes repetir este recorrido con el botón de ayuda (?) cuando quieras. ¡Mucho éxito con tus alumnos!',
+    body: 'Ese es tu panel, y este es el camino que seguirás con cada alumno. Puedes repetir este recorrido con el botón de ayuda (?) cuando quieras. ¡Mucho éxito con tus alumnos!',
+    illustration: 'gestorFlow',
   },
 ];
 

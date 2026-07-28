@@ -18,16 +18,24 @@ interface Props {
   rol: Rol | null | undefined;
   nombre?: string;
   municipio?: string;
+  /**
+   * Por defecto el saludo usa solo el PRIMER nombre ("¡Hola, Juan!"), que es lo
+   * natural para una persona. Cuando el "nombre" es el de una institución —el
+   * centro de asesoría del gestor, p. ej. "Centro UTEC"— conviene mostrarlo
+   * completo: pásalo en false para no truncarlo a "Centro".
+   */
+  abreviarNombre?: boolean;
 }
 
-function personalize(text: string, nombre?: string, municipio?: string): string {
-  const primerNombre = nombre?.trim().split(/\s+/)[0];
+function personalize(text: string, nombre?: string, municipio?: string, abreviar = true): string {
+  const limpio = nombre?.trim();
+  const mostrado = abreviar ? limpio?.split(/\s+/)[0] : limpio;
   return text
-    .replaceAll('{nombre}', primerNombre || 'te')
+    .replaceAll('{nombre}', mostrado || 'te')
     .replaceAll('{municipio}', municipio?.trim() || 'tu municipio');
 }
 
-export function OnboardingTour({ rol, nombre, municipio }: Props) {
+export function OnboardingTour({ rol, nombre, municipio, abreviarNombre = true }: Props) {
   const tour = useOnboarding(rol);
   const { active, step, index, total, next, prev, skip, start } = tour;
   const [rect, setRect] = useState<SpotRect | null>(null);
@@ -57,8 +65,8 @@ export function OnboardingTour({ rol, nombre, municipio }: Props) {
 
   if (!active || !step) return null;
 
-  const title = personalize(step.title, nombre, municipio);
-  const body = personalize(step.body, nombre, municipio);
+  const title = personalize(step.title, nombre, municipio, abreviarNombre);
+  const body = personalize(step.body, nombre, municipio, abreviarNombre);
   const anchor = step.anchor;
 
   return (

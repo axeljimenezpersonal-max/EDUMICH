@@ -14,6 +14,7 @@ import {
   LockOpen, ClipboardCheck, GraduationCap, Lock, CheckCheck,
   MessageCircle, ClipboardList, BookOpen, PlayCircle,
   Inbox, Search, UserCheck, QrCode, ShieldCheck, FolderOpen,
+  UserPlus,
 } from 'lucide-react';
 import type { LucideProps } from 'lucide-react';
 
@@ -48,6 +49,16 @@ const PASOS_CICLO: Paso[] = [
   { Icon: Banknote, label: 'Pago' },
   { Icon: ClipboardCheck, label: 'Examen' },
   { Icon: GraduationCap, label: 'Egreso' },
+];
+
+// El camino del gestor, en orden: registrar → documentar → inscribir → pagar →
+// calificar. Sustituye a la lista de texto del paso final del tour.
+const PASOS_GESTOR: Paso[] = [
+  { Icon: UserPlus, label: 'Registrar' },
+  { Icon: FolderOpen, label: 'Documentar' },
+  { Icon: ClipboardCheck, label: 'Inscribir' },
+  { Icon: Banknote, label: 'Pagar' },
+  { Icon: GraduationCap, label: 'Calificar' },
 ];
 
 const PASOS_SOLICITUD: Paso[] = [
@@ -385,6 +396,7 @@ function AulaNavAnimation() {
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   pagoFlow: () => <FlowAnimation pasos={PASOS_PAGO} />,
+  gestorFlow: () => <FlowAnimation pasos={PASOS_GESTOR} />,
   pruebaFlow: () => <FlowAnimation pasos={PASOS_PRUEBA} />,
   altaFlow: () => <FlowAnimation pasos={PASOS_ALTA} />,
   cicloAdmin: () => <FlowAnimation pasos={PASOS_CICLO} />,

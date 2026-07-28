@@ -152,6 +152,9 @@ export function GestorLayout({ children }: { children: ReactNode }) {
         rol={me?.rol}
         nombre={me?.perfil?.nombreCompleto}
         municipio={me?.perfil?.municipio}
+        // El "nombre" del gestor es su centro de asesoría (p. ej. "Centro UTEC"):
+        // se muestra completo, no truncado a "Centro".
+        abreviarNombre={false}
       />
     </div>
   );
