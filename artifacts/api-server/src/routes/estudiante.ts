@@ -1354,12 +1354,38 @@ router.get('/convocatoria', async (req, res) => {
     await expedienteCompleto(userId);
 
   const [estConv] = await db
-    .select({ matricula: estudiantes.matriculaOficialDGB })
+    .select({ matricula: estudiantes.matriculaOficialDGB, gestorId: estudiantes.gestorId })
     .from(estudiantes)
     .where(eq(estudiantes.userId, userId));
   const tieneMatricula = !!estConv?.matricula;
 
+  // ¿El alumno pertenece a un gestor / centro de asesoría? Si es así NO se
+  // autoinscribe: su gestor le asigna los módulos. El frontend usa esto para
+  // mostrar "contacta a tu gestor" en vez del selector de módulos.
+  let gestorAsignado: { nombre: string; telefono: string | null; email: string | null; municipio: string | null } | null = null;
+  if (estConv?.gestorId) {
+    const [g] = await db
+      .select({
+        nombreCompleto: gestores.nombreCompleto,
+        emailPublico: gestores.emailPublico,
+        telefonoPublico: gestores.telefonoPublico,
+        municipio: municipios.nombre,
+      })
+      .from(gestores)
+      .leftJoin(municipios, eq(gestores.municipioId, municipios.id))
+      .where(eq(gestores.userId, estConv.gestorId));
+    if (g) {
+      gestorAsignado = {
+        nombre: g.nombreCompleto,
+        telefono: g.telefonoPublico ?? null,
+        email: g.emailPublico ?? null,
+        municipio: g.municipio ?? null,
+      };
+    }
+  }
+
   res.json({
+    gestor: gestorAsignado,
     etapaActiva: etapaActiva
       ? {
           id: etapaActiva.id,

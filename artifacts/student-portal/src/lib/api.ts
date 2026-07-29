@@ -418,6 +418,12 @@ export interface ExamenInscrito {
 }
 
 export interface ConvocatoriaResponse {
+  /**
+   * Gestor / centro de asesoría al que pertenece el alumno. Si existe, el alumno
+   * NO se autoinscribe: su gestor le asigna los módulos. `null` = alumno
+   * independiente (sí puede inscribirse solo).
+   */
+  gestor: { nombre: string; telefono: string | null; email: string | null; municipio: string | null } | null;
   etapaActiva: EtapaConvocatoria | null;
   misExamenes: ExamenInscrito[];
   sedeAsignada: {

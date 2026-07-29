@@ -19,6 +19,9 @@ import {
   Loader2,
   X,
   Pencil,
+  UserCheck,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
@@ -721,7 +724,7 @@ export default function MiConvocatoria() {
     );
   }
 
-  const { etapaActiva, misExamenes, sedeAsignada, proximasEtapas, requisitos } = data;
+  const { gestor, etapaActiva, misExamenes, sedeAsignada, proximasEtapas, requisitos } = data;
   const tieneExamenes = misExamenes.length > 0;
 
   // IDs de módulos ya inscritos en la etapa activa
@@ -918,20 +921,71 @@ export default function MiConvocatoria() {
           </div>
         )}
 
-        {/* Módulos disponibles para inscribir (inline) */}
+        {/* Módulos disponibles para inscribir (inline).
+            Si el alumno pertenece a un gestor / centro de asesoría, NO se
+            autoinscribe: su gestor le asigna los módulos. En ese caso mostramos
+            a quién contactar en vez del selector. */}
         {requisitos.puedeInscribirse && etapaActiva && etapaActiva.estado === 'inscripcion_abierta' && (
-          <div data-tour="insc-modulos">
-          <ModulosInscripcion
-            etapa={etapaActiva}
-            calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}
-            misExamenesIds={misModulosInscritos}
-            misModulosPagados={misModulosPagados}
-            costoExamen={costoExamen}
-            hayPreinscripcion={preinscritosNoPagados.length > 0}
-            onEditarPreinscripcion={() => { setErrorEditar(null); setConfirmEditar(true); }}
-            onSuccess={() => cargarConvocatoria()}
-          />
-          </div>
+          gestor ? (
+            <div data-tour="insc-modulos" className="bg-white border border-stone-200 rounded-xl overflow-hidden">
+              <div className="px-5 py-4 border-b border-stone-100 flex items-center gap-2">
+                <BookOpen size={15} className="text-[var(--color-guinda-700)]" />
+                <h3 className="text-sm font-bold text-stone-900">Módulos disponibles para inscribir</h3>
+              </div>
+              <div className="p-5 space-y-4">
+                <div className="flex items-start gap-3 rounded-xl border p-4" style={{ borderColor: '#e8c4d4', background: 'var(--color-crema-50)' }}>
+                  <div className="rounded-lg p-2 text-white shrink-0" style={{ background: 'var(--color-guinda-700)' }}>
+                    <UserCheck size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-stone-900">Tu inscripción la realiza tu centro de asesoría</p>
+                    <p className="mt-1 text-sm leading-relaxed text-stone-600">
+                      No necesitas inscribir tus módulos por tu cuenta. Ponte en contacto con tu gestor para que
+                      te asigne los módulos que vas a presentar en esta convocatoria antes de que cierre la solicitud.
+                    </p>
+                    <div className="mt-3 rounded-lg border border-stone-200 bg-white p-3">
+                      <div className="text-[11px] font-bold uppercase tracking-widest text-stone-400">Tu gestor</div>
+                      <div className="mt-0.5 text-sm font-semibold text-stone-800">
+                        {gestor.nombre}{gestor.municipio ? ` · ${gestor.municipio}` : ''}
+                      </div>
+                      {(gestor.telefono || gestor.email) && (
+                        <div className="mt-1.5 flex flex-col gap-1 text-sm text-stone-600">
+                          {gestor.telefono && (
+                            <a href={`tel:${gestor.telefono}`} className="inline-flex items-center gap-1.5 hover:text-[var(--color-guinda-700)]">
+                              <Phone size={13} /> {gestor.telefono}
+                            </a>
+                          )}
+                          {gestor.email && (
+                            <a href={`mailto:${gestor.email}`} className="inline-flex items-center gap-1.5 hover:text-[var(--color-guinda-700)]">
+                              <Mail size={13} /> {gestor.email}
+                            </a>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <p className="text-xs leading-relaxed text-stone-500">
+                  ¿No localizas a tu gestor o tienes algún problema? Comunícate con la Secretaría desde{' '}
+                  <Link href="/estudiante/faq" className="font-semibold text-[var(--color-guinda-700)] underline">Preguntas frecuentes</Link>{' '}
+                  o acude a las oficinas de la Coordinación de Preparatoria Abierta.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div data-tour="insc-modulos">
+            <ModulosInscripcion
+              etapa={etapaActiva}
+              calendarioEtapa={calendarioLoading ? null : calendarioEtapaActiva}
+              misExamenesIds={misModulosInscritos}
+              misModulosPagados={misModulosPagados}
+              costoExamen={costoExamen}
+              hayPreinscripcion={preinscritosNoPagados.length > 0}
+              onEditarPreinscripcion={() => { setErrorEditar(null); setConfirmEditar(true); }}
+              onSuccess={() => cargarConvocatoria()}
+            />
+            </div>
+          )
         )}
 
         {/* Mis exámenes por convocatoria: próximos arriba, realizados como historial */}

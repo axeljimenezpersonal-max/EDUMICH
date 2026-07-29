@@ -98,6 +98,7 @@ const DEMO_EXPEDIENTE = {
 const DEMO_CONFIG_PAGO = { costoExamen: 131, datosBancarios: null };
 
 const DEMO_CONVOCATORIA = {
+  gestor: null,
   etapaActiva: null,
   misExamenes: [],
   sedeAsignada: null,
