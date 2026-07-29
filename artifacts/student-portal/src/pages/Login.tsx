@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
-import { GraduationCap, Lock, Mail, Loader2, Edit3, HelpCircle } from 'lucide-react';
+import { GraduationCap, Lock, Mail, Loader2, Edit3, Search, ChevronRight } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import ModulaLogo from '../components/ModulaLogo';
 
@@ -217,9 +217,19 @@ export default function Login() {
                 </div>
               </div>
 
+              {/* Si falla el acceso, la salida va JUNTO al error: es el momento
+                  exacto en que la persona se pregunta si acaso tiene cuenta. */}
               {error && (
-                <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                   {error}
+                  <a
+                    href="/encontrar-cuenta"
+                    className="group mt-2 flex items-center gap-1.5 text-[13px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]"
+                  >
+                    <Search size={13} />
+                    <span className="underline decoration-2 underline-offset-2">Buscar si ya tengo cuenta</span>
+                    <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
+                  </a>
                 </div>
               )}
 
@@ -237,40 +247,53 @@ export default function Login() {
             {/* Divisor */}
             <div className="flex items-center gap-3 mt-4 mb-3">
               <div className="flex-1 h-px bg-stone-200" />
-              <span className="text-xs text-stone-400 whitespace-nowrap">¿No tienes cuenta?</span>
+              <span className="text-xs text-stone-400 whitespace-nowrap">¿Primera vez aquí?</span>
               <div className="flex-1 h-px bg-stone-200" />
             </div>
 
-            {/* Opción de registro */}
+            {/* Dos caminos, con el mismo peso visual que el resto de Módula:
+                icono en pastilla guinda, texto legible y flecha que se desliza. */}
             <a
               href="/solicitar-cuenta"
-              className="flex items-center gap-3 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group"
+              className="group flex items-center gap-3 rounded-xl border-2 border-[var(--color-crema-200)] bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-[var(--color-guinda-700)] hover:shadow-md"
             >
-              <Edit3 size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors shrink-0" />
-              <div>
-                <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                style={{ background: 'var(--color-crema-100)', color: 'var(--color-guinda-700)' }}
+              >
+                <Edit3 size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-stone-800 group-hover:text-[var(--color-guinda-800)]">
                   Solicitar cuenta
                 </div>
-                <div className="text-[10px] text-stone-400 leading-tight">
-                  La secretaría te dará acceso
+                <div className="text-[11px] leading-tight text-stone-500">
+                  Eres nuevo: la Secretaría te dará acceso
                 </div>
               </div>
+              <ChevronRight size={18} className="shrink-0 text-stone-300 transition-all group-hover:translate-x-1 group-hover:text-[var(--color-guinda-700)]" />
             </a>
 
-            {/* ¿No recuerdas si tienes cuenta? */}
+            {/* ¿No recuerdas si tienes cuenta? → aquí picas y listo. */}
             <a
               href="/encontrar-cuenta"
-              className="mt-2 flex items-center gap-3 p-3 border border-stone-200 rounded-md bg-white hover:bg-stone-50 hover:border-[var(--color-guinda-300)] transition-colors group"
+              className="group mt-2.5 flex items-center gap-3 rounded-xl border-2 border-[var(--color-crema-200)] bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:border-[var(--color-guinda-700)] hover:shadow-md"
             >
-              <HelpCircle size={16} className="text-stone-400 group-hover:text-[var(--color-guinda-600)] transition-colors shrink-0" />
-              <div>
-                <div className="text-xs font-semibold text-stone-700 group-hover:text-[var(--color-guinda-800)]">
-                  No recuerdo si tengo cuenta
+              <span
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition-colors"
+                style={{ background: 'var(--color-crema-100)', color: 'var(--color-guinda-700)' }}
+              >
+                <Search size={18} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-bold text-stone-800 group-hover:text-[var(--color-guinda-800)]">
+                  ¿No recuerdas si tienes cuenta?
                 </div>
-                <div className="text-[10px] text-stone-400 leading-tight">
-                  Búscala por CURP o por nombre
+                <div className="text-[11px] leading-tight text-stone-500">
+                  Búscala con tu CURP o tu nombre
                 </div>
               </div>
+              <ChevronRight size={18} className="shrink-0 text-stone-300 transition-all group-hover:translate-x-1 group-hover:text-[var(--color-guinda-700)]" />
             </a>
 
             <div className="mt-4" style={{ fontSize: 11, color: '#6b635e', lineHeight: 1.4 }}>
