@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
-  FileSearch, UserCheck, MailCheck, Clock, Phone, Home,
+  FileSearch, UserCheck, MailCheck, Clock, Phone, Home, Search, ChevronRight,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
@@ -853,11 +853,40 @@ export default function SolicitarCuenta() {
             </>
           )}
 
-          {formError && (
-            <div className="text-sm text-red-700 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-              {formError}
-            </div>
-          )}
+          {formError && (() => {
+            // Si el tropiezo es porque la persona YA EXISTE (CURP o correo
+            // duplicado), el error no puede ser un callejón sin salida: ahí
+            // mismo se ofrece buscar su cuenta y recuperar el acceso.
+            const yaExiste = /ya existe|ya est[áa] registrad|duplicad|en uso/i.test(formError);
+            return (
+              <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
+                {formError}
+                {yaExiste && (
+                  <div className="mt-2.5 flex flex-col gap-1.5 border-t border-red-200 pt-2.5">
+                    <span className="text-[12px] text-red-800/80">
+                      Si ya tienes cuenta no necesitas solicitar otra: recupera tu acceso.
+                    </span>
+                    <a
+                      href="/encontrar-cuenta"
+                      className="group flex items-center gap-1.5 text-[13px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]"
+                    >
+                      <Search size={13} />
+                      <span className="underline decoration-2 underline-offset-2">Buscar mi cuenta</span>
+                      <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
+                    </a>
+                    <a
+                      href="/recuperar-password"
+                      className="group flex items-center gap-1.5 text-[13px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]"
+                    >
+                      <KeyRound size={13} />
+                      <span className="underline decoration-2 underline-offset-2">Olvidé mi contraseña</span>
+                      <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
+                    </a>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* ── Navegación entre pasos ── */}
           <div className="flex gap-3">

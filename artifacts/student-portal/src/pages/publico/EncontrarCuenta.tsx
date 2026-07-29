@@ -9,7 +9,7 @@
 import { useEffect, useState } from 'react';
 import {
   Search, User, CreditCard, Copy, Check, LogIn, MailQuestion,
-  Loader2, LifeBuoy, CheckCircle2, HelpCircle, Mail, Phone, ShieldCheck,
+  Loader2, LifeBuoy, CheckCircle2, HelpCircle, Mail, Phone, ShieldCheck, Edit3, ChevronRight,
 } from 'lucide-react';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
@@ -293,6 +293,33 @@ export default function EncontrarCuenta() {
             )}
           </div>
         )}
+
+        {/* Camino de ida: si de plano no tiene cuenta, que pueda solicitarla de
+            un clic SIN tener que buscar primero. Mismo lenguaje visual que el
+            login: pastilla guinda, texto legible y flecha que se desliza. */}
+        <a
+          href="/solicitar-cuenta"
+          className="group mt-5 flex items-center gap-3 rounded-xl border-2 bg-white p-3.5 transition-all hover:-translate-y-0.5 hover:shadow-md"
+          style={{ borderColor: 'var(--color-crema-200)' }}
+          onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--color-guinda-700)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--color-crema-200)'; }}
+        >
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg"
+            style={{ background: 'var(--color-crema-100)', color: 'var(--color-guinda-700)' }}
+          >
+            <Edit3 size={18} />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-bold text-stone-800 group-hover:text-[var(--color-guinda-800)]">
+              ¿Aún no tienes cuenta?
+            </div>
+            <div className="text-[11px] leading-tight text-stone-500">
+              Solicita tu acceso: la Secretaría lo revisa y te manda tus datos
+            </div>
+          </div>
+          <ChevronRight size={18} className="shrink-0 text-stone-300 transition-all group-hover:translate-x-1 group-hover:text-[var(--color-guinda-700)]" />
+        </a>
 
         {/* ── Contacto institucional — SIEMPRE visible ── */}
         <div className="mt-6 border-t border-stone-200 pt-4">
