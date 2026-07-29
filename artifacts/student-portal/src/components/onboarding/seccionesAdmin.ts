@@ -435,7 +435,7 @@ export const TOUR_A_ORDEN_DETALLE: TourStep[] = [
     placement: 'left',
     icon: 'FileUp',
     title: 'Cargar la orden de pago',
-    body: 'El paso clave. Pegas la LÍNEA DE CAPTURA que te dio la plataforma del Estado (queda para tu control), pones el VENCIMIENTO (te sugiere una semana a partir de hoy), opcionalmente un LINK de pago, y subes el PDF de la ficha. Con la línea, el PDF o el link basta. Al dar “Emitir orden”, el alumno ya puede pagar.',
+    body: 'El paso clave. Subes el PDF de la orden de pago que emitió la plataforma del Estado (OBLIGATORIO para emitir), pones el VENCIMIENTO (te sugiere una semana a partir de hoy), y opcionalmente pegas la LÍNEA DE CAPTURA y un LINK de pago como complemento. Al dar “Emitir orden”, el alumno ya puede pagar.',
   },
   {
     id: 'a-orddet-fin',

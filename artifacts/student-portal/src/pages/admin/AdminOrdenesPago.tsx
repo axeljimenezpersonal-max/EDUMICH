@@ -338,7 +338,9 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [id]);
 
   async function emitir() {
-    if (!linea && !orden && !link) { onToast('Captura la línea de captura o la orden', false); return; }
+    // El PDF de la orden es obligatorio para emitir (la línea y el link son
+    // complementos). Al re-emitir vale el PDF ya cargado (p.tieneOrden).
+    if (!orden && !p?.tieneOrden) { onToast('Sube el PDF de la orden de pago para poder emitir', false); return; }
     setBusy(true);
     try {
       const fd = new FormData();
@@ -605,10 +607,13 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
               </div>
               <label className={`flex items-center gap-2 border-2 border-dashed rounded-lg p-3 cursor-pointer text-sm ${orden ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)] text-[var(--color-guinda-700)]' : 'border-stone-300 text-stone-500'}`}>
                 <FileUp size={16} />
-                <span className="truncate flex-1">{orden ? orden.name : (p.tieneOrden ? 'Reemplazar orden (PDF) — opcional' : 'Orden de pago (PDF)')}</span>
+                <span className="truncate flex-1">{orden ? orden.name : (p.tieneOrden ? 'Reemplazar orden (PDF) — opcional' : 'Orden de pago (PDF) — obligatorio')}</span>
                 <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setOrden(e.target.files?.[0] ?? null)} />
               </label>
-              <button onClick={emitir} disabled={busy} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
+              {!orden && !p.tieneOrden && (
+                <p className="text-[11px] text-amber-700">Para emitir es obligatorio subir el PDF de la orden de pago del Estado.</p>
+              )}
+              <button onClick={emitir} disabled={busy || (!orden && !p.tieneOrden)} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 disabled:cursor-not-allowed">
                 {busy ? <Loader2 size={15} className="animate-spin" /> : editando ? <Check size={15} /> : <FileUp size={15} />} {editando ? 'Guardar cambios' : 'Emitir orden'}
               </button>
               </div>

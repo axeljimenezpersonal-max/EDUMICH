@@ -961,8 +961,11 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
       fechaVencimiento?: string;
       linkPago?: string;
     };
-    if (!lineaCaptura && !req.file && !linkPago) {
-      return res.status(400).json({ error: 'Captura al menos la línea de captura o la orden de pago' });
+    // Regla: para EMITIR es obligatorio el PDF de la orden de pago del Estado.
+    // La línea de captura y el link son complementos opcionales. Al re-emitir se
+    // acepta el PDF que ya estaba cargado (no obliga a volver a subirlo).
+    if (!req.file && !p.ordenPagoPath) {
+      return res.status(400).json({ error: 'Sube el PDF de la orden de pago del Estado para poder emitir.' });
     }
 
     // Se puede emitir desde pendiente_emision/vencido, y RE-emitir (actualizar)
