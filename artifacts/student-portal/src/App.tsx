@@ -82,6 +82,7 @@ import DireccionReportes from './pages/direccion/DireccionReportes';
 import DireccionUso from './pages/direccion/DireccionUso';
 import DireccionInsights from './pages/direccion/DireccionInsights';
 import DireccionPadron from './pages/direccion/DireccionPadron';
+import DireccionCentros from './pages/direccion/DireccionCentros';
 import DireccionAcceso from './pages/direccion/DireccionAcceso';
 import DireccionNotas from './pages/direccion/DireccionNotas';
 import DireccionBitacora from './pages/direccion/DireccionBitacora';
@@ -228,6 +229,7 @@ export default function App() {
       <Route path="/direccion/insights" component={DireccionInsights} />
       <Route path="/direccion/uso" component={DireccionUso} />
       <Route path="/direccion/padron" component={DireccionPadron} />
+      <Route path="/direccion/centros" component={DireccionCentros} />
       <Route path="/direccion/acceso" component={DireccionAcceso} />
       <Route path="/direccion/bitacora" component={DireccionBitacora} />
       <Route path="/direccion/notas" component={DireccionNotas} />

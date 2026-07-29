@@ -12,7 +12,7 @@ import { useEffect, useState } from 'react';
 import { useLocation } from 'wouter';
 import {
   LogOut, LayoutDashboard, GraduationCap, Activity, TrendingUp,
-  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle, Menu, X, MousePointerClick, Gem, Database, UserPlus, StickyNote, ClipboardList,
+  BarChart2, HeartPulse, Eye, ShieldCheck, HelpCircle, Menu, X, MousePointerClick, Gem, Database, UserPlus, StickyNote, ClipboardList, Building2,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AppFooter } from '../../components/AppFooter';
@@ -81,6 +81,7 @@ export function DireccionLayout({ children }: { children: React.ReactNode }) {
     { href: '/direccion/proyecciones', icon: TrendingUp,      label: 'Proyecciones',      tour: 'nav-proyecciones' },
     { href: '/direccion/reportes',     icon: BarChart2,       label: 'Reportes',          tour: 'nav-reportes' },
     { href: '/direccion/uso',          icon: MousePointerClick, label: 'Uso de la plataforma', tour: 'nav-uso' },
+    { href: '/direccion/centros',      icon: Building2,       label: 'Centros de asesoría', tour: 'nav-centros' },
     { href: '/direccion/padron',       icon: Database,        label: 'Padrón histórico',  tour: 'nav-padron' },
     { href: '/direccion/acceso',       icon: UserPlus,        label: 'Accesos',           tour: 'nav-acceso' },
     { href: '/direccion/bitacora',     icon: ClipboardList,   label: 'Bitácora',          tour: 'nav-bitacora' },

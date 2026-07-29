@@ -1137,6 +1137,33 @@ export const examenesInscripciones = pgTable(
 );
 
 /**
+ * PADRÓN DE CENTROS DE ASESORÍA — lista maestra que entrega la coordinación.
+ *
+ * Es un catálogo de referencia, NO son cuentas: un centro puede estar en el
+ * padrón sin tener todavía su gestor dado de alta. `activo` marca si el centro
+ * opera en el ciclo actual (se da de baja sin borrarlo, para conservar historia).
+ * `gestorUserId` enlaza con la cuenta real cuando ya existe.
+ */
+export const centrosPadron = pgTable(
+  'centros_padron',
+  {
+    id: serial('id').primaryKey(),
+    centro: varchar('centro', { length: 200 }).notNull(),
+    rfc: varchar('rfc', { length: 13 }),
+    contacto: varchar('contacto', { length: 150 }),
+    municipio: varchar('municipio', { length: 120 }),
+    activo: boolean('activo').notNull().default(true),
+    notas: text('notas'),
+    gestorUserId: integer('gestor_user_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    centroIdx: uniqueIndex('centros_padron_centro_idx').on(t.centro),
+  })
+);
+
+/**
  * Observaciones de la RELACIÓN DE EXÁMENES SOLICITADOS, por alumno y etapa. Las
  * captura la administración y aparecen en la columna OBSERVACIONES del PDF
  * oficial que el centro entrega al Departamento. Una sola por (etapa, alumno):

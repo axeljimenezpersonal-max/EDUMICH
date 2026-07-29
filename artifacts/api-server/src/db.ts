@@ -460,6 +460,19 @@ const migrations = [
      updated_at timestamp NOT NULL DEFAULT now()
    )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS relacion_observaciones_etapa_est_idx ON relacion_observaciones (etapa_id, estudiante_id)`,
+  `CREATE TABLE IF NOT EXISTS centros_padron (
+     id serial PRIMARY KEY,
+     centro varchar(200) NOT NULL,
+     rfc varchar(13),
+     contacto varchar(150),
+     municipio varchar(120),
+     activo boolean NOT NULL DEFAULT true,
+     notas text,
+     gestor_user_id integer REFERENCES users(id) ON DELETE SET NULL,
+     created_at timestamp NOT NULL DEFAULT now(),
+     updated_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS centros_padron_centro_idx ON centros_padron (centro)`,
 ];
 
 export async function runStartupMigrations() {

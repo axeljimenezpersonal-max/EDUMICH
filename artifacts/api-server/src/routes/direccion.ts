@@ -34,6 +34,7 @@ import {
   outbox,
   notasCreador,
   auditLog,
+  centrosPadron,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { patronLike } from '../utils/like';
@@ -1206,6 +1207,134 @@ router.post('/accesos/:userId/reactivar', async (req, res) => {
   } catch (e) {
     console.error('[direccion/accesos/reactivar]', e);
     res.status(500).json({ error: 'No se pudo reactivar la cuenta' });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// PADRÓN DE CENTROS DE ASESORÍA
+// Lista maestra de la coordinación, cruzada con los gestores REALES del
+// sistema. Un centro puede existir en el padrón sin tener cuenta todavía.
+// ─────────────────────────────────────────────────────────────────────────
+
+/** Normaliza para comparar nombres de centro: sin acentos, sin puntuación. */
+function claveCentro(s: string | null): string {
+  return (s ?? '')
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
+router.get('/centros', async (_req, res) => {
+  try {
+    const padron = await db.select().from(centrosPadron).orderBy(centrosPadron.centro);
+
+    // Gestores reales, con su municipio y cuántos alumnos tienen a cargo.
+    const reales = await db
+      .select({
+        userId: gestores.userId,
+        nombreCompleto: gestores.nombreCompleto,
+        centroAsesoria: gestores.centroAsesoria,
+        rfcCentro: gestores.rfcCentro,
+        municipio: municipios.nombre,
+      })
+      .from(gestores)
+      .leftJoin(municipios, eq(gestores.municipioId, municipios.id));
+
+    const alumnosPorGestor = await db
+      .select({ gestorId: estudiantes.gestorId, n: count() })
+      .from(estudiantes)
+      .groupBy(estudiantes.gestorId);
+    const conteo = new Map<number, number>();
+    for (const a of alumnosPorGestor) if (a.gestorId != null) conteo.set(a.gestorId, Number(a.n));
+
+    // Índices para cruzar: por nombre normalizado y por RFC.
+    const porNombre = new Map<string, typeof reales[number]>();
+    const porRfc = new Map<string, typeof reales[number]>();
+    for (const g of reales) {
+      const k = claveCentro(g.centroAsesoria);
+      if (k) porNombre.set(k, g);
+      const r = (g.rfcCentro ?? '').toUpperCase().trim();
+      if (r) porRfc.set(r, g);
+    }
+
+    const usados = new Set<number>();
+    const filas = padron.map((c) => {
+      // Enlace explícito primero; si no, se busca por nombre y luego por RFC.
+      let g = c.gestorUserId != null ? reales.find((x) => x.userId === c.gestorUserId) : undefined;
+      if (!g) g = porNombre.get(claveCentro(c.centro));
+      if (!g && c.rfc) g = porRfc.get(c.rfc.toUpperCase().trim());
+      if (g) usados.add(g.userId);
+      return {
+        id: c.id,
+        centro: c.centro,
+        rfc: c.rfc,
+        contacto: c.contacto,
+        municipio: c.municipio,
+        activo: c.activo,
+        notas: c.notas,
+        cuenta: g
+          ? { userId: g.userId, nombre: g.nombreCompleto, municipio: g.municipio, alumnos: conteo.get(g.userId) ?? 0 }
+          : null,
+      };
+    });
+
+    // Gestores con cuenta que NO aparecen en el padrón (para no perderlos de vista).
+    const fueraDelPadron = reales
+      .filter((g) => !usados.has(g.userId))
+      .map((g) => ({
+        userId: g.userId,
+        nombre: g.nombreCompleto,
+        centro: g.centroAsesoria,
+        rfc: g.rfcCentro,
+        municipio: g.municipio,
+        alumnos: conteo.get(g.userId) ?? 0,
+      }));
+
+    res.json({
+      centros: filas,
+      fueraDelPadron,
+      resumen: {
+        total: filas.length,
+        activos: filas.filter((f) => f.activo).length,
+        conCuenta: filas.filter((f) => f.cuenta).length,
+        sinRfc: filas.filter((f) => !f.rfc).length,
+        sinContacto: filas.filter((f) => !f.contacto).length,
+      },
+    });
+  } catch (e) {
+    console.error('[direccion/centros]', e);
+    res.status(500).json({ error: 'Error al cargar el padrón de centros' });
+  }
+});
+
+const centroPatchSchema = z.object({
+  activo: z.boolean().optional(),
+  rfc: z.string().max(13).nullable().optional(),
+  contacto: z.string().max(150).nullable().optional(),
+  municipio: z.string().max(120).nullable().optional(),
+  notas: z.string().max(500).nullable().optional(),
+});
+
+router.patch('/centros/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) { res.status(400).json({ error: 'ID inválido' }); return; }
+    const parse = centroPatchSchema.safeParse(req.body);
+    if (!parse.success) { res.status(400).json({ error: 'Datos inválidos' }); return; }
+    const cambios = parse.data;
+    if (Object.keys(cambios).length === 0) { res.status(400).json({ error: 'Nada que actualizar' }); return; }
+
+    await db.update(centrosPadron)
+      .set({ ...cambios, updatedAt: new Date() })
+      .where(eq(centrosPadron.id, id));
+
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'editar_centro_padron', entidad: 'centros_padron', entidadId: id,
+      detalle: `Creador actualizó el centro ${id}`, metadata: cambios, req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[direccion/centros PATCH]', e);
+    res.status(500).json({ error: 'No se pudo actualizar el centro' });
   }
 });
 
