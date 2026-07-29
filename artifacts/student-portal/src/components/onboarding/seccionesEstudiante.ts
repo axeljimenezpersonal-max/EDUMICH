@@ -93,6 +93,7 @@ export const TOUR_EXPEDIENTE: TourStep[] = [
     icon: 'FolderOpen',
     title: 'Tu Expediente',
     body: 'Aquí reúnes todo lo que la administración necesita para inscribirte: tus datos y tus documentos oficiales. Es el primer paso de tu proceso; te lo explico bloque por bloque.',
+    illustration: 'expedienteAlumno',
   },
   {
     id: 'exp-progreso',
@@ -101,6 +102,7 @@ export const TOUR_EXPEDIENTE: TourStep[] = [
     icon: 'BarChart3',
     title: 'Tu avance',
     body: 'Esta barra te dice cuántos de tus documentos obligatorios ya fueron aprobados y cuántos subiste que están en revisión. Tu meta: los 5 aprobados.',
+    illustration: 'docsAprobados',
   },
   {
     id: 'exp-matricula',
@@ -125,6 +127,7 @@ export const TOUR_EXPEDIENTE: TourStep[] = [
     icon: 'FileCheck2',
     title: 'Documentos obligatorios',
     body: 'Los 5 que sí o sí necesitas: CURP, acta de nacimiento, INE, comprobante de domicilio y certificado de secundaria. Toca cada uno para subir tu archivo (PDF o foto). La administración los revisa y te avisa si aprueba o pide corregir. Aquí abajo también consultas tu cédula de inscripción.',
+    illustration: 'docFlujo',
   },
   {
     id: 'exp-credencial',

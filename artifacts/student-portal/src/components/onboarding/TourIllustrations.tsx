@@ -139,6 +139,14 @@ const PASOS_ID_EST: Paso[] = [
   { Icon: CalendarCheck, label: 'Día del examen' },
 ];
 
+// Ciclo de un documento del expediente: lo subes, la administración lo revisa y
+// queda aprobado.
+const PASOS_DOC: Paso[] = [
+  { Icon: Upload, label: 'Subes' },
+  { Icon: ClipboardCheck, label: 'En revisión' },
+  { Icon: BadgeCheck, label: 'Aprobado' },
+];
+
 function usePrefiereMenosMovimiento(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
@@ -882,10 +890,69 @@ function InicioAlumnoAnimation() {
   );
 }
 
+/**
+ * Los 5 documentos obligatorios del expediente se van aprobando uno a uno hasta
+ * 5/5. Comunica la meta de la barra de avance sin depender de texto.
+ */
+function DocsAprobadosAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [n, setN] = useState(reduce ? 5 : 0);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setN((v) => (v >= 5 ? 0 : v + 1)), 700);
+    return () => clearInterval(t);
+  }, [reduce]);
+  const docs = ['CURP', 'Acta', 'INE', 'Domicilio', 'Secundaria'];
+  return (
+    <div
+      className="mt-4 rounded-xl border px-3 py-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[9px] font-bold uppercase tracking-[0.14em]" style={{ color: '#a8a29e' }}>Documentos aprobados</span>
+        <motion.span
+          key={n}
+          className="rounded-full px-2 py-0.5 text-[10px] font-bold text-white"
+          style={{ background: n >= 5 ? '#15803d' : 'var(--color-guinda-700)' }}
+          initial={{ scale: 0.8 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 340, damping: 18 }}
+        >
+          {n}/5
+        </motion.span>
+      </div>
+      <div className="flex gap-1.5">
+        {docs.map((d, i) => {
+          const ok = i < n;
+          return (
+            <div key={d} className="flex flex-1 flex-col items-center gap-1">
+              <motion.span
+                className="flex h-8 w-full items-center justify-center rounded-lg border"
+                initial={false}
+                animate={{
+                  background: ok ? 'var(--color-guinda-700)' : '#ffffff',
+                  borderColor: ok ? 'var(--color-guinda-700)' : 'var(--color-crema-200)',
+                }}
+                transition={{ duration: 0.3 }}
+              >
+                {ok ? <BadgeCheck size={15} color="#ffffff" strokeWidth={2.4} /> : <FileText size={15} color="#a8a29e" strokeWidth={2.2} />}
+              </motion.span>
+              <span className="text-center text-[8px] font-semibold leading-tight" style={{ color: ok ? 'var(--color-guinda-700)' : '#a8a29e' }}>{d}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   buscadorSmart: BuscadorAnimation,
   inicioAlumno: InicioAlumnoAnimation,
+  docsAprobados: DocsAprobadosAnimation,
+  docFlujo: () => <FlowAnimation pasos={PASOS_DOC} />,
   caminoAlumno: () => <FlowAnimation pasos={PASOS_CAMINO} />,
   expedienteAlumno: () => <FlowAnimation pasos={PASOS_EXPEDIENTE} />,
   inscribeAlumno: () => <FlowAnimation pasos={PASOS_INSCRIBE_EST} />,
