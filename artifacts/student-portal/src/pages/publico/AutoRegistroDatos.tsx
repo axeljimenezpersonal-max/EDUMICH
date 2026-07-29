@@ -254,15 +254,22 @@ export default function AutoRegistroDatos() {
             <div className="space-y-2">
               <input value={form.calleNumero} onChange={set('calleNumero')} className="gov-input" placeholder="Calle y número" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {/* CP primero: autollena estado/ciudad y ofrece las colonias. */}
+                {/* CP primero: autollena estado/ciudad y ofrece las colonias.
+                    Con etiqueta por casilla: cuatro campos seguidos sin rótulo
+                    invitan a escribir el dato en el hueco equivocado. */}
+                <div>
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Código postal</span>
                 <input
                   value={form.cp}
                   onChange={(e) => setForm((f) => ({ ...f, cp: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
                   inputMode="numeric"
                   maxLength={5}
                   className="gov-input"
-                  placeholder="Código postal"
+                  placeholder="58280"
                 />
+                </div>
+                <div>
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Colonia</span>
                 {coloniasCp.length > 0 && !coloniaManualCp ? (
                   <select
                     value={form.colonia}
@@ -277,10 +284,17 @@ export default function AutoRegistroDatos() {
                     <option value="__otra__">Otra… (escribirla)</option>
                   </select>
                 ) : (
-                  <input value={form.colonia} onChange={set('colonia')} className="gov-input" placeholder="Colonia" />
+                  <input value={form.colonia} onChange={set('colonia')} className="gov-input" placeholder="Escribe tu colonia" />
                 )}
-                <input value={form.ciudad} onChange={set('ciudad')} className="gov-input" placeholder="Ciudad / municipio" />
-                <input value={form.estadoDomicilio} onChange={set('estadoDomicilio')} className="gov-input" placeholder="Estado" />
+                </div>
+                <div>
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Ciudad / municipio</span>
+                <input value={form.ciudad} onChange={set('ciudad')} className="gov-input" placeholder="Morelia" />
+                </div>
+                <div>
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Estado</span>
+                <input value={form.estadoDomicilio} onChange={set('estadoDomicilio')} className="gov-input" placeholder="Michoacán" />
+                </div>
               </div>
               <p className="text-[11px] text-stone-400">
                 {buscandoCp

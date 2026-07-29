@@ -713,15 +713,22 @@ export default function SolicitarCuenta() {
                   <input value={form.calleNumero} onChange={setField('calleNumero')} className="gov-input" placeholder="Calle y número" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {/* El CP va PRIMERO: al escribirlo se llena estado/ciudad y
-                        la colonia se elige de lista (catálogo SEPOMEX). */}
+                        la colonia se elige de lista (catálogo SEPOMEX). Cada
+                        casilla lleva su etiqueta: sin ella la gente escribía el
+                        CP en el hueco donde antes estaba. */}
+                    <div>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Código postal</span>
                     <input
                       value={form.cp}
                       onChange={(e) => setForm((f) => ({ ...f, cp: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
                       inputMode="numeric"
                       maxLength={5}
                       className="gov-input"
-                      placeholder="Código postal"
+                      placeholder="58280"
                     />
+                    </div>
+                    <div>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Colonia</span>
                     {coloniasCp.length > 0 && !coloniaManualCp ? (
                       <select
                         value={form.colonia}
@@ -736,8 +743,9 @@ export default function SolicitarCuenta() {
                         <option value="__otra__">Otra… (escribirla)</option>
                       </select>
                     ) : (
-                      <input value={form.colonia} onChange={setField('colonia')} className="gov-input" placeholder="Colonia" />
+                      <input value={form.colonia} onChange={setField('colonia')} className="gov-input" placeholder="Escribe tu colonia" />
                     )}
+                    </div>
                   </div>
                   <p className="text-[11px] text-stone-400">
                     {buscandoCp
