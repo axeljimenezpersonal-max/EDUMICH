@@ -64,13 +64,16 @@ export async function generarRelacionExamenes(
   const rows = await db.execute<{
     matricula: string | null; apellido_paterno: string | null; apellido_materno: string | null;
     nombres: string | null; nombre_completo: string; curp: string | null; modulos: number[];
+    observaciones: string | null;
   }>(sql`
     SELECT e.matricula_oficial_dgb AS matricula, e.apellido_paterno, e.apellido_materno,
            e.nombres, e.nombre_completo, e.curp,
-           array_agg(m.numero ORDER BY m.numero) AS modulos
+           array_agg(m.numero ORDER BY m.numero) AS modulos,
+           max(ro.texto) AS observaciones
     FROM examenes_inscripciones ei
     JOIN estudiantes e ON e.user_id = ei.estudiante_id
     JOIN modulos m ON m.id = ei.modulo_id
+    LEFT JOIN relacion_observaciones ro ON ro.etapa_id = ei.etapa_id AND ro.estudiante_id = e.user_id
     WHERE ei.etapa_id = ${etapaId} AND e.gestor_id = ${gestorId} AND ei.estado <> 'cancelado'
     GROUP BY e.user_id, e.matricula_oficial_dgb, e.apellido_paterno, e.apellido_materno, e.nombres, e.nombre_completo, e.curp
     ORDER BY e.apellido_paterno NULLS LAST, e.apellido_materno NULLS LAST, e.nombres NULLS LAST
@@ -191,6 +194,15 @@ export async function generarRelacionExamenes(
     ['m1', 'm2', 'm3', 'm4'].forEach((k, i) => { if (mods[i] != null) cell(k, String(mods[i]), true); });
     cell('curp', r.curp ?? '');
     cell('importe', String(importe), true);
+    // Observaciones: texto libre capturado por la administración. Se recorta
+    // para caber en la celda (el formato oficial es de una sola línea).
+    if (r.observaciones) {
+      const oc = cols.find((c) => c.key === 'obs')!;
+      const maxW = oc.w - 6;
+      let obsTxt = r.observaciones;
+      while (obsTxt.length > 1 && reg.widthOfTextAtSize(S(obsTxt), 6.5) > maxW) obsTxt = obsTxt.slice(0, -1);
+      text(page, obsTxt, oc.x + 3, y - 10.5, 6.5, reg);
+    }
 
     // líneas verticales de la fila
     for (const c of cols) if (c.x > M) page.drawLine({ start: { x: c.x, y: y - rowH }, end: { x: c.x, y }, thickness: 0.4, color: LINEA_SUAVE });

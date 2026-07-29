@@ -10,7 +10,7 @@ import { useEffect, useState } from 'react';
 import {
   Landmark, Plus, Search, Loader2, ChevronLeft, FileUp, CheckCircle2,
   XCircle, Ban, Copy, Check, Download, BarChart3, Clock, AlertCircle, ClipboardList, X,
-  Lock, Pencil, ExternalLink, FileText,
+  Lock, Pencil, ExternalLink, FileText, MessageSquare,
 } from 'lucide-react';
 import { Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
@@ -310,13 +310,30 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
   const [notas, setNotas] = useState('');
   const [editando, setEditando] = useState(false);
   const [modal, setModal] = useState<null | 'editar' | 'cancelar' | 'rechazar'>(null);
+  // Observaciones de la relación por alumno (etapa+alumno). Editables por admin.
+  const [obs, setObs] = useState<Record<number, string>>({});
+  const [editObs, setEditObs] = useState<number | null>(null); // estudianteId en edición
+  const [borradorObs, setBorradorObs] = useState('');
+  const [savingObs, setSavingObs] = useState(false);
 
   function cargar() {
     setLoading(true);
     return api.get<PagoExamenAdmin>(`/pagos-examen/${id}/detalle`)
-      .then((d) => { setP(d); setLinea(d.lineaCaptura ?? ''); setVenc(d.fechaVencimiento ?? d.vencimientoSugerido ?? ''); setLink(d.linkPago ?? ''); setNotas(d.notas ?? ''); })
+      .then((d) => { setP(d); setLinea(d.lineaCaptura ?? ''); setVenc(d.fechaVencimiento ?? d.vencimientoSugerido ?? ''); setLink(d.linkPago ?? ''); setNotas(d.notas ?? ''); setObs(d.observaciones ?? {}); })
       .catch(() => onToast('Error al cargar', false))
       .finally(() => setLoading(false));
+  }
+
+  async function guardarObs(estudianteId: number) {
+    if (p?.etapaId == null) { onToast('Esta ficha no tiene etapa; no se puede anotar.', false); return; }
+    const texto = borradorObs.trim();
+    setSavingObs(true);
+    try {
+      await api.put('/pagos-examen/observacion', { etapaId: p.etapaId, estudianteId, texto });
+      setObs((s) => ({ ...s, [estudianteId]: texto }));
+      setEditObs(null);
+      onToast('Observación guardada');
+    } catch (e) { onToast(e instanceof Error ? e.message : 'Error al guardar', false); } finally { setSavingObs(false); }
   }
   useEffect(() => { cargar(); /* eslint-disable-next-line */ }, [id]);
 
@@ -404,13 +421,56 @@ function Detalle({ id, onBack, onToast }: { id: number; onBack: () => void; onTo
                       )}
                     </div>
                     {grupo.estudianteId != null && (
-                      <Link
-                        href={`/admin/alumnos/${grupo.estudianteId}`}
-                        className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-300 text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)]">
-                        <ExternalLink size={12} /> Ver alumno
-                      </Link>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          onClick={() => { setEditObs(grupo.estudianteId!); setBorradorObs(obs[grupo.estudianteId!] ?? ''); }}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-300 text-stone-600 hover:bg-[var(--color-crema-100)] hover:text-[var(--color-guinda-700)]"
+                        >
+                          <MessageSquare size={12} /> {obs[grupo.estudianteId] ? 'Editar observación' : 'Observaciones'}
+                        </button>
+                        <Link
+                          href={`/admin/alumnos/${grupo.estudianteId}`}
+                          className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-lg border border-stone-300 text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)]">
+                          <ExternalLink size={12} /> Ver alumno
+                        </Link>
+                      </div>
                     )}
                   </div>
+
+                  {/* Observaciones de la relación (columna OBSERVACIONES del PDF oficial) */}
+                  {grupo.estudianteId != null && editObs === grupo.estudianteId ? (
+                    <div className="mt-2.5 rounded-lg border border-[var(--color-guinda-300,#e8c4d4)] bg-[var(--color-crema-50)] p-2.5">
+                      <div className="text-[10px] font-bold uppercase tracking-wide text-stone-500 mb-1">Observación para la relación de exámenes</div>
+                      <textarea
+                        value={borradorObs}
+                        onChange={(ev) => setBorradorObs(ev.target.value.slice(0, 500))}
+                        rows={2}
+                        autoFocus
+                        placeholder="Ej. Alumno de reingreso · Falta certificado · Pago pendiente…"
+                        className="w-full resize-none rounded-md border border-stone-300 px-2.5 py-1.5 text-sm focus:border-[var(--color-guinda-700)] focus:outline-none"
+                      />
+                      <div className="mt-1.5 flex items-center justify-between">
+                        <span className="text-[10px] text-stone-400">{borradorObs.length}/500 · aparece en el PDF</span>
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => setEditObs(null)} disabled={savingObs} className="text-xs font-semibold px-2.5 py-1.5 rounded-lg text-stone-500 hover:text-stone-700">Cancelar</button>
+                          <button
+                            onClick={() => guardarObs(grupo.estudianteId!)}
+                            disabled={savingObs}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg text-white disabled:opacity-50"
+                            style={{ background: 'var(--color-guinda-700)' }}
+                          >
+                            {savingObs ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />} Guardar
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : grupo.estudianteId != null && obs[grupo.estudianteId] ? (
+                    <div className="mt-2 flex items-start gap-1.5 rounded-lg bg-[var(--color-crema-50)] border border-stone-200 px-2.5 py-1.5">
+                      <MessageSquare size={12} className="mt-0.5 shrink-0 text-[var(--color-guinda-700)]" />
+                      <span className="text-[12px] text-stone-600 leading-snug">{obs[grupo.estudianteId]}</span>
+                    </div>
+                  ) : null}
+
                   <div className="mt-2.5 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {grupo.examenes.map((e) => (
                       <div key={e.inscripcionId} className="flex items-center gap-2 rounded-lg border border-stone-200 bg-stone-50/70 pl-1.5 pr-2.5 py-1.5">

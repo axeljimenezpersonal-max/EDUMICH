@@ -27,6 +27,7 @@ import {
   convocatoriasEtapas,
   municipios,
   users,
+  relacionObservaciones,
 } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
 import { nombreArchivoUtf8 } from '../utils/archivo';
@@ -804,9 +805,44 @@ router.get('/:id/detalle', async (req, res) => {
         .limit(1);
     }
     const { fechaExamen, vencimientoSugerido } = await fechasDeEtapa(det.pago.etapaId);
-    return res.json({ ...vistaAdmin(det.pago, det.items), alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp, fechaExamen, vencimientoSugerido, centroFiscal: await centroFiscalDeFicha(det.pago.gestorId) });
+    const vista = vistaAdmin(det.pago, det.items);
+    // Observaciones por (etapa, alumno) para los alumnos de esta ficha. Se
+    // capturan en el detalle y salen en la columna OBSERVACIONES del PDF oficial.
+    const estIds = [...new Set(vista.examenes.map((e: { estudianteId: number | null }) => e.estudianteId).filter((x): x is number => x != null))];
+    const observaciones: Record<number, string> = {};
+    if (det.pago.etapaId != null && estIds.length > 0) {
+      const obs = await db
+        .select({ estudianteId: relacionObservaciones.estudianteId, texto: relacionObservaciones.texto })
+        .from(relacionObservaciones)
+        .where(and(eq(relacionObservaciones.etapaId, det.pago.etapaId), inArray(relacionObservaciones.estudianteId, estIds)));
+      for (const o of obs) observaciones[o.estudianteId] = o.texto;
+    }
+    return res.json({ ...vista, alumno: alu?.nombre ?? (det.pago.cantidadExamenes > 1 ? 'Ficha grupal' : '—'), matricula: alu?.matricula, curp: alu?.curp, fechaExamen, vencimientoSugerido, centroFiscal: await centroFiscalDeFicha(det.pago.gestorId), observaciones });
   } catch {
     return res.status(500).json({ error: 'Error al obtener detalle' });
+  }
+});
+
+// PUT /api/pagos-examen/observacion — admin guarda/edita la observación de la
+// RELACIÓN DE EXÁMENES por (etapa, alumno). Solo administración.
+router.put('/observacion', async (req, res) => {
+  if (!esAdmin(req.user!.rol)) return res.status(403).json({ error: 'Solo administración' });
+  try {
+    const { etapaId, estudianteId, texto } = req.body as { etapaId?: number; estudianteId?: number; texto?: string };
+    if (!Number.isInteger(etapaId) || !Number.isInteger(estudianteId)) {
+      return res.status(400).json({ error: 'Datos inválidos' });
+    }
+    const limpio = String(texto ?? '').trim().slice(0, 500);
+    await db
+      .insert(relacionObservaciones)
+      .values({ etapaId: etapaId!, estudianteId: estudianteId!, texto: limpio, actualizadoPorUserId: req.user!.userId, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: [relacionObservaciones.etapaId, relacionObservaciones.estudianteId],
+        set: { texto: limpio, actualizadoPorUserId: req.user!.userId, updatedAt: new Date() },
+      });
+    return res.json({ ok: true, texto: limpio });
+  } catch {
+    return res.status(500).json({ error: 'No se pudo guardar la observación' });
   }
 });
 

@@ -1137,6 +1137,31 @@ export const examenesInscripciones = pgTable(
 );
 
 /**
+ * Observaciones de la RELACIÓN DE EXÁMENES SOLICITADOS, por alumno y etapa. Las
+ * captura la administración y aparecen en la columna OBSERVACIONES del PDF
+ * oficial que el centro entrega al Departamento. Una sola por (etapa, alumno):
+ * la nota vale para toda la etapa, sin importar en qué ficha esté el alumno.
+ */
+export const relacionObservaciones = pgTable(
+  'relacion_observaciones',
+  {
+    id: serial('id').primaryKey(),
+    etapaId: integer('etapa_id')
+      .notNull()
+      .references(() => convocatoriasEtapas.id, { onDelete: 'cascade' }),
+    estudianteId: integer('estudiante_id')
+      .notNull()
+      .references(() => estudiantes.userId, { onDelete: 'cascade' }),
+    texto: text('texto').notNull().default(''),
+    actualizadoPorUserId: integer('actualizado_por_user_id').references(() => users.id, { onDelete: 'set null' }),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+  },
+  (t) => ({
+    etapaEstudianteIdx: uniqueIndex('relacion_observaciones_etapa_est_idx').on(t.etapaId, t.estudianteId),
+  })
+);
+
+/**
  * Sedes habilitadas por etapa de convocatoria.
  *
  * El modelo canónico: la CONVOCATORIA (etapa) define en qué sedes se puede

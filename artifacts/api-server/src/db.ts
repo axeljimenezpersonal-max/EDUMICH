@@ -451,6 +451,15 @@ const migrations = [
    )`,
   `CREATE INDEX IF NOT EXISTS codigos_postales_cp_idx ON codigos_postales (cp)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS codigos_postales_cp_colonia_uq ON codigos_postales (cp, colonia)`,
+  `CREATE TABLE IF NOT EXISTS relacion_observaciones (
+     id serial PRIMARY KEY,
+     etapa_id integer NOT NULL REFERENCES convocatorias_etapas(id) ON DELETE CASCADE,
+     estudiante_id integer NOT NULL REFERENCES estudiantes(user_id) ON DELETE CASCADE,
+     texto text NOT NULL DEFAULT '',
+     actualizado_por_user_id integer REFERENCES users(id) ON DELETE SET NULL,
+     updated_at timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS relacion_observaciones_etapa_est_idx ON relacion_observaciones (etapa_id, estudiante_id)`,
 ];
 
 export async function runStartupMigrations() {

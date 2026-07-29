@@ -963,6 +963,8 @@ export interface PagoExamenAdmin extends PagoExamenAlumno {
   etapaClave?: string | null;
   fechaExamen?: string | null;
   vencimientoSugerido?: string | null;
+  /** Observaciones de la relación de exámenes por alumno (clave = estudianteId). */
+  observaciones?: Record<number, string>;
 }
 
 export interface PagoExamenCandidato {
