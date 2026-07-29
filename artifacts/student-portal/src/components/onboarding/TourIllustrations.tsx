@@ -106,6 +106,39 @@ const PASOS_VERIFICA: Paso[] = [
   { Icon: FolderOpen, label: 'Expediente' },
 ];
 
+// El camino del ALUMNO, en orden: los 4 pasos de su trámite. Es la animación de
+// bienvenida y el remate del tour.
+const PASOS_CAMINO: Paso[] = [
+  { Icon: FolderOpen, label: 'Expediente' },
+  { Icon: CalendarCheck, label: 'Inscríbete' },
+  { Icon: Banknote, label: 'Pagas' },
+  { Icon: GraduationCap, label: 'Examen' },
+];
+
+// Armar el expediente: 5 documentos + foto → revisión → matrícula oficial.
+const PASOS_EXPEDIENTE: Paso[] = [
+  { Icon: FolderOpen, label: '5 documentos' },
+  { Icon: Upload, label: 'Tu foto' },
+  { Icon: ClipboardCheck, label: 'Revisión' },
+  { Icon: IdCard, label: 'Matrícula' },
+];
+
+// Inscripción del alumno: abre la convocatoria → eliges módulos → sede y fecha
+// → quedas inscrito.
+const PASOS_INSCRIBE_EST: Paso[] = [
+  { Icon: CalendarCheck, label: 'Convocatoria' },
+  { Icon: ClipboardCheck, label: 'Módulos' },
+  { Icon: Landmark, label: 'Sede y fecha' },
+  { Icon: BadgeCheck, label: 'Inscrito' },
+];
+
+// Herramientas de identidad: tu credencial y tu pase QR para el día del examen.
+const PASOS_ID_EST: Paso[] = [
+  { Icon: IdCard, label: 'Credencial' },
+  { Icon: QrCode, label: 'Pase QR' },
+  { Icon: CalendarCheck, label: 'Día del examen' },
+];
+
 function usePrefiereMenosMovimiento(): boolean {
   const [reduce, setReduce] = useState(false);
   useEffect(() => {
@@ -769,6 +802,10 @@ function BuscadorAnimation() {
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   buscadorSmart: BuscadorAnimation,
+  caminoAlumno: () => <FlowAnimation pasos={PASOS_CAMINO} />,
+  expedienteAlumno: () => <FlowAnimation pasos={PASOS_EXPEDIENTE} />,
+  inscribeAlumno: () => <FlowAnimation pasos={PASOS_INSCRIBE_EST} />,
+  idAlumno: () => <FlowAnimation pasos={PASOS_ID_EST} />,
   altaDosPasos: () => <FlowAnimation pasos={PASOS_ALTA_DOS} />,
   estadoFlow: () => <FlowAnimation pasos={PASOS_ESTADO} />,
   fichaFlow: () => <FlowAnimation pasos={PASOS_FICHA} />,

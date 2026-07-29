@@ -27,7 +27,8 @@ const ESTUDIANTE: TourStep[] = [
     id: 'est-welcome',
     icon: 'GraduationCap',
     title: '¡Hola {nombre}! Este es tu portal',
-    body: 'Aquí llevas todo tu proceso de Preparatoria Abierta en un solo lugar. Tu camino son 4 pasos: 1) arma tu expediente, 2) inscríbete, 3) paga y 4) presenta tu examen. Te lo muestro en 30 segundos.',
+    body: 'Aquí llevas todo tu proceso de Preparatoria Abierta en un solo lugar. Tu camino son 4 pasos —te los muestro en 30 segundos.',
+    illustration: 'caminoAlumno',
   },
   {
     id: 'est-inicio',
@@ -43,7 +44,8 @@ const ESTUDIANTE: TourStep[] = [
     placement: 'right',
     icon: 'FolderOpen',
     title: 'Paso 1 · Tu expediente',
-    body: 'Sube tus 5 documentos (CURP, acta, INE, comprobante de domicilio y certificado de secundaria) y tu foto. La administración los revisa; es lo primero que necesitas para avanzar.',
+    body: 'Sube tus 5 documentos (CURP, acta, INE, comprobante de domicilio y certificado de secundaria) y tu foto. La administración los revisa y te asigna tu matrícula: es lo primero para avanzar.',
+    illustration: 'expedienteAlumno',
   },
   {
     id: 'est-convocatoria',
@@ -52,6 +54,7 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'Calendar',
     title: 'Paso 2 · Inscríbete',
     body: 'Cuando abra la convocatoria, eliges los módulos que vas a presentar y se te asigna sede y fecha. Aquí mismo consultas qué exámenes llevas y tu historial.',
+    illustration: 'inscribeAlumno',
   },
   {
     id: 'est-pagos',
@@ -60,6 +63,7 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'CreditCard',
     title: 'Paso 3 · Paga tu examen',
     body: 'Solicitas tu orden de pago ante la Tesorería, pagas en banco o en línea, y subes tu comprobante. Ojo: solo lo pagado se puede calificar.',
+    illustration: 'pagoFlow',
   },
   {
     id: 'est-calificaciones',
@@ -68,6 +72,7 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'GraduationCap',
     title: 'Paso 4 · Tus resultados',
     body: 'Aquí ves tus calificaciones, cuántos de los 22 módulos ya aprobaste (con 60 o más) y tu promedio. Descargable en PDF.',
+    illustration: 'statsCalif',
   },
   {
     id: 'est-modulos',
@@ -76,22 +81,16 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'BookOpen',
     title: 'Practica antes del examen',
     body: 'En "Pruebas" repasas cada módulo con evaluaciones de práctica para llegar preparado. No cuentan como calificación: son solo para ti.',
-  },
-  {
-    id: 'est-aula',
-    anchor: 'nav-aula nav-mas',
-    placement: 'right',
-    icon: 'School',
-    title: 'Mi aula · clases en línea',
-    body: 'Si tu centro de asesoría la tiene activa, aquí está tu aula virtual: clases por módulo con foro, tareas, materiales y videos. Si aparece con candado, tu gestor aún no la ha activado.',
+    illustration: 'pruebaFlow',
   },
   {
     id: 'est-identificacion',
     anchor: 'nav-identificacion nav-mas',
     placement: 'right',
     icon: 'BadgeCheck',
-    title: 'Herramientas · ID y pase',
-    body: 'En "ID" están tu credencial digital y tu pase de examen con código QR: lo que muestras el día de la aplicación.',
+    title: 'Herramientas · tu ID y tu pase',
+    body: 'En "ID" están tu credencial digital y tu pase de examen con código QR: es lo que muestras el día de la aplicación.',
+    illustration: 'idAlumno',
   },
   {
     id: 'est-mensajes',
@@ -100,6 +99,16 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'HelpCircle',
     title: '¿Dudas? Preguntas frecuentes',
     body: 'En "Preguntas frecuentes" están resueltas las dudas más comunes del trámite: inscripción, pago, documentos y examen. Búscalas o léelas al instante.',
+    illustration: 'buscadorSmart',
+  },
+  {
+    id: 'est-aula',
+    anchor: 'nav-aula nav-mas',
+    placement: 'right',
+    icon: 'School',
+    title: 'Mi aula · clases en línea',
+    body: 'Si tu centro de asesoría la tiene activa, aquí está tu aula virtual: clases por módulo con foro, tareas, materiales y videos. Si aparece con candado, tu gestor aún no la ha activado.',
+    illustration: 'aulaNav',
   },
   {
     id: 'est-help',
@@ -108,6 +117,7 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'CheckCircle2',
     title: '¡Listo, ya conoces tu portal!',
     body: 'Empieza por tu expediente y sigue el camino. ¿Quieres repetir este recorrido? El botón de ayuda (?) aquí arriba lo reinicia cuando quieras. ¡Mucho éxito, {nombre}!',
+    illustration: 'caminoAlumno',
   },
 ];
 
