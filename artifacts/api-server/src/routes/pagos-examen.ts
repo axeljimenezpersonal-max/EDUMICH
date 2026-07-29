@@ -32,7 +32,7 @@ import {
 import { authRequired } from '../middleware/auth';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen';
-import { DIAS_ANTES_EXAMEN_VENCE_PAGO } from '../config/reglas';
+import { DIAS_PARA_VENCER_PAGO } from '../config/reglas';
 import { STORAGE_ES_EFIMERO, guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 import { hoyEnMexico } from '../utils/fechas';
 import { patronLike } from '../utils/like';
@@ -52,8 +52,10 @@ const MSG_ARCHIVO_PERDIDO = STORAGE_ES_EFIMERO
   ? 'El archivo no está disponible: el almacenamiento es temporal y se reinició en el último despliegue. Vuelve a subirlo (migración a almacenamiento permanente pendiente).'
   : 'El archivo no está disponible.';
 
-// Fecha del examen de una etapa + vencimiento del pago (regla: N días antes).
-// Devuelve strings 'YYYY-MM-DD' o null si el pago no tiene etapa.
+// Fecha del examen de una etapa + vencimiento sugerido del pago.
+// Regla: el pago vence UNA SEMANA a partir de HOY (la emisión). Si esa fecha
+// cayera después del examen, se topa al día del examen (no tiene sentido vencer
+// después de presentar). Devuelve strings 'YYYY-MM-DD' o null sin etapa.
 async function fechasDeEtapa(etapaId: number | null): Promise<{ fechaExamen: string | null; vencimientoSugerido: string | null }> {
   if (etapaId == null) return { fechaExamen: null, vencimientoSugerido: null };
   const [et] = await db
@@ -61,11 +63,11 @@ async function fechasDeEtapa(etapaId: number | null): Promise<{ fechaExamen: str
     .from(convocatoriasEtapas)
     .where(eq(convocatoriasEtapas.id, etapaId))
     .limit(1);
-  if (!et?.examenSabado) return { fechaExamen: null, vencimientoSugerido: null };
-  const fechaExamen = String(et.examenSabado); // 'YYYY-MM-DD'
-  const d = new Date(fechaExamen + 'T12:00:00');
-  d.setDate(d.getDate() - DIAS_ANTES_EXAMEN_VENCE_PAGO);
-  const vencimientoSugerido = d.toISOString().slice(0, 10);
+  const fechaExamen = et?.examenSabado ? String(et.examenSabado) : null; // 'YYYY-MM-DD'
+  const d = new Date(hoyEnMexico() + 'T12:00:00');
+  d.setDate(d.getDate() + DIAS_PARA_VENCER_PAGO);
+  let vencimientoSugerido = d.toISOString().slice(0, 10);
+  if (fechaExamen && vencimientoSugerido > fechaExamen) vencimientoSugerido = fechaExamen;
   return { fechaExamen, vencimientoSugerido };
 }
 
@@ -974,8 +976,8 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
       }
     }
 
-    // Regla: el pago vence una semana antes del examen. Si el admin no capturó
-    // una fecha, se calcula automáticamente desde la etapa del examen.
+    // Regla: el pago vence una semana a partir de hoy (la emisión). Si el admin
+    // no capturó una fecha, se usa ese vencimiento sugerido automáticamente.
     const { vencimientoSugerido } = await fechasDeEtapa(p.etapaId);
     const vencimientoFinal = fechaVencimiento || p.fechaVencimiento || vencimientoSugerido;
 

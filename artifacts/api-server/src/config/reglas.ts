@@ -17,11 +17,11 @@
 export const VIGENCIA_CREDENCIAL_MESES = 6;
 
 /**
- * Días antes de la fecha del examen en que vence la orden de pago (línea de
- * captura). Regla: el pago siempre vence una semana antes del examen.
- * Se usa para autollenar/forzar el vencimiento al emitir la ficha.
+ * Días que dura una orden de pago desde que se emite. Regla: el pago vence UNA
+ * SEMANA a partir de hoy (la emisión), topado al día del examen —nunca vence
+ * después de presentar—. Se usa para autollenar/forzar el vencimiento al emitir.
  */
-export const DIAS_ANTES_EXAMEN_VENCE_PAGO = 7;
+export const DIAS_PARA_VENCER_PAGO = 7;
 
 /**
  * Documentos OBLIGATORIOS del expediente. El expediente se considera completo
