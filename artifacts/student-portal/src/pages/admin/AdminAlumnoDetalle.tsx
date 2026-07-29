@@ -1656,6 +1656,7 @@ export default function AdminAlumnoDetalle() {
                   <ul className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-stone-700">
                     <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span><strong>No se borra nada</strong>: su expediente, exámenes, pagos y calificaciones se conservan.</span></li>
                     <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span>Es <strong>reversible</strong>: puedes reactivarlo desde esta misma pantalla.</span></li>
+                    <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span>Su <strong>credencial digital deja de ser válida</strong>: al verificar su QR aparecerá como dada de baja.</span></li>
                     <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span>Su correo <strong>sigue ocupado</strong>: no podrá registrarse de nuevo con el mismo.</span></li>
                   </ul>
                   <div>

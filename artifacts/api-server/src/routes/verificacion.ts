@@ -19,7 +19,7 @@ import crypto from 'node:crypto';
 import rateLimit from 'express-rate-limit';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
-import { credenciales, credencialesVerificaciones, estudiantes } from '@workspace/db/schema';
+import { credenciales, credencialesVerificaciones, estudiantes, users } from '@workspace/db/schema';
 import { firmaCredencial } from '../utils/credencialQr';
 
 const router = Router();
@@ -33,7 +33,7 @@ const verificacionLimiter = rateLimit({
   message: 'Demasiadas verificaciones desde esta conexión. Intenta de nuevo en unos minutos.',
 });
 
-type Resultado = 'ok' | 'sin_firma' | 'firma_invalida' | 'no_encontrada' | 'repuesta' | 'cancelada';
+type Resultado = 'ok' | 'sin_firma' | 'firma_invalida' | 'no_encontrada' | 'repuesta' | 'cancelada' | 'portador_baja';
 
 /** Escapa TODO dato que venga de la base antes de interpolarlo en el HTML. */
 function esc(v: unknown): string {
@@ -215,6 +215,7 @@ router.get('/:folio', verificacionLimiter, async (req, res) => {
         emitidaEn: Date | null;
         vigenteHasta: Date | null;
         nombreCompleto: string | null;
+        portadorActivo: boolean | null;
       }
     | undefined;
 
@@ -226,9 +227,11 @@ router.get('/:folio', verificacionLimiter, async (req, res) => {
         emitidaEn: credenciales.emitidaEn,
         vigenteHasta: credenciales.vigenteHasta,
         nombreCompleto: estudiantes.nombreCompleto,
+        portadorActivo: users.activo,
       })
       .from(credenciales)
       .leftJoin(estudiantes, eq(estudiantes.userId, credenciales.estudianteId))
+      .leftJoin(users, eq(users.id, credenciales.estudianteId))
       .where(eq(credenciales.folio, folio))
       .limit(1);
     fila = rows[0];
@@ -288,6 +291,33 @@ router.get('/:folio', verificacionLimiter, async (req, res) => {
           [fila.estado === 'repuesta' ? 'Repuesta desde' : 'Cancelada desde', fechaMx(fila.emitidaEn)],
         ],
         nota: 'Solicita al portador la credencial vigente.',
+      })
+    );
+  }
+
+  // ── 3b) Portador dado de BAJA: la credencial deja de ser válida aunque el
+  // registro siga vigente. Es el mismo criterio que el acceso al portal: si la
+  // persona causó baja, su identificación no debe aceptarse.
+  if (fila.portadorActivo === false) {
+    await registrarVerificacion({
+      folio,
+      firmaOk: true,
+      resultado: 'portador_baja',
+      estudianteId: fila.estudianteId,
+    });
+    return enviar(
+      res,
+      200,
+      pagina({
+        tono: 'invalida',
+        titulo: 'Esta credencial ya no es válida',
+        mensaje: 'El portador causó baja en Preparatoria Abierta, por lo que su credencial dejó de tener validez como identificación.',
+        datos: [
+          ['Titular', nombre || 'No disponible'],
+          ['Folio', folio],
+          ['Emitida', fechaMx(fila.emitidaEn)],
+        ],
+        nota: 'No la aceptes como identificación vigente. Para aclaraciones, contacta a la Coordinación de Preparatoria Abierta.',
       })
     );
   }
