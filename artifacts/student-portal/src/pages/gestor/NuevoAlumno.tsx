@@ -816,13 +816,28 @@ export default function NuevoAlumno() {
               <label className="gov-label" htmlFor="tel">
                 Teléfono
               </label>
-              <input
-                id="tel"
-                value={datos.telefono}
-                onChange={(e) => setDatos((d) => ({ ...d, telefono: e.target.value }))}
-                className="gov-input"
-                placeholder="+52 443 123 4567"
-              />
+              {/* El '+52' es fijo (no se edita ni se mueve); el campo solo recibe
+                  los 10 dígitos. Se guarda como '+52 XXXXXXXXXX'. */}
+              <div className="flex items-stretch">
+                <span
+                  className="inline-flex select-none items-center border border-r-0 border-stone-300 bg-stone-50 px-3 text-sm font-semibold text-stone-600"
+                  style={{ borderTopLeftRadius: 8, borderBottomLeftRadius: 8 }}
+                >
+                  +52
+                </span>
+                <input
+                  id="tel"
+                  value={datos.telefono.replace(/^\+?52\s*/, '')}
+                  onChange={(e) => {
+                    const dig = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setDatos((d) => ({ ...d, telefono: dig ? `+52 ${dig}` : '' }));
+                  }}
+                  className="gov-input"
+                  style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                  inputMode="numeric"
+                  placeholder="4433 33 3333"
+                />
+              </div>
             </div>
           </div>
 
