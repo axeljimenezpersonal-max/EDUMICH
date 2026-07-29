@@ -29,6 +29,15 @@ interface ResumenVentana {
   porGrupo: Array<{ grupo: string; total: number; errores: number; promedioMs: number }>;
 }
 
+interface ErrorReciente {
+  ts: string;
+  method: string;
+  path: string;
+  status: number;
+  grupo: string;
+  mensaje: string | null;
+}
+
 interface Salud {
   uptime: { desdeMs: number; segundos: number };
   api: {
@@ -39,6 +48,8 @@ interface Salud {
   baseDatos: { ok: boolean; pingMs: number };
   correo24h: { enviados: number; fallidos: number; pendientes: number };
   tareasProgramadas: Array<{ nombre: string; horario: string }>;
+  /** Últimos fallos 5xx del servidor (en memoria; se reinicia con el servidor). */
+  erroresRecientes?: ErrorReciente[];
 }
 
 function uptimeLegible(seg: number): string {
@@ -115,6 +126,50 @@ export default function DireccionSalud() {
           rápido sirviendo números falsos es peor que uno lento. */}
       <div className="mb-6">
         <IntegridadDatos />
+      </div>
+
+      {/* Alertas: fallos del servidor (5xx) más recientes. Si hay algo aquí,
+          alguien vio un "Error interno" en pantalla — es lo primero que revisar. */}
+      <div className="mb-6">
+        <SeccionCard titulo="Errores del servidor (recientes)">
+          {(data.erroresRecientes?.length ?? 0) === 0 ? (
+            <div className="flex items-center gap-2 py-3 text-[13px]" style={{ color: '#166534' }}>
+              <CheckCircle size={15} /> Sin fallos del servidor registrados. Todo en orden.
+            </div>
+          ) : (
+            <>
+              <div className="mb-2 flex items-center gap-2 text-[13px] font-semibold" style={{ color: '#b91c1c' }}>
+                <XCircle size={15} /> {data.erroresRecientes!.length} fallo(s) registrados desde el último reinicio
+              </div>
+              <div className="divide-y divide-stone-100">
+                {data.erroresRecientes!.map((e, i) => (
+                  <div key={`${e.ts}-${i}`} className="flex items-start gap-3 py-2">
+                    <span
+                      className="mt-0.5 shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold"
+                      style={{ background: '#fee2e2', color: '#b91c1c' }}
+                    >
+                      {e.status}
+                    </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-[12px] truncate" style={{ color: '#443e39' }}>
+                        {e.method} {e.path}
+                      </div>
+                      {e.mensaje && (
+                        <div className="text-[11px] leading-snug" style={{ color: '#6b635e' }}>{e.mensaje}</div>
+                      )}
+                    </div>
+                    <span className="shrink-0 text-[11px]" style={{ color: '#a8a29e' }}>
+                      {new Date(e.ts).toLocaleString('es-MX', { timeZone: 'America/Mexico_City', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px]" style={{ color: '#a8a29e' }}>
+                Lista en memoria: se limpia cuando el servidor se reinicia (redeploy).
+              </p>
+            </>
+          )}
+        </SeccionCard>
       </div>
 
       {/* Golden signals (última hora) */}

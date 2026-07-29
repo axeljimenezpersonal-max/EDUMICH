@@ -63,6 +63,24 @@ function grupoDeRuta(path: string): string {
   return m ? m[1] : 'otro';
 }
 
+// ─── Errores 5xx recientes (buffer en memoria, para el panel del creador) ──────
+// Los últimos N fallos del servidor, con endpoint, método, mensaje y hora. Se
+// muestran como alerta en "Salud del sistema". En memoria: se reinicia con el
+// servidor (por diseño; para historial permanente haría falta una tabla).
+export interface ErrorReciente {
+  ts: string;          // ISO
+  method: string;
+  path: string;        // originalUrl sin query
+  status: number;
+  grupo: string;
+  mensaje: string | null;
+}
+const MAX_ERRORES = 50;
+const erroresRecientes: ErrorReciente[] = [];
+export function obtenerErroresRecientes(limite = 30): ErrorReciente[] {
+  return erroresRecientes.slice(0, Math.max(1, limite));
+}
+
 export function metricsMiddleware(req: Request, res: Response, next: NextFunction) {
   if (!req.path.startsWith('/api/')) {
     next();
@@ -72,6 +90,18 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
   // Capturado AHORA: dentro de res.on('finish') los routers de Express ya
   // recortaron req.path a la ruta relativa del mount y el grupo saldría mal.
   const grupo = grupoDeRuta(req.originalUrl);
+  const pathLimpio = req.originalUrl.split('?')[0];
+
+  // Se envuelve res.json para quedarnos con el mensaje de error que la ruta
+  // devuelve (p. ej. { error: '...' }) cuando el estado es 5xx.
+  let mensajeError: string | null = null;
+  const jsonOriginal = res.json.bind(res);
+  res.json = (body?: unknown) => {
+    if (res.statusCode >= 500 && body && typeof body === 'object' && 'error' in (body as object)) {
+      mensajeError = String((body as { error: unknown }).error).slice(0, 240);
+    }
+    return jsonOriginal(body);
+  };
 
   res.on('finish', () => {
     try {
@@ -82,8 +112,18 @@ export function metricsMiddleware(req: Request, res: Response, next: NextFunctio
       if (ms > b.maxMs) b.maxMs = ms;
       const idx = HIST_LIMITS.findIndex((lim) => ms <= lim);
       b.hist[idx === -1 ? HIST_LIMITS.length - 1 : idx] += 1;
-      if (res.statusCode >= 500) b.errores5xx += 1;
-      else if (res.statusCode >= 400) b.errores4xx += 1;
+      if (res.statusCode >= 500) {
+        b.errores5xx += 1;
+        erroresRecientes.unshift({
+          ts: new Date().toISOString(),
+          method: req.method,
+          path: pathLimpio,
+          status: res.statusCode,
+          grupo,
+          mensaje: mensajeError,
+        });
+        if (erroresRecientes.length > MAX_ERRORES) erroresRecientes.length = MAX_ERRORES;
+      } else if (res.statusCode >= 400) b.errores4xx += 1;
 
       const g = (b.porGrupo[grupo] ??= { total: 0, errores: 0, sumMs: 0 });
       g.total += 1;

@@ -43,7 +43,7 @@ import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
 import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
-import { resumenMetricas, serieMetricas, PROCESS_START } from '../middleware/metrics';
+import { resumenMetricas, serieMetricas, PROCESS_START, obtenerErroresRecientes } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
 import { serie, METRICAS } from '../services/metricasDiarias';
 import { pool } from '@workspace/db';
@@ -478,6 +478,7 @@ router.get('/salud', async (_req, res) => {
         fallidos: correos24h['fallido'] ?? 0,
         pendientes: correos24h['pendiente'] ?? 0,
       },
+      erroresRecientes: obtenerErroresRecientes(30),
       tareasProgramadas: [
         { nombre: 'Reportes programados', horario: 'Cada hora (minuto 0)' },
         { nombre: 'Depuración de cuentas inactivas (LGPDPPSO)', horario: '03:00 America/Mexico_City' },
