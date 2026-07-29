@@ -400,10 +400,31 @@ function OrdenesPagoExamen({ ordenes, onReload, gestionadoPorGestor = false }: {
             <div className="p-5 space-y-4">
               <PagoStepper estado={o.estado} />
 
-              <div className="flex items-baseline justify-between">
-                <span className="text-sm text-stone-500">{o.cantidadExamenes} examen{o.cantidadExamenes !== 1 ? 'es' : ''} de derecho a examen</span>
-                <span className="text-2xl font-bold text-stone-900">{fmtMoney(o.montoTotal)} <span className="text-sm font-medium text-stone-400">MXN</span></span>
-              </div>
+              {/* En una ficha grupal el protagonista es LO SUYO; el total del
+                  centro va como contexto (es lo que cobra la línea de captura). */}
+              {o.grupal ? (
+                <div>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm text-stone-500">
+                      Tu parte · {o.misExamenes} examen{o.misExamenes !== 1 ? 'es' : ''}
+                    </span>
+                    <span className="text-2xl font-bold text-stone-900">{fmtMoney(o.miSubtotal ?? 0)} <span className="text-sm font-medium text-stone-400">MXN</span></span>
+                  </div>
+                  <div className="mt-1.5 flex items-start gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2">
+                    <UserCheck size={14} className="mt-0.5 shrink-0 text-[var(--color-guinda-700)]" />
+                    <span className="text-[12px] leading-snug text-stone-600">
+                      Forma parte de un <strong>pago grupal</strong> de tu centro de asesoría:
+                      {' '}{o.examenesFicha} exámenes por {fmtMoney(o.totalFicha ?? 0)} MXN en total.
+                      Tu gestor cubre la ficha completa ante la Tesorería.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-baseline justify-between">
+                  <span className="text-sm text-stone-500">{o.cantidadExamenes} examen{o.cantidadExamenes !== 1 ? 'es' : ''} de derecho a examen</span>
+                  <span className="text-2xl font-bold text-stone-900">{fmtMoney(o.montoTotal)} <span className="text-sm font-medium text-stone-400">MXN</span></span>
+                </div>
+              )}
               {o.examenes.length > 0 && (() => {
                 const editable = o.estado === 'pendiente_emision' || o.estado === 'emitida';
                 return (

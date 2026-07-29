@@ -304,7 +304,28 @@ router.get('/mios', async (req, res) => {
     const out = [];
     for (const p of filas) {
       const det = await detallePago(p.id);
-      out.push(vistaAlumno(p, det?.items ?? []));
+      const todos = det?.items ?? [];
+      // En una ficha GRUPAL el alumno solo debe ver LO SUYO: sus exámenes y su
+      // parte del monto. Antes recibía los exámenes de sus compañeros (con
+      // nombre y matrícula en el JSON) y el total del centro — confuso y una
+      // fuga de datos de terceros. El total de la ficha se conserva aparte,
+      // como contexto, porque la línea de captura cobra ese importe.
+      const mios = todos.filter((i: { estudianteId: number | null }) => i.estudianteId === userId);
+      const propios = mios.length > 0 ? mios : todos; // ficha individual: sus items
+      const grupal = todos.length > propios.length;
+      const unitario = p.cantidadExamenes > 0 ? Number(p.montoTotal) / p.cantidadExamenes : 0;
+      // Sin datos de terceros: para sus propios exámenes el nombre sobra.
+      const examenesLimpios = propios.map((i: { inscripcionId: number; folio: string; moduloNumero: number | null; moduloNombre: string | null }) => ({
+        inscripcionId: i.inscripcionId, folio: i.folio, moduloNumero: i.moduloNumero, moduloNombre: i.moduloNombre,
+      }));
+      out.push({
+        ...vistaAlumno(p, examenesLimpios),
+        grupal,
+        misExamenes: propios.length,
+        miSubtotal: Math.round(unitario * propios.length * 100) / 100,
+        totalFicha: Number(p.montoTotal),
+        examenesFicha: p.cantidadExamenes,
+      });
     }
     return res.json({ pagos: out });
   } catch {

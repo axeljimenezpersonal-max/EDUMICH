@@ -943,6 +943,16 @@ export interface PagoExamenAlumno {
   examenes: PagoExamenItem[];
   /** Datos fiscales del centro (persona moral) que menciona la ficha. */
   centroFiscal?: CentroFiscal | null;
+  /** La ficha cubre a varios alumnos del centro (pago grupal del gestor). */
+  grupal?: boolean;
+  /** Exámenes propios del alumno dentro de la ficha. */
+  misExamenes?: number;
+  /** Lo que corresponde al alumno (su parte del total). */
+  miSubtotal?: number;
+  /** Total de la ficha completa (lo que cobra la línea de captura). */
+  totalFicha?: number;
+  /** Exámenes de la ficha completa (todos los alumnos). */
+  examenesFicha?: number;
 }
 
 /** Vista admin — incluye split interno + datos del alumno. */
