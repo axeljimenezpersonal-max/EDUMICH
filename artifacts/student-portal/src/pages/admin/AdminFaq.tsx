@@ -133,7 +133,7 @@ export default function AdminFaq() {
 
       {/* Modal alta/edición */}
       {modal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => !guardando && setModal(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden" onClick={(e) => e.stopPropagation()}>
             <div className="px-5 py-4 border-b border-stone-100 flex items-center justify-between">
               <h3 className="font-serif text-base font-bold text-stone-900">{modal.id === null ? 'Nueva pregunta' : 'Editar pregunta'}</h3>

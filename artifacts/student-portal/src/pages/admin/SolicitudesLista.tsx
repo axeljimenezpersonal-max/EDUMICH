@@ -472,7 +472,6 @@ function AprobarModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(42,42,42,0.75)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" style={{ maxHeight: '92vh' }}>
         {/* Header verde */}
@@ -645,7 +644,6 @@ function RechazarModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ background: 'rgba(42,42,42,0.75)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col" style={{ maxHeight: '92vh' }}>
         {/* Header rojo */}

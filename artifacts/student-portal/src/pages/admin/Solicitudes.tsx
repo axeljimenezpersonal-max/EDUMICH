@@ -247,7 +247,6 @@ export default function Solicitudes() {
       {modal?.type === 'aprobar' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-          onClick={closeModal}
         >
           <div
             className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"
@@ -388,7 +387,6 @@ export default function Solicitudes() {
       {modal?.type === 'rechazar' && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-          onClick={closeModal}
         >
           <div
             className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden"

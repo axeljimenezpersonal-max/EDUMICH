@@ -32,6 +32,9 @@ export function ConfirmModal({ icon, title, message, confirmLabel, danger, withI
     <ModalHoja
       onClose={onClose}
       etiqueta={title}
+      // Si la persona tiene que ESCRIBIR algo (motivo en textarea o la palabra
+      // de confirmación), un clic afuera no debe cerrar y perder lo escrito.
+      descartarAfuera={!withInput && !requireText}
       pie={
         <div className="flex gap-2 border-t border-stone-100 bg-stone-50 px-5 py-3">
           <button onClick={onClose} className="min-h-[44px] flex-1 rounded-lg border border-stone-300 text-sm font-semibold text-stone-600 hover:bg-white">Cancelar</button>

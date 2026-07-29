@@ -1606,7 +1606,6 @@ function EditarAlumnoModal({
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40"
-      onClick={() => { if (!loading) onClose(); }}
     >
       <div
         className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden"

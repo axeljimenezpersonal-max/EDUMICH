@@ -769,7 +769,7 @@ function InscribirModuloModal({ alumnoId, onClose, onDone, showToast }: {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }} onClick={() => { if (!saving) onClose(); }}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }}>
       <div className="w-full max-w-lg rounded-xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
           <h3 className="font-serif text-lg font-bold text-stone-900">Inscribir módulos</h3>
@@ -1595,8 +1595,7 @@ export default function AdminAlumnoDetalle() {
       )}
 
       {modalMatricula !== null && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}
-          onClick={e => { if (e.target === e.currentTarget) setModalMatricula(null); }}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.45)' }}>
           <div style={{ background: '#fff', borderRadius: 12, width: 520, maxWidth: '95vw', padding: 28, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <div>

@@ -673,7 +673,7 @@ function PrecargarEtapasModal({ etapasExistentes, onClose, onDone }: {
         : { t: 'Error', bg: '#fee2e2', c: '#991b1b' };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }} onClick={() => !guardando && onClose()}>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }}>
       <div className="w-full max-w-3xl rounded-2xl bg-white shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
           <div>

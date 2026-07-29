@@ -161,7 +161,7 @@ export default function CambiarPasswordModal({ open, onClose, onSuccess }: Props
   );
 
   return (
-    <ModalHoja onClose={handleClose} etiqueta={titulo} ancho="sm:max-w-[460px]" pie={pie}>
+    <ModalHoja onClose={handleClose} etiqueta={titulo} ancho="sm:max-w-[460px]" descartarAfuera={false} pie={pie}>
       <div>
         {/* Header — fijo mientras el cuerpo se desplaza. */}
         <div className="bg-[var(--color-guinda-700)] text-white px-5 py-4 flex items-center justify-between sticky top-0 z-10">

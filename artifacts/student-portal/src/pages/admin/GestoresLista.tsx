@@ -126,7 +126,6 @@ function CrearGestorModal({
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ background: 'rgba(42,42,42,0.7)' }}
-      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 flex flex-col overflow-hidden" style={{ maxHeight: '92vh' }}>
         {/* Header */}
@@ -229,7 +228,7 @@ function ReasignarAlumnosModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(42,42,42,0.7)' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(42,42,42,0.7)' }}>
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4" style={{ background: 'var(--color-guinda-700)', color: 'white' }}>
           <h3 className="font-semibold text-base" style={{ fontFamily: "'Poppins', sans-serif" }}>Reasignar alumnos de {gestor.nombreCompleto.split(' ')[0]}</h3>
