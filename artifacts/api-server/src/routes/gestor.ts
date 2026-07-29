@@ -425,7 +425,10 @@ router.post('/alumnos', async (req, res) => {
     if (emailEnviado) {
       await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, user.id));
     }
-  } catch {}
+  } catch (err) {
+    // No frena el alta, pero SÍ se registra: si el correo falla, hay que verlo.
+    console.error('[CORREO] Falló el envío de bienvenida al registrar alumno:', err instanceof Error ? err.message : err);
+  }
 
   await tryAuditLog({
     userId,
@@ -688,7 +691,10 @@ router.post(
         if (emailEnviado) {
           await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, result.alumno.userId));
         }
-      } catch {}
+      } catch (err) {
+        // No frena el alta, pero SÍ se registra para poder diagnosticar.
+        console.error('[CORREO] Falló el envío de bienvenida (registro-completo):', err instanceof Error ? err.message : err);
+      }
 
       res.status(201).json({
         ...result,
