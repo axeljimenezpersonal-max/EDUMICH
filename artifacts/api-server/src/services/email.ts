@@ -99,8 +99,21 @@ export async function sendEmail(
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const mode = getEmailMode();
   const cc = process.env.INSTITUTIONAL_CC_EMAIL ?? undefined;
-  const fromEmail = process.env.EMAIL_FROM ?? 'noreply@edumich.up.railway.app';
+  // EMAIL_FROM admite DOS formas y tú eliges cuál usar desde el entorno:
+  //   1) Solo la dirección:  noreply@modula22.mx
+  //   2) Nombre + dirección:  Prepa Abierta Michoacán <noreply@modula22.mx>
+  // Se limpian comillas que `docker --env-file` deja pegadas (no las quita solo).
+  const fromRaw = (process.env.EMAIL_FROM ?? 'noreply@edumich.up.railway.app')
+    .trim()
+    .replace(/^["']|["']$/g, '')
+    .trim();
   const fromName = 'Preparatoria Abierta Michoacan';
+  // Si ya trae nombre visible ("... <dir>"), se respeta tal cual. Si es solo la
+  // dirección, se le antepone el nombre institucional. Así el "from" nunca se
+  // envuelve dos veces (eso metía el acento dentro de la dirección → 422).
+  const fromHeader = /<[^>]+>/.test(fromRaw) ? fromRaw : `${fromName} <${fromRaw}>`;
+  // Para el registro en outbox guardamos solo la dirección (entre <> si viene con nombre).
+  const fromEmail = fromRaw.match(/<([^>]+)>/)?.[1] ?? fromRaw;
   // Buzón real (p. ej. de Hostinger) al que se dirige la respuesta cuando el
   // alumno/gestor contesta un correo automático. El "from" puede ser un
   // no-reply de Resend; el "reply-to" es donde de verdad se lee y responde.
@@ -144,7 +157,7 @@ export async function sendEmail(
 
   try {
     await resend.emails.send({
-      from: `${fromName} <${fromEmail}>`,
+      from: fromHeader,
       to: opts.to,
       cc: cc ? [cc] : undefined,
       replyTo,
