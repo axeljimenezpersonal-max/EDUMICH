@@ -10,7 +10,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AlertCircle, Calendar, Check, CheckCircle2, Clock, Copy, CreditCard,
   Download, ExternalLink, FileText, Landmark, Loader2, MapPin, UploadCloud,
-  X, AlertTriangle, Eye, RefreshCw,
+  X, AlertTriangle, Eye, RefreshCw, UserCheck, Phone, Mail,
 } from 'lucide-react';
 import { EstudianteLayout } from './EstudianteLayout';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
@@ -92,6 +92,9 @@ export default function MisPagos() {
   const sinPagar = inscripcionesActivas.filter((e) => estadoPagoDe(e.id) === 'sin_pagar');
   const pagados = inscripcionesActivas.filter((e) => estadoPagoDe(e.id) === 'pagado');
   const costoExamen = configPago?.costoExamen ?? 131;
+  // Si el alumno pertenece a un gestor / centro de asesoría, NO gestiona su pago:
+  // su gestor solicita la ficha y sube el comprobante. El alumno solo consulta.
+  const gestor = convData?.gestor ?? null;
 
   async function solicitarOrden() {
     if (sinPagar.length === 0) return;
@@ -200,23 +203,61 @@ export default function MisPagos() {
                 })}
               </div>
 
-              {/* Acción: solicitar orden por lo que falta */}
+              {/* Acción según quién gestiona el pago */}
               {sinPagar.length > 0 && (
-                <div className="px-5 py-4 bg-stone-50 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="text-xs text-stone-600">
-                    Tienes <strong>{sinPagar.length} examen{sinPagar.length !== 1 ? 'es' : ''} sin pagar</strong> — total{' '}
-                    <strong>${(sinPagar.length * costoExamen).toLocaleString('es-MX')} MXN</strong>.
-                    Solicita tu orden de pago para cubrirlos ante la Tesorería.
+                gestor ? (
+                  /* Alumno con gestor: su centro realiza el pago. Solo aviso. */
+                  <div className="px-5 py-4 border-t border-stone-100" style={{ background: 'var(--color-crema-50)' }}>
+                    <div className="flex items-start gap-3">
+                      <div className="rounded-lg p-2 text-white shrink-0" style={{ background: 'var(--color-guinda-700)' }}>
+                        <UserCheck size={16} />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-stone-900">Tu gestor realiza el pago de tus exámenes</p>
+                        <p className="mt-1 text-sm leading-relaxed text-stone-600">
+                          Tienes <strong>{sinPagar.length} examen{sinPagar.length !== 1 ? 'es' : ''} por cubrir</strong>{' '}
+                          (total <strong>${(sinPagar.length * costoExamen).toLocaleString('es-MX')} MXN</strong>). No necesitas
+                          solicitar la ficha tú: tu centro de asesoría la gestiona ante la Tesorería y sube el comprobante.
+                          Ponte en contacto con tu gestor para tu pago.
+                        </p>
+                        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-stone-700">
+                          <span className="font-semibold">{gestor.nombre}{gestor.municipio ? ` · ${gestor.municipio}` : ''}</span>
+                          {gestor.telefono && (
+                            <a href={`tel:${gestor.telefono}`} className="inline-flex items-center gap-1.5 hover:text-[var(--color-guinda-700)]">
+                              <Phone size={13} /> {gestor.telefono}
+                            </a>
+                          )}
+                          {gestor.email && (
+                            <a href={`mailto:${gestor.email}`} className="inline-flex items-center gap-1.5 hover:text-[var(--color-guinda-700)]">
+                              <Mail size={13} /> {gestor.email}
+                            </a>
+                          )}
+                        </div>
+                        <p className="mt-2 text-xs text-stone-500">
+                          ¿Algún problema con tu pago? Comunícate con la Secretaría desde{' '}
+                          <a href="/estudiante/faq" className="font-semibold text-[var(--color-guinda-700)] underline">Preguntas frecuentes</a>.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <button
-                    onClick={solicitarOrden}
-                    disabled={solicitando}
-                    className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
-                  >
-                    {solicitando ? <Loader2 size={14} className="animate-spin" /> : <Landmark size={14} />}
-                    Solicitar orden de pago
-                  </button>
-                </div>
+                ) : (
+                  /* Alumno independiente: solicita su propia orden. */
+                  <div className="px-5 py-4 bg-stone-50 border-t border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="text-xs text-stone-600">
+                      Tienes <strong>{sinPagar.length} examen{sinPagar.length !== 1 ? 'es' : ''} sin pagar</strong> — total{' '}
+                      <strong>${(sinPagar.length * costoExamen).toLocaleString('es-MX')} MXN</strong>.
+                      Solicita tu orden de pago para cubrirlos ante la Tesorería.
+                    </div>
+                    <button
+                      onClick={solicitarOrden}
+                      disabled={solicitando}
+                      className="shrink-0 flex items-center justify-center gap-2 px-4 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-lg hover:bg-[var(--color-guinda-800)] disabled:opacity-50 transition-colors"
+                    >
+                      {solicitando ? <Loader2 size={14} className="animate-spin" /> : <Landmark size={14} />}
+                      Solicitar orden de pago
+                    </button>
+                  </div>
+                )
               )}
             </div>
           ) : (
@@ -237,7 +278,7 @@ export default function MisPagos() {
 
           {/* ── Órdenes de pago (Tesorería del Estado) ── */}
           <div data-tour="pagos-ordenes">
-            <OrdenesPagoExamen ordenes={ordenes} onReload={cargarOrdenes} />
+            <OrdenesPagoExamen ordenes={ordenes} onReload={cargarOrdenes} gestionadoPorGestor={!!gestor} />
           </div>
 
           {/* ── Historial de comprobantes (tabla pagos) ── */}
@@ -277,7 +318,7 @@ const OP_ESTADO: Record<string, { label: string; bg: string; color: string; icon
   cancelado: { label: 'Cancelado', bg: '#f5f5f4', color: '#78716c', icon: <AlertCircle size={13} /> },
 };
 
-function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] | null; onReload: () => Promise<unknown> }) {
+function OrdenesPagoExamen({ ordenes, onReload, gestionadoPorGestor = false }: { ordenes: PagoExamenAlumno[] | null; onReload: () => Promise<unknown>; gestionadoPorGestor?: boolean }) {
   const [subiendo, setSubiendo] = useState<number | null>(null);
   const [copiado, setCopiado] = useState(false);
   const [metodoPorId, setMetodoPorId] = useState<Record<number, MetodoPago>>({});
@@ -378,7 +419,7 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                         <span className="text-xs font-semibold text-[var(--color-guinda-800)] max-w-[160px] truncate" title={`Módulo ${e.moduloNumero} — ${e.moduloNombre}`}>
                           {e.moduloNombre}
                         </span>
-                        {editable && o.examenes.length > 1 && (
+                        {editable && o.examenes.length > 1 && !gestionadoPorGestor && (
                           <button
                             onClick={() => setConfirmacion({ tipo: 'quitar', ordenId: o.id, inscId: e.inscripcionId, modulo: e.moduloNumero })}
                             title="Quitar módulo"
@@ -398,7 +439,7 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                 <div className="rounded-xl border-2 border-[#e8c4d4] overflow-hidden">
                   <div className="px-4 py-2.5 bg-[var(--color-guinda-50,#faf0f3)] border-b border-[#e8c4d4] flex items-center gap-2">
                     <CheckCircle2 size={15} className="text-[var(--color-guinda-700)] shrink-0" />
-                    <span className="text-sm font-bold text-[var(--color-guinda-800)]">¡Ya puedes pagar! Solo faltan 2 pasos</span>
+                    <span className="text-sm font-bold text-[var(--color-guinda-800)]">{gestionadoPorGestor ? 'Tu ficha ya está lista para pagar' : '¡Ya puedes pagar! Solo faltan 2 pasos'}</span>
                   </div>
 
                   <div className="p-4 space-y-4">
@@ -447,29 +488,39 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
 
                     <div className="border-t border-[#e8c4d4]/70" />
 
-                    {/* PASO 2 — subir comprobante */}
-                    <div className="flex gap-3">
-                      <span className="w-7 h-7 rounded-full bg-[var(--color-guinda-700)] text-white text-sm font-bold flex items-center justify-center shrink-0">2</span>
-                      <div className="flex-1 min-w-0 space-y-2.5">
-                        <div>
-                          <div className="text-sm font-bold text-stone-900">Ya pagaste: sube tu comprobante</div>
-                          <div className="text-xs text-stone-500">Elige cómo pagaste y adjunta el comprobante para que la coordinación lo valide.</div>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          {METODOS_PAGO.map((m) => (
-                            <button key={m.value} onClick={() => setMetodoPorId((s) => ({ ...s, [o.id]: m.value }))}
-                              className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodoPorId[o.id] === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>
-                              <div className="text-xs font-bold text-stone-800">{m.label}</div>
-                            </button>
-                          ))}
-                        </div>
-                        <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 transition-colors ${!metodoPorId[o.id] ? 'opacity-50 cursor-not-allowed border-stone-200' : subiendo === o.id ? 'opacity-60 border-stone-300' : 'border-stone-300 hover:border-[var(--color-guinda-700)] cursor-pointer'}`}>
-                          {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
-                          <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : !metodoPorId[o.id] ? 'Primero elige el método de pago' : 'Seleccionar comprobante (PDF o imagen)'}</span>
-                          <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id || !metodoPorId[o.id]} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
-                        </label>
+                    {/* PASO 2 — subir comprobante (solo alumno independiente) */}
+                    {gestionadoPorGestor ? (
+                      <div className="flex items-start gap-2.5 rounded-lg bg-white/60 p-2.5">
+                        <UserCheck size={16} className="shrink-0 mt-0.5 text-[var(--color-guinda-700)]" />
+                        <span className="text-xs leading-relaxed text-stone-600">
+                          <strong className="text-stone-800">Tu gestor sube el comprobante por ti.</strong> Si ya pagaste,
+                          avísale para que lo registre ante la coordinación. Aquí solo consultas el estado de tu pago.
+                        </span>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="flex gap-3">
+                        <span className="w-7 h-7 rounded-full bg-[var(--color-guinda-700)] text-white text-sm font-bold flex items-center justify-center shrink-0">2</span>
+                        <div className="flex-1 min-w-0 space-y-2.5">
+                          <div>
+                            <div className="text-sm font-bold text-stone-900">Ya pagaste: sube tu comprobante</div>
+                            <div className="text-xs text-stone-500">Elige cómo pagaste y adjunta el comprobante para que la coordinación lo valide.</div>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                            {METODOS_PAGO.map((m) => (
+                              <button key={m.value} onClick={() => setMetodoPorId((s) => ({ ...s, [o.id]: m.value }))}
+                                className={`text-left rounded-lg border-2 p-2.5 transition-colors ${metodoPorId[o.id] === m.value ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-200 hover:border-stone-300'}`}>
+                                <div className="text-xs font-bold text-stone-800">{m.label}</div>
+                              </button>
+                            ))}
+                          </div>
+                          <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 transition-colors ${!metodoPorId[o.id] ? 'opacity-50 cursor-not-allowed border-stone-200' : subiendo === o.id ? 'opacity-60 border-stone-300' : 'border-stone-300 hover:border-[var(--color-guinda-700)] cursor-pointer'}`}>
+                            {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
+                            <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : !metodoPorId[o.id] ? 'Primero elige el método de pago' : 'Seleccionar comprobante (PDF o imagen)'}</span>
+                            <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id || !metodoPorId[o.id]} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
+                          </label>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -522,14 +573,16 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                       >
                         <Eye size={13} /> Ver mi comprobante
                       </a>
-                      <button
-                        onClick={() => setConfirmacion({ tipo: 'reemplazar', ordenId: o.id })}
-                        disabled={subiendo === o.id}
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors disabled:opacity-50"
-                      >
-                        {subiendo === o.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
-                        {subiendo === o.id ? 'Reemplazando…' : 'Editar comprobante'}
-                      </button>
+                      {!gestionadoPorGestor && (
+                        <button
+                          onClick={() => setConfirmacion({ tipo: 'reemplazar', ordenId: o.id })}
+                          disabled={subiendo === o.id}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border-2 border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] bg-white hover:bg-[var(--color-guinda-50,#faf0f3)] transition-colors disabled:opacity-50"
+                        >
+                          {subiendo === o.id ? <Loader2 size={13} className="animate-spin" /> : <RefreshCw size={13} />}
+                          {subiendo === o.id ? 'Reemplazando…' : 'Editar comprobante'}
+                        </button>
+                      )}
                     </div>
                   )}
                   <p className="text-[11px] text-amber-700/90">
@@ -553,7 +606,7 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                 </div>
               )}
 
-              {(o.estado === 'pendiente_emision' || o.estado === 'emitida') && (
+              {!gestionadoPorGestor && (o.estado === 'pendiente_emision' || o.estado === 'emitida') && (
                 <div className="pt-1 flex items-center justify-between gap-2">
                   <button onClick={() => setConfirmacion({ tipo: 'cancelar', ordenId: o.id })} className="text-xs font-semibold text-red-600 hover:underline">
                     Cancelar orden
@@ -561,6 +614,11 @@ function OrdenesPagoExamen({ ordenes, onReload }: { ordenes: PagoExamenAlumno[] 
                   {o.estado === 'emitida' && (
                     <span className="text-[11px] text-stone-400">Editar/quitar un módulo requiere re-emisión de la coordinación.</span>
                   )}
+                </div>
+              )}
+              {gestionadoPorGestor && (o.estado === 'pendiente_emision' || o.estado === 'emitida') && (
+                <div className="pt-1 text-[11px] text-stone-400">
+                  Tu gestor gestiona esta ficha. Cualquier cambio o cancelación lo hace tu centro de asesoría.
                 </div>
               )}
             </div>
