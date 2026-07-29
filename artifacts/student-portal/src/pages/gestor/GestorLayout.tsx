@@ -7,8 +7,7 @@
 import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
-  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, HelpCircle, School, Lock, ClipboardList,
-} from 'lucide-react';
+  LayoutDashboard, Users, FilePlus2, CreditCard, GraduationCap, HelpCircle, School, Lock, ClipboardList, CalendarDays } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { PantallaVerificando } from '../../components/PantallaVerificando';
@@ -23,6 +22,7 @@ const NAV = [
   { to: '/gestor/inscripcion', icon: ClipboardList, label: 'Inscripción', tour: 'nav-inscripcion' },
   { to: '/gestor/pagos', icon: CreditCard, label: 'Pagos', tour: 'nav-pagos' },
   { to: '/gestor/calificaciones', icon: GraduationCap, label: 'Calificaciones', tour: 'nav-calificaciones' },
+  { to: '/gestor/calendario', icon: CalendarDays, label: 'Calendario', tour: 'nav-calendario' },
   { to: '/gestor/faq', icon: HelpCircle, label: 'Preguntas frecuentes', tour: 'nav-faq' },
 ];
 

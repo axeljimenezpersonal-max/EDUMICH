@@ -10,7 +10,6 @@ import { Link } from 'wouter';
 import { Users, FileCheck2, FilePlus2, MapPin, ArrowRight, AlertCircle, Megaphone, X, CreditCard, ChevronRight } from 'lucide-react';
 import { GestorLayout } from './GestorLayout';
 import { AvisosCalendario } from '../../components/AvisosCalendario';
-import { CalendarioOficial } from '../../components/CalendarioOficial';
 import { api, type DashboardGestor, type Convocatoria } from '../../lib/api';
 import { safeUrl } from '../../lib/safeUrl';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -175,7 +174,6 @@ export default function GestorDashboard() {
       <div className="mb-6"><AvisosCalendario examenGestor ocultarProxima dataTour="g-ini-fechas" /></div>
 
       {/* Calendario oficial completo (colapsable) */}
-      <div className="mb-6"><CalendarioOficial /></div>
 
       {/* KPIs — cada tarjeta lleva a su lista filtrada */}
       <div data-tour="g-ini-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

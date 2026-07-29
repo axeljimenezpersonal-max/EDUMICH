@@ -2,8 +2,7 @@ import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, HelpCircle, CreditCard,
-  GraduationCap, School, Lock,
-} from 'lucide-react';
+  GraduationCap, School, Lock, CalendarDays } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
@@ -24,6 +23,7 @@ const NAV = [
 ];
 const NAV_HERRAMIENTAS = [
   { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
+  { to: '/estudiante/calendario', label: 'Calendario', icon: CalendarDays, tour: 'nav-calendario' },
   { to: '/estudiante/faq', label: 'Preguntas frecuentes', icon: HelpCircle, tour: 'nav-faq' },
 ];
 
@@ -177,7 +177,8 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
           { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
           { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
           { to: '/estudiante/identificacion', label: 'ID', icon: BadgeCheck, tour: 'nav-identificacion' },
-          { to: '/estudiante/faq', label: 'Preguntas frecuentes', icon: HelpCircle, tour: 'nav-faq' },
+          { to: '/estudiante/calendario', label: 'Calendario', icon: CalendarDays, tour: 'nav-calendario' },
+  { to: '/estudiante/faq', label: 'Preguntas frecuentes', icon: HelpCircle, tour: 'nav-faq' },
           { to: '/estudiante/aula', label: 'Mi aula', icon: School, lock: !aula, tour: 'nav-aula' },
         ]}
       />

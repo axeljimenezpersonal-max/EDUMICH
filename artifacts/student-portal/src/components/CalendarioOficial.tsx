@@ -66,8 +66,12 @@ function TarjetaEtapa({ e }: { e: Etapa }) {
   );
 }
 
-export function CalendarioOficial() {
-  const [abierto, setAbierto] = useState(false);
+/**
+ * `seccion`: en la página dedicada de Calendario se muestra SIEMPRE desplegado
+ * y sin el botón de ocultar (ahí el calendario es el contenido, no un extra).
+ */
+export function CalendarioOficial({ seccion = false }: { seccion?: boolean } = {}) {
+  const [abierto, setAbierto] = useState(seccion);
   const [etapas, setEtapas] = useState<Etapa[]>([]);
   const [hoy, setHoy] = useState<string>(fmt(new Date()));
   const [cursor, setCursor] = useState<{ y: number; m: number }>(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() }; });
@@ -163,14 +167,16 @@ export function CalendarioOficial() {
             <div className="text-xs text-stone-500">Fechas de inscripción, pago y presentación de cada etapa.</div>
           </div>
         </div>
-        <button
-          onClick={() => setAbierto((v) => !v)}
-          aria-expanded={abierto}
-          className="shrink-0 inline-flex items-center gap-1.5 border border-stone-300 text-stone-700 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-stone-50 transition-colors"
-        >
-          {abierto ? <EyeOff size={15} /> : <Eye size={15} />}
-          {abierto ? 'Ocultar' : 'Ver calendario'}
-        </button>
+        {!seccion && (
+          <button
+            onClick={() => setAbierto((v) => !v)}
+            aria-expanded={abierto}
+            className="shrink-0 inline-flex items-center gap-1.5 border border-stone-300 text-stone-700 font-semibold text-sm px-4 py-2 rounded-lg hover:bg-stone-50 transition-colors"
+          >
+            {abierto ? <EyeOff size={15} /> : <Eye size={15} />}
+            {abierto ? 'Ocultar' : 'Ver calendario'}
+          </button>
+        )}
       </div>
 
       {abierto && (
