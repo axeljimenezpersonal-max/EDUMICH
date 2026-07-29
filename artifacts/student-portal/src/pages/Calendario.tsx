@@ -13,6 +13,7 @@ import { CalendarioOficial } from '../components/CalendarioOficial';
 import { GestorLayout } from './gestor/GestorLayout';
 import { EstudianteLayout } from './estudiante/EstudianteLayout';
 import { api } from '../lib/api';
+import { CAL_INSCRIPCION, CAL_EXAMEN } from '../lib/coloresCalendario';
 
 interface EtapaCal {
   clave: string;
@@ -68,10 +69,10 @@ function Contenido() {
           <Info size={13} className="text-stone-400" /> Cómo leerlo:
         </span>
         <span className="inline-flex items-center gap-1.5 text-xs text-stone-600">
-          <span className="h-4 w-4 rounded" style={{ background: 'var(--color-guinda-700)' }} /> Día de examen
+          <span className="h-4 w-4 rounded" style={{ background: CAL_EXAMEN.fondo }} /> Día de examen
         </span>
         <span className="inline-flex items-center gap-1.5 text-xs text-stone-600">
-          <span className="h-4 w-4 rounded" style={{ background: '#fef3c7', border: '1px solid #fde68a' }} /> Ventana de inscripción
+          <span className="h-4 w-4 rounded" style={{ background: CAL_INSCRIPCION.fondo, border: `1px solid ${CAL_INSCRIPCION.borde}` }} /> Ventana de inscripción
         </span>
         <span className="text-xs text-stone-400">Toca un día marcado para ver su detalle.</span>
       </div>
@@ -93,22 +94,28 @@ function Contenido() {
               <div key={e.clave} className="rounded-xl border border-stone-200 bg-white p-4">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="font-serif text-lg font-bold uppercase text-stone-900">Etapa {e.clave}</div>
-                  {e.estado === 'activa' && (
+                  {e.estado === 'inscripcion' && (
                     <span className="rounded-full bg-green-100 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-green-700">
-                      En curso
+                      Inscripción abierta
+                    </span>
+                  )}
+                  {e.estado === 'espera_examen' && (
+                    <span className="rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide"
+                      style={{ background: CAL_EXAMEN.fondoSuave, color: CAL_EXAMEN.texto }}>
+                      Rumbo al examen
                     </span>
                   )}
                 </div>
                 <div className="mt-2 grid gap-2 sm:grid-cols-2">
                   <div className="flex items-start gap-2">
-                    <CalendarClock size={15} className="mt-0.5 shrink-0 text-amber-600" />
+                    <CalendarClock size={15} className="mt-0.5 shrink-0" style={{ color: CAL_INSCRIPCION.texto }} />
                     <div>
                       <div className="text-[11px] font-bold uppercase tracking-wide text-stone-400">Inscripción</div>
                       <div className="text-sm text-stone-700">{rango(e.solicitudInicio, e.solicitudFin)}</div>
                     </div>
                   </div>
                   <div className="flex items-start gap-2">
-                    <CalendarCheck size={15} className="mt-0.5 shrink-0 text-[var(--color-guinda-700)]" />
+                    <CalendarCheck size={15} className="mt-0.5 shrink-0" style={{ color: CAL_EXAMEN.texto }} />
                     <div>
                       <div className="text-[11px] font-bold uppercase tracking-wide text-stone-400">Examen</div>
                       <div className="text-sm text-stone-700">

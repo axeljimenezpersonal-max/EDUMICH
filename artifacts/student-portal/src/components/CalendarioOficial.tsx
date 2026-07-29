@@ -8,6 +8,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, ChevronLeft, ChevronRight, CalendarDays, Download, CalendarClock, CalendarCheck } from 'lucide-react';
 import { api } from '../lib/api';
+import { CAL_INSCRIPCION, CAL_EXAMEN } from '../lib/coloresCalendario';
 
 interface Etapa {
   clave: string; etapa: string; fase: string; anio: number;
@@ -19,7 +20,6 @@ interface Etapa {
 const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
 const MES_C = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 const DOW = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-const GUINDA = 'var(--color-guinda-700)';
 
 function fmt(d: Date) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
 function parse(s: string) { return new Date(s + 'T00:00:00'); }
@@ -42,7 +42,7 @@ function rango(a: string | null, b: string | null) {
 const ESTADO_BADGE: Record<Etapa['estado'], { label: string; bg: string; color: string }> = {
   inscripcion: { label: 'Inscripción abierta', bg: '#dcfce7', color: '#166534' },
   proxima: { label: 'Próxima', bg: '#dbeafe', color: '#1e40af' },
-  espera_examen: { label: 'Rumbo al examen', bg: '#fef3c7', color: '#92400e' },
+  espera_examen: { label: 'Rumbo al examen', bg: CAL_EXAMEN.fondoSuave, color: CAL_EXAMEN.texto },
   finalizada: { label: 'Finalizada', bg: '#f1f0ee', color: '#78716c' },
 };
 
@@ -57,10 +57,10 @@ function TarjetaEtapa({ e }: { e: Etapa }) {
         <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
       </div>
       <div className="flex items-center gap-1.5 text-[11px] text-stone-600">
-        <CalendarClock size={12} className="text-amber-600 shrink-0" /> Inscripción: <b className="text-stone-800">{rango(e.solicitudInicio, e.solicitudFin)}</b>
+        <CalendarClock size={12} className="shrink-0" style={{ color: CAL_INSCRIPCION.texto }} /> Inscripción: <b className="text-stone-800">{rango(e.solicitudInicio, e.solicitudFin)}</b>
       </div>
       <div className="flex items-center gap-1.5 text-[11px] text-stone-600 mt-0.5">
-        <CalendarCheck size={12} className="text-[var(--color-guinda-700)] shrink-0" /> Examen: <b className="text-stone-800">{rango(e.examenSabado, e.examenDomingo)}</b>
+        <CalendarCheck size={12} className="shrink-0" style={{ color: CAL_EXAMEN.texto }} /> Examen: <b className="text-stone-800">{rango(e.examenSabado, e.examenDomingo)}</b>
       </div>
     </div>
   );
@@ -85,13 +85,25 @@ export function CalendarioOficial({ seccion = false }: { seccion?: boolean } = {
       .then((r) => {
         setEtapas(r.etapas ?? []);
         setHoy(r.hoy ?? fmt(new Date()));
-        // Posiciona el calendario en el mes de la próxima fecha relevante.
-        const futuras = (r.etapas ?? [])
-          .flatMap((e) => [e.solicitudInicio, e.examenSabado])
-          .filter((s): s is string => !!s && s >= (r.hoy ?? ''))
-          .sort();
-        const base = futuras[0] ? parse(futuras[0]) : new Date();
-        setCursor({ y: base.getFullYear(), m: base.getMonth() });
+        // Posiciona el calendario en el mes que de verdad importa hoy.
+        // Si hay una ventana de inscripción ABIERTA en este momento, manda el mes
+        // actual: antes se saltaba al siguiente evento futuro y la ventana en
+        // curso (que empezó hace unos días) quedaba fuera de la vista.
+        const h = r.hoy ?? fmt(new Date());
+        const hayVentanaAbierta = (r.etapas ?? []).some(
+          (e) => e.solicitudInicio && e.solicitudFin && e.solicitudInicio <= h && e.solicitudFin >= h,
+        );
+        if (hayVentanaAbierta) {
+          const d = parse(h);
+          setCursor({ y: d.getFullYear(), m: d.getMonth() });
+        } else {
+          const futuras = (r.etapas ?? [])
+            .flatMap((e) => [e.solicitudInicio, e.examenSabado])
+            .filter((s): s is string => !!s && s >= h)
+            .sort();
+          const base = futuras[0] ? parse(futuras[0]) : new Date();
+          setCursor({ y: base.getFullYear(), m: base.getMonth() });
+        }
       })
       .catch(() => {})
       .finally(() => setCargado(true));
@@ -207,8 +219,8 @@ export function CalendarioOficial({ seccion = false }: { seccion?: boolean } = {
                     const clickable = esExamen || esSolic;
                     let style: React.CSSProperties = {};
                     let cls = 'text-stone-600';
-                    if (esExamen) { style = { background: GUINDA, color: '#fff' }; cls = 'font-bold'; }
-                    else if (esSolic) { style = { background: '#fef3c7', color: '#92400e' }; cls = 'font-semibold'; }
+                    if (esExamen) { style = { background: CAL_EXAMEN.fondo, color: '#fff' }; cls = 'font-bold'; }
+                    else if (esSolic) { style = { background: CAL_INSCRIPCION.fondo, color: CAL_INSCRIPCION.texto }; cls = 'font-semibold'; }
                     return (
                       <button
                         key={i}
@@ -224,8 +236,8 @@ export function CalendarioOficial({ seccion = false }: { seccion?: boolean } = {
 
                 {/* Leyenda */}
                 <div className="flex flex-wrap items-center gap-4 mt-4 text-xs text-stone-600">
-                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: '#fef3c7', border: '1px solid #fcd34d' }} /> Inscripción</span>
-                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: GUINDA }} /> Examen</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: CAL_INSCRIPCION.fondo, border: `1px solid ${CAL_INSCRIPCION.borde}` }} /> Inscripción</span>
+                  <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded" style={{ background: CAL_EXAMEN.fondo }} /> Examen</span>
                   <span className="flex items-center gap-1.5"><span className="w-3.5 h-3.5 rounded ring-2 ring-[var(--color-guinda-600)]" /> Hoy</span>
                 </div>
 

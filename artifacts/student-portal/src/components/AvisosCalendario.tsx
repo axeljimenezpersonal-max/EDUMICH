@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
 import { CalendarClock, CalendarCheck, AlertTriangle, ChevronRight, Download, Users } from 'lucide-react';
 import { api } from '../lib/api';
+import { CAL_INSCRIPCION, CAL_EXAMEN } from '../lib/coloresCalendario';
 
 interface EventoCalendario {
   tipo: 'ventana_abierta' | 'ventana_proxima' | 'examen';
@@ -85,8 +86,10 @@ export function AvisosCalendario({ ocultarExamen = false, ocultarProxima = false
 // Si recibe `href`, todo el banner es clickeable y lleva a la inscripción.
 function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string }) {
   const urgente = e.urgencia === 'alta';
-  const acento = urgente ? '#be123c' : '#b45309';
-  const borde = urgente ? '#fecdd3' : '#fde68a';
+  // Inscripción SIEMPRE en guinda (la marca). La urgencia se comunica con el
+  // contador de días, no cambiando el color a rojo/ámbar.
+  const acento = CAL_INSCRIPCION.texto;
+  const borde = CAL_INSCRIPCION.borde;
   const contenido = (
     <div className="relative flex flex-col gap-3 overflow-hidden p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
       {/* Circulitos decorativos (estilo Modula) */}
@@ -118,7 +121,7 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
           {e.fechaInicio && (
             <span
               className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold"
-              style={{ borderColor: borde, background: urgente ? '#fff1f2' : '#fffbeb', color: acento }}
+              style={{ borderColor: borde, background: CAL_INSCRIPCION.fondo, color: acento }}
             >
               <CalendarCheck size={12} />
               Solo en estas fechas
@@ -136,7 +139,7 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
       </div>
       <div
         className="flex shrink-0 flex-col items-center justify-center rounded-2xl px-4 py-2.5 text-center"
-        style={{ background: urgente ? '#fee2e2' : '#fef3c7' }}
+        style={{ background: CAL_INSCRIPCION.fondo }}
       >
         <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
         <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
@@ -146,7 +149,7 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
     </div>
   );
   const cls = 'block overflow-hidden rounded-2xl border-2 shadow-sm';
-  const style = { borderColor: borde, background: `linear-gradient(135deg, ${urgente ? '#fff1f2' : '#fffbeb'} 0%, #ffffff 70%)` };
+  const style = { borderColor: borde, background: `linear-gradient(135deg, ${CAL_INSCRIPCION.fondoSuave} 0%, #ffffff 70%)` };
   return href ? (
     <Link href={href} className={`${cls} group cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md`} style={style} aria-label={`Ir a la inscripción de la etapa ${e.clave}`}>
       {contenido}
@@ -166,11 +169,11 @@ function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boo
   // banner se muestra APAGADO e informativo: no es una urgencia suya.
   const mios = e.misAlumnos;
   const sinAlumnos = gestor && mios != null && mios.alumnos === 0;
-  const urgente = !gestor && e.urgencia === 'alta';
-  const acento = sinAlumnos ? '#78716c' : gestor ? '#6d28d9' : urgente ? '#be123c' : '#b45309';
-  const borde = sinAlumnos ? '#e7e5e4' : gestor ? '#ddd6fe' : urgente ? '#fecdd3' : '#fde68a';
-  const bg = sinAlumnos ? '#fafaf9' : gestor ? '#f5f3ff' : urgente ? '#fff1f2' : '#fffbeb';
-  const countBg = sinAlumnos ? '#f5f5f4' : gestor ? '#ede9fe' : urgente ? '#fee2e2' : '#fef3c7';
+  // El EXAMEN siempre va en morado (acento reservado a la fecha de aplicación).
+  const acento = sinAlumnos ? '#78716c' : CAL_EXAMEN.texto;
+  const borde = sinAlumnos ? '#e7e5e4' : CAL_EXAMEN.borde;
+  const bg = sinAlumnos ? '#fafaf9' : CAL_EXAMEN.fondoSuave;
+  const countBg = sinAlumnos ? '#f5f5f4' : CAL_EXAMEN.fondoContador;
   return (
     <div
       className="overflow-hidden rounded-2xl border-2 shadow-sm"
