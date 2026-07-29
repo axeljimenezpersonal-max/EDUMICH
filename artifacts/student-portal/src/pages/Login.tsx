@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
-import { GraduationCap, Lock, Mail, Loader2, Edit3, Search, ChevronRight, KeyRound } from 'lucide-react';
+import { GraduationCap, Lock, Mail, Loader2, Edit3, Search, ChevronRight, KeyRound, Eye, EyeOff } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import ModulaLogo from '../components/ModulaLogo';
 
@@ -21,6 +21,8 @@ export default function Login() {
     try { return localStorage.getItem(CLAVE_CORREO) ?? ''; } catch { return ''; }
   });
   const [password, setPassword] = useState('');
+  // Ver la contraseña: con una sola letra mal escrita no se sabe si repetirla.
+  const [verPassword, setVerPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -198,13 +200,23 @@ export default function Login() {
                   <input
                     id="password"
                     name="password"
-                    type="password"
+                    type={verPassword ? 'text' : 'password'}
                     autoComplete="current-password"
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="gov-input pl-10"
+                    className="gov-input pl-10 pr-10"
                   />
+                  <button
+                    type="button"
+                    onClick={() => setVerPassword((v) => !v)}
+                    tabIndex={-1}
+                    aria-label={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    title={verPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 transition-colors hover:text-[var(--color-guinda-700)]"
+                  >
+                    {verPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
                 </div>
                 <div className="flex justify-end mt-1.5">
                   <a

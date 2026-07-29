@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
 import { useLocation } from 'wouter';
-import { CheckCircle2, Loader2, UserPlus } from 'lucide-react';
+import { CheckCircle2, Loader2, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
@@ -42,6 +42,8 @@ export default function AutoRegistroDatos() {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Al CREAR la contraseña ver lo escrito importa aún más que al iniciar sesión.
+  const [verPw, setVerPw] = useState(false);
 
   // Autollenado de domicilio por código postal (catálogo SEPOMEX de Michoacán).
   const {
@@ -315,15 +317,26 @@ export default function AutoRegistroDatos() {
                 <label className="gov-label" htmlFor="pw">
                   Contraseña
                 </label>
+                <div className="relative">
                 <input
                   id="pw"
-                  type="password"
+                  type={verPw ? 'text' : 'password'}
                   required
                   value={form.password}
                   onChange={set('password')}
-                  className="gov-input"
+                  className="gov-input pr-10"
                   autoComplete="new-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setVerPw((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={verPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 transition-colors hover:text-[var(--color-guinda-700)]"
+                >
+                  {verPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+                </div>
                 {form.password.length > 0 && form.password.length < 8 && (
                   <div className="text-xs text-red-600 mt-1">
                     Mín. {8 - form.password.length} caracteres más
@@ -334,15 +347,26 @@ export default function AutoRegistroDatos() {
                 <label className="gov-label" htmlFor="pw2">
                   Confirmar
                 </label>
+                <div className="relative">
                 <input
                   id="pw2"
-                  type="password"
+                  type={verPw ? 'text' : 'password'}
                   required
                   value={form.confirmPassword}
                   onChange={set('confirmPassword')}
-                  className="gov-input"
+                  className="gov-input pr-10"
                   autoComplete="new-password"
                 />
+                <button
+                  type="button"
+                  onClick={() => setVerPw((v) => !v)}
+                  tabIndex={-1}
+                  aria-label={verPw ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 transition-colors hover:text-[var(--color-guinda-700)]"
+                >
+                  {verPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+                </div>
                 {form.confirmPassword.length > 0 && form.password !== form.confirmPassword && (
                   <div className="text-xs text-red-600 mt-1">No coinciden</div>
                 )}
