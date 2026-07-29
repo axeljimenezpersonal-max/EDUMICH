@@ -60,6 +60,7 @@ import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
 import { avisarSiExpedienteQuedoCompleto } from '../utils/notificarExpediente';
+import { invalidarSesiones } from '../utils/revocacion';
 import { parsearCalendarioPdf } from '../services/calendarioPdf';
 import { armarDireccion } from '../utils/estudianteDatos';
 import {
@@ -1924,6 +1925,60 @@ router.post('/estudiantes/:id/inscribir-examen', async (req, res) => {
 });
 
 // DELETE /admin/estudiantes/:id/examenes/:inscId — quitar un módulo inscrito
+
+// ─── POST /admin/alumnos/:id/baja — dar de baja (desactivar) a un alumno ────
+// Baja REVERSIBLE: el alumno pierde el acceso al portal y sus sesiones se
+// cierran, pero se conserva todo su historial (expediente, exámenes, pagos y
+// calificaciones). No se borra nada: para reactivarlo está /reactivar.
+router.post('/alumnos/:id/baja', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const motivo = String((req.body as { motivo?: string })?.motivo ?? '').trim().slice(0, 300);
+  try {
+    const [u] = await db
+      .select({ rol: users.rol, email: users.email, activo: users.activo })
+      .from(users).where(eq(users.id, alumnoId));
+    if (!u || u.rol !== 'estudiante') { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+    if (!u.activo) { res.status(409).json({ error: 'Este alumno ya está dado de baja.' }); return; }
+
+    await db.update(users).set({ activo: false, updatedAt: new Date() }).where(eq(users.id, alumnoId));
+    await invalidarSesiones(alumnoId);
+
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'baja_alumno', entidad: 'estudiantes', entidadId: alumnoId,
+      detalle: `Admin dio de baja al alumno ${u.email}${motivo ? ` — motivo: ${motivo}` : ''}`,
+      metadata: { email: u.email, motivo: motivo || null }, req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[admin/alumnos/baja]', e);
+    res.status(500).json({ error: 'No se pudo dar de baja al alumno' });
+  }
+});
+
+// ─── POST /admin/alumnos/:id/reactivar — deshace la baja ───────────────────
+router.post('/alumnos/:id/reactivar', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  try {
+    const [u] = await db
+      .select({ rol: users.rol, email: users.email, activo: users.activo })
+      .from(users).where(eq(users.id, alumnoId));
+    if (!u || u.rol !== 'estudiante') { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+    if (u.activo) { res.status(409).json({ error: 'Este alumno ya está activo.' }); return; }
+
+    await db.update(users).set({ activo: true, updatedAt: new Date() }).where(eq(users.id, alumnoId));
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'reactivar_alumno', entidad: 'estudiantes', entidadId: alumnoId,
+      detalle: `Admin reactivó al alumno ${u.email}`, metadata: { email: u.email }, req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[admin/alumnos/reactivar]', e);
+    res.status(500).json({ error: 'No se pudo reactivar al alumno' });
+  }
+});
+
 router.delete('/estudiantes/:id/examenes/:inscId', async (req, res) => {
   const alumnoId = Number(req.params.id);
   const inscId = Number(req.params.inscId);
@@ -2278,6 +2333,7 @@ router.get('/alumnos/:id', async (req, res) => {
       gestor_email: string | null;
       email: string;
       password_temporal: boolean;
+      activo: boolean;
       bienvenida_enviada_en: Date | null;
       ultimo_login: Date | null;
       created_at: Date;
@@ -2320,7 +2376,7 @@ router.get('/alumnos/:id', async (req, res) => {
           e.telefono, e.direccion,
           e.municipio_id, m.nombre AS municipio_nombre,
           e.gestor_id, g.nombre_completo AS gestor_nombre, gu.email AS gestor_email,
-          u.email, u.password_temporal, u.bienvenida_enviada_en, u.ultimo_login,
+          u.email, u.password_temporal, u.bienvenida_enviada_en, u.ultimo_login, u.activo,
           e.created_at,
           e.folio_preregistro, e.preregistro_vigente_hasta::text AS preregistro_vigente_hasta,
           e.matricula_oficial_dgb, e.matricula_capturada_en,

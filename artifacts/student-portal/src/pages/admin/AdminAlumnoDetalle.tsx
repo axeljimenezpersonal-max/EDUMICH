@@ -5,7 +5,7 @@ import {
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
   Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2, ClipboardList,
-  CalendarClock, CalendarCheck, ExternalLink, Trash2,
+  CalendarClock, CalendarCheck, ExternalLink, Trash2, UserX,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
@@ -33,6 +33,8 @@ type Alumno = {
   gestor: { id: number; nombreCompleto: string; email: string } | null;
   email: string;
   passwordTemporal: boolean;
+  /** Cuenta activa. En false = alumno dado de baja (sin acceso, historial intacto). */
+  activo?: boolean;
   bienvenidaEnviadaEn: string | null;
   ultimaActividad: string | null;
   estadoExpediente: 'activo' | 'esperando_matricula' | 'modulos_pendientes' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo';
@@ -902,6 +904,9 @@ export default function AdminAlumnoDetalle() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
   const [resettingPwd, setResettingPwd] = useState(false);
   const [reenviando, setReenviando] = useState(false);
+  const [modalBaja, setModalBaja] = useState(false);
+  const [bajaEnCurso, setBajaEnCurso] = useState(false);
+  const [motivoBaja, setMotivoBaja] = useState('');
 
   const [modalAprobar, setModalAprobar] = useState<Documento | null>(null);
   const [modalRechazar, setModalRechazar] = useState<Documento | null>(null);
@@ -1017,6 +1022,23 @@ export default function AdminAlumnoDetalle() {
     } finally {
       setDocActionLoading(false);
     }
+  }
+
+  /** Baja reversible del alumno (o reactivación si ya estaba dado de baja). */
+  async function handleBaja() {
+    if (!alumno) return;
+    const reactivar = alumno.activo === false;
+    setBajaEnCurso(true);
+    try {
+      await api.post(`/admin/alumnos/${alumnoId}/${reactivar ? 'reactivar' : 'baja'}`, reactivar ? {} : { motivo: motivoBaja.trim() });
+      showToast(reactivar ? 'Alumno reactivado.' : 'Alumno dado de baja.', true);
+      setModalBaja(false);
+      setMotivoBaja('');
+      const fresco = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
+      setData(fresco);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'No se pudo completar la acción', false);
+    } finally { setBajaEnCurso(false); }
   }
 
   async function handleReenviarCredenciales() {
@@ -1190,6 +1212,13 @@ export default function AdminAlumnoDetalle() {
               </div>
             </div>
 
+            {alumno.activo === false && (
+              <div className="mt-2 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide"
+                style={{ background: 'rgba(255,255,255,0.9)', color: '#b91c1c' }}>
+                <UserX size={12} /> Alumno dado de baja · sin acceso
+              </div>
+            )}
+
             {/* Acciones (sobre el guinda) */}
             <div data-tour="aludet-acciones" style={{ display: 'flex', gap: 8, flexWrap: 'wrap', flexShrink: 0 }}>
               <button onClick={handleResetPassword} disabled={resettingPwd}
@@ -1206,6 +1235,12 @@ export default function AdminAlumnoDetalle() {
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
                 style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
                 <Users size={12} /> {alumno.gestor ? 'Cambiar gestor' : 'Asignar gestor'}
+              </button>
+              {/* Baja reversible: quita el acceso y conserva todo el historial. */}
+              <button onClick={() => setModalBaja(true)} disabled={bajaEnCurso}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
+                {alumno.activo === false ? <><UserCheck size={12} /> Reactivar alumno</> : <><UserX size={12} /> Dar de baja</>}
               </button>
               {alumno.gestor && (
                 <button onClick={() => setLocation(`/admin/gestores/${alumno.gestor!.id}`)}
@@ -1596,6 +1631,60 @@ export default function AdminAlumnoDetalle() {
           onConfirm={() => handleRenovarLicencia('reposicion')}
           onClose={() => setModalLicencia(null)}
         />
+      )}
+
+      {/* Confirmación de baja / reactivación del alumno */}
+      {modalBaja && alumno && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" style={{ background: 'rgba(20,10,15,0.45)', backdropFilter: 'blur(2px)' }}>
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl">
+            <div className="flex items-center justify-between border-b border-stone-100 px-6 py-4">
+              <h3 className="font-serif text-lg font-bold text-stone-900">
+                {alumno.activo === false ? 'Reactivar alumno' : 'Dar de baja al alumno'}
+              </h3>
+              <button onClick={() => { if (!bajaEnCurso) setModalBaja(false); }} className="text-stone-400 hover:text-stone-600"><X size={18} /></button>
+            </div>
+            <div className="space-y-3 p-6">
+              <p className="text-sm text-stone-600">
+                {alumno.activo === false ? (
+                  <>Se devolverá el acceso al portal a <strong className="text-stone-800">{alumno.nombreCompleto}</strong>.</>
+                ) : (
+                  <><strong className="text-stone-800">{alumno.nombreCompleto}</strong> dejará de tener acceso al portal y sus sesiones se cerrarán.</>
+                )}
+              </p>
+              {alumno.activo !== false && (
+                <>
+                  <ul className="space-y-1.5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-[13px] text-stone-700">
+                    <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span><strong>No se borra nada</strong>: su expediente, exámenes, pagos y calificaciones se conservan.</span></li>
+                    <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span>Es <strong>reversible</strong>: puedes reactivarlo desde esta misma pantalla.</span></li>
+                    <li className="flex gap-2"><span className="shrink-0 font-bold text-amber-500">•</span><span>Su correo <strong>sigue ocupado</strong>: no podrá registrarse de nuevo con el mismo.</span></li>
+                  </ul>
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-stone-600">Motivo (opcional)</label>
+                    <input
+                      value={motivoBaja}
+                      onChange={(e) => setMotivoBaja(e.target.value.slice(0, 300))}
+                      placeholder="Ej. Solicitud del alumno · Duplicado · Ya no continúa"
+                      className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:border-[var(--color-guinda-700)] focus:outline-none"
+                    />
+                    <p className="mt-1 text-[11px] text-stone-400">Queda registrado en la bitácora.</p>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex gap-2 border-t border-stone-100 px-6 py-4">
+              <button onClick={() => { if (!bajaEnCurso) setModalBaja(false); }} disabled={bajaEnCurso}
+                className="flex-1 rounded-lg border border-stone-300 py-2.5 text-sm font-semibold text-stone-600 hover:bg-stone-50 disabled:opacity-50">
+                Cancelar
+              </button>
+              <button onClick={handleBaja} disabled={bajaEnCurso}
+                className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+                style={{ background: alumno.activo === false ? '#15803d' : '#b91c1c' }}>
+                {bajaEnCurso ? <Loader2 size={14} className="animate-spin" /> : alumno.activo === false ? <UserCheck size={14} /> : <UserX size={14} />}
+                {bajaEnCurso ? 'Aplicando…' : alumno.activo === false ? 'Sí, reactivar' : 'Sí, dar de baja'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {modalMatricula !== null && (
