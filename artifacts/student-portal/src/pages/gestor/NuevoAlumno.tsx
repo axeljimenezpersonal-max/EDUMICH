@@ -17,6 +17,7 @@ import { GestorLayout } from './GestorLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api, ApiError } from '../../lib/api';
+import { useCodigoPostal } from '../../lib/useCodigoPostal';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_NUEVO_ALUMNO, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
@@ -198,35 +199,20 @@ export default function NuevoAlumno() {
   const [exito, setExito] = useState<RegistroExito | null>(null);
   const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
 
-  // Autollenado del domicilio por código postal (catálogo SEPOMEX, Michoacán).
-  const [colonias, setColonias] = useState<string[]>([]);
-  const [cpBuscando, setCpBuscando] = useState(false);
-  const [coloniaManual, setColoniaManual] = useState(false);
-  useEffect(() => {
-    const cp = datos.cp.trim();
-    if (!/^\d{5}$/.test(cp)) { setColonias([]); return; }
-    let vivo = true;
-    setCpBuscando(true);
-    const t = setTimeout(() => {
-      api.get<{ encontrado: boolean; estado: string | null; ciudad: string | null; colonias: string[] }>(`/publico/cp/${cp}`)
-        .then((r) => {
-          if (!vivo) return;
-          setColonias(r.colonias);
-          if (r.encontrado) {
-            setColoniaManual(false);
-            setDatos((d) => ({
-              ...d,
-              estadoDomicilio: d.estadoDomicilio.trim() || r.estado || d.estadoDomicilio,
-              ciudad: d.ciudad.trim() || r.ciudad || d.ciudad,
-            }));
-          }
-        })
-        .catch(() => { if (vivo) setColonias([]); })
-        .finally(() => { if (vivo) setCpBuscando(false); });
-    }, 400);
-    return () => { vivo = false; clearTimeout(t); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [datos.cp]);
+  // Autollenado del domicilio por código postal — misma herramienta que usan los
+  // formularios públicos (hook compartido, una sola implementación).
+  const {
+    colonias,
+    buscando: cpBuscando,
+    manual: coloniaManual,
+    setManual: setColoniaManual,
+  } = useCodigoPostal(datos.cp, (p) => {
+    setDatos((d) => ({
+      ...d,
+      estadoDomicilio: d.estadoDomicilio.trim() || p.estado || d.estadoDomicilio,
+      ciudad: d.ciudad.trim() || p.ciudad || p.municipio || d.ciudad,
+    }));
+  });
 
   // Coincidencia en el padrón histórico del Estado (alumno que YA existe).
   interface PadronMatch {

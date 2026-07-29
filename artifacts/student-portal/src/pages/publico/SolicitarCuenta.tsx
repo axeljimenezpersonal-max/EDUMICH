@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useCodigoPostal } from '../../lib/useCodigoPostal';
 import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
@@ -131,6 +132,20 @@ export default function SolicitarCuenta() {
   });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Autollenado de domicilio por código postal (catálogo SEPOMEX de Michoacán).
+  const {
+    colonias: coloniasCp,
+    buscando: buscandoCp,
+    manual: coloniaManualCp,
+    setManual: setColoniaManualCp,
+  } = useCodigoPostal(form.cp, (p) => {
+    setForm((f) => ({
+      ...f,
+      estadoDomicilio: f.estadoDomicilio?.trim() ? f.estadoDomicilio : (p.estado ?? ''),
+      ciudad: f.ciudad?.trim() ? f.ciudad : (p.ciudad ?? p.municipio ?? ''),
+    }));
+  });
   const [aceptaAviso, setAceptaAviso] = useState(false);
   const [modalidadPreferida, setModalidadPreferida] = useState<'con_gestor' | 'auto_gestion' | ''>('');
   const [quiereInfoGestores, setQuiereInfoGestores] = useState(false);
@@ -697,10 +712,40 @@ export default function SolicitarCuenta() {
                 <div className="space-y-2">
                   <input value={form.calleNumero} onChange={setField('calleNumero')} className="gov-input" placeholder="Calle y número" />
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <input value={form.colonia} onChange={setField('colonia')} className="gov-input" placeholder="Colonia" />
-                    <input value={form.cp} onChange={setField('cp')} className="gov-input" placeholder="Código postal" />
+                    {/* El CP va PRIMERO: al escribirlo se llena estado/ciudad y
+                        la colonia se elige de lista (catálogo SEPOMEX). */}
+                    <input
+                      value={form.cp}
+                      onChange={(e) => setForm((f) => ({ ...f, cp: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
+                      inputMode="numeric"
+                      maxLength={5}
+                      className="gov-input"
+                      placeholder="Código postal"
+                    />
+                    {coloniasCp.length > 0 && !coloniaManualCp ? (
+                      <select
+                        value={form.colonia}
+                        onChange={(e) => {
+                          if (e.target.value === '__otra__') { setColoniaManualCp(true); setForm((f) => ({ ...f, colonia: '' })); return; }
+                          setForm((f) => ({ ...f, colonia: e.target.value }));
+                        }}
+                        className="gov-input"
+                      >
+                        <option value="">Selecciona tu colonia…</option>
+                        {coloniasCp.map((c) => <option key={c} value={c}>{c}</option>)}
+                        <option value="__otra__">Otra… (escribirla)</option>
+                      </select>
+                    ) : (
+                      <input value={form.colonia} onChange={setField('colonia')} className="gov-input" placeholder="Colonia" />
+                    )}
                   </div>
-                  <p className="text-[11px] text-stone-400">La colonia debe corresponder al municipio que selecciones abajo.</p>
+                  <p className="text-[11px] text-stone-400">
+                    {buscandoCp
+                      ? 'Buscando tu código postal…'
+                      : coloniasCp.length > 0
+                        ? `${coloniasCp.length} colonia(s) encontradas para ese código postal.`
+                        : 'Escribe tu código postal y te ofrecemos las colonias de esa zona.'}
+                  </p>
                 </div>
               </div>
 
