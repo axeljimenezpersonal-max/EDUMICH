@@ -18,12 +18,14 @@ router.use(authRequired);
 // Anuncios de FECHAS calculados en vivo desde el calendario oficial de etapas
 // (siempre al día, sin cron). Visible para alumno, gestor y admin. Devuelve la
 // ventana de solicitud abierta hoy (o la próxima en abrir) y el examen próximo.
-router.get('/calendario', async (_req, res) => {
+router.get('/calendario', async (req, res) => {
   const hoy = hoyEnMexico();
   const dias = (s: string) => Math.ceil((new Date(s + 'T00:00:00').getTime() - new Date(hoy + 'T00:00:00').getTime()) / 86400000);
   const eventos: Array<{
     tipo: 'ventana_abierta' | 'ventana_proxima' | 'examen';
     clave: string; fecha: string; fechaInicio?: string; fechaFin?: string; dias: number; urgencia: 'alta' | 'media' | 'baja';
+    /** Solo para el GESTOR en el evento de examen: cuántos alumnos SUYOS participan. */
+    misAlumnos?: { alumnos: number; examenes: number; pagados: number };
   }> = [];
 
   // Ventana de inscripción/pago ABIERTA hoy → si no hay, la PRÓXIMA en abrir.
@@ -48,7 +50,30 @@ router.get('/calendario', async (_req, res) => {
     WHERE examen_sabado >= ${hoy} ORDER BY examen_sabado ASC LIMIT 1`).then((r) => r.rows);
   if (exam) {
     const d = dias(exam.es);
-    if (d <= 14) eventos.push({ tipo: 'examen', clave: exam.clave, fecha: exam.es, fechaFin: exam.ed, dias: d, urgencia: d <= 3 ? 'alta' : 'media' });
+    if (d <= 14) {
+      // Para el GESTOR: cuántos alumnos SUYOS presentan de verdad en esa etapa.
+      // Sin esto el banner alarma aunque no tenga a nadie inscrito (confuso).
+      let misAlumnos: { alumnos: number; examenes: number; pagados: number } | undefined;
+      if (req.user?.rol === 'gestor') {
+        const [c] = await db.execute<{ alumnos: number; examenes: number; pagados: number }>(sql`
+          SELECT count(DISTINCT ei.estudiante_id)::int AS alumnos,
+                 count(*)::int AS examenes,
+                 count(*) FILTER (WHERE EXISTS (
+                   SELECT 1 FROM pagos_examen_inscripciones pei
+                   JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+                   WHERE pei.examen_inscripcion_id = ei.id AND pe.estado = 'pagado'
+                 ))::int AS pagados
+          FROM examenes_inscripciones ei
+          JOIN estudiantes e ON e.user_id = ei.estudiante_id
+          JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+          WHERE ce.clave = ${exam.clave}
+            AND e.gestor_id = ${req.user.userId}
+            AND ei.estado <> 'cancelado'
+        `).then((r) => r.rows);
+        misAlumnos = { alumnos: Number(c?.alumnos ?? 0), examenes: Number(c?.examenes ?? 0), pagados: Number(c?.pagados ?? 0) };
+      }
+      eventos.push({ tipo: 'examen', clave: exam.clave, fecha: exam.es, fechaFin: exam.ed, dias: d, urgencia: d <= 3 ? 'alta' : 'media', misAlumnos });
+    }
   }
 
   res.json({ eventos });

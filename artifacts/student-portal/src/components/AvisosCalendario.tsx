@@ -7,7 +7,7 @@
  */
 import { useEffect, useState } from 'react';
 import { Link } from 'wouter';
-import { CalendarClock, CalendarCheck, AlertTriangle, ChevronRight, Download } from 'lucide-react';
+import { CalendarClock, CalendarCheck, AlertTriangle, ChevronRight, Download, Users } from 'lucide-react';
 import { api } from '../lib/api';
 
 interface EventoCalendario {
@@ -18,6 +18,8 @@ interface EventoCalendario {
   fechaFin?: string;
   dias: number;
   urgencia: 'alta' | 'media' | 'baja';
+  /** Solo gestor, en el examen: cuántos alumnos suyos participan de verdad. */
+  misAlumnos?: { alumnos: number; examenes: number; pagados: number };
 }
 
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
@@ -160,11 +162,15 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
 // para descargar la lista de alumnos que participan. Para el alumno/admin
 // mantiene el tono de urgencia (rojo/ámbar) según los días restantes.
 function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boolean }) {
+  // Al gestor solo le "toca" esta etapa si tiene alumnos en ella. Sin alumnos el
+  // banner se muestra APAGADO e informativo: no es una urgencia suya.
+  const mios = e.misAlumnos;
+  const sinAlumnos = gestor && mios != null && mios.alumnos === 0;
   const urgente = !gestor && e.urgencia === 'alta';
-  const acento = gestor ? '#6d28d9' : urgente ? '#be123c' : '#b45309';
-  const borde = gestor ? '#ddd6fe' : urgente ? '#fecdd3' : '#fde68a';
-  const bg = gestor ? '#f5f3ff' : urgente ? '#fff1f2' : '#fffbeb';
-  const countBg = gestor ? '#ede9fe' : urgente ? '#fee2e2' : '#fef3c7';
+  const acento = sinAlumnos ? '#78716c' : gestor ? '#6d28d9' : urgente ? '#be123c' : '#b45309';
+  const borde = sinAlumnos ? '#e7e5e4' : gestor ? '#ddd6fe' : urgente ? '#fecdd3' : '#fde68a';
+  const bg = sinAlumnos ? '#fafaf9' : gestor ? '#f5f3ff' : urgente ? '#fff1f2' : '#fffbeb';
+  const countBg = sinAlumnos ? '#f5f5f4' : gestor ? '#ede9fe' : urgente ? '#fee2e2' : '#fef3c7';
   return (
     <div
       className="overflow-hidden rounded-2xl border-2 shadow-sm"
@@ -180,9 +186,29 @@ function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boo
           </div>
           <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
             {gestor
-              ? <>Tus alumnos presentan su <strong className="text-stone-800">examen oficial</strong>. Acompáñalos y ten lista tu documentación.</>
+              ? (sinAlumnos
+                  ? <>No tienes alumnos inscritos en esta etapa: <strong className="text-stone-700">no requiere acción de tu parte</strong>.</>
+                  : <>Tus alumnos presentan su <strong className="text-stone-800">examen oficial</strong>. Acompáñalos y ten lista tu documentación.</>)
               : <>Presentación del <strong className="text-stone-800">examen oficial</strong>.</>}
           </p>
+          {/* Cuántos alumnos SUYOS participan: así el gestor sabe si le toca o no. */}
+          {gestor && mios != null && mios.alumnos > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[12px]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-white/80 px-2.5 py-1 font-bold" style={{ borderColor: borde, color: acento }}>
+                <Users size={12} /> {mios.alumnos} alumno{mios.alumnos === 1 ? '' : 's'} · {mios.examenes} examen{mios.examenes === 1 ? '' : 'es'}
+              </span>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-bold"
+                style={mios.pagados === mios.examenes
+                  ? { background: '#dcfce7', color: '#166534' }
+                  : { background: '#fef3c7', color: '#92400e' }}
+              >
+                {mios.pagados === mios.examenes
+                  ? <><CalendarCheck size={12} /> Todo pagado</>
+                  : <><AlertTriangle size={12} /> {mios.pagados} de {mios.examenes} pagados</>}
+              </span>
+            </div>
+          )}
           <div className="mt-2.5 flex flex-wrap items-center gap-2">
             <div
               className="inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
@@ -191,7 +217,7 @@ function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boo
               <CalendarCheck size={14} />
               {e.fechaFin ? rangoCorto(e.fecha, e.fechaFin) : fmtLargo(e.fecha)}
             </div>
-            {gestor && (
+            {gestor && !sinAlumnos && (
               <a
                 href={`/api/gestor/etapas/${encodeURIComponent(e.clave)}/relacion.pdf`}
                 target="_blank"
