@@ -5,7 +5,7 @@ import {
   GraduationCap, Calendar, Clock, UserCheck, KeyRound, Send,
   CheckCircle, XCircle, AlertTriangle, Clock3, X, ThumbsUp, ThumbsDown,
   Award, Plus, Edit2, Download, RefreshCw, BadgeCheck, Loader2, ClipboardList,
-  CalendarClock, ExternalLink, Trash2,
+  CalendarClock, CalendarCheck, ExternalLink, Trash2,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { api, calif10 } from '../../lib/api';
@@ -712,15 +712,15 @@ function InscribirModuloModal({ alumnoId, onClose, onDone, showToast }: {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    // Solo se ofrecen etapas ABIERTAS o por venir (examen hoy o a futuro). Las ya
-    // pasadas se ocultan: inscribir en una etapa vieja no tiene sentido y llenaba
-    // el menú con convocatorias antiguas. (El alta es una herramienta de admin;
-    // el backend no pone candado de ventana, pero aquí no las mostramos.)
-    const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Mexico_City' });
+    // Regla del producto: SOLO puede haber UNA convocatoria con inscripción
+    // abierta a la vez. Por eso no se elige convocatoria: se toma la abierta y
+    // punto. Si no hay ninguna abierta, no se inscribe (se avisa en la interfaz).
     api.get<{ etapas: EtapaOpcion[] }>('/admin/etapas')
-      .then((r) => setEtapas(
-        r.etapas.filter((e) => e.estado === 'inscripcion_abierta' || !e.examenSabado || String(e.examenSabado).slice(0, 10) >= hoy)
-      ))
+      .then((r) => {
+        const abiertas = r.etapas.filter((e) => e.estado === 'inscripcion_abierta');
+        setEtapas(abiertas);
+        if (abiertas.length > 0) setEtapaId(abiertas[0].id); // la única abierta, autoseleccionada
+      })
       .catch(() => {});
   }, []);
 
@@ -778,14 +778,18 @@ function InscribirModuloModal({ alumnoId, onClose, onDone, showToast }: {
         <div className="p-6 space-y-4">
           <div>
             <label className="block text-xs font-semibold text-stone-600 mb-1 uppercase tracking-widest">Convocatoria</label>
-            <select
-              value={String(etapaId)}
-              onChange={(e) => setEtapaId(e.target.value ? Number(e.target.value) : '')}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-guinda-700)]"
-            >
-              <option value="">Selecciona convocatoria…</option>
-              {etapas.map((e) => <option key={e.id} value={e.id}>{e.clave} · {e.anio}</option>)}
-            </select>
+            {etapas.length === 0 ? (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-800">
+                <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
+                <span>No hay convocatoria abierta. Solo puedes inscribir módulos mientras haya una etapa con inscripción abierta.</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-stone-200 bg-[var(--color-crema-50)] px-3 py-2.5">
+                <CalendarCheck size={16} className="flex-shrink-0 text-[var(--color-guinda-700)]" />
+                <span className="text-sm font-semibold text-stone-800">{etapas[0].clave} · {etapas[0].anio}</span>
+                <span className="ml-auto rounded-full bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-green-700">Abierta</span>
+              </div>
+            )}
           </div>
 
           {etapaId !== '' && (
