@@ -1491,7 +1491,9 @@ router.post('/alumnos/:id/reenviar-credenciales', async (req, res) => {
     if (emailEnviado) {
       await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, alumnoId));
     }
-  } catch {}
+  } catch (err) {
+    console.error('[CORREO] Falló el reenvío de credenciales al alumno ID', alumnoId, ':', err instanceof Error ? err.message : err);
+  }
 
   await tryAuditLog({
     userId: gestorUserId,
