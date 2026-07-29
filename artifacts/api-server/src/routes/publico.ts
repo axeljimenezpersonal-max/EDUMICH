@@ -770,10 +770,12 @@ router.get('/verificar/:folio', async (req, res) => {
       preregistroGeneradoEn: estudiantes.preregistroGeneradoEn,
       municipioNombre: municipios.nombre,
       gestorNombre: gestores.nombreCompleto,
+      portadorActivo: users.activo,
     })
     .from(estudiantes)
     .leftJoin(municipios, eq(estudiantes.municipioId, municipios.id))
     .leftJoin(gestores, eq(estudiantes.gestorId, gestores.userId))
+    .leftJoin(users, eq(users.id, estudiantes.userId))
     .where(eq(estudiantes.folioPreregistro, folio))
     .limit(1);
 
@@ -787,8 +789,12 @@ router.get('/verificar/:folio', async (req, res) => {
 
   const vigenteHasta = row.preregistroVigenteHasta ? new Date(row.preregistroVigenteHasta + 'T00:00:00') : null;
   const diasRestantes = vigenteHasta ? Math.ceil((vigenteHasta.getTime() - hoy.getTime()) / 86_400_000) : null;
-  const estado: 'vigente' | 'por_vencer' | 'vencido' =
-    diasRestantes === null ? 'vigente'
+  // Si el portador causó BAJA, su ficha deja de ser un documento vigente aunque
+  // la fecha no haya pasado (mismo criterio que la credencial y el pase).
+  const dadoDeBaja = row.portadorActivo === false;
+  const estado: 'vigente' | 'por_vencer' | 'vencido' | 'baja' =
+    dadoDeBaja            ? 'baja'
+    : diasRestantes === null ? 'vigente'
     : diasRestantes <= 0   ? 'vencido'
     : diasRestantes <= 3   ? 'por_vencer'
     : 'vigente';
@@ -797,6 +803,7 @@ router.get('/verificar/:folio', async (req, res) => {
     vigente:    { label: 'VIGENTE',    bg: '#d1fae5', color: '#166534', border: '#86efac' },
     por_vencer: { label: 'POR VENCER', bg: '#fef9c3', color: '#854d0e', border: '#fde047' },
     vencido:    { label: 'VENCIDO',    bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
+    baja:       { label: 'DADO DE BAJA', bg: '#fee2e2', color: '#991b1b', border: '#fca5a5' },
   }[estado];
 
   const fechaGen = row.preregistroGeneradoEn

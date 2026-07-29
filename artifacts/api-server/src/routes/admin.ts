@@ -274,16 +274,27 @@ router.post('/convocatoria/pase/validar', async (req, res) => {
       moduloId: examenesInscripciones.moduloId,
       estudianteNombre: estudiantes.nombreCompleto,
       estudianteCurp: estudiantes.curp,
+      estudianteActivo: users.activo,
       moduloNumero: modulos.numero,
       moduloNombre: modulos.nombre,
     })
     .from(examenesInscripciones)
     .innerJoin(estudiantes, eq(examenesInscripciones.estudianteId, estudiantes.userId))
+    .innerJoin(users, eq(users.id, examenesInscripciones.estudianteId))
     .innerJoin(modulos, eq(examenesInscripciones.moduloId, modulos.id))
     .where(eq(examenesInscripciones.folio, folio));
 
   if (!insc) {
     res.status(404).json({ error: `Folio ${folio} no encontrado` });
+    return;
+  }
+
+  // El alumno dado de BAJA pierde también su pase: no se le valida la asistencia
+  // aunque traiga el QR firmado. Mismo criterio que su credencial digital.
+  if (insc.estudianteActivo === false) {
+    res.status(409).json({
+      error: `${insc.estudianteNombre ?? 'El alumno'} está dado de baja: su pase no es válido. Consulta con la Coordinación antes de permitir el examen.`,
+    });
     return;
   }
 
