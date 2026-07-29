@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { User, Save, RefreshCw, Mail, Phone, Briefcase, Lock } from 'lucide-react';
+import { soloDiezDigitos, telefonoCanonico } from '../../../components/CampoTelefono';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -252,8 +253,8 @@ export default function MiCuenta({ onDirty, registerSave, registerDiscard }: Pro
                   icon={<Phone size={11} strokeWidth={2} />}
                   label="Teléfono"
                   type="tel"
-                  value={cuenta.telefono}
-                  onChange={(v) => setCuentaField('telefono', v)}
+                  value={soloDiezDigitos(cuenta.telefono)}
+                  onChange={(v) => setCuentaField('telefono', telefonoCanonico(v))}
                   placeholder="+52 443 123 4567"
                   bloqueado={bloqTel}
                 />

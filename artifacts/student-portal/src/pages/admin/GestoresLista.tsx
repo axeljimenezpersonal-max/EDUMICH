@@ -9,6 +9,7 @@ import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_GESTORES, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
+import { soloDiezDigitos, telefonoCanonico } from '../../components/CampoTelefono';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -152,7 +153,10 @@ function CrearGestorModal({
               <input type="email" className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400" placeholder="nombre@michoacan.gob.mx" value={form.email} onChange={(e) => set('email', e.target.value)} />
             </FormField>
             <FormField label="Teléfono">
-              <input type="tel" className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400" placeholder="434-342-9876" value={form.telefono} onChange={(e) => set('telefono', e.target.value)} />
+              <div className="flex">
+                <span className="flex select-none items-center rounded-l-lg border border-r-0 border-stone-200 bg-stone-50 px-3 text-sm font-semibold text-stone-600" aria-hidden>+52</span>
+                <input type="tel" inputMode="numeric" maxLength={10} className="w-full rounded-r-lg border border-stone-200 px-3 py-2 text-sm focus:border-stone-400 focus:outline-none" placeholder="434 342 9876" value={soloDiezDigitos(form.telefono)} onChange={(e) => set('telefono', telefonoCanonico(e.target.value))} />
+              </div>
             </FormField>
           </div>
 

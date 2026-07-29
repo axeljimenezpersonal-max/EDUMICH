@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
+import { CampoTelefono } from '../../components/CampoTelefono';
 import { useLocation } from 'wouter';
 import { CheckCircle2, Loader2, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
@@ -176,15 +177,10 @@ export default function AutoRegistroDatos() {
               <label className="gov-label" htmlFor="telefono">
                 Teléfono
               </label>
-              <input
-                id="telefono"
-                type="tel"
-                required
-                value={form.telefono}
-                onChange={set('telefono')}
-                className="gov-input"
-                placeholder="+52 443 123 4567"
-              />
+              <CampoTelefono
+                  value={form.telefono}
+                  onChange={(v) => setForm((f) => ({ ...f, telefono: v }))}
+                />
             </div>
           </div>
 

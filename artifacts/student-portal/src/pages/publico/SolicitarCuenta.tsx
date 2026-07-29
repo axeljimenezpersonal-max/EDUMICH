@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
+import { CampoTelefono } from '../../components/CampoTelefono';
 import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
@@ -200,7 +201,10 @@ export default function SolicitarCuenta() {
       return null;
     }
     if (n === 3) {
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return 'Escribe un correo electrónico válido.';
+      // Se valida el correo YA RECORTADO: al pegarlo o autocompletarlo suele
+      // llegar con un espacio invisible al final, y el patrón (que prohíbe
+      // espacios) lo rechazaba aunque el correo fuera correcto.
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Escribe un correo electrónico válido.';
       if (!form.telefono.trim()) return 'Escribe tu número de teléfono.';
       if (!aceptaAviso) return 'Debes aceptar el aviso de privacidad.';
       return null;
@@ -271,7 +275,7 @@ export default function SolicitarCuenta() {
     try {
       const r = await api.post<{ ok: boolean; modo: string; codigoDev?: string }>(
         '/publico/email/solicitar-codigo',
-        { email: form.email, tipo: 'solicitud_cuenta' }
+        { email: form.email.trim().toLowerCase(), tipo: 'solicitud_cuenta' }
       );
       setCodigoDev(r.codigoDev ?? null);
       setModoCodigo(r.modo);
@@ -315,7 +319,7 @@ export default function SolicitarCuenta() {
     try {
       const r = await api.post<{ ok: boolean; token: string }>(
         '/publico/email/verificar-codigo',
-        { email: form.email, codigo, tipo: 'solicitud_cuenta' }
+        { email: form.email.trim().toLowerCase(), codigo, tipo: 'solicitud_cuenta' }
       );
       // Enviar solicitud inmediatamente
       await api.post('/publico/solicitudes-cuenta', {
@@ -330,7 +334,7 @@ export default function SolicitarCuenta() {
         lugarNacimiento: form.lugarNacimiento || undefined,
         entidadNacimiento: form.entidadNacimiento || undefined,
         estadoCivil: form.estadoCivil || undefined,
-        email: form.email,
+        email: form.email.trim().toLowerCase(),
         telefono: form.telefono,
         calleNumero: form.calleNumero || undefined,
         colonia: form.colonia || undefined,
@@ -355,7 +359,7 @@ export default function SolicitarCuenta() {
     try {
       const r = await api.post<{ ok: boolean; modo: string; codigoDev?: string }>(
         '/publico/email/solicitar-codigo',
-        { email: form.email, tipo: 'solicitud_cuenta' }
+        { email: form.email.trim().toLowerCase(), tipo: 'solicitud_cuenta' }
       );
       setCodigoDev(r.codigoDev ?? null);
       setDigits(['', '', '', '', '', '']);
@@ -785,7 +789,8 @@ export default function SolicitarCuenta() {
                   id="sc-email"
                   type="email"
                   value={form.email}
-                  onChange={setField('email')}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value.replace(/\s/g, '').toLowerCase() }))}
+                  autoComplete="email"
                   className="gov-input"
                   placeholder="jose.morelos@ejemplo.com"
                 />
@@ -796,13 +801,10 @@ export default function SolicitarCuenta() {
 
               <div>
                 <label className="gov-label" htmlFor="sc-tel">Teléfono *</label>
-                <input
+                <CampoTelefono
                   id="sc-tel"
-                  type="tel"
                   value={form.telefono}
-                  onChange={setField('telefono')}
-                  className="gov-input"
-                  placeholder="+52 443 123 4567"
+                  onChange={(v) => setForm((f) => ({ ...f, telefono: v }))}
                 />
               </div>
 

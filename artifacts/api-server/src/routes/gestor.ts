@@ -71,6 +71,7 @@ import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
 import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
 import { nombreArchivoUtf8 } from '../utils/archivo';
 import { hoyEnMexico } from '../utils/fechas';
+import { normalizarTelefonoOMantener } from '../utils/telefono';
 
 const router = Router();
 
@@ -279,7 +280,7 @@ const crearAlumnoSchema = z.object({
   apellidoMaterno: z.string().max(100).optional(),
   curp: z.string().length(18),
   email: z.string().email(),
-  telefono: z.string().min(7).max(30).optional(),
+  telefono: z.string().min(7).max(30).optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v) ?? undefined)),
   fechaNacimiento: z.string().optional(),
   // OBLIGATORIOS: van en la cédula de inscripción y en la Relación que se
   // entrega a la SEP-DGB. Si faltan, el trámite se cae más adelante y para
@@ -824,7 +825,7 @@ router.get('/alumnos/:id', async (req, res) => {
 // Gestor can update basic student profile fields (not email, not curp after initial entry)
 const editarAlumnoSchema = z.object({
   nombreCompleto: z.string().min(2).max(200).optional(),
-  telefono: z.string().max(30).nullable().optional(),
+  telefono: z.string().max(30).nullable().optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v))),
   direccion: z.string().max(500).nullable().optional(),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   curp: z.string().length(18).toUpperCase().nullable().optional(),

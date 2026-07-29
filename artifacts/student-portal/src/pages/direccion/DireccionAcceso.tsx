@@ -12,6 +12,7 @@ import { avisar } from '../../components/Avisador';
 import { confirmar } from '../../components/Confirmador';
 import { formatearNombre } from '../../lib/nombre';
 import { fechaCorta } from '../../lib/fechas';
+import { soloDiezDigitos, telefonoCanonico } from '../../components/CampoTelefono';
 
 type Acceso = {
   userId: number;
@@ -301,7 +302,7 @@ export default function DireccionAcceso() {
                   {municipios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                 </select>
               </div>
-              <Campo label="Teléfono (opcional)" value={telefono} onChange={setTelefono} placeholder="443 123 4567" />
+              <Campo label="Teléfono (opcional)" value={soloDiezDigitos(telefono)} onChange={(v) => setTelefono(telefonoCanonico(v))} placeholder="443 123 4567" />
             </div>
           ) : (
             <div className="mt-4 space-y-3">
@@ -408,7 +409,7 @@ export default function DireccionAcceso() {
                                 {municipios.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
                               </select>
                             </div>
-                            <Campo label="Teléfono" value={edit.telefono} onChange={(v) => setEdit((s) => ({ ...s, telefono: v }))} />
+                            <Campo label="Teléfono" value={soloDiezDigitos(edit.telefono)} onChange={(v) => setEdit((s) => ({ ...s, telefono: telefonoCanonico(v) }))} />
                           </>
                         ) : (
                           <>

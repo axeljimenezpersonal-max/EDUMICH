@@ -62,6 +62,7 @@ import { avisar } from '../../components/Avisador';
 import { useBloqueoEdicion } from '../../lib/useBloqueoEdicion';
 import AvisoBloqueo from '../../components/AvisoBloqueo';
 import { formatearNombre } from '../../lib/nombre';
+import { soloDiezDigitos, telefonoCanonico } from '../../components/CampoTelefono';
 
 interface AlumnoConMatricula {
   userId: number;
@@ -1693,9 +1694,10 @@ function EditarAlumnoModal({
                 Teléfono
               </label>
               <input
-                value={telefono}
-                onChange={(e) => { setTelefono(e.target.value); clearError('telefono'); }}
-                maxLength={15}
+                value={soloDiezDigitos(telefono)}
+                onChange={(e) => { setTelefono(telefonoCanonico(e.target.value)); clearError('telefono'); }}
+                inputMode="numeric"
+                maxLength={10}
                 placeholder="10 dígitos"
                 className={inputCls('telefono')}
               />

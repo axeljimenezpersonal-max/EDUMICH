@@ -13,6 +13,7 @@ import { api } from '../../lib/api';
 import { ModalHoja } from '../../components/ui/responsive';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { parseUbicacion, explicar, urlDeMapa } from '../../lib/ubicacionMaps';
+import { soloDiezDigitos, telefonoCanonico } from '../../components/CampoTelefono';
 
 interface Sede {
   id: number;
@@ -389,7 +390,10 @@ export default function SedesLista({ embebido = false }: { embebido?: boolean } 
               </div>
               <div>
                 <label style={labelStyle}>Teléfono</label>
-                <input style={inputStyle} value={modal.form.telefono} onChange={(e) => setF({ telefono: e.target.value })} placeholder="443 000 0000" />
+                <div style={{ display: 'flex' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', padding: '9px 11px', border: '1px solid #ddd0c5', borderRight: 'none', borderRadius: '8px 0 0 8px', background: '#f7f2ed', fontSize: 14, fontWeight: 600, color: '#57534e', userSelect: 'none' }} aria-hidden>+52</span>
+                  <input style={{ ...inputStyle, borderRadius: '0 8px 8px 0' }} inputMode="numeric" maxLength={10} value={soloDiezDigitos(modal.form.telefono)} onChange={(e) => setF({ telefono: telefonoCanonico(e.target.value) })} placeholder="443 000 0000" />
+                </div>
               </div>
               <div>
                 <label style={labelStyle}>Horario de atención</label>
