@@ -464,17 +464,23 @@ router.get('/validar-token-reset', async (req, res) => {
 
 // ─── POST /auth/reset-password ────────────────────────────────────────────
 const resetSchema = z.object({
-  token: z.string().min(1),
+  // Todos los mensajes van en español y explicados: se muestran TAL CUAL al
+  // ciudadano. Sin `message` propio, Zod responde en inglés ("String must
+  // contain at least 1 character(s)") y eso llegaba a la pantalla.
+  token: z.string().min(1, 'El enlace de recuperación no es válido o ya se usó. Solicita uno nuevo desde "¿Olvidaste tu contraseña?".'),
   nuevaPassword: z
     .string()
-    .min(8, 'Mínimo 8 caracteres')
-    .regex(/[0-9]/, 'Debe incluir al menos un número'),
+    .min(8, 'La contraseña debe tener al menos 8 caracteres.')
+    .regex(/[0-9]/, 'La contraseña debe incluir al menos un número.'),
 });
 
 router.post('/reset-password', async (req, res) => {
   const parse = resetSchema.safeParse(req.body);
   if (!parse.success) {
-    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos' });
+    // El primer problema del token manda: si el enlace no sirve, decirlo antes
+    // que cualquier detalle de la contraseña.
+    const problemaToken = parse.error.issues.find((i) => i.path[0] === 'token');
+    res.status(400).json({ error: (problemaToken ?? parse.error.issues[0])?.message ?? 'Datos inválidos' });
     return;
   }
   const { token, nuevaPassword } = parse.data;

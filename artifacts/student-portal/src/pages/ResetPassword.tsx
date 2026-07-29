@@ -8,8 +8,11 @@ type Estado = 'cargando' | 'invalido' | 'formulario' | 'exito';
 export default function ResetPassword() {
   const [, setLocation] = useLocation();
   const search = useSearch();
-  const params = new URLSearchParams(search);
-  const token = params.get('token') ?? '';
+  // El token se captura UNA sola vez, al montar. `useSearch()` es reactivo: como
+  // más abajo limpiamos el token de la URL (privacidad), si lo leyéramos en cada
+  // render se quedaría vacío y el envío fallaría con un error de validación
+  // incomprensible. Guardarlo en estado lo conserva aunque la URL cambie.
+  const [token] = useState(() => new URLSearchParams(search).get('token') ?? '');
 
   const [estado, setEstado] = useState<Estado>('cargando');
   const [tokenError, setTokenError] = useState('');

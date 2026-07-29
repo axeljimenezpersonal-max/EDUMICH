@@ -73,13 +73,29 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   }
 
   if (!res.ok) {
-    let msg = `${res.status}`;
+    // Respaldo LEGIBLE por familia de estado. Antes el respaldo era el número
+    // pelón (`502`), y cuando el servidor devolvía HTML —una pasarela caída, un
+    // reinicio— al ciudadano le aparecía "502" en pantalla, sin explicación.
+    const respaldoPorEstado = (st: number): string => {
+      if (st === 401) return 'Tu sesión expiró o no tienes acceso. Inicia sesión de nuevo.';
+      if (st === 403) return 'No tienes permiso para hacer esto.';
+      if (st === 404) return 'No encontramos lo que buscabas.';
+      if (st === 413) return 'El archivo es demasiado grande.';
+      if (st === 429) return 'Demasiados intentos seguidos. Espera un momento y vuelve a intentarlo.';
+      if (st === 502 || st === 503 || st === 504) {
+        return 'El sistema no está disponible en este momento (puede estar actualizándose). Espera un minuto y vuelve a intentarlo.';
+      }
+      if (st >= 500) return 'Ocurrió un problema en el servidor. Inténtalo de nuevo; si sigue, avisa a la coordinación.';
+      return 'No se pudo completar la operación. Inténtalo de nuevo.';
+    };
+    let msg = respaldoPorEstado(res.status);
     let detalles: ApiFieldError[] | undefined;
     try {
       const j = await res.json();
-      msg = j.error || msg;
+      // Solo se usa el mensaje del servidor si de verdad trae texto útil.
+      if (typeof j?.error === 'string' && j.error.trim()) msg = j.error;
       if (Array.isArray(j.detalles)) detalles = j.detalles;
-    } catch {}
+    } catch { /* respuesta sin JSON (HTML de una pasarela): queda el respaldo */ }
     throw new ApiError(msg, res.status, detalles);
   }
   return res.json();
