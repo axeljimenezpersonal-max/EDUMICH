@@ -154,6 +154,26 @@ export const municipios = pgTable(
   })
 );
 
+// Catálogo de códigos postales (SEPOMEX, solo Michoacán). Referencia pública
+// para autollenar estado/municipio y ofrecer la colonia como lista al capturar
+// el domicilio. Se carga con lib/db/importar-cp.mjs (archivo oficial de Correos
+// de México); no son datos personales, viven en la base como catálogo.
+export const codigosPostales = pgTable(
+  'codigos_postales',
+  {
+    id: serial('id').primaryKey(),
+    cp: varchar('cp', { length: 5 }).notNull(),
+    colonia: varchar('colonia', { length: 200 }).notNull(),
+    municipio: varchar('municipio', { length: 150 }),
+    ciudad: varchar('ciudad', { length: 150 }),
+    estado: varchar('estado', { length: 100 }).notNull(),
+  },
+  (t) => ({
+    cpIdx: index('codigos_postales_cp_idx').on(t.cp),
+    cpColoniaUq: uniqueIndex('codigos_postales_cp_colonia_uq').on(t.cp, t.colonia),
+  })
+);
+
 export const modulos = pgTable(
   'modulos',
   {

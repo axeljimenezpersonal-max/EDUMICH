@@ -438,6 +438,19 @@ const migrations = [
      ADD COLUMN IF NOT EXISTS cedula_firmada_por_nombre varchar(200),
      ADD COLUMN IF NOT EXISTS cedula_firma_responsable_snapshot text,
      ADD COLUMN IF NOT EXISTS cedula_firma_alumno_snapshot text`,
+
+  // Catálogo de códigos postales (SEPOMEX, ver schema.codigosPostales). Se llena
+  // con lib/db/importar-cp.mjs. Autollena estado/municipio y ofrece la colonia.
+  `CREATE TABLE IF NOT EXISTS codigos_postales (
+     id serial PRIMARY KEY,
+     cp varchar(5) NOT NULL,
+     colonia varchar(200) NOT NULL,
+     municipio varchar(150),
+     ciudad varchar(150),
+     estado varchar(100) NOT NULL
+   )`,
+  `CREATE INDEX IF NOT EXISTS codigos_postales_cp_idx ON codigos_postales (cp)`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS codigos_postales_cp_colonia_uq ON codigos_postales (cp, colonia)`,
 ];
 
 export async function runStartupMigrations() {

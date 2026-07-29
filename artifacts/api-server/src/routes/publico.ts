@@ -26,6 +26,7 @@ import {
   modulos,
   passwordResetTokens,
   datosInstitucionales,
+  codigosPostales,
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
@@ -260,6 +261,38 @@ router.get('/municipios', async (_req, res) => {
     .from(municipios)
     .orderBy(municipios.nombre);
   res.json(rows);
+});
+
+// ─── GET /publico/cp/:cp ──────────────────────────────────────────────────
+// Catálogo de código postal (SEPOMEX): dado un CP devuelve estado, municipio y
+// la lista de colonias, para autollenar el domicilio. Referencia pública; si el
+// CP no está cargado, devuelve colonias vacías (el domicilio sigue a mano).
+router.get('/cp/:cp', async (req, res) => {
+  const cp = String(req.params.cp || '').trim();
+  if (!/^\d{5}$/.test(cp)) { res.status(400).json({ error: 'CP inválido' }); return; }
+  try {
+    const rows = await db
+      .select({
+        colonia: codigosPostales.colonia,
+        municipio: codigosPostales.municipio,
+        ciudad: codigosPostales.ciudad,
+        estado: codigosPostales.estado,
+      })
+      .from(codigosPostales)
+      .where(eq(codigosPostales.cp, cp))
+      .orderBy(codigosPostales.colonia);
+    if (rows.length === 0) { res.json({ encontrado: false, estado: null, municipio: null, ciudad: null, colonias: [] }); return; }
+    res.json({
+      encontrado: true,
+      estado: rows[0].estado,
+      municipio: rows[0].municipio,
+      ciudad: rows[0].ciudad || rows[0].municipio,
+      colonias: rows.map((r) => r.colonia),
+    });
+  } catch {
+    // Si la tabla aún no existe / no se ha importado, no rompe el formulario.
+    res.json({ encontrado: false, estado: null, municipio: null, ciudad: null, colonias: [] });
+  }
 });
 
 // ─── GET /publico/contacto ────────────────────────────────────────────────

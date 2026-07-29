@@ -198,6 +198,36 @@ export default function NuevoAlumno() {
   const [exito, setExito] = useState<RegistroExito | null>(null);
   const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
 
+  // Autollenado del domicilio por código postal (catálogo SEPOMEX, Michoacán).
+  const [colonias, setColonias] = useState<string[]>([]);
+  const [cpBuscando, setCpBuscando] = useState(false);
+  const [coloniaManual, setColoniaManual] = useState(false);
+  useEffect(() => {
+    const cp = datos.cp.trim();
+    if (!/^\d{5}$/.test(cp)) { setColonias([]); return; }
+    let vivo = true;
+    setCpBuscando(true);
+    const t = setTimeout(() => {
+      api.get<{ encontrado: boolean; estado: string | null; ciudad: string | null; colonias: string[] }>(`/publico/cp/${cp}`)
+        .then((r) => {
+          if (!vivo) return;
+          setColonias(r.colonias);
+          if (r.encontrado) {
+            setColoniaManual(false);
+            setDatos((d) => ({
+              ...d,
+              estadoDomicilio: d.estadoDomicilio.trim() || r.estado || d.estadoDomicilio,
+              ciudad: d.ciudad.trim() || r.ciudad || d.ciudad,
+            }));
+          }
+        })
+        .catch(() => { if (vivo) setColonias([]); })
+        .finally(() => { if (vivo) setCpBuscando(false); });
+    }, 400);
+    return () => { vivo = false; clearTimeout(t); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [datos.cp]);
+
   // Coincidencia en el padrón histórico del Estado (alumno que YA existe).
   interface PadronMatch {
     matricula: string; curp: string | null;
@@ -876,18 +906,52 @@ export default function NuevoAlumno() {
                 placeholder="Calle y número"
               />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <input
-                  value={datos.colonia}
-                  onChange={(e) => setDatos((d) => ({ ...d, colonia: e.target.value }))}
-                  className="gov-input"
-                  placeholder="Colonia"
-                />
-                <input
-                  value={datos.cp}
-                  onChange={(e) => setDatos((d) => ({ ...d, cp: e.target.value }))}
-                  className="gov-input"
-                  placeholder="Código postal"
-                />
+                {/* CP primero: al escribirlo se autollenan estado/ciudad y se
+                    ofrecen las colonias de ese código postal (catálogo SEPOMEX). */}
+                <div>
+                  <input
+                    value={datos.cp}
+                    onChange={(e) => setDatos((d) => ({ ...d, cp: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
+                    className="gov-input"
+                    placeholder="Código postal"
+                    inputMode="numeric"
+                  />
+                  {cpBuscando ? (
+                    <p className="mt-1 text-xs text-stone-400">Buscando colonias…</p>
+                  ) : datos.cp.length === 5 && colonias.length > 0 ? (
+                    <p className="mt-1 text-xs text-emerald-700">{colonias.length} colonia(s) para este CP</p>
+                  ) : datos.cp.length === 5 ? (
+                    <p className="mt-1 text-xs text-stone-400">CP no encontrado; escribe la colonia a mano.</p>
+                  ) : null}
+                </div>
+                {colonias.length > 0 && !coloniaManual ? (
+                  <select
+                    value={colonias.includes(datos.colonia) ? datos.colonia : ''}
+                    onChange={(e) => {
+                      if (e.target.value === '__otra__') { setColoniaManual(true); setDatos((d) => ({ ...d, colonia: '' })); }
+                      else setDatos((d) => ({ ...d, colonia: e.target.value }));
+                    }}
+                    className="gov-input"
+                  >
+                    <option value="">Elige tu colonia…</option>
+                    {colonias.map((c) => <option key={c} value={c}>{c}</option>)}
+                    <option value="__otra__">Otra colonia (escribir)…</option>
+                  </select>
+                ) : (
+                  <div>
+                    <input
+                      value={datos.colonia}
+                      onChange={(e) => setDatos((d) => ({ ...d, colonia: e.target.value }))}
+                      className="gov-input"
+                      placeholder="Colonia"
+                    />
+                    {colonias.length > 0 && (
+                      <button type="button" onClick={() => setColoniaManual(false)} className="mt-1 text-xs text-[var(--color-guinda-700)] hover:underline">
+                        Elegir de la lista del CP
+                      </button>
+                    )}
+                  </div>
+                )}
                 <input
                   value={datos.ciudad}
                   onChange={(e) => setDatos((d) => ({ ...d, ciudad: e.target.value }))}
