@@ -100,7 +100,7 @@ export async function sendEmail(
   const mode = getEmailMode();
   const cc = process.env.INSTITUTIONAL_CC_EMAIL ?? undefined;
   const fromEmail = process.env.EMAIL_FROM ?? 'noreply@edumich.up.railway.app';
-  const fromName = 'Preparatoria Abierta Michoacán';
+  const fromName = 'Preparatoria Abierta Michoacan';
   // Buzón real (p. ej. de Hostinger) al que se dirige la respuesta cuando el
   // alumno/gestor contesta un correo automático. El "from" puede ser un
   // no-reply de Resend; el "reply-to" es donde de verdad se lee y responde.
