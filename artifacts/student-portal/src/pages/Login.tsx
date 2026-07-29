@@ -7,7 +7,7 @@
 import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
-import { GraduationCap, Lock, Mail, Loader2, Edit3, Search, ChevronRight } from 'lucide-react';
+import { GraduationCap, Lock, Mail, Loader2, Edit3, Search, ChevronRight, KeyRound } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import ModulaLogo from '../components/ModulaLogo';
 
@@ -222,12 +222,15 @@ export default function Login() {
               {error && (
                 <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                   {error}
+                  {/* Si las credenciales no coinciden, lo útil es recuperar la
+                      contraseña — no "buscar cuenta", que confunde: la cuenta ya
+                      existe. Buscarla vive abajo, para quien no sabe si la tiene. */}
                   <a
-                    href="/encontrar-cuenta"
+                    href="/recuperar-password"
                     className="group mt-2 flex items-center gap-1.5 text-[13px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]"
                   >
-                    <Search size={13} />
-                    <span className="underline decoration-2 underline-offset-2">Buscar si ya tengo cuenta</span>
+                    <KeyRound size={13} />
+                    <span className="underline decoration-2 underline-offset-2">Recuperar mi contraseña</span>
                     <ChevronRight size={14} className="transition-transform group-hover:translate-x-1" />
                   </a>
                 </div>
