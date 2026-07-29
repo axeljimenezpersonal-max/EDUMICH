@@ -37,6 +37,7 @@ const ESTUDIANTE: TourStep[] = [
     icon: 'LayoutDashboard',
     title: 'Inicio · tu punto de partida',
     body: 'Cada vez que entres, aquí ves en qué punto vas y qué te toca hacer. Si te pierdes, vuelve a Inicio.',
+    illustration: 'inicioAlumno',
   },
   {
     id: 'est-expediente',

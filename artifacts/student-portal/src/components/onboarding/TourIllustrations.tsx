@@ -799,9 +799,93 @@ function BuscadorAnimation() {
   );
 }
 
+/**
+ * Inicio como tablero: el mismo camino de 4 pasos, pero con un marcador
+ * "Aquí vas" que salta de un paso al siguiente en bucle. Comunica que Inicio te
+ * dice EN QUÉ PUNTO estás y qué te toca, sin depender de texto.
+ */
+function InicioAlumnoAnimation() {
+  const reduce = usePrefiereMenosMovimiento();
+  const [activo, setActivo] = useState(reduce ? 1 : 0);
+  useEffect(() => {
+    if (reduce) return;
+    const t = setInterval(() => setActivo((v) => (v + 1) % PASOS_CAMINO.length), 1400);
+    return () => clearInterval(t);
+  }, [reduce]);
+
+  const tocaLabel = ['Sube tus documentos', 'Elige tus módulos', 'Paga tu examen', 'Presenta tu examen'];
+
+  return (
+    <div
+      className="mt-4 rounded-xl border px-3 py-3"
+      style={{ background: 'var(--color-crema-100)', borderColor: 'var(--color-crema-200)' }}
+      aria-hidden
+    >
+      <div className="mb-2 flex items-center justify-between">
+        <span className="text-[9px] font-bold uppercase tracking-[0.14em]" style={{ color: '#a8a29e' }}>Tu avance</span>
+        <motion.span
+          key={activo}
+          className="rounded-full px-2 py-0.5 text-[9px] font-bold text-white"
+          style={{ background: 'var(--color-guinda-700)' }}
+          initial={{ opacity: 0, y: -3 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+        >
+          Te toca: {tocaLabel[activo]}
+        </motion.span>
+      </div>
+      <div className="flex items-start">
+        {PASOS_CAMINO.map((p, i) => {
+          const hecho = i < activo;
+          const aqui = i === activo;
+          const P = p.Icon;
+          return (
+            <div key={p.label} className="relative flex flex-1 flex-col items-center">
+              {i > 0 && (
+                <span
+                  className="absolute top-[17px] right-1/2 h-[3px] w-full -translate-y-1/2 overflow-hidden rounded-full"
+                  style={{ background: 'var(--color-crema-200)' }}
+                >
+                  <motion.span
+                    className="block h-full rounded-full"
+                    style={{ background: 'var(--color-dorado)' }}
+                    initial={false}
+                    animate={{ width: i <= activo ? '100%' : '0%' }}
+                    transition={{ duration: 0.4, ease: 'easeInOut' }}
+                  />
+                </span>
+              )}
+              <motion.div
+                className="relative z-10 flex h-[34px] w-[34px] items-center justify-center rounded-full border-2"
+                initial={false}
+                animate={{
+                  background: hecho || aqui ? 'var(--color-guinda-700)' : '#ffffff',
+                  borderColor: hecho || aqui ? 'var(--color-guinda-700)' : 'var(--color-crema-200)',
+                  scale: aqui && !reduce ? 1.14 : 1,
+                  boxShadow: aqui && !reduce ? '0 0 0 5px rgba(107,21,48,0.12)' : '0 0 0 0 rgba(107,21,48,0)',
+                }}
+                transition={{ type: 'spring', stiffness: 340, damping: 20 }}
+              >
+                <P size={16} color={hecho || aqui ? '#ffffff' : '#a8a29e'} strokeWidth={2.4} />
+              </motion.div>
+              <span
+                className="mt-1.5 text-center text-[9px] font-semibold leading-tight"
+                style={{ color: hecho || aqui ? 'var(--color-guinda-700)' : '#a8a29e' }}
+              >
+                {p.label}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 /** Registro de ilustraciones disponibles por clave. */
 export const ILLUSTRATIONS: Record<string, React.ComponentType> = {
   buscadorSmart: BuscadorAnimation,
+  inicioAlumno: InicioAlumnoAnimation,
   caminoAlumno: () => <FlowAnimation pasos={PASOS_CAMINO} />,
   expedienteAlumno: () => <FlowAnimation pasos={PASOS_EXPEDIENTE} />,
   inscribeAlumno: () => <FlowAnimation pasos={PASOS_INSCRIBE_EST} />,
