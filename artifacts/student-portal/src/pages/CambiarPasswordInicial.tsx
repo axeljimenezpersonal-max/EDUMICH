@@ -67,8 +67,8 @@ export default function CambiarPasswordInicial() {
         <div className="relative hidden overflow-hidden bg-[var(--color-guinda-800)] p-12 text-white md:flex md:flex-col md:justify-center"
           style={{ background: 'linear-gradient(135deg, var(--color-guinda-800), var(--color-guinda-600))' }}>
           <div className="pointer-events-none absolute -right-20 -top-16 h-64 w-64 rounded-full bg-white/5" />
-          <ModulaLogo titulo="Módula 22" acento="var(--color-dorado-soft,#e6c78a)" className="h-16 w-auto" />
-          <h1 className="mt-8 font-serif text-3xl font-bold leading-tight">Bienvenido(a) a Módula 22</h1>
+          <ModulaLogo titulo="Módula 22" acento="var(--color-dorado-soft,#e6c78a)" className="h-14 w-auto self-start" />
+          <h1 className="mt-8 font-serif text-3xl font-bold leading-tight">Te damos la bienvenida</h1>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/85">
             Estás a un paso de entrar. Por tu seguridad, crea una contraseña personal: la temporal
             que recibiste por correo deja de funcionar en cuanto definas la tuya.
