@@ -2288,9 +2288,18 @@ async function inscribirExamenAlumno(params: {
   const inscritos: InscribirResultado['inscritos'] = [];
   const nuevasInscripcionIds: number[] = [];
   for (const item of aInscribir) {
+    // Upsert por (alumno, etapa, módulo): si existe una inscripción CANCELADA de
+    // antes, se REVIVE en vez de chocar contra el índice único. Sin esto, cancelar
+    // y volver a inscribir el mismo módulo reventaba con "Error interno" (500).
     const [fila] = await db.insert(examenesInscripciones).values({
       estudianteId: alumno.userId, etapaId: etapa.id, moduloId: item.moduloId,
       horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
+    }).onConflictDoUpdate({
+      target: [examenesInscripciones.estudianteId, examenesInscripciones.etapaId, examenesInscripciones.moduloId],
+      set: {
+        horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
+        calificacion: null, paseValidadoEn: null, paseValidadoPorUserId: null,
+      },
     }).returning({ id: examenesInscripciones.id });
     nuevasInscripcionIds.push(fila.id);
     inscritos.push({ folio: item.folio, moduloId: item.moduloId, moduloNombre: modulosById.get(item.moduloId)?.nombre ?? null, dia: item.dia, hora: item.hora, fechaExamen: item.fechaExamen });
@@ -2579,6 +2588,7 @@ router.post('/inscripcion-lote', async (req, res) => {
   if (!parse.success) { res.status(400).json({ error: 'Datos inválidos', detalle: parse.error.errors }); return; }
   const { etapaId, modulosIds, estudianteIds, sedeId: sedeElegida } = parse.data;
 
+  try {
   // Ventana + etapa: una sola validación para todo el lote.
   const val = await validarEtapaVentana(etapaId);
   if (!val.ok) { res.status(400).json({ error: val.error }); return; }
@@ -2617,6 +2627,10 @@ router.post('/inscripcion-lote', async (req, res) => {
   const totalInscritos = resultados.reduce((n, r) => n + r.inscritos, 0);
   const alumnosConAlgo = resultados.filter((r) => r.inscritos > 0).length;
   res.json({ ok: true, etapaClave: etapa.clave, periodoAbierto, totalInscritos, alumnosInscritos: alumnosConAlgo, resultados });
+  } catch (err) {
+    console.error('[INSCRIPCION-LOTE] Falló la inscripción en lote (etapa', etapaId, '):', err instanceof Error ? err.message : err);
+    if (!res.headersSent) res.status(500).json({ error: 'No se pudo completar la inscripción. Inténtalo de nuevo; si persiste, avisa a la coordinación.' });
+  }
 });
 
 /**

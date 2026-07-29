@@ -1892,9 +1892,18 @@ router.post('/estudiantes/:id/inscribir-examen', async (req, res) => {
 
     const inscritos: Array<{ folio: string; moduloId: number; moduloNombre: string | null }> = [];
     for (const item of aInscribir) {
+      // Upsert por (alumno, etapa, módulo): revive una inscripción CANCELADA en
+      // vez de chocar contra el índice único (cancelar y re-inscribir el mismo
+      // módulo reventaba). Ver mismo arreglo en el lote del gestor.
       await db.insert(examenesInscripciones).values({
         estudianteId: alumnoId, etapaId: etapa.id, moduloId: item.moduloId,
         horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
+      }).onConflictDoUpdate({
+        target: [examenesInscripciones.estudianteId, examenesInscripciones.etapaId, examenesInscripciones.moduloId],
+        set: {
+          horarioId: item.horarioId, sedeId, folio: item.folio, estado: 'inscrito',
+          calificacion: null, paseValidadoEn: null, paseValidadoPorUserId: null,
+        },
       });
       const mod = modulosById.get(item.moduloId);
       inscritos.push({ folio: item.folio, moduloId: item.moduloId, moduloNombre: mod?.nombre ?? null });
