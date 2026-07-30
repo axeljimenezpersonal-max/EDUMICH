@@ -3716,6 +3716,19 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
     return;
   }
 
+  // ── CANDADO ANTICORRUPCIÓN ────────────────────────────────────────────
+  // Si la persona declaró que viene POR SU CUENTA (auto-gestión), nadie puede
+  // asignarle un centro al aprobar: la elección es suya, no de la ventanilla.
+  // Sin esto, un centro podría quedarse con alumnos que nunca lo eligieron —y
+  // cada alumno cuenta para sus pagos—. Si más adelante quiere un gestor, lo
+  // pide y queda registrado como cambio explícito, no escondido en el alta.
+  if (gestorAsignadoId && solicitud.modalidadPreferida === 'auto_gestion') {
+    res.status(409).json({
+      error: 'Esta persona solicitó llevar su proceso por su cuenta: no se le puede asignar un centro de asesoría al aprobar. Si después pide acompañamiento, se le asigna desde su ficha y queda registrado.',
+    });
+    return;
+  }
+
   // Validate gestor capacity if provided
   if (gestorAsignadoId) {
     const capacityResult = await db.execute<{ total_alumnos: number; capacidad_maxima: number }>(sql`

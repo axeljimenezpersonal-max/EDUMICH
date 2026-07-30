@@ -452,7 +452,11 @@ function AprobarModal({
     setError(null);
     try {
       const body: Record<string, unknown> = {};
-      if (gestorId) body.gestorAsignadoId = Number(gestorId);
+      // Nunca se manda gestor si la persona pidió auto-gestión (el servidor
+      // también lo rechaza; esto evita el intento y un error innecesario).
+      if (gestorId && solicitud.modalidadPreferida !== 'auto_gestion') {
+        body.gestorAsignadoId = Number(gestorId);
+      }
       if (notasInternas.trim()) body.notasInternas = notasInternas.trim();
 
       const r = await api.post<{ ok: boolean; alumno: { email: string }; credencialTemporal?: string }>(
@@ -498,27 +502,51 @@ function AprobarModal({
             </div>
           </div>
 
-          {/* Selector de gestor */}
-          <div className="mb-4">
-            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
-              Asignar gestor <span className="font-normal" style={{ color: '#6b635e' }}>(opcional)</span>
-            </label>
-            <select
-              className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white"
-              value={gestorId}
-              onChange={(e) => setGestorId(e.target.value)}
-            >
-              <option value="">Sin gestor (auto-gestión)</option>
-              {gestores.map((g) => (
-                <option key={g.id} value={g.id} disabled={!g.disponible}>
-                  {g.nombreCorto} ({g.municipio?.nombre ?? '—'}) — {g.alumnosActuales}/{g.capacidadMaxima} alumnos{!g.disponible ? ' · LLENO' : ''}
-                </option>
-              ))}
-            </select>
-            <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>
-              Solo se muestran gestores del municipio del solicitante con capacidad disponible
-            </p>
-          </div>
+          {/* Selector de gestor — BLOQUEADO si la persona pidió venir por su
+              cuenta: la elección del centro es suya, no de la ventanilla. */}
+          {solicitud.modalidadPreferida === 'auto_gestion' ? (
+            <div className="mb-4 rounded-lg border p-3" style={{ borderColor: '#e3b5c4', background: '#fdf7f9' }}>
+              <div className="flex items-start gap-2">
+                <Lock size={14} style={{ color: '#6b1530', marginTop: 2, flexShrink: 0 }} />
+                <div>
+                  <div className="text-xs font-bold" style={{ color: '#6b1530' }}>
+                    Esta persona eligió llevar su proceso por su cuenta
+                  </div>
+                  <p className="mt-1 text-[11px] leading-relaxed" style={{ color: '#57534e' }}>
+                    No se le puede asignar un centro de asesoría al aprobar: quedará como
+                    <strong> auto-gestión</strong>. Si más adelante pide acompañamiento, se le asigna
+                    desde su ficha y queda registrado en la bitácora.
+                  </p>
+                  {solicitud.quiereInfoGestores && (
+                    <p className="mt-1.5 text-[11px] font-semibold" style={{ color: '#92400e' }}>
+                      Pidió que le enviemos información de los centros disponibles en su municipio.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="mb-4">
+              <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
+                Asignar gestor <span className="font-normal" style={{ color: '#6b635e' }}>(opcional)</span>
+              </label>
+              <select
+                className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 bg-white"
+                value={gestorId}
+                onChange={(e) => setGestorId(e.target.value)}
+              >
+                <option value="">Sin gestor (auto-gestión)</option>
+                {gestores.map((g) => (
+                  <option key={g.id} value={g.id} disabled={!g.disponible}>
+                    {g.nombreCorto} ({g.municipio?.nombre ?? '—'}) — {g.alumnosActuales}/{g.capacidadMaxima} alumnos{!g.disponible ? ' · LLENO' : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] mt-1" style={{ color: '#6b635e' }}>
+                Solo se muestran gestores del municipio del solicitante con capacidad disponible
+              </p>
+            </div>
+          )}
 
           {/* Notas internas */}
           <div className="mb-4">
