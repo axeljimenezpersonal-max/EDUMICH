@@ -311,13 +311,13 @@ router.get('/contacto', async (_req, res) => {
       .limit(1);
     res.json({
       nombre: datos?.nombre || datos?.nombreOficial || 'Coordinación de Preparatoria Abierta Michoacán',
-      correo: datos?.correo || 'contacto@michoacan.gob.mx',
+      correo: datos?.correo || CONTACTO_CORREO,
       telefono: datos?.telefono || '+52 443 322 9250',
     });
   } catch {
     res.json({
       nombre: 'Coordinación de Preparatoria Abierta Michoacán',
-      correo: 'contacto@michoacan.gob.mx',
+      correo: CONTACTO_CORREO,
       telefono: '+52 443 322 9250',
     });
   }
@@ -326,6 +326,7 @@ router.get('/contacto', async (_req, res) => {
 // ─── Token helpers (HMAC, 30 min) ────────────────────────────────────────
 import { SESSION_SECRET as TOKEN_SECRET } from '../config/env';
 import { normalizarTelefonoOMantener } from '../utils/telefono';
+import { CONTACTO_CORREO } from '../config/contacto';
 const TOKEN_TTL_MS = 30 * 60 * 1000;
 
 function signEmailToken(email: string, tipo: string): string {

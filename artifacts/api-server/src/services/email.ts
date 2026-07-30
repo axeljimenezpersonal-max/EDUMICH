@@ -6,6 +6,7 @@ import { cuentaCreadaGestorTemplate } from './templates/cuenta-creada-gestor';
 import { cuentaCreadaAdminTemplate } from './templates/cuenta-creada-admin';
 import { solicitudRechazadaTemplate, type SolicitudRechazadaData } from './templates/solicitud-rechazada';
 import { escapeHtml } from '../utils/escapeHtml';
+import { CONTACTO_CORREO } from '../config/contacto';
 
 // ─── Configuración de modo ────────────────────────────────────────────────
 
@@ -400,7 +401,7 @@ function getAvisoEliminacionHTML(data: AvisoEliminacionData): string {
         <div style="font-size:14px;font-weight:bold;color:#1c1917;margin-bottom:4px;">${escapeHtml(data.gestor.nombre)}</div>
         <div style="font-size:13px;color:#44403c;">${escapeHtml(data.gestor.email)}</div>
       </td></tr></table></td></tr>`
-    : `<tr><td style="padding:0 32px 24px 32px;"><div style="font-size:13px;color:#44403c;">Soporte: <strong>soporte.prepaabierta@michoacan.gob.mx</strong></div></td></tr>`;
+    : `<tr><td style="padding:0 32px 24px 32px;"><div style="font-size:13px;color:#44403c;">Soporte: <strong>${CONTACTO_CORREO}</strong></div></td></tr>`;
 
   return `<!DOCTYPE html>
 <html lang="es">

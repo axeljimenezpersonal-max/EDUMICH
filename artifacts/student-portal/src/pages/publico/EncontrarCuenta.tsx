@@ -14,6 +14,7 @@ import {
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api } from '../../lib/api';
+import { CONTACTO_CORREO } from '../../lib/contacto';
 
 type Modo = 'curp' | 'nombre';
 
@@ -337,7 +338,7 @@ export default function EncontrarCuenta() {
             >
               <Mail size={13} style={{ color: 'var(--color-guinda-700)', flexShrink: 0 }} />
               <span className="whitespace-nowrap text-[12.5px] font-medium text-stone-800">
-                {contacto?.correo ?? 'contacto@michoacan.gob.mx'}
+                {contacto?.correo ?? CONTACTO_CORREO}
               </span>
               <button
                 type="button"

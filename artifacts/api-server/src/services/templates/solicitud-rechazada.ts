@@ -1,5 +1,6 @@
 import { escapeHtml } from '../../utils/escapeHtml';
 import { emailLayout, emailBoton, EMAIL_COLORS } from './_shell';
+import { CONTACTO_CORREO } from '../../config/contacto';
 
 export interface SolicitudRechazadaData {
   nombre: string;
@@ -18,7 +19,7 @@ export function solicitudRechazadaTemplate(data: SolicitudRechazadaData): {
   html: string;
   textPlain: string;
 } {
-  const contacto = data.contactoEmail || 'atencion.edumich@michoacan.gob.mx';
+  const contacto = data.contactoEmail || CONTACTO_CORREO;
   const portal = data.portalUrl || 'https://edumich.up.railway.app/solicitar-cuenta';
   const subject = 'Sobre tu solicitud de cuenta · Preparatoria Abierta Michoacán';
   const { guinda, dorado, texto } = EMAIL_COLORS;

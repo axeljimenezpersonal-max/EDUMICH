@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
 import { GraduationCap, Mail, HelpCircle, ShieldCheck, MapPin, Phone, Info, CheckCircle, Loader2 } from 'lucide-react';
+import { CONTACTO_CORREO } from '../lib/contacto';
 
 type Metodo = 'correo' | 'admin' | null;
 
@@ -333,8 +334,8 @@ export default function RecuperarPassword() {
                 </div>
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b635e' }}>Correo de soporte</div>
-                  <a href="mailto:soporte.prepaabierta@michoacan.gob.mx" className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
-                    soporte.prepaabierta@michoacan.gob.mx
+                  <a href={`mailto:${CONTACTO_CORREO}`} className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
+                    {CONTACTO_CORREO}
                   </a>
                   <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Respuesta en 24-48 horas hábiles</div>
                 </div>

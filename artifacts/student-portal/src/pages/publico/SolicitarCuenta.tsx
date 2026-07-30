@@ -13,6 +13,7 @@ import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api } from '../../lib/api';
 import { MUNICIPIOS_POR_ESTADO } from '../../data/municipiosMexico';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
+import { CONTACTO_CORREO } from '../../lib/contacto';
 
 interface Municipio {
   id: number;
@@ -182,9 +183,17 @@ export default function SolicitarCuenta() {
   }, [reenvioSecs]);
 
   function setField(field: keyof typeof form) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+      // Al corregir algo la alerta general se va sola. Antes se quedaba pegada
+      // hasta volver a pulsar "Continuar", así que no se sabía si ya estaba bien.
+      setFormError(null);
       setForm((prev) => ({ ...prev, [field]: e.target.value }));
+    };
   }
+
+  /** ¿El correo escrito tiene forma de correo? Para el aviso EN VIVO del campo. */
+  const emailLimpio = form.email.trim();
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio);
 
   // ── Validación por paso ─────────────────────────────────────────────────
   function validarPaso(n: number): string | null {
@@ -377,7 +386,7 @@ export default function SolicitarCuenta() {
   // ── Pantalla de éxito ─────────────────────────────────────────────────
   if (fase === 'exito') {
     // TODO: reemplazar por el correo oficial de atención cuando esté habilitado.
-    const CONTACTO_EMAIL = 'atencion.edumich@michoacan.gob.mx';
+    const CONTACTO_EMAIL = CONTACTO_CORREO;
     const pasos = [
       { icon: FileSearch, titulo: 'Revisión de tu solicitud', desc: 'La administración valida tus datos y documentos.', estado: 'ahora' as const },
       { icon: UserCheck, titulo: 'Aprobación y creación de cuenta', desc: 'Se genera tu cuenta en la plataforma.', estado: 'pendiente' as const },
@@ -789,14 +798,26 @@ export default function SolicitarCuenta() {
                   id="sc-email"
                   type="email"
                   value={form.email}
-                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value.replace(/\s/g, '').toLowerCase() }))}
+                  onChange={(e) => { setFormError(null); setForm((f) => ({ ...f, email: e.target.value.replace(/\s/g, '').toLowerCase() })); }}
                   autoComplete="email"
                   className="gov-input"
                   placeholder="jose.morelos@ejemplo.com"
                 />
-                <div className="text-[11px] text-stone-400 mt-1">
-                  Te enviaremos un código para verificar que es tuyo.
-                </div>
+                {/* Señal EN EL CAMPO: se sabe si el correo sirve mientras se
+                    escribe, sin tener que pulsar el botón para averiguarlo. */}
+                {emailLimpio.length === 0 ? (
+                  <div className="mt-1 text-[11px] text-stone-400">
+                    Te enviaremos un código para verificar que es tuyo.
+                  </div>
+                ) : emailValido ? (
+                  <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-green-700">
+                    <Check size={12} /> Correo válido · te enviaremos un código para verificarlo
+                  </div>
+                ) : (
+                  <div className="mt-1 text-[11px] text-amber-700">
+                    Aún incompleto: debe verse como <span className="font-mono">nombre@correo.com</span>
+                  </div>
+                )}
               </div>
 
               <div>
