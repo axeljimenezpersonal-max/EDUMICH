@@ -83,17 +83,30 @@ const PASOS = [
   { archivo: '06d-insc-sede', ruta: '/estudiante/convocatoria', escenario: 'avanzado', elemento: '[data-tour="insc-sede"]' },
   { archivo: '06e-insc-pasos', ruta: '/estudiante/convocatoria', escenario: 'avanzado', elemento: '[data-tour="insc-pasos"]' },
 
-  // Cap. 5 — pagos
+  // Cap. 5 — pagos. La tarjeta de una orden es MUY alta (7 veces su ancho):
+  // entera no cabe legible en una página, así que se fotografía por franjas:
+  // el encabezado con el estado, y el bloque de "ya puedes pagar" con la
+  // línea de captura. La 2a orden del demo es la emitida (lista para pagar).
   { archivo: '07-pagos-resumen', ruta: '/estudiante/pagos', escenario: 'avanzado', elemento: '[data-tour="pagos-resumen"]' },
   { archivo: '07b-pagos-estado', ruta: '/estudiante/pagos', escenario: 'avanzado', elemento: '[data-tour="pagos-inscripciones"]' },
-  { archivo: '07c-pagos-ordenes', ruta: '/estudiante/pagos', escenario: 'avanzado', elemento: '[data-tour="pagos-ordenes"]' },
+  {
+    archivo: '07c-orden-emitida', ruta: '/estudiante/pagos', escenario: 'avanzado',
+    franja: { contenedor: '[data-tour="pagos-ordenes"] > div > div:nth-child(2)', alto: 620 },
+  },
+  {
+    // "Solo faltan 2" es único del bloque de pago; "Ya puedes pagar" también
+    // aparece en el aviso de arriba y anclaba la franja donde no era.
+    archivo: '07d-linea-captura', ruta: '/estudiante/pagos', escenario: 'avanzado',
+    franja: { contenedor: '[data-tour="pagos-ordenes"] > div > div:nth-child(2)', desdeTexto: 'Solo faltan 2', alto: 760 },
+  },
 
   // Cap. 6 — día del examen
   { archivo: '08-pase-examen', ruta: '/estudiante/convocatoria/pase/9001', escenario: 'avanzado' },
   { archivo: '09-identificacion', ruta: '/estudiante/identificacion', escenario: 'avanzado' },
 
-  // Cap. 7 — resultados
-  { archivo: '10-calificaciones', ruta: '/estudiante/calificaciones', escenario: 'avanzado', elemento: '[data-tour="calif-contenido"]' },
+  // Cap. 7 — resultados. Vista de pantalla, no recorte: el bloque completo de
+  // calificaciones mide 4 veces su ancho y reducido no se lee.
+  { archivo: '10-calificaciones', ruta: '/estudiante/calificaciones', escenario: 'avanzado' },
 
   // Cap. 8 — herramientas
   { archivo: '11-pruebas', ruta: '/estudiante/modulos', escenario: 'avanzado' },
@@ -119,6 +132,8 @@ for (const paso of PASOS) {
   // de la anterior (ni tours a medias, ni sessionStorage de otro escenario).
   const ctx = await navegador.newContext({ viewport: VIEWPORT, deviceScaleFactor: 2, locale: 'es-MX' });
   const page = await ctx.newPage();
+  // Sesión de fotos: ningún tutorial debe arrancar encima de la pantalla.
+  await page.addInitScript(() => { try { sessionStorage.setItem('modula_demo_fotos', '1'); } catch { /* sin persistencia */ } });
   try {
     if (!paso.publico) {
       // Activa el demo en el escenario del paso y deja que la SPA se asiente.
@@ -141,13 +156,42 @@ for (const paso of PASOS) {
       else await page.waitForTimeout(1500);
     }
 
-    // La cinta "Vista demo" orienta a un humano que navega la demo, pero en la
-    // guía sería ruido impreso en cada foto. Solo se oculta aquí.
-    await page.addStyleTag({ content: '[data-demo-cinta]{display:none !important}' });
+    // La cinta "Vista demo" y el botón flotante de tutorial orientan a quien
+    // navega, pero impresos en una foto son ruido — y el botón se encima al
+    // contenido. Se ocultan SOLO aquí, en todas las capturas.
+    await page.addStyleTag({
+      content: '[data-demo-cinta], [data-tour="btn-seccion-tutorial"] { display:none !important }',
+    });
     await page.waitForTimeout(200);
 
     const destino = path.join(SALIDA, `${paso.archivo}.png`);
-    if (paso.elemento) {
+    if (paso.franja) {
+      // Franja: un pedazo VERTICAL de un contenedor demasiado alto. Ancho del
+      // contenedor; arranca en su borde superior o donde aparece `desdeTexto`.
+      await page.addStyleTag({
+        content: 'header, nav.fixed, [data-tour="btn-seccion-tutorial"], .fixed { display:none !important }',
+      });
+      const cont = page.locator(paso.franja.contenedor).first();
+      await cont.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      // La franja puede medir más que la pantalla: se captura la página entera
+      // y se recorta con coordenadas de DOCUMENTO (boundingBox da coordenadas
+      // de viewport; se les suma el scroll).
+      const scroll = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
+      const caja = await cont.boundingBox();
+      let y = caja.y + scroll.y;
+      if (paso.franja.desdeTexto) {
+        const ancla = page.locator(`${paso.franja.contenedor} >> text=${paso.franja.desdeTexto}`).first();
+        const cajaAncla = await ancla.boundingBox();
+        y = cajaAncla.y + scroll.y - 14;
+      }
+      const alto = Math.min(paso.franja.alto, caja.y + scroll.y + caja.height - y);
+      await page.screenshot({
+        path: destino,
+        fullPage: true,
+        clip: { x: caja.x + scroll.x, y, width: caja.width, height: alto },
+      });
+    } else if (paso.elemento) {
       // En un recorte de bloque, el encabezado pegajoso, la barra inferior y el
       // botón flotante de tutorial quedan PINTADOS ENCIMA si el bloque pasa por
       // debajo de ellos al hacer scroll. En la foto de un bloque son basura.

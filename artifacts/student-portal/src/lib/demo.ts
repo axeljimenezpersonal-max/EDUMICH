@@ -34,6 +34,15 @@ export function demoEscenario(): DemoEscenario {
   try { return sessionStorage.getItem(FLAG_ESC) === 'avanzado' ? 'avanzado' : 'nuevo'; } catch { return 'nuevo'; }
 }
 
+/**
+ * Sesión de FOTOS: el rig de capturas de las guías marca esta bandera para que
+ * ningún tutorial arranque encima de la pantalla fotografiada, sin importar el
+ * escenario. La pone Playwright vía addInitScript; ninguna pantalla la activa.
+ */
+export function demoFotos(): boolean {
+  try { return sessionStorage.getItem('modula_demo_fotos') === '1'; } catch { return false; }
+}
+
 export function disableDemo(): void {
   try {
     sessionStorage.removeItem(FLAG);
@@ -206,6 +215,7 @@ const AV_EXAMENES = [
     etapa: { clave: '2699-B', examenSabado: '2026-08-22', examenDomingo: '2026-08-23' },
     modulo: { id: 4, numero: 4, nombre: 'Matemáticas y representaciones del sistema natural' },
     fechaExamen: '2026-08-22', hora: '09:00', dia: 'sabado',
+    sede: AV_SEDE, // cada examen lleva SU sede: Pagos la pinta por renglón
   },
   {
     id: 9002, folio: 'EX-2699B-00312', estado: 'pre_inscrito', pagado: false,
@@ -213,6 +223,7 @@ const AV_EXAMENES = [
     etapa: { clave: '2699-B', examenSabado: '2026-08-22', examenDomingo: '2026-08-23' },
     modulo: { id: 5, numero: 5, nombre: 'Argumentación' },
     fechaExamen: '2026-08-23', hora: '11:00', dia: 'domingo',
+    sede: AV_SEDE,
   },
 ];
 

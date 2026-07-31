@@ -22,7 +22,7 @@
  * etapas; el botón para reproducirlo a mano sigue disponible.
  */
 import { api } from './api';
-import { demoActive, demoEscenario } from './demo';
+import { demoActive, demoEscenario, demoFotos } from './demo';
 
 /** Silencia todas las etapas de una clave. Coincide con el backend. */
 const SILENCIADO = '*';
@@ -86,12 +86,12 @@ export function cargarTutoriales(): Promise<void> {
 
 /** ¿Ya vio este tutorial en esta etapa (o lo silenció por completo)? */
 export function estaVisto(clave: string, etapa = ''): boolean {
-  // En la demo AVANZADA (las capturas de la guía en PDF) todo tutorial se da
-  // por visto, sin conocer sus claves: ningún tour debe arrancar encima de la
-  // pantalla que se está fotografiando. Se consulta aquí —y no con una bandera
-  // en memoria— porque el rig de capturas navega con recargas completas y solo
-  // el sessionStorage del demo sobrevive a cada una.
-  if (demoActive() && demoEscenario() === 'avanzado') return true;
+  // En la demo AVANZADA o en una sesión de FOTOS (el rig de las guías en PDF)
+  // todo tutorial se da por visto, sin conocer sus claves: ningún tour debe
+  // arrancar encima de la pantalla que se está fotografiando. Se consulta aquí
+  // —y no con una bandera en memoria— porque el rig navega con recargas
+  // completas y solo el sessionStorage sobrevive a cada una.
+  if (demoActive() && (demoEscenario() === 'avanzado' || demoFotos())) return true;
   const c = cache ?? leerEspejo();
   if (c.has(id(clave, SILENCIADO))) return true; // «no volver a mostrar»
   return c.has(id(clave, etapa));
