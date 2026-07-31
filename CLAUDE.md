@@ -46,6 +46,17 @@ un `git add -A` ajeno se lleva tus cambios a su commit.
 `artifacts/api-server/src/db.ts`. Después corre `pnpm run typecheck:libs`, o el
 API seguirá viendo los tipos viejos.
 
+**7. Nada de acentos ni ñ en lo que no es texto de pantalla.** Nombres de
+archivo, claves, identificadores, encabezados de CSV, nombres de columna: todo
+en ASCII. Quien revisa la base o abre las descargas lo hace desde herramientas
+que no siempre respetan UTF-8, y un `Certificación_Muñoz.pdf` llega roto o no
+llega. Al derivar algo de un dato con acentos hay que aplanarlo primero
+(`normalize('NFD')` + quitar diacríticos + `ñ`→`N`); el ejemplo trabajado está
+en `artifacts/api-server/src/utils/nombreArchivo.ts`.
+
+> Esto **no** aplica al texto que lee una persona en pantalla, en un correo o
+> en un PDF: ahí el español va bien escrito, con sus acentos.
+
 ---
 
 ## Cómo verificar
