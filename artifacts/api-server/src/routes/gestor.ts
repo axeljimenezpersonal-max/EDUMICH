@@ -1459,16 +1459,13 @@ async function servirDocExpedienteGestor(
 
   const [est] = await db
     .select({
-      folio: estudiantes.folioPreregistro,
-      matricula: estudiantes.matriculaOficialDGB,
       nombres: estudiantes.nombres,
       apellidoPaterno: estudiantes.apellidoPaterno,
       apellidoMaterno: estudiantes.apellidoMaterno,
       nombreCompleto: estudiantes.nombreCompleto,
     })
     .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
-  const idInterno = est?.matricula || est?.folio || `${alumnoId}`;
-  const safe = nombreArchivoExpediente(tipo, est ?? {}, idInterno, ext);
+  const safe = nombreArchivoExpediente(tipo, est ?? {}, alumnoId, ext);
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);

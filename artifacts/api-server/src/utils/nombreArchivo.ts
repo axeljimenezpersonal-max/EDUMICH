@@ -5,10 +5,10 @@
  * archivo que se llama distinto según quién lo bajó deja de servir como
  * referencia cuando dos personas hablan del mismo documento.
  *
- * Forma:  <Tipo>_<APELLIDOS-INICIALES>_<matrícula · folio · id>.<ext>
+ * Forma:  <Tipo>_<APELLIDOS-INICIALES>_<id>.<ext>
  *
- *     CURP_RAMIREZ-TORRES-AS_20261601000123.pdf
- *     Acta-de-nacimiento_HERNANDEZ-LOPEZ-MJ_9.pdf
+ *     CURP_RAMIREZ-TORRES-AS_9.pdf
+ *     Acta-de-nacimiento_HERNANDEZ-LOPEZ-MJ_14.pdf
  *
  * Por qué así:
  *
@@ -19,9 +19,11 @@
  * - **Iniciales para los nombres de pila.** Resuelve el caso de quien tiene dos
  *   (Ana Sofía → AS, José María → JM) sin alargar el archivo ni tener que
  *   decidir cuál de los dos "cuenta".
- * - **El identificador al final**, porque es lo que se busca y se pega, y
- *   porque deja los documentos de una misma persona juntos al ordenar por
- *   nombre.
+ * - **El número corto al final**, no la matrícula. La matrícula son 14 dígitos
+ *   que harían el archivo largo e incómodo de adjuntar, y es un dato oficial
+ *   que no tiene por qué andar repartido en carpetas de Descargas. El número
+ *   interno basta para distinguir a dos homónimos, que es lo único que se le
+ *   pide.
  */
 
 /** Quita acentos, ñ y cualquier cosa que no sobreviva a un sistema de archivos. */
@@ -99,17 +101,16 @@ const TIPO_ARCHIVO: Record<string, string> = {
 /**
  * Nombre completo del archivo, ya seguro para descargar.
  *
- * `identificador` es la matrícula oficial si ya la tiene; si no, el folio de
- * pre-registro; y como último recurso el id interno. Se prefiere la matrícula
- * porque es la que aparece en los oficios: quien recibe el archivo la reconoce.
+ * `alumnoId` es el número interno del alumno. Va solo para desempatar homónimos
+ * —dos "GARCIA-LOPEZ-J" en la misma carpeta— y para tener a qué ficha volver.
  */
 export function nombreArchivoExpediente(
   tipo: string,
   persona: DatosNombreArchivo,
-  identificador: string,
+  alumnoId: number,
   ext: string,
 ): string {
   const etiqueta = etiquetaPersona(persona);
-  const partes = [TIPO_ARCHIVO[tipo] ?? tipo, etiqueta, identificador].filter(Boolean);
+  const partes = [TIPO_ARCHIVO[tipo] ?? tipo, etiqueta, String(alumnoId)].filter(Boolean);
   return `${partes.join('_')}.${ext}`.replace(/[^a-zA-Z0-9_\-.]/g, '');
 }

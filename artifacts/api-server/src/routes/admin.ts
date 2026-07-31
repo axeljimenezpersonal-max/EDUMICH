@@ -4664,8 +4664,6 @@ async function servirDocExpedienteAdmin(
 
   const [est] = await db
     .select({
-      folio: estudiantes.folioPreregistro,
-      matricula: estudiantes.matriculaOficialDGB,
       nombres: estudiantes.nombres,
       apellidoPaterno: estudiantes.apellidoPaterno,
       apellidoMaterno: estudiantes.apellidoMaterno,
@@ -4673,9 +4671,7 @@ async function servirDocExpedienteAdmin(
     })
     .from(estudiantes)
     .where(eq(estudiantes.userId, alumnoId));
-  // ID interno preferido: matrícula oficial; folio de pre-registro como respaldo.
-  const idInterno = est?.matricula || est?.folio || `${alumnoId}`;
-  const safe = nombreArchivoExpediente(tipo, est ?? {}, idInterno, ext);
+  const safe = nombreArchivoExpediente(tipo, est ?? {}, alumnoId, ext);
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
