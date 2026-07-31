@@ -56,6 +56,7 @@ import { generarFolioPreregistro, generarFolioLicencia, agregarDiasHabiles } fro
 import { generarFichaPreregistro, generarFichaRegistro } from '../services/pdf';
 import { generarRelacionExamenes, generarRelacionExamenesTodos } from '../services/relacionExamenesPdf';
 import { generarInscritosPagados } from '../services/inscritosPagadosPdf';
+import { nombreArchivoExpediente } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
@@ -4661,22 +4662,20 @@ async function servirDocExpedienteAdmin(
     : 'application/pdf';
   const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'pdf';
 
-  // Nombre de archivo definido por nosotros: <Tipo>_<folio o matrícula>.<ext>
-  const TIPO_ARCHIVO: Record<string, string> = {
-    curp: 'CURP',
-    acta_nacimiento: 'Acta-de-nacimiento',
-    ine: 'Identificacion-oficial',
-    comprobante_domicilio: 'Comprobante-de-domicilio',
-    certificado_secundaria: 'Certificado-de-secundaria',
-    foto: 'Fotografia',
-  };
   const [est] = await db
-    .select({ folio: estudiantes.folioPreregistro, matricula: estudiantes.matriculaOficialDGB })
+    .select({
+      folio: estudiantes.folioPreregistro,
+      matricula: estudiantes.matriculaOficialDGB,
+      nombres: estudiantes.nombres,
+      apellidoPaterno: estudiantes.apellidoPaterno,
+      apellidoMaterno: estudiantes.apellidoMaterno,
+      nombreCompleto: estudiantes.nombreCompleto,
+    })
     .from(estudiantes)
     .where(eq(estudiantes.userId, alumnoId));
   // ID interno preferido: matrícula oficial; folio de pre-registro como respaldo.
-  const idInterno = est?.matricula || est?.folio || `alumno-${alumnoId}`;
-  const safe = `${TIPO_ARCHIVO[tipo] ?? tipo}_${idInterno}.${ext}`.replace(/[^a-zA-Z0-9_\-.]/g, '');
+  const idInterno = est?.matricula || est?.folio || `${alumnoId}`;
+  const safe = nombreArchivoExpediente(tipo, est ?? {}, idInterno, ext);
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);

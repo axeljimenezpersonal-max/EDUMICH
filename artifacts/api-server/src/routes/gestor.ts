@@ -50,6 +50,7 @@ import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/passwor
 import { urlPortalLogin, urlPortalBase } from '../utils/portal';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { validarCurp } from '../utils/curp';
+import { nombreArchivoExpediente } from '../utils/nombreArchivo';
 import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
 import {
   obtenerDatosCedula,
@@ -1456,16 +1457,18 @@ async function servirDocExpedienteGestor(
     : 'application/pdf';
   const ext = mime === 'image/jpeg' ? 'jpg' : mime === 'image/png' ? 'png' : 'pdf';
 
-  // Nombre definido por nosotros: <Tipo>_<matrícula o folio>.<ext>
-  const TIPO_ARCHIVO: Record<string, string> = {
-    curp: 'CURP', acta_nacimiento: 'Acta-de-nacimiento', ine: 'Identificacion-oficial',
-    comprobante_domicilio: 'Comprobante-de-domicilio', certificado_secundaria: 'Certificado-de-secundaria', foto: 'Fotografia',
-  };
   const [est] = await db
-    .select({ folio: estudiantes.folioPreregistro, matricula: estudiantes.matriculaOficialDGB })
+    .select({
+      folio: estudiantes.folioPreregistro,
+      matricula: estudiantes.matriculaOficialDGB,
+      nombres: estudiantes.nombres,
+      apellidoPaterno: estudiantes.apellidoPaterno,
+      apellidoMaterno: estudiantes.apellidoMaterno,
+      nombreCompleto: estudiantes.nombreCompleto,
+    })
     .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
-  const idInterno = est?.matricula || est?.folio || `alumno-${alumnoId}`;
-  const safe = `${TIPO_ARCHIVO[tipo] ?? tipo}_${idInterno}.${ext}`.replace(/[^a-zA-Z0-9_\-.]/g, '');
+  const idInterno = est?.matricula || est?.folio || `${alumnoId}`;
+  const safe = nombreArchivoExpediente(tipo, est ?? {}, idInterno, ext);
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
