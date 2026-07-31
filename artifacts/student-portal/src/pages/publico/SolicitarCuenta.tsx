@@ -227,14 +227,25 @@ export default function SolicitarCuenta() {
       return null;
     }
     if (n === 2) {
+      // Estos tres no son adorno: la entidad de nacimiento va en el acta y en
+      // la matrícula oficial, y el CP con la colonia son lo que hace localizable
+      // el domicilio. Sin ellos el expediente nace incompleto y hay que
+      // perseguir a la persona después para completarlo.
+      if (!form.entidadNacimiento) return 'Selecciona tu estado de nacimiento.';
+      if (!/^\d{5}$/.test(form.cp.trim())) return 'Escribe tu código postal (5 dígitos).';
+      if (!form.colonia.trim()) return 'Escribe o selecciona tu colonia.';
       if (!form.municipioId) return 'Selecciona el municipio donde vives.';
       return null;
     }
     if (n === 3) {
+      // Vacío y mal escrito NO son lo mismo: decirle "escribe un correo VÁLIDO"
+      // a quien no ha escrito nada suena a que se equivocó, y se pone a revisar
+      // un campo que solo está en blanco.
+      if (!form.email.trim()) return 'Falta tu correo electrónico: sin él no podemos enviarte el código.';
       // Se valida el correo YA RECORTADO: al pegarlo o autocompletarlo suele
       // llegar con un espacio invisible al final, y el patrón (que prohíbe
       // espacios) lo rechazaba aunque el correo fuera correcto.
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Escribe un correo electrónico válido.';
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Ese correo no está completo: debe verse como nombre@correo.com.';
       if (correoYaTieneCuenta) return 'Ese correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña en vez de solicitar otra.';
       if (!form.telefono.trim()) return 'Escribe tu número de teléfono.';
       if (!aceptaAviso) return 'Debes aceptar el aviso de privacidad.';
@@ -244,6 +255,9 @@ export default function SolicitarCuenta() {
   }
 
   const [validandoCurp, setValidandoCurp] = useState(false);
+  // Para llevar a la persona al campo que falta en vez de solo avisarle al pie.
+  const emailRef = useRef<HTMLInputElement | null>(null);
+  const telefonoRef = useRef<HTMLDivElement | null>(null);
 
   async function avanzar() {
     setCurpOcupada(null); // el motivo anterior no debe teñir el error siguiente
@@ -311,6 +325,15 @@ export default function SolicitarCuenta() {
     const error = validarPaso(3);
     if (error) {
       setFormError(error);
+      // El aviso sale al pie del formulario, lejos del campo que lo provoca: en
+      // una pantalla larga se lee como una alerta salida de la nada. Se lleva a
+      // la persona al campo, que es donde se arregla.
+      const destino = /correo/i.test(error) ? emailRef.current : /tel[eé]fono/i.test(error) ? telefonoRef.current : null;
+      if (destino) {
+        destino.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const campo = destino instanceof HTMLInputElement ? destino : destino.querySelector('input');
+        campo?.focus({ preventScroll: true });
+      }
       return;
     }
     setFormError(null);
@@ -724,7 +747,7 @@ export default function SolicitarCuenta() {
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="gov-label" htmlFor="sc-entNac">Estado de nacimiento</label>
+                  <label className="gov-label" htmlFor="sc-entNac">Estado de nacimiento *</label>
                   <select
                     id="sc-entNac"
                     value={form.entidadNacimiento}
@@ -764,7 +787,7 @@ export default function SolicitarCuenta() {
                         casilla lleva su etiqueta: sin ella la gente escribía el
                         CP en el hueco donde antes estaba. */}
                     <div>
-                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Código postal</span>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Código postal *</span>
                     <input
                       value={form.cp}
                       onChange={(e) => setForm((f) => ({ ...f, cp: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
@@ -775,7 +798,7 @@ export default function SolicitarCuenta() {
                     />
                     </div>
                     <div>
-                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Colonia</span>
+                    <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Colonia *</span>
                     {coloniasCp.length > 0 && !coloniaManualCp ? (
                       <select
                         value={form.colonia}
@@ -830,6 +853,7 @@ export default function SolicitarCuenta() {
                 <label className="gov-label" htmlFor="sc-email">Correo electrónico *</label>
                 <input
                   id="sc-email"
+                  ref={emailRef}
                   type="email"
                   value={form.email}
                   onChange={(e) => { setFormError(null); setForm((f) => ({ ...f, email: e.target.value.replace(/\s/g, '').toLowerCase() })); }}
@@ -886,7 +910,7 @@ export default function SolicitarCuenta() {
                 )}
               </div>
 
-              <div>
+              <div ref={telefonoRef}>
                 <label className="gov-label" htmlFor="sc-tel">Teléfono *</label>
                 <CampoTelefono
                   id="sc-tel"

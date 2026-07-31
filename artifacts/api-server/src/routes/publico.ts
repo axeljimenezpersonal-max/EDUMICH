@@ -590,6 +590,21 @@ const camposDesglosados = {
   estadoDomicilio: z.string().max(80).optional(),
 };
 
+/**
+ * Los tres del domicilio y nacimiento que SÍ son obligatorios.
+ *
+ * La entidad de nacimiento va en el acta y en la matrícula oficial; el código
+ * postal y la colonia son lo que hace localizable el domicilio. Si nacen vacíos
+ * hay que perseguir a la persona después para completarlos, y para entonces ya
+ * no contesta. Van con mensaje propio porque el texto por omisión de Zod está
+ * en inglés y le tocaría leerlo al alumno.
+ */
+const camposObligatorios = {
+  entidadNacimiento: z.string().min(1, 'Selecciona tu estado de nacimiento.').max(80),
+  cp: z.string().regex(/^\d{5}$/, 'Escribe tu código postal (5 dígitos).'),
+  colonia: z.string().min(1, 'Escribe o selecciona tu colonia.').max(120),
+};
+
 // ─── POST /publico/auto-registro ──────────────────────────────────────────
 const autoRegistroSchema = z.object({
   emailVerificadoToken: z.string(),
@@ -601,6 +616,7 @@ const autoRegistroSchema = z.object({
   direccion: z.string().optional(),
   password: z.string().min(8),
   ...camposDesglosados,
+  ...camposObligatorios,
 });
 
 router.post('/auto-registro', async (req, res) => {
@@ -717,6 +733,7 @@ const solicitudSchema = z.object({
   modalidadPreferida: z.enum(['con_gestor', 'auto_gestion']).optional(),
   quiereInfoGestores: z.boolean().optional(),
   ...camposDesglosados,
+  ...camposObligatorios,
 });
 
 router.post('/solicitudes-cuenta', async (req, res) => {

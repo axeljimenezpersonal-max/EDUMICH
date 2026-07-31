@@ -86,6 +86,12 @@ export default function AutoRegistroDatos() {
     if (!passwordsCoinciden) return;
     const errEdad = validarEdad(fechaNacimiento);
     if (errEdad) { setError(errEdad); return; }
+    // Entidad de nacimiento, CP y colonia son obligatorios: la entidad va en el
+    // acta y en la matrícula oficial, y el CP con la colonia son lo que hace
+    // localizable el domicilio. Sin ellos el expediente nace incompleto.
+    if (!form.entidadNacimiento) { setError('Selecciona la entidad donde naciste.'); return; }
+    if (!/^\d{5}$/.test(form.cp.trim())) { setError('Escribe tu código postal (5 dígitos).'); return; }
+    if (!form.colonia.trim()) { setError('Escribe o selecciona tu colonia.'); return; }
     setError(null);
     setLoading(true);
     try {
@@ -237,7 +243,7 @@ export default function AutoRegistroDatos() {
               <input id="lugarNac" type="text" value={form.lugarNacimiento} onChange={set('lugarNacimiento')} className="gov-input" placeholder="Morelia" />
             </div>
             <div>
-              <label className="gov-label" htmlFor="entNac">Entidad donde nació</label>
+              <label className="gov-label" htmlFor="entNac">Entidad donde nació *</label>
               <select id="entNac" value={form.entidadNacimiento} onChange={set('entidadNacimiento')} className="gov-input">
                 <option value="">Selecciona… (se deduce de la CURP)</option>
                 {ENTIDADES_MEXICO.map((ent) => (
@@ -248,7 +254,7 @@ export default function AutoRegistroDatos() {
           </div>
 
           <div>
-            <label className="gov-label">Domicilio (opcional)</label>
+            <label className="gov-label">Domicilio</label>
             <div className="space-y-2">
               <input value={form.calleNumero} onChange={set('calleNumero')} className="gov-input" placeholder="Calle y número" />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -256,7 +262,7 @@ export default function AutoRegistroDatos() {
                     Con etiqueta por casilla: cuatro campos seguidos sin rótulo
                     invitan a escribir el dato en el hueco equivocado. */}
                 <div>
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Código postal</span>
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Código postal *</span>
                 <input
                   value={form.cp}
                   onChange={(e) => setForm((f) => ({ ...f, cp: e.target.value.replace(/\D/g, '').slice(0, 5) }))}
@@ -267,7 +273,7 @@ export default function AutoRegistroDatos() {
                 />
                 </div>
                 <div>
-                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Colonia</span>
+                <span className="mb-1 block text-[11px] font-semibold uppercase tracking-wide text-stone-500">Colonia *</span>
                 {coloniasCp.length > 0 && !coloniaManualCp ? (
                   <select
                     value={form.colonia}
