@@ -12,7 +12,7 @@ import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api } from '../../lib/api';
 import { MUNICIPIOS_POR_ESTADO } from '../../data/municipiosMexico';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
-import { CONTACTO_CORREO } from '../../lib/contacto';
+import { CONTACTO_TELEFONO, CONTACTO_HORARIO } from '../../lib/contacto';
 
 interface Municipio {
   id: number;
@@ -170,6 +170,14 @@ export default function SolicitarCuenta() {
       .get<Municipio[]>('/publico/municipios')
       .then(setMunicipios)
       .catch(() => {});
+  }, []);
+
+  // Teléfono de atención: el que la administración tenga capturado en Datos
+  // institucionales manda. La constante solo cubre el hueco si la consulta
+  // falla, para no dejar a nadie sin a dónde llamar.
+  const [contacto, setContacto] = useState<{ telefono: string } | null>(null);
+  useEffect(() => {
+    api.get<{ telefono: string }>('/publico/contacto').then(setContacto).catch(() => {});
   }, []);
 
   // Cuenta regresiva código
@@ -443,8 +451,6 @@ export default function SolicitarCuenta() {
 
   // ── Pantalla de éxito ─────────────────────────────────────────────────
   if (fase === 'exito') {
-    // TODO: reemplazar por el correo oficial de atención cuando esté habilitado.
-    const CONTACTO_EMAIL = CONTACTO_CORREO;
     const pasos = [
       { icon: FileSearch, titulo: 'Revisión de tu solicitud', desc: 'La administración valida tus datos y documentos.', estado: 'ahora' as const },
       { icon: UserCheck, titulo: 'Aprobación y creación de cuenta', desc: 'Se genera tu cuenta en la plataforma.', estado: 'pendiente' as const },
@@ -518,17 +524,26 @@ export default function SolicitarCuenta() {
           <div className="mt-4 rounded-2xl border border-stone-200 bg-[var(--color-crema-100)] p-4">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-white text-[var(--color-guinda-700)] shadow-sm">
-                <Mail size={18} />
+                <Phone size={18} />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-sm font-semibold text-stone-900">¿Dudas sobre tu solicitud?</div>
-                <p className="text-xs text-stone-500">Escríbenos con tu nombre completo y CURP y te ayudamos.</p>
+                <p className="text-xs text-stone-500">
+                  Llámanos con tu nombre completo y CURP a la mano y te ayudamos.
+                </p>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 font-mono text-xs text-stone-700">
-                    <Mail size={12} className="text-[var(--color-guinda-700)]" />
-                    {CONTACTO_EMAIL}
-                  </span>
-                  <span className="text-[10px] font-medium text-amber-700">· en proceso de habilitarse</span>
+                  {/* Se llama por teléfono, no se escribe: hay quien contesta el
+                      teléfono. Un correo que nadie revisa es peor que no dar
+                      contacto —la persona escribe, espera, y se queda sin
+                      respuesta— y aquí acaba de mandar su trámite. */}
+                  <a
+                    href={`tel:${(contacto?.telefono ?? CONTACTO_TELEFONO).replace(/[^\d+]/g, '')}`}
+                    className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-lg border border-stone-200 bg-white px-2.5 py-1.5 font-mono text-xs text-stone-700 hover:border-[var(--color-guinda-700)]"
+                  >
+                    <Phone size={12} className="text-[var(--color-guinda-700)]" />
+                    {contacto?.telefono ?? CONTACTO_TELEFONO}
+                  </a>
+                  <span className="text-[10px] text-stone-400">{CONTACTO_HORARIO}</span>
                 </div>
               </div>
             </div>
