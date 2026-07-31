@@ -771,7 +771,7 @@ export default function SolicitarCuenta() {
                       inputMode="numeric"
                       maxLength={5}
                       className="gov-input"
-                      placeholder="58280"
+                      placeholder="58000"
                     />
                     </div>
                     <div>

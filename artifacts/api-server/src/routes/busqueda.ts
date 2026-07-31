@@ -80,7 +80,7 @@ router.get('/', async (req, res) => {
 
   try {
     // ── Alumnos ────────────────────────────────────────────────────────────
-    // Los tokens se combinan con Y para que "jimenez gonzalez" encuentre a
+    // Los tokens se combinan con Y para que "morelos pavon" encuentre a
     // quien lleva ambos apellidos en cualquier orden, y `unaccent` para que
     // "ramirez" encuentre a "Ramírez".
     const condAlumno = and(

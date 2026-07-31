@@ -263,7 +263,7 @@ export default function AutoRegistroDatos() {
                   inputMode="numeric"
                   maxLength={5}
                   className="gov-input"
-                  placeholder="58280"
+                  placeholder="58000"
                 />
                 </div>
                 <div>

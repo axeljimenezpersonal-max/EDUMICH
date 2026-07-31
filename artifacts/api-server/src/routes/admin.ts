@@ -2186,8 +2186,8 @@ router.get('/alumnos', async (req, res) => {
 
   const presetSnippet = filtroValido ? sql.raw(filterSqlSnippets[filtroValido]) : sql``;
   // Búsqueda POR PALABRAS: cada palabra debe aparecer en el nombre, la CURP o el
-  // correo (en cualquier orden). Así "axel gonzalez" encuentra a "Axel Eduardo
-  // Jimenez Gonzalez", cosa que un solo ILIKE contiguo no lograba.
+  // correo (en cualquier orden). Así "morelos pavon" encuentra a "José María
+  // Morelos Pavón", cosa que un solo ILIKE contiguo no lograba.
   const searchSnippet = search
     ? sql`AND ${sql.join(
         search.split(/\s+/).filter(Boolean).map(
