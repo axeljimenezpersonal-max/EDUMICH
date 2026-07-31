@@ -81,6 +81,27 @@ type OutboxEvento =
   | 'verificacion_email'
   | 'solicitud_rechazada';
 
+/**
+ * Correos que NUNCA se copian a la cuenta institucional (`INSTITUTIONAL_CC_EMAIL`).
+ *
+ * Todos éstos llevan una credencial dentro: un código de verificación, una
+ * contraseña temporal o un enlace para restablecer la contraseña. Copiarlos a
+ * un buzón compartido significa que cualquiera con acceso a ese buzón puede
+ * completar el registro de otra persona o entrar a su cuenta —sin que el dueño
+ * se entere—. La copia institucional tiene sentido para avisos, no para llaves.
+ *
+ * Como efecto adicional: mandar cada correo automático con copia fija a la
+ * misma dirección es un patrón que los filtros de spam reconocen, y ayuda a que
+ * el mensaje acabe en «correo no deseado».
+ */
+const EVENTOS_SIN_COPIA: ReadonlySet<OutboxEvento> = new Set([
+  'verificacion_email',
+  'recuperar_password',
+  'cuenta_creada_alumno',
+  'cuenta_creada_gestor',
+  'cuenta_creada_admin',
+]);
+
 interface SendEmailOptions {
   to: string;
   toName?: string;
@@ -99,7 +120,8 @@ export async function sendEmail(
   opts: SendEmailOptions
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const mode = getEmailMode();
-  const cc = process.env.INSTITUTIONAL_CC_EMAIL ?? undefined;
+  const ccConfigurado = process.env.INSTITUTIONAL_CC_EMAIL ?? undefined;
+  const cc = EVENTOS_SIN_COPIA.has(opts.evento) ? undefined : ccConfigurado;
   // EMAIL_FROM admite DOS formas y tú eliges cuál usar desde el entorno:
   //   1) Solo la dirección:  noreply@modula22.mx
   //   2) Nombre + dirección:  Prepa Abierta Michoacán <noreply@modula22.mx>
