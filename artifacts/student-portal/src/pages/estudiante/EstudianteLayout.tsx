@@ -10,7 +10,7 @@ import { PantallaVerificando } from '../../components/PantallaVerificando';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
 import { BottomNav } from '../../components/BottomNav';
-import { demoActive, disableDemo } from '../../lib/demo';
+import { demoActive, disableDemo, demoEscenario } from '../../lib/demo';
 import { formatearNombre } from '../../lib/nombre';
 
 const NAV = [
@@ -191,11 +191,12 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
 
       {demoActive() && (
         <div
+          data-demo-cinta
           className="fixed left-3 bottom-20 md:bottom-3 z-[45] flex items-center gap-2 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow-lg"
           style={{ background: 'var(--color-guinda-800)' }}
         >
           <Eye size={14} />
-          Vista demo · alumno nuevo
+          {demoEscenario() === 'avanzado' ? 'Vista demo · datos ficticios' : 'Vista demo · alumno nuevo'}
           <button
             onClick={() => { disableDemo(); window.location.href = '/login'; }}
             className="ml-1 rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30 transition-colors"

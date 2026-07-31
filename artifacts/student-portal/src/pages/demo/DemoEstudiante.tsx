@@ -17,10 +17,16 @@ export default function DemoEstudiante() {
   // El inicializador de useState corre UNA vez, antes de montar los hijos
   // (cuyos efectos llaman a la API), de modo que el modo demo ya esté activo.
   useState(() => {
-    enableDemo('estudiante');
-    // La demo es «un alumno que entra por primera vez»: sus tutoriales no
-    // pueden venir dados por vistos de una visita anterior.
-    olvidarTutoriales();
+    // `?escenario=avanzado` muestra a la alumna a MITAD del ciclo (expediente
+    // aprobado, exámenes, pagos): es lo que fotografía la guía en PDF. Sin el
+    // parámetro se conserva la demo de siempre: un alumno que entra por
+    // primera vez.
+    const avanzado = new URLSearchParams(window.location.search).get('escenario') === 'avanzado';
+    enableDemo('estudiante', avanzado ? 'avanzado' : 'nuevo');
+    // En 'avanzado' los tutoriales se dan por vistos dentro de `estaVisto`
+    // (ningún tour debe salir encima de una captura); aquí no hay nada que
+    // marcar. En 'nuevo' es al revés: alumno de primera vez, sin nada visto.
+    if (!avanzado) olvidarTutoriales();
     return true;
   });
 
