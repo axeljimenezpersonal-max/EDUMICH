@@ -6,11 +6,14 @@
  * NADA se maqueta a mano: cambia la interfaz → se recapturan las fotos → se
  * corre esto → guía nueva.
  *
- * Lenguaje visual (siguiendo el manual de referencia del equipo): portada
- * editorial en guinda sólido con una frase, no una lámina; kickers dorados en
- * versalitas; serif para títulos y frases; UNA página = UNA idea, con el aire
- * como decisión y no como hueco; toda foto va enmarcada y con pie de foto;
- * el folio del pie es parte del diseño de la página.
+ * Lenguaje visual: portada editorial en guinda sólido con una frase; kickers
+ * dorados en versalitas; TODO en Poppins — es la letra de Modula, no se
+ * imita la del manual de otro producto—; una página = una idea, con el aire
+ * como decisión; toda foto va enmarcada y con pie de foto.
+ *
+ * Cuando una pantalla no fotografía bien (bloques altísimos, estados que el
+ * demo no puede mostrar a la vez), NO se fuerza la captura: se dibuja una
+ * ilustración con el mismo estilo del portal. Eso también se decide aquí.
  *
  * Uso:
  *     node docs/guias/capturar-alumno.mjs        # 1) fotos frescas
@@ -45,6 +48,12 @@ function img(nombre) {
   return `data:image/png;base64,${fs.readFileSync(ruta).toString('base64')}`;
 }
 
+/** Poppins es LA letra de Modula (hasta --font-serif del portal apunta a ella).
+ * Va incrustada para que el PDF no dependa de qué fuentes tenga la máquina. */
+function fuente(archivo) {
+  return fs.readFileSync(path.join(AQUI, 'fuentes', archivo)).toString('base64');
+}
+
 const fechaCruda = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
 const FECHA_VERSION = fechaCruda.charAt(0).toUpperCase() + fechaCruda.slice(1);
 
@@ -54,18 +63,17 @@ const C = {
   crema: '#f7f2ed', cremaClaro: '#fcfaf7', linea: '#e7dfd5',
   dorado: '#b89968', doradoSuave: '#cdb48c',
   tinta: '#2b2320', gris: '#6b615a',
-  verde: '#2d7d46', ambar: '#b45309',
-  moradoExamen: '#6d28d9', rosaInscripcion: '#f7e6ec',
+  verde: '#2d7d46', verdeFondo: '#f0fdf4',
+  ambarTexto: '#a16207', ambarFondo: '#fefce8',
+  rojo: '#b91c1c', rojoFondo: '#fef2f2',
+  moradoExamen: '#6d28d9', rosaInscripcion: '#f7e6ec', rosaBorde: '#e3b5c4',
 };
 
 const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 // ── Piezas ─────────────────────────────────────────────────────────────────
 
-/** Kicker dorado en versalitas: "CAPÍTULO 03 · TU EXPEDIENTE". */
 const kicker = (t) => `<div class="kicker">${esc(t)}</div>`;
-
-/** Página nueva. Todo bloque de primer nivel vive dentro de una .pagina. */
 const pagina = (contenido, extra = '') => `<section class="pagina ${extra}">${contenido}</section>`;
 
 /** Figura: SIEMPRE con marco y pie de foto (una foto sin pie no se entiende). */
@@ -79,7 +87,15 @@ function figura(imagen, pie, opts = {}) {
   </figure>`;
 }
 
-/** Paso: número dorado + título + cuerpo (la foto va aparte, como figura). */
+/** Ilustración dibujada (no captura): mismo marco y pie que una figura. */
+function lamina(contenidoHtml, pie) {
+  return `
+  <figure class="fig fig-ancha">
+    <div class="fig-marco lamina">${contenidoHtml}</div>
+    <figcaption><span class="fig-punto"></span>${esc(pie)}</figcaption>
+  </figure>`;
+}
+
 function paso(n, titulo, cuerpo) {
   return `
   <div class="paso">
@@ -91,16 +107,9 @@ function paso(n, titulo, cuerpo) {
   </div>`;
 }
 
-/** Dos columnas: pasos a la izquierda, figura de teléfono a la derecha. */
 const dosCol = (izq, der) => `<div class="doscol"><div class="doscol-izq">${izq}</div><div class="doscol-der">${der}</div></div>`;
-
-/** Cita/regla con borde dorado (el énfasis editorial del manual de referencia). */
 const cita = (texto) => `<div class="cita">${texto}</div>`;
-
-/** Advertencia: misma cita, pero en guinda y con OJO como kicker. */
 const ojo = (texto) => `<div class="cita ojo"><div class="ojo-k">⚠ OJO</div>${texto}</div>`;
-
-/** Tarjeta blanca (para rejillas 2×2). */
 const tarjeta = (titulo, cuerpo) => `<div class="tarjeta"><h4>${esc(titulo)}</h4><p>${cuerpo}</p></div>`;
 
 function encabezadoCap(numero, titulo, lede) {
@@ -109,6 +118,10 @@ function encabezadoCap(numero, titulo, lede) {
   <h2 class="cap-titulo">${esc(titulo)}</h2>
   ${lede ? `<p class="lede">${lede}</p>` : ''}`;
 }
+
+/** Chip de estado, igual que en el portal. */
+const chip = (texto, fondo, color) =>
+  `<span class="chip" style="background:${fondo};color:${color}">${esc(texto)}</span>`;
 
 // ── Páginas ────────────────────────────────────────────────────────────────
 
@@ -133,9 +146,9 @@ const INDICE = pagina(`
     <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Paso 1 · Tu expediente</span><span class="ind-d">5 documentos y tu matrícula</span></div>
     <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Paso 2 · Inscríbete</span><span class="ind-d">la ventana y tus módulos</span></div>
     <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Paso 3 · Paga tu examen</span><span class="ind-d">$131 · Tesorería del Estado</span></div>
-    <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">El día del examen</span><span class="ind-d">pase QR, sede y horario</span></div>
+    <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">El día del examen</span><span class="ind-d">identificación, sede y horario</span></div>
     <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Paso 4 · Tus resultados</span><span class="ind-d">se aprueba con 60</span></div>
-    <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">Herramientas</span><span class="ind-d">pruebas, calendario y ayuda</span></div>
+    <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">Herramientas</span><span class="ind-d">pruebas, preguntas y calendario</span></div>
     <div class="ind-fila"><span class="ind-n">✓</span><span class="ind-t">Tu lista de cotejo</span><span class="ind-d">para imprimir o guardar</span></div>
   </div>
 `);
@@ -171,11 +184,12 @@ const CAP1A = pagina(`
 const CAP1B = pagina(`
   ${kicker('CAPÍTULO 01 · CONTINUACIÓN')}
   ${dosCol(`
-    ${paso('1.4', '¿La olvidaste? Recupérala', `En el inicio de sesión toca <strong>Olvidé mi contraseña</strong>:
-      te llega un enlace a tu correo para elegir una nueva.`)}
+    ${paso('1.4', '¿La olvidaste? Recupérala por correo', `En el inicio de sesión toca
+      <strong>Olvidé mi contraseña</strong> y elige <strong>recibir correo de recuperación</strong>:
+      es la única vía. Te llega un enlace para elegir una contraseña nueva.`)}
     ${ojo(`La contraseña temporal solo sirve <strong>una vez</strong>, y el enlace de recuperación
       <strong>caduca en 1 hora</strong>. Úsalo en cuanto llegue.`)}
-  `, figura(img('02-recuperar-password'), 'Recuperar contraseña, paso a paso', { telefono: true }))}
+  `, figura(img('02-recuperar-password'), 'Recuperación: se hace por correo', { telefono: true }))}
 `);
 
 const CAP2 = pagina(`
@@ -189,7 +203,7 @@ const CAP2 = pagina(`
       <div><strong>Pagos</strong><span>fichas y comprobantes</span></div>
       <div><strong>Calificaciones</strong><span>tus resultados</span></div>
       <div><strong>Pruebas</strong><span>exámenes de práctica</span></div>
-      <div><strong>ID</strong><span>credencial y pase</span></div>
+      <div><strong>ID</strong><span>tu credencial</span></div>
       <div><strong>Calendario</strong><span>fechas del ciclo</span></div>
       <div><strong>Preguntas frecuentes</strong><span>dudas resueltas</span></div>
     </div>
@@ -198,21 +212,57 @@ const CAP2 = pagina(`
   `, figura(img('03-inicio-nuevo'), 'Tu Inicio: el punto de partida', { telefono: true }))}
 `);
 
+// Lámina: la lista de documentos, dibujada (el usuario pidió LISTA, no prosa).
+const LAMINA_DOCS = `
+  <div class="docs-lista">
+    <div class="doc-item"><span class="doc-n">1</span><div><strong>CURP</strong><span>constancia oficial (PDF o foto)</span></div></div>
+    <div class="doc-item"><span class="doc-n">2</span><div><strong>Acta de nacimiento</strong><span>oficial o copia certificada</span></div></div>
+    <div class="doc-item"><span class="doc-n">3</span><div><strong>Identificación oficial</strong><span>INE / IFE vigente, por ambos lados</span></div></div>
+    <div class="doc-item"><span class="doc-n">4</span><div><strong>Comprobante de domicilio</strong><span>no mayor a 3 meses</span></div></div>
+    <div class="doc-item"><span class="doc-n">5</span><div><strong>Certificado de secundaria</strong><span>certificado o constancia, ambos lados</span></div></div>
+    <div class="doc-item doc-extra"><span class="doc-n">+</span><div><strong>Tu fotografía</strong><span>tipo selfie, de frente, fondo claro — para tu credencial</span></div></div>
+  </div>`;
+
 const CAP3A = pagina(`
   ${encabezadoCap(3, 'Paso 1 · Tu expediente', 'Cinco documentos y tu fotografía. Sin esto no hay inscripción.')}
-  ${dosCol(`
-    ${paso('3.1', 'Reúne tus documentos', `<strong>CURP</strong>, <strong>acta de nacimiento</strong>,
-      <strong>identificación oficial</strong>, <strong>comprobante de domicilio</strong> (máximo 3 meses) y
-      <strong>certificado de secundaria</strong>. En PDF o foto legible. Además, una <strong>fotografía</strong>
-      tipo selfie para tu credencial.`)}
-    ${paso('3.2', 'Súbelos en Expediente', `Toca el botón de subir en cada documento. La lista te dice
-      cuáles faltan.`)}
-    ${paso('3.3', 'Espera la revisión', `La administración revisa cada uno. Si algo se
-      <strong>rechaza</strong>, ahí mismo dice el motivo: corrige y vuelve a subirlo.`)}
-  `, figura(img('04-expediente-vacio'), 'Así se ve tu expediente recién creado', { telefono: true }))}
+  ${paso('3.1', 'Reúne tus documentos', `Ten los seis listos antes de empezar: subirlos toma cinco minutos.
+    En PDF o foto, siempre legibles.`)}
+  ${lamina(LAMINA_DOCS, 'Tu lista de documentos — júntalos antes de subir nada')}
 `);
 
+// Lámina: los tres estados de un documento (el demo no puede mostrarlos juntos).
+const LAMINA_ESTADOS = `
+  <div class="estados">
+    <div class="est-fila">
+      <div class="est-doc">📄 <strong>CURP</strong></div>
+      ${chip('Aprobado', C.verdeFondo, C.verde)}
+      <span class="est-desc">Listo: este ya cuenta para tu 5/5.</span>
+    </div>
+    <div class="est-fila">
+      <div class="est-doc">📄 <strong>Acta de nacimiento</strong></div>
+      ${chip('En revisión', C.ambarFondo, C.ambarTexto)}
+      <span class="est-desc">La administración lo está revisando. Solo espera.</span>
+    </div>
+    <div class="est-fila est-mal">
+      <div class="est-doc">📄 <strong>Comprobante de domicilio</strong></div>
+      ${chip('Rechazado', C.rojoFondo, C.rojo)}
+      <span class="est-desc"><strong>Motivo: "borroso / mayor a 3 meses".</strong> Corrige y súbelo otra vez.</span>
+    </div>
+  </div>`;
+
 const CAP3B = pagina(`
+  ${kicker('CAPÍTULO 03 · CONTINUACIÓN')}
+  ${dosCol(`
+    ${paso('3.2', 'Súbelos en Expediente', `Cada documento tiene su botón <strong>Subir</strong>.
+      La lista te dice cuáles faltan.`)}
+    ${paso('3.3', 'Espera la revisión', `Cada documento pasa por la administración y queda en uno de
+      tres estados. El único que te pide algo es <strong>rechazado</strong>: trae el motivo, corriges
+      y vuelves a subir.`)}
+  `, figura(img('04-expediente-vacio'), 'Tu Expediente, con el botón de subir en cada documento', { telefono: true }))}
+  ${lamina(LAMINA_ESTADOS, 'Ejemplo: los tres estados en que puede quedar un documento')}
+`);
+
+const CAP3C = pagina(`
   ${kicker('CAPÍTULO 03 · CONTINUACIÓN')}
   ${paso('3.4', 'Tu barra debe llegar a 5/5', `Con los cinco documentos aprobados, tu expediente está completo.`)}
   ${figura(img('05-exp-progreso'), 'Expediente completo: 5 de 5 documentos aprobados', { alto: '48mm' })}
@@ -223,24 +273,36 @@ const CAP3B = pagina(`
     No lo dejes para la semana de la inscripción.`)}
 `);
 
+// Lámina: cómo se marcan los módulos (la captura real salía ilegible).
+const LAMINA_MODULOS = `
+  <div class="mods">
+    <div class="mod-fila mod-sel"><span class="check check-on">✓</span>
+      <div><strong>Módulo 4 · Matemáticas y representaciones</strong><span>Sábado · 09:00</span></div></div>
+    <div class="mod-fila mod-sel"><span class="check check-on">✓</span>
+      <div><strong>Módulo 5 · Argumentación</strong><span>Domingo · 11:00</span></div></div>
+    <div class="mod-fila"><span class="check"></span>
+      <div><strong>Módulo 6 · Ser social y sociedad</strong><span>Sábado · 09:00</span></div></div>
+    <div class="mod-boton">Confirmar inscripción (2 módulos)</div>
+  </div>`;
+
 const CAP4A = pagina(`
   ${encabezadoCap(4, 'Paso 2 · Inscríbete', 'La ventana dura 4 o 5 días. Todo pasa dentro de ella.')}
   ${paso('4.1', 'Espera a que abra la ventana', `Cuando la inscripción está abierta, tu sección
     <strong>Inscripción</strong> la anuncia con las fechas exactas y los días que faltan para el cierre.`)}
-  ${figura(img('06-insc-ventana'), 'La convocatoria abierta, con sus fechas y su cuenta regresiva')}
-  ${paso('4.2', 'Elige tus módulos', `Marca hasta <strong>4 módulos</strong> y confírmalos. Cada uno tiene su
-    día y hora (sábado o domingo). Si la convocatoria abrió varias sedes, elige también dónde presentas.`)}
-  ${figura(img('06b-insc-modulos'), 'Los módulos disponibles para esta etapa')}
+  ${figura(img('06-insc-ventana'), 'La convocatoria abierta, con sus fechas y su cuenta regresiva', { alto: '42mm' })}
+  ${paso('4.2', 'Marca tus módulos y confirma', `Palomea hasta <strong>4 módulos</strong> —cada uno con su
+    día y hora— y toca <strong>Confirmar</strong>. Si hay varias sedes, elige también dónde presentas.`)}
+  ${lamina(LAMINA_MODULOS, 'Ejemplo: así se marcan los módulos y se confirma')}
 `);
 
 const CAP4B = pagina(`
   ${kicker('CAPÍTULO 04 · CONTINUACIÓN')}
   ${paso('4.3', 'Revisa tus exámenes', `Quedas como <strong>pre-inscrito</strong> y se genera tu ficha de pago.
     Tu lugar se confirma hasta que el pago se valida.`)}
-  ${figura(img('06c-insc-examenes'), 'Tus exámenes inscritos, con su estado')}
+  ${figura(img('06c-insc-examenes'), 'Tus exámenes inscritos, con su estado', { alto: '74mm' })}
   ${paso('4.4', 'Tu sede queda asignada', `Con su dirección y el mapa. Es la misma para todos los módulos
     de la convocatoria.`)}
-  ${figura(img('06d-insc-sede'), 'Tu sede de examen')}
+  ${figura(img('06d-insc-sede'), 'Tu sede de examen', { alto: '52mm' })}
 `);
 
 const CAP4C = pagina(`
@@ -248,43 +310,48 @@ const CAP4C = pagina(`
   ${ojo(`<strong>La ventana es estricta.</strong> Fuera de esas fechas no se puede inscribir ni pagar —
     no hay excepciones: así funciona la convocatoria estatal. Consulta el Calendario y no lo dejes
     para el último día.`)}
-  ${figura(img('06e-insc-pasos'), 'El propio portal te deja la ruta: ficha → pago → confirmación → pase')}
   ${cita(`<strong>¿Tienes centro de asesoría?</strong> Esta parte no te toca: <strong>tu gestor te inscribe</strong>.
     En tu Inscripción están sus datos para ponerte de acuerdo. Tú sigue en el capítulo 6.`)}
 `);
 
+// Lámina: el camino del pago en 4 estaciones (lo que el usuario pidió ver claro).
+const LAMINA_PAGO = `
+  <div class="ruta-pago">
+    <div class="rp"><div class="rp-n rp-hecho">1</div><strong>Solicitada</strong><span>Tocas "Solicitar orden" en Pagos. La coordinación la tramita.</span></div>
+    <div class="rp"><div class="rp-n rp-hecho">2</div><strong>Emisión</strong><span>La Tesorería emite tu orden con línea de captura. ¡Ya puedes pagar!</span></div>
+    <div class="rp"><div class="rp-n">3</div><strong>Pago</strong><span>Pagas en banco, tienda o en línea, y subes tu comprobante.</span></div>
+    <div class="rp"><div class="rp-n">4</div><strong>Confirmado</strong><span>La coordinación valida. Tu lugar queda asegurado.</span></div>
+  </div>`;
+
 const CAP5A = pagina(`
   ${encabezadoCap(5, 'Paso 3 · Paga tu examen', 'Cada examen cuesta $131. La orden la emite la Tesorería del Estado.')}
-  ${paso('5.1', 'Mira tu resumen', `En <strong>Pagos</strong>: cuántos exámenes llevas, cuántos ya están
-    cubiertos y el costo por examen.`)}
-  ${figura(img('07-pagos-resumen'), 'Tu resumen: inscritos, pagados y costo')}
-  ${paso('5.2', 'Solicita tu orden de pago', `Cada examen sin pagar trae su botón
-    <strong>Solicitar orden</strong>. La Tesorería la emite con tu línea de captura.`)}
-  ${figura(img('07b-pagos-estado'), 'El estado de pago de cada examen inscrito')}
+  ${paso('5.1', 'Así es el camino completo', `Toda orden de pago pasa por <strong>4 estaciones</strong>.
+    En tu sección Pagos siempre ves en cuál va la tuya:`)}
+  ${lamina(LAMINA_PAGO, 'El camino de tu pago, de la solicitud a la confirmación')}
+  ${paso('5.2', 'Solicita tu orden', `En <strong>Pagos</strong>, cada examen sin cubrir trae su botón
+    <strong>Solicitar orden</strong>. Con un toque arranca el camino de arriba.`)}
 `);
 
 const CAP5B = pagina(`
   ${kicker('CAPÍTULO 05 · CONTINUACIÓN')}
-  ${paso('5.3', 'Paga con tu línea de captura', `Cada orden muestra en qué paso va
-    (<strong>solicitada → emisión → pago → confirmado</strong>). Cuando queda emitida, copia tu
-    <strong>línea de captura</strong> y págala en banco, tienda o en línea.`)}
-  ${paso('5.4', 'Sube tu comprobante', `En el mismo bloque, elige cómo pagaste y adjunta la foto o PDF
-    de tu comprobante. Al confirmarse, tu examen queda <strong>pagado</strong> y tu lugar asegurado.`)}
-  ${figura(img('07d-linea-captura'), 'El bloque de pago: descarga tu orden, copia la línea de captura y sube tu comprobante', { alto: '108mm' })}
+  ${paso('5.3', 'Paga con tu línea de captura', `Cuando la orden queda emitida aparece este bloque:
+    <strong>(1)</strong> descarga tu orden y copia la <strong>línea de captura</strong> para pagar en banco,
+    tienda o en línea; <strong>(2)</strong> ya que pagaste, elige cómo y sube tu comprobante.`)}
+  ${figura(img('07d-linea-captura'), 'El bloque de pago: la línea de captura arriba, tu comprobante abajo', { alto: '108mm' })}
   ${ojo(`Tu ficha <strong>vence a los 7 días</strong> de emitida, y solo lo pagado se califica.`)}
 `);
 
 const CAP6 = pagina(`
-  ${encabezadoCap(6, 'El día del examen', 'Pase, identificación, y llega con tiempo.')}
+  ${encabezadoCap(6, 'El día del examen', 'Identificación, tu sede y llegar con tiempo.')}
   ${dosCol(`
-    ${paso('6.1', 'Descarga tu pase', `Con el pago confirmado, en <strong>ID</strong> descargas tu
-      <strong>pase de examen</strong>: módulo, sede, horario y el <strong>código QR</strong> que escanean
-      al entrar.`)}
-    ${paso('6.2', 'Lleva contigo', `Tu pase (en el teléfono o impreso) y una <strong>identificación</strong>.
-      La dirección de tu sede y el mapa están en tu Inscripción.`)}
-    ${paso('6.3', 'Tu credencial digital', `También vive en <strong>ID</strong>, con tu foto: te identifica
+    ${paso('6.1', 'Lleva tu identificación', `Una identificación oficial (INE, o tu credencial de
+      estudiante del portal). Es lo que te piden al entrar.`)}
+    ${paso('6.2', 'Ubica tu sede desde antes', `La dirección y el mapa están en tu
+      <strong>Inscripción</strong>. Llega con tiempo: los horarios de aplicación son exactos
+      (09:00 y 11:00).`)}
+    ${paso('6.3', 'Tu credencial digital', `Vive en <strong>ID</strong>, con tu foto. Te identifica
       dentro del programa.`)}
-  `, figura(img('08-pase-examen'), 'Tu pase de examen con código QR', { telefono: true }))}
+  `, figura(img('09-identificacion'), 'Tu credencial de estudiante, en la sección ID', { telefono: true }))}
 `);
 
 const CAP7 = pagina(`
@@ -300,31 +367,53 @@ const CAP7 = pagina(`
 `);
 
 const CAP8A = pagina(`
-  ${encabezadoCap(8, 'Herramientas que te ayudan', '')}
+  ${encabezadoCap(8, 'Herramientas · Pruebas', 'Practica antes de presentar.')}
   ${dosCol(`
-    ${paso('8.1', 'Pruebas · practica antes', `Evaluaciones de práctica por módulo.
-      <strong>No cuentan para tu calificación</strong>: son para llegar preparado.`)}
-    ${paso('8.2', 'Preguntas frecuentes', `Las dudas más comunes, ya resueltas. Busca ahí antes de llamar:
-      casi siempre la respuesta ya está.`)}
-    ${paso('8.3', 'Mi aula', `Si tu centro la activó, ahí están tus clases en línea. Con candado =
-      tu centro aún no la usa.`)}
-  `, figura(img('11-pruebas'), 'Pruebas: tu área de práctica', { telefono: true }))}
+    ${paso('8.1', 'Qué son', `Evaluaciones de práctica por módulo, dentro de tu portal.
+      <strong>No cuentan para tu calificación</strong> ni quedan en tu historial oficial: son un
+      entrenamiento para llegar seguro al examen real.`)}
+    ${paso('8.2', 'Cómo usarlas', `Entra a <strong>Pruebas</strong>, elige el módulo que vas a presentar
+      y responde. Puedes repetirlas las veces que quieras; el portal te da tu puntaje al momento.`)}
+    ${cita(`Presentar sin practicar es ir a ciegas. Una prueba antes del examen te dice exactamente
+      qué repasar.`)}
+  `, figura(img('11-pruebas'), 'Pruebas: tu área de práctica por módulo', { telefono: true }))}
 `);
 
 const CAP8B = pagina(`
-  ${kicker('CAPÍTULO 08 · EL CALENDARIO')}
+  ${kicker('CAPÍTULO 08 · PREGUNTAS FRECUENTES')}
   ${dosCol(`
-    ${paso('8.4', 'Las fechas del ciclo', `Todas las etapas del año en una cuadrícula.
-      Dos colores y ya:`)}
-    <div class="colores">
-      <div class="color-item"><span class="muestra" style="background:${C.moradoExamen}"></span>
-        <div><strong>Morado</strong><br/>día de examen</div></div>
-      <div class="color-item"><span class="muestra" style="background:${C.rosaInscripcion};border:1px solid #e3b5c4"></span>
-        <div><strong>Rosa</strong><br/>ventana de inscripción</div></div>
-    </div>
-    ${cita(`Los días rosas son <strong>los únicos</strong> en que puedes inscribirte y pagar.
-      Ubícalos desde antes.`)}
-  `, figura(img('12-calendario'), 'El Calendario, con su leyenda de colores', { telefono: true }))}
+    ${paso('8.3', 'Tu primera parada para dudas', `Las preguntas más comunes del trámite ya están
+      respondidas ahí: inscripción, pagos, documentos y examen. Tiene buscador.`)}
+    ${paso('8.4', 'Antes de llamar, busca', `Casi siempre la respuesta ya está escrita, a cualquier
+      hora. Si de verdad no aparece, al pie de esa misma pantalla vienen el teléfono y el horario
+      de atención.`)}
+  `, figura(img('13-faq'), 'Preguntas frecuentes, con su buscador', { telefono: true }))}
+`);
+
+// Lámina: calendario de ejemplo del ciclo (8 etapas, inscripción y examen).
+const LAMINA_CALENDARIO = `
+  <table class="cal-tabla">
+    <thead><tr><th>Etapa</th><th><span class="punto-rosa"></span>Ventana de inscripción</th><th><span class="punto-morado"></span>Días de examen</th></tr></thead>
+    <tbody>
+      <tr><td>A</td><td>última semana de enero</td><td>fin de semana, mediados de febrero</td></tr>
+      <tr><td>B</td><td>mediados de marzo</td><td>fin de semana, inicios de abril</td></tr>
+      <tr><td>C</td><td>última semana de abril</td><td>fin de semana, mediados de mayo</td></tr>
+      <tr><td>D</td><td>mediados de junio</td><td>fin de semana, inicios de julio</td></tr>
+      <tr><td>E</td><td>última semana de julio</td><td>fin de semana, mediados de agosto</td></tr>
+      <tr><td>F</td><td>mediados de septiembre</td><td>fin de semana, inicios de octubre</td></tr>
+      <tr><td>G</td><td>última semana de octubre</td><td>fin de semana, mediados de noviembre</td></tr>
+      <tr><td>H</td><td>inicios de diciembre</td><td>fin de semana, mediados de diciembre</td></tr>
+    </tbody>
+  </table>`;
+
+const CAP8C = pagina(`
+  ${kicker('CAPÍTULO 08 · EL CALENDARIO')}
+  ${paso('8.5', 'Ocho oportunidades al año', `El ciclo tiene <strong>8 etapas</strong>. Cada una abre su
+    ventana de inscripción (4–5 días) y aplica exámenes un fin de semana. En tu sección
+    <strong>Calendario</strong> están las fechas exactas: morado = examen, rosa = inscripción.`)}
+  ${lamina(LAMINA_CALENDARIO, 'EJEMPLO del ritmo del año — las fechas exactas de tu ciclo están en tu portal')}
+  ${cita(`Los días de la ventana son <strong>los únicos</strong> en que puedes inscribirte y pagar.
+    Ubica la próxima desde hoy.`)}
 `);
 
 const CAP9 = pagina(`
@@ -346,12 +435,12 @@ const ANEXO = pagina(`
   <div class="cotejo">
     <div class="cot"><span class="cuadro"></span>Mi expediente está completo (5/5) y tengo matrícula</div>
     <div class="cot"><span class="cuadro"></span>Ya sé cuándo abre la ventana (lo vi en el Calendario)</div>
+    <div class="cot"><span class="cuadro"></span>Practiqué con las Pruebas de mis módulos</div>
     <div class="cot"><span class="cuadro"></span>Me inscribí DENTRO de la ventana (hasta 4 módulos)</div>
     <div class="cot"><span class="cuadro"></span>Solicité mi orden de pago</div>
     <div class="cot"><span class="cuadro"></span>Pagué antes del vencimiento (la ficha vence a los 7 días)</div>
     <div class="cot"><span class="cuadro"></span>Subí mi comprobante y me confirmaron el pago</div>
-    <div class="cot"><span class="cuadro"></span>Descargué mi pase de examen (código QR)</div>
-    <div class="cot"><span class="cuadro"></span>Me presenté con pase + identificación, a tiempo</div>
+    <div class="cot"><span class="cuadro"></span>Me presenté con identificación, a tiempo, en mi sede</div>
     <div class="cot"><span class="cuadro"></span>Revisé mi calificación (se aprueba con 60+)</div>
   </div>
   ${cita(`Cada convocatoria repite este mismo ciclo. <strong>22 módulos aprobados = tu certificado.</strong>`)}
@@ -361,12 +450,18 @@ const ANEXO = pagina(`
 const HTML = `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"/>
 <style>
+  @font-face { font-family: 'Poppins'; font-weight: 400;
+    src: url(data:font/ttf;base64,${fuente('Poppins-Regular.ttf')}) format('truetype'); }
+  @font-face { font-family: 'Poppins'; font-weight: 600;
+    src: url(data:font/ttf;base64,${fuente('Poppins-SemiBold.ttf')}) format('truetype'); }
+  @font-face { font-family: 'Poppins'; font-weight: 700;
+    src: url(data:font/ttf;base64,${fuente('Poppins-Bold.ttf')}) format('truetype'); }
+
   @page { size: letter; margin: 0; }
   * { box-sizing: border-box; margin: 0; }
-  body { font-family: 'Poppins', 'Segoe UI', system-ui, sans-serif; color: ${C.tinta};
-         font-size: 10.5pt; line-height: 1.62; }
+  body { font-family: 'Poppins', system-ui, sans-serif; color: ${C.tinta};
+         font-size: 10pt; line-height: 1.62; }
 
-  /* Cada .pagina ES una página carta: el diseño decide dónde corta, no el flujo. */
   .pagina { width: 216mm; height: 279mm; padding: 20mm 19mm 16mm; background: ${C.cremaClaro};
             page-break-after: always; position: relative; overflow: hidden;
             display: flex; flex-direction: column; }
@@ -374,50 +469,46 @@ const HTML = `<!doctype html>
                    border-top: 0.35mm solid ${C.linea}; }
   .pagina.oscura::after { display: none; }
 
-  .kicker { font-size: 8pt; font-weight: 700; letter-spacing: 0.28em; color: ${C.dorado};
+  .kicker { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.28em; color: ${C.dorado};
             text-transform: uppercase; margin-bottom: 6mm; }
-
-  h1, h2, h3, h4, .cita { font-family: Georgia, 'Times New Roman', serif; }
 
   /* Portada */
   .oscura { background: linear-gradient(165deg, ${C.guindaNoche}, ${C.guindaOscuro} 55%, ${C.guinda}); color: #fff; }
   .portada-centro { margin: auto 0; }
-  .portada-logo { font-family: Georgia, serif; font-size: 30pt; color: #fff; margin-bottom: 12mm; }
+  .portada-logo { font-size: 26pt; font-weight: 700; color: #fff; margin-bottom: 12mm; }
   .portada-logo span { color: ${C.dorado}; }
-  .oscura h1 { font-size: 46pt; line-height: 1.05; font-weight: 700; }
-  .portada-frase { margin-top: 14mm; font-family: Georgia, serif; font-size: 15pt; line-height: 1.7;
-                   max-width: 130mm; }
-  .portada-frase span { color: ${C.doradoSuave}; }
-  .pie-portada { font-size: 8pt; letter-spacing: 0.24em; color: rgba(255,255,255,0.55); }
+  .oscura h1 { font-size: 38pt; line-height: 1.12; font-weight: 700; letter-spacing: -0.015em; }
+  .portada-frase { margin-top: 14mm; font-size: 13pt; line-height: 1.75; max-width: 132mm; font-weight: 400; }
+  .portada-frase span { color: ${C.doradoSuave}; font-weight: 600; }
+  .pie-portada { font-size: 7.5pt; letter-spacing: 0.24em; color: rgba(255,255,255,0.55); }
 
   /* Índice */
   .indice { margin-top: 8mm; }
-  .ind-fila { display: flex; align-items: baseline; gap: 6mm; padding: 4.6mm 0;
+  .ind-fila { display: flex; align-items: baseline; gap: 6mm; padding: 4.4mm 0;
               border-bottom: 0.3mm solid ${C.linea}; }
-  .ind-n { font-family: Georgia, serif; font-size: 14pt; color: ${C.dorado}; min-width: 10mm; }
-  .ind-t { font-weight: 700; font-size: 12.5pt; }
-  .ind-d { margin-left: auto; color: ${C.gris}; font-size: 9.5pt; }
+  .ind-n { font-weight: 700; font-size: 11pt; color: ${C.dorado}; min-width: 10mm; }
+  .ind-t { font-weight: 600; font-size: 12pt; }
+  .ind-d { margin-left: auto; color: ${C.gris}; font-size: 9pt; }
 
-  /* Títulos de capítulo */
-  .cap-titulo { font-size: 26pt; line-height: 1.12; color: ${C.guindaNoche}; margin-bottom: 4mm; }
-  .lede { font-family: Georgia, serif; font-size: 12.5pt; color: ${C.gris}; margin-bottom: 8mm; }
+  /* Títulos */
+  .cap-titulo { font-size: 21pt; line-height: 1.18; color: ${C.guindaNoche}; margin-bottom: 4mm;
+                font-weight: 700; letter-spacing: -0.01em; }
+  .lede { font-size: 11.5pt; color: ${C.gris}; margin-bottom: 8mm; font-weight: 400; }
 
   /* Camino */
   .camino { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin: 6mm 0 8mm; }
   .cam { background: #fff; border: 0.35mm solid ${C.linea}; border-radius: 3.5mm; padding: 6mm; }
   .cam-n { width: 9mm; height: 9mm; border-radius: 50%; background: ${C.guinda}; color: #fff;
            font-weight: 700; display: flex; align-items: center; justify-content: center; margin-bottom: 3mm; }
-  .cam h4 { font-size: 13pt; margin-bottom: 1.5mm; color: ${C.guindaNoche}; }
-  .cam p { font-size: 9.5pt; color: ${C.gris}; }
+  .cam h4 { font-size: 12pt; font-weight: 700; margin-bottom: 1.5mm; color: ${C.guindaNoche}; }
+  .cam p { font-size: 9pt; color: ${C.gris}; }
 
   /* Pasos */
   .paso { display: flex; gap: 5mm; margin-bottom: 6.5mm; }
-  .paso-n { font-family: Georgia, serif; font-size: 15pt; color: ${C.dorado}; font-weight: 700;
-            min-width: 12mm; }
-  .paso-c h3 { font-size: 13pt; color: ${C.guindaNoche}; margin-bottom: 1.5mm; }
+  .paso-n { font-size: 12.5pt; color: ${C.dorado}; font-weight: 700; min-width: 12mm; }
+  .paso-c h3 { font-size: 12pt; font-weight: 700; color: ${C.guindaNoche}; margin-bottom: 1.5mm; }
   .paso-c p { color: #453d38; }
 
-  /* Dos columnas */
   .doscol { display: flex; gap: 9mm; align-items: flex-start; flex: 1; }
   .doscol-izq { flex: 1.15; }
   .doscol-der { flex: 0.85; display: flex; justify-content: center; }
@@ -428,44 +519,99 @@ const HTML = `<!doctype html>
                box-shadow: 0 1.2mm 3mm rgba(46, 8, 20, 0.07); }
   .fig-marco img { display: block; width: 100%; border-radius: 2.5mm; }
   .fig-tel { width: 62mm; }
-  /* Bloques recortados: centrados a su proporción natural y con tope de alto.
-     Estirados al ancho de la página se veían inflados, y sin tope la figura se
-     desbordaba y el folio del pie la pisaba. */
   .fig-ancha { width: 100%; margin: 2mm 0 6mm; }
   .fig-ancha .fig-marco { display: flex; justify-content: center; }
   .fig-ancha .fig-marco img { width: auto; max-width: 92%; max-height: 74mm; }
   .fig-ancha figcaption { justify-content: center; }
-  figcaption { margin-top: 2.5mm; font-size: 8.5pt; color: ${C.gris}; display: flex; gap: 2.5mm;
+  figcaption { margin-top: 2.5mm; font-size: 8pt; color: ${C.gris}; display: flex; gap: 2.5mm;
                align-items: center; }
   .fig-punto { width: 2mm; height: 2mm; border-radius: 50%; background: ${C.dorado}; flex-shrink: 0; }
+  .lamina { display: block; padding: 5mm; }
 
   /* Citas y ojo */
   .cita { border-left: 1.2mm solid ${C.dorado}; padding: 3mm 0 3mm 6mm; margin: 7mm 0;
-          font-size: 12.5pt; line-height: 1.65; color: ${C.guindaNoche}; }
+          font-size: 11.5pt; line-height: 1.68; color: ${C.guindaNoche}; font-weight: 400; }
   .cita.ojo { border-left-color: ${C.guinda}; }
-  .ojo-k { font-family: 'Poppins', sans-serif; font-size: 8pt; font-weight: 700;
-           letter-spacing: 0.24em; color: ${C.guinda}; margin-bottom: 1.5mm; }
+  .ojo-k { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.24em; color: ${C.guinda}; margin-bottom: 1.5mm; }
 
-  /* Glosario del menú */
+  /* Glosario */
   .glosario { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5mm 6mm; margin: 5mm 0; }
-  .glosario > div { border-bottom: 0.3mm solid ${C.linea}; padding: 2mm 0; font-size: 9.5pt; }
-  .glosario strong { display: block; color: ${C.guindaNoche}; }
+  .glosario > div { border-bottom: 0.3mm solid ${C.linea}; padding: 2mm 0; font-size: 9pt; }
+  .glosario strong { display: block; color: ${C.guindaNoche}; font-weight: 600; }
   .glosario span { color: ${C.gris}; font-size: 8.5pt; }
 
-  /* Colores del calendario */
-  .colores { display: flex; flex-direction: column; gap: 4mm; margin: 5mm 0; }
-  .color-item { display: flex; gap: 4mm; align-items: center; }
-  .muestra { width: 11mm; height: 11mm; border-radius: 2.5mm; flex-shrink: 0; }
+  /* Chips (como el portal) */
+  .chip { display: inline-flex; border-radius: 6mm; padding: 1mm 3.5mm; font-size: 8.5pt;
+          font-weight: 600; white-space: nowrap; }
+
+  /* Lámina: lista de documentos */
+  .docs-lista { display: flex; flex-direction: column; gap: 2.8mm; }
+  .doc-item { display: flex; gap: 5mm; align-items: center; background: ${C.cremaClaro};
+              border: 0.35mm solid ${C.linea}; border-radius: 3mm; padding: 3.5mm 5mm; }
+  .doc-n { width: 8mm; height: 8mm; border-radius: 50%; background: ${C.guinda}; color: #fff;
+           font-weight: 700; font-size: 10pt; display: flex; align-items: center; justify-content: center;
+           flex-shrink: 0; }
+  .doc-item strong { display: block; font-size: 11pt; font-weight: 600; color: ${C.guindaNoche}; }
+  .doc-item span { color: ${C.gris}; font-size: 9pt; }
+  .doc-extra { border-style: dashed; }
+  .doc-extra .doc-n { background: ${C.dorado}; }
+
+  /* Lámina: estados */
+  .estados { display: flex; flex-direction: column; gap: 3mm; }
+  .est-fila { display: grid; grid-template-columns: 52mm 26mm 1fr; gap: 4mm; align-items: center;
+              background: ${C.cremaClaro}; border: 0.35mm solid ${C.linea}; border-radius: 3mm;
+              padding: 3.5mm 5mm; }
+  .est-doc { font-size: 10pt; }
+  .est-doc strong { font-weight: 600; }
+  .est-desc { font-size: 9pt; color: ${C.gris}; }
+
+  /* Lámina: selección de módulos */
+  .mods { display: flex; flex-direction: column; gap: 2.8mm; max-width: 150mm; margin: 0 auto; }
+  .mod-fila { display: flex; gap: 4.5mm; align-items: center; background: ${C.cremaClaro};
+              border: 0.35mm solid ${C.linea}; border-radius: 3mm; padding: 2.4mm 5mm; }
+  .mod-sel { border-color: ${C.guinda}; background: #fdf7f9; }
+  .check { width: 6.5mm; height: 6.5mm; border: 0.5mm solid #c9bcae; border-radius: 1.8mm;
+           flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+           font-weight: 700; color: #fff; font-size: 9pt; }
+  .check-on { background: ${C.guinda}; border-color: ${C.guinda}; }
+  .mod-fila strong { display: block; font-size: 10pt; font-weight: 600; color: ${C.guindaNoche}; }
+  .mod-fila span { font-size: 8.5pt; color: ${C.gris}; }
+  .mod-boton { margin-top: 1.5mm; background: ${C.guinda}; color: #fff; text-align: center;
+               font-weight: 600; font-size: 10.5pt; border-radius: 2.5mm; padding: 2.8mm; }
+
+  /* Lámina: ruta del pago */
+  .ruta-pago { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; }
+  .rp { background: ${C.cremaClaro}; border: 0.35mm solid ${C.linea}; border-radius: 3mm; padding: 4.5mm; }
+  .rp-n { width: 8mm; height: 8mm; border-radius: 50%; border: 0.5mm solid ${C.guinda};
+          color: ${C.guinda}; font-weight: 700; display: flex; align-items: center;
+          justify-content: center; margin-bottom: 2.5mm; font-size: 10pt; }
+  .rp-hecho { background: ${C.guinda}; color: #fff; }
+  .rp strong { display: block; font-size: 10.5pt; font-weight: 700; color: ${C.guindaNoche};
+               margin-bottom: 1mm; }
+  .rp span { font-size: 8.5pt; color: ${C.gris}; line-height: 1.5; display: block; }
+
+  /* Lámina: calendario de ejemplo */
+  .cal-tabla { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+  .cal-tabla th { text-align: left; font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase;
+                  color: ${C.gris}; font-weight: 700; padding: 2.5mm 4mm;
+                  border-bottom: 0.6mm solid ${C.dorado}; }
+  .cal-tabla td { padding: 3.2mm 4mm; border-bottom: 0.3mm solid ${C.linea}; }
+  .cal-tabla td:first-child { font-weight: 700; color: ${C.guinda}; }
+  .cal-tabla tr:nth-child(even) td { background: ${C.cremaClaro}; }
+  .punto-rosa, .punto-morado { display: inline-block; width: 3mm; height: 3mm; border-radius: 50%;
+                               margin-right: 2mm; vertical-align: middle; }
+  .punto-rosa { background: ${C.rosaInscripcion}; border: 0.4mm solid ${C.rosaBorde}; }
+  .punto-morado { background: ${C.moradoExamen}; }
 
   /* Tarjetas */
   .tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 4mm; }
   .tarjeta { background: #fff; border: 0.35mm solid ${C.linea}; border-radius: 3.5mm; padding: 6mm; }
-  .tarjeta h4 { font-size: 12.5pt; color: ${C.guindaNoche}; margin-bottom: 2mm; }
-  .tarjeta p { font-size: 10pt; color: ${C.gris}; }
+  .tarjeta h4 { font-size: 11.5pt; font-weight: 700; color: ${C.guindaNoche}; margin-bottom: 2mm; }
+  .tarjeta p { font-size: 9.5pt; color: ${C.gris}; }
 
   /* Cotejo */
   .cotejo { margin-top: 4mm; }
-  .cot { display: flex; align-items: center; gap: 5mm; padding: 4.6mm 0; font-size: 12pt;
+  .cot { display: flex; align-items: center; gap: 5mm; padding: 4.4mm 0; font-size: 11.5pt;
          border-bottom: 0.3mm dashed ${C.linea}; }
   .cuadro { width: 6.5mm; height: 6.5mm; border: 0.6mm solid ${C.guinda}; border-radius: 1.8mm;
             flex-shrink: 0; }
@@ -479,6 +625,7 @@ ${CAP1B}
 ${CAP2}
 ${CAP3A}
 ${CAP3B}
+${CAP3C}
 ${CAP4A}
 ${CAP4B}
 ${CAP4C}
@@ -488,6 +635,7 @@ ${CAP6}
 ${CAP7}
 ${CAP8A}
 ${CAP8B}
+${CAP8C}
 ${CAP9}
 ${ANEXO}
 </body></html>`;
@@ -506,8 +654,6 @@ await page.pdf({
   printBackground: true,
   displayHeaderFooter: true,
   headerTemplate: '<span></span>',
-  // El folio va como parte del diseño: versalitas espaciadas sobre la línea
-  // que cada página ya trae dibujada al pie.
   footerTemplate: `
     <div style="width:100%;font-size:6.5pt;letter-spacing:0.22em;color:#a3968b;
                 display:flex;justify-content:space-between;padding:0 19mm 4mm;
