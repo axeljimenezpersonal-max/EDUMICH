@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
-import { CampoTelefono } from '../../components/CampoTelefono';
+import { CampoTelefono, soloDiezDigitos } from '../../components/CampoTelefono';
 import { useLocation } from 'wouter';
 import { CheckCircle2, Loader2, UserPlus, Eye, EyeOff } from 'lucide-react';
 import { format } from 'date-fns';
@@ -89,6 +89,7 @@ export default function AutoRegistroDatos() {
     // Entidad de nacimiento, CP y colonia son obligatorios: la entidad va en el
     // acta y en la matrícula oficial, y el CP con la colonia son lo que hace
     // localizable el domicilio. Sin ellos el expediente nace incompleto.
+    if (soloDiezDigitos(form.telefono).length !== 10) { setError('El teléfono debe tener 10 dígitos, sin la lada de país.'); return; }
     if (!form.entidadNacimiento) { setError('Selecciona la entidad donde naciste.'); return; }
     if (!/^\d{5}$/.test(form.cp.trim())) { setError('Escribe tu código postal (5 dígitos).'); return; }
     if (!form.colonia.trim()) { setError('Escribe o selecciona tu colonia.'); return; }

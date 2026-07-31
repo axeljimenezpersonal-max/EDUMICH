@@ -11,10 +11,23 @@
  * las pantallas y el dato salga siempre parejo.
  */
 
-/** Deja solo los 10 dígitos nacionales de un valor guardado. */
+/**
+ * Deja solo los 10 dígitos nacionales de un valor guardado.
+ *
+ * El prefijo se reconoce POR SU FORMA (`+52 …`), no contando dígitos. Contarlos
+ * fallaba mientras se escribía: con el número a medias hay menos de diez, así
+ * que el `52` del prefijo no se quitaba y se mostraba como parte del número.
+ * Al teclear, ese texto volvía a entrar y se le pegaba otro `+52` encima, de
+ * modo que cada tecla agrandaba la bola: `1` → `521` → `525211` → …
+ */
 export function soloDiezDigitos(valor: string | null | undefined): string {
-  const d = (valor ?? '').replace(/\D/g, '');
-  // Si viene con lada de país (52…), se descarta para mostrar el número local.
+  const texto = (valor ?? '').trim();
+  // Forma canónica que emite este mismo campo, completa o a medio escribir.
+  const canonico = texto.match(/^\+\s?52[\s.-]?(\d{0,10})$/);
+  if (canonico) return canonico[1];
+  // Cualquier otra procedencia (carga vieja, pegado desde WhatsApp): ahí sí se
+  // cuenta, porque no hay una forma conocida en la cual apoyarse.
+  const d = texto.replace(/\D/g, '');
   const sinPais = d.length > 10 && d.startsWith('52') ? d.slice(2) : d;
   return sinPais.slice(0, 10);
 }

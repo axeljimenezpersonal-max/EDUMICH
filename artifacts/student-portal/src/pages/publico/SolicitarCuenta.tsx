@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
-import { CampoTelefono } from '../../components/CampoTelefono';
+import { CampoTelefono, soloDiezDigitos } from '../../components/CampoTelefono';
 import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
@@ -248,6 +248,7 @@ export default function SolicitarCuenta() {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Ese correo no está completo: debe verse como nombre@correo.com.';
       if (correoYaTieneCuenta) return 'Ese correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña en vez de solicitar otra.';
       if (!form.telefono.trim()) return 'Escribe tu número de teléfono.';
+      if (soloDiezDigitos(form.telefono).length !== 10) return 'El teléfono debe tener 10 dígitos, sin la lada de país.';
       if (!aceptaAviso) return 'Debes aceptar el aviso de privacidad.';
       return null;
     }

@@ -352,7 +352,7 @@ router.get('/contacto', async (_req, res) => {
 
 // ─── Token helpers (HMAC, 30 min) ────────────────────────────────────────
 import { SESSION_SECRET as TOKEN_SECRET } from '../config/env';
-import { normalizarTelefonoOMantener } from '../utils/telefono';
+import { normalizarTelefonoOMantener, exigirTelefonoMx } from '../utils/telefono';
 import { CONTACTO_CORREO } from '../config/contacto';
 const TOKEN_TTL_MS = 30 * 60 * 1000;
 
@@ -611,7 +611,12 @@ const autoRegistroSchema = z.object({
   email: z.string().email(),
   nombreCompleto: z.string().min(2).max(200),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  telefono: z.string().min(7).max(30).transform((v) => normalizarTelefonoOMantener(v) ?? v),
+  telefono: z
+    .string()
+    // Obligatorio y completo: la pantalla ya solo admite 10 dígitos, y un
+    // número a medias no sirve para avisarle nada a nadie.
+    .transform((v) => exigirTelefonoMx(v))
+    .refine((v): v is string => v !== null, 'El teléfono debe tener 10 dígitos, sin la lada de país.'),
   municipioId: z.number().int().positive(),
   direccion: z.string().optional(),
   password: z.string().min(8),
@@ -727,7 +732,12 @@ const solicitudSchema = z.object({
   curp: z.string().length(18),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   email: z.string().email(),
-  telefono: z.string().min(7).max(30).transform((v) => normalizarTelefonoOMantener(v) ?? v),
+  telefono: z
+    .string()
+    // Obligatorio y completo: la pantalla ya solo admite 10 dígitos, y un
+    // número a medias no sirve para avisarle nada a nadie.
+    .transform((v) => exigirTelefonoMx(v))
+    .refine((v): v is string => v !== null, 'El teléfono debe tener 10 dígitos, sin la lada de país.'),
   municipioId: z.number().int().positive(),
   mensaje: z.string().optional(),
   modalidadPreferida: z.enum(['con_gestor', 'auto_gestion']).optional(),
