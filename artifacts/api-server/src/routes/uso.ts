@@ -119,10 +119,15 @@ router.post('/', usoLimiter, async (req, res) => {
 router.get('/resumen', requireRol('direccion', 'admin'), async (req, res) => {
   const dias = Math.min(Math.max(Number(req.query.dias) || 30, 1), 365);
 
+  // El uso del CREADOR solo lo ve el creador. Para la Secretaría se oculta: su
+  // navegación es trabajo de operación y auditoría, no un dato del programa.
+  const ocultarCreador = req.user!.rol !== 'direccion';
+  const filtroCreador = ocultarCreador ? `AND rol <> 'direccion'` : '';
+
   const { rows } = await pool.query(
     `SELECT rol, tipo, clave, SUM(conteo)::int AS total
        FROM uso_diario
-      WHERE dia >= (CURRENT_DATE - ($1::int - 1))
+      WHERE dia >= (CURRENT_DATE - ($1::int - 1)) ${filtroCreador}
       GROUP BY rol, tipo, clave
       ORDER BY rol, total DESC`,
     [dias]
@@ -133,7 +138,7 @@ router.get('/resumen', requireRol('direccion', 'admin'), async (req, res) => {
             COUNT(DISTINCT dia)::int AS dias_con_datos,
             SUM(conteo)::int AS eventos
        FROM uso_diario
-      WHERE dia >= (CURRENT_DATE - ($1::int - 1))`,
+      WHERE dia >= (CURRENT_DATE - ($1::int - 1)) ${filtroCreador}`,
     [dias]
   );
 

@@ -521,7 +521,12 @@ router.get('/bitacora/usuarios', soloJefeBitacora, async (_req, res) => {
     id: auditLog.userId,
     nombre: auditLog.userNombre,
     rol: auditLog.userRol,
-  }).from(auditLog).where(sql`${auditLog.userId} IS NOT NULL`).limit(100);
+    // Mismo criterio que la bitácora: el creador no aparece ni en el filtro de
+    // usuarios (si apareciera, delataría su actividad aunque no se listen sus filas).
+  }).from(auditLog).where(and(
+    sql`${auditLog.userId} IS NOT NULL`,
+    sql`${auditLog.userRol} IS DISTINCT FROM 'direccion'`,
+  )).limit(100);
   res.json(rows);
 });
 

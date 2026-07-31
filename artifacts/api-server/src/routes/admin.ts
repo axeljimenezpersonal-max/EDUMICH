@@ -1491,6 +1491,12 @@ router.get('/dashboard', async (req, res) => {
         .leftJoin(administradores, eq(administradores.userId, auditLog.userId))
         .leftJoin(gestores, eq(gestores.userId, auditLog.userId))
         .leftJoin(estudiantes, eq(estudiantes.userId, auditLog.userId))
+        // La actividad del CREADOR (rol 'direccion') nunca se muestra en los
+        // paneles de la Secretaría: es trabajo de operación y auditoría de
+        // Sinapsis, hecho de forma constante, y aparecer aquí solo genera ruido
+        // y alarma. Su propia bitácora sí lo registra todo.
+        // IS DISTINCT FROM conserva las filas con rol NULL (procesos del sistema).
+        .where(sql`${auditLog.userRol} IS DISTINCT FROM 'direccion'`)
         .orderBy(desc(auditLog.createdAt))
         .limit(10);
 
