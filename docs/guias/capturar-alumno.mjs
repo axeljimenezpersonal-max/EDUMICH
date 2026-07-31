@@ -148,6 +148,12 @@ for (const paso of PASOS) {
 
     const destino = path.join(SALIDA, `${paso.archivo}.png`);
     if (paso.elemento) {
+      // En un recorte de bloque, el encabezado pegajoso, la barra inferior y el
+      // botón flotante de tutorial quedan PINTADOS ENCIMA si el bloque pasa por
+      // debajo de ellos al hacer scroll. En la foto de un bloque son basura.
+      await page.addStyleTag({
+        content: 'header, nav.fixed, [data-tour="btn-seccion-tutorial"], .fixed { display:none !important }',
+      });
       const el = page.locator(paso.elemento).first();
       await el.scrollIntoViewIfNeeded();
       await page.waitForTimeout(300);

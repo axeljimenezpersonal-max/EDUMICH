@@ -40,7 +40,10 @@ function img(nombre) {
   return `data:image/png;base64,${fs.readFileSync(ruta).toString('base64')}`;
 }
 
-const FECHA_VERSION = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+// "julio de 2026" → "Julio de 2026". Solo la inicial: un text-transform
+// capitalize del CSS pondría "Julio De 2026", con el "De" en mayúscula.
+const fechaCruda = new Date().toLocaleDateString('es-MX', { month: 'long', year: 'numeric' });
+const FECHA_VERSION = fechaCruda.charAt(0).toUpperCase() + fechaCruda.slice(1);
 
 // ── Paleta del portal (index.css) ──────────────────────────────────────────
 const C = {
@@ -330,7 +333,7 @@ const HTML = `<!doctype html>
   .portada-pie { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end;
                  font-size: 10pt; opacity: 0.95; }
   .portada-version { background: rgba(255,255,255,0.14); padding: 3mm 5mm; border-radius: 3mm;
-                     font-weight: 700; text-transform: capitalize; }
+                     font-weight: 700;  }
 
   /* Índice */
   .indice { page-break-after: always; }
@@ -408,6 +411,10 @@ ${ANEXO}
 </body></html>`;
 
 // ── Imprimir ───────────────────────────────────────────────────────────────
+// GUIAS_HTML_OUT=<ruta> guarda también el HTML crudo, para poder inspeccionar
+// la maquetación con un navegador cuando no hay con qué rasterizar el PDF.
+if (process.env.GUIAS_HTML_OUT) fs.writeFileSync(process.env.GUIAS_HTML_OUT, HTML);
+
 const navegador = await chromium.launch({
   executablePath: process.env.GUIAS_CHROMIUM ?? '/opt/pw-browsers/chromium',
 });
