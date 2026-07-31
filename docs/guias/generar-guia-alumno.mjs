@@ -145,7 +145,7 @@ const INDICE = pagina(`
     <div class="ind-fila"><span class="ind-n">02</span><span class="ind-t">Conoce tu portal</span><span class="ind-d">el menú y tu Inicio</span></div>
     <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Paso 1 · Tu expediente</span><span class="ind-d">5 documentos y tu matrícula</span></div>
     <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Paso 2 · Inscríbete</span><span class="ind-d">la ventana y tus módulos</span></div>
-    <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Paso 3 · Paga tu examen</span><span class="ind-d">$131 · Tesorería del Estado</span></div>
+    <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Paso 3 · Paga tu examen</span><span class="ind-d">orden de pago · Tesorería del Estado</span></div>
     <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">El día del examen</span><span class="ind-d">identificación, sede y horario</span></div>
     <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Paso 4 · Tus resultados</span><span class="ind-d">se aprueba con 60</span></div>
     <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">Herramientas</span><span class="ind-d">pruebas, preguntas y calendario</span></div>
@@ -160,7 +160,7 @@ const CAMINO = pagina(`
   <div class="camino">
     <div class="cam"><div class="cam-n">1</div><h4>Expediente</h4><p>Sube tus 5 documentos y espera su aprobación.</p></div>
     <div class="cam"><div class="cam-n">2</div><h4>Inscripción</h4><p>Elige hasta 4 módulos dentro de la ventana.</p></div>
-    <div class="cam"><div class="cam-n">3</div><h4>Pago</h4><p>$131 por examen, con línea de captura oficial.</p></div>
+    <div class="cam"><div class="cam-n">3</div><h4>Pago</h4><p>Con tu línea de captura oficial de la Tesorería.</p></div>
     <div class="cam"><div class="cam-n">4</div><h4>Resultados</h4><p>Se aprueba con 60. Son 22 módulos en total.</p></div>
   </div>
   ${cita(`<strong>¿Tienes centro de asesoría?</strong> Entonces tu gestor te <strong>inscribe y paga por ti</strong>
@@ -172,8 +172,9 @@ const CAP1A = pagina(`
   ${encabezadoCap(1, 'Tu primer ingreso', 'De tu correo de bienvenida a tu portal en tres minutos.')}
   ${dosCol(`
     ${paso('1.1', 'Recibe tu correo de bienvenida', `Cuando tu cuenta se crea, te llega un correo de
-      <strong>Preparatoria Abierta Michoacán</strong> con tu usuario y una <strong>contraseña temporal</strong>.
-      Si no lo ves, revisa <em>correo no deseado</em>.`)}
+      <strong>Preparatoria Abierta Michoacán</strong> con tus credenciales: tu usuario —el mismo
+      correo que registraste— y una <strong>contraseña temporal</strong>. Si no lo ves, revisa
+      <em>correo no deseado</em>.`)}
     ${paso('1.2', 'Entra al portal', `Abre <strong>prepa.modula22.mx</strong>, toca <strong>Iniciar sesión</strong>
       y escribe tu correo y contraseña. El botón del ojo te deja ver lo que escribes.`)}
     ${paso('1.3', 'Cambia tu contraseña', `La primera vez, el portal te pide elegir tu contraseña definitiva.
@@ -183,13 +184,15 @@ const CAP1A = pagina(`
 
 const CAP1B = pagina(`
   ${kicker('CAPÍTULO 01 · CONTINUACIÓN')}
-  ${dosCol(`
-    ${paso('1.4', '¿La olvidaste? Recupérala por correo', `En el inicio de sesión toca
-      <strong>Olvidé mi contraseña</strong> y elige <strong>recibir correo de recuperación</strong>:
-      es la única vía. Te llega un enlace para elegir una contraseña nueva.`)}
-    ${ojo(`La contraseña temporal solo sirve <strong>una vez</strong>, y el enlace de recuperación
-      <strong>caduca en 1 hora</strong>. Úsalo en cuanto llegue.`)}
-  `, figura(img('02-recuperar-password'), 'Recuperación: se hace por correo', { telefono: true }))}
+  ${paso('1.4', '¿La olvidaste? Recupérala por correo', `En el inicio de sesión toca
+    <strong>Olvidé mi contraseña</strong> y elige <strong>recibir correo de recuperación</strong>:
+    te llega un enlace para elegir una contraseña nueva.`)}
+  ${figura(img('02b-opcion-correo'), 'La opción para recuperar tu contraseña por correo', { alto: '44mm' })}
+  ${paso('1.5', '¿No sabes si ya tienes cuenta?', `En la misma pantalla de inicio de sesión está la opción
+    para <strong>buscar tu cuenta</strong> con tu CURP o tu nombre, antes de solicitar una nueva.`)}
+  ${figura(img('02c-opcion-buscar'), 'La opción para buscar si ya tienes cuenta', { alto: '34mm' })}
+  ${ojo(`La contraseña temporal solo sirve <strong>una vez</strong>, y el enlace de recuperación
+    <strong>caduca en 1 hora</strong>. Úsalo en cuanto llegue.`)}
 `);
 
 const CAP2 = pagina(`
@@ -250,15 +253,36 @@ const LAMINA_ESTADOS = `
     </div>
   </div>`;
 
+// Lámina hermana de la de estados: la lista de subir, con el mismo formato de
+// renglón horizontal (una foto vertical junto a una lámina horizontal se veía
+// dispareja).
+const LAMINA_SUBIR = `
+  <div class="estados">
+    <div class="est-fila est-subir">
+      <div class="est-doc">📄 <strong>CURP</strong></div>
+      <span class="est-desc">Aún sin archivo</span>
+      <span class="boton-subir">⬆ Subir PDF</span>
+    </div>
+    <div class="est-fila est-subir">
+      <div class="est-doc">📄 <strong>Acta de nacimiento</strong></div>
+      <span class="est-desc">Aún sin archivo</span>
+      <span class="boton-subir">⬆ Subir PDF</span>
+    </div>
+    <div class="est-fila est-subir">
+      <div class="est-doc">📄 <strong>Certificado de secundaria</strong></div>
+      <span class="est-desc">Aún sin archivo</span>
+      <span class="boton-subir">⬆ Subir PDF</span>
+    </div>
+  </div>`;
+
 const CAP3B = pagina(`
   ${kicker('CAPÍTULO 03 · CONTINUACIÓN')}
-  ${dosCol(`
-    ${paso('3.2', 'Súbelos en Expediente', `Cada documento tiene su botón <strong>Subir</strong>.
-      La lista te dice cuáles faltan.`)}
-    ${paso('3.3', 'Espera la revisión', `Cada documento pasa por la administración y queda en uno de
-      tres estados. El único que te pide algo es <strong>rechazado</strong>: trae el motivo, corriges
-      y vuelves a subir.`)}
-  `, figura(img('04-expediente-vacio'), 'Tu Expediente, con el botón de subir en cada documento', { telefono: true }))}
+  ${paso('3.2', 'Súbelos en Expediente', `Cada documento tiene su botón <strong>Subir</strong>.
+    La lista te dice cuáles faltan.`)}
+  ${lamina(LAMINA_SUBIR, 'Ejemplo: cada documento con su botón de subir')}
+  ${paso('3.3', 'Espera la revisión', `Cada documento pasa por la administración y queda en uno de
+    tres estados. El único que te pide algo es <strong>rechazado</strong>: trae el motivo, corriges
+    y vuelves a subir.`)}
   ${lamina(LAMINA_ESTADOS, 'Ejemplo: los tres estados en que puede quedar un documento')}
 `);
 
@@ -295,11 +319,29 @@ const CAP4A = pagina(`
   ${lamina(LAMINA_MODULOS, 'Ejemplo: así se marcan los módulos y se confirma')}
 `);
 
+// Lámina: exámenes inscritos con aire (la captura real salía apretada y con
+// el botón de pase, que por ahora no aplica).
+const LAMINA_EXAMENES = `
+  <div class="exs">
+    <div class="ex-fila">
+      <div class="ex-fecha"><strong>22</strong><span>AGO</span><em>09:00</em></div>
+      <div class="ex-info"><strong>Módulo 4 · Matemáticas y representaciones del sistema natural</strong>
+        <span>Sábado · Centro de Servicios Morelia</span></div>
+      ${chip('Inscripción confirmada', C.verdeFondo, C.verde)}
+    </div>
+    <div class="ex-fila">
+      <div class="ex-fecha"><strong>23</strong><span>AGO</span><em>11:00</em></div>
+      <div class="ex-info"><strong>Módulo 5 · Argumentación</strong>
+        <span>Domingo · Centro de Servicios Morelia</span></div>
+      ${chip('Pre-inscrito · falta pago', C.ambarFondo, C.ambarTexto)}
+    </div>
+  </div>`;
+
 const CAP4B = pagina(`
   ${kicker('CAPÍTULO 04 · CONTINUACIÓN')}
   ${paso('4.3', 'Revisa tus exámenes', `Quedas como <strong>pre-inscrito</strong> y se genera tu ficha de pago.
     Tu lugar se confirma hasta que el pago se valida.`)}
-  ${figura(img('06c-insc-examenes'), 'Tus exámenes inscritos, con su estado', { alto: '74mm' })}
+  ${lamina(LAMINA_EXAMENES, 'Ejemplo: tus exámenes inscritos, cada uno con su estado')}
   ${paso('4.4', 'Tu sede queda asignada', `Con su dirección y el mapa. Es la misma para todos los módulos
     de la convocatoria.`)}
   ${figura(img('06d-insc-sede'), 'Tu sede de examen', { alto: '52mm' })}
@@ -307,11 +349,23 @@ const CAP4B = pagina(`
 
 const CAP4C = pagina(`
   ${kicker('CAPÍTULO 04 · LA REGLA MÁS IMPORTANTE')}
-  ${ojo(`<strong>La ventana es estricta.</strong> Fuera de esas fechas no se puede inscribir ni pagar —
-    no hay excepciones: así funciona la convocatoria estatal. Consulta el Calendario y no lo dejes
-    para el último día.`)}
-  ${cita(`<strong>¿Tienes centro de asesoría?</strong> Esta parte no te toca: <strong>tu gestor te inscribe</strong>.
-    En tu Inscripción están sus datos para ponerte de acuerdo. Tú sigue en el capítulo 6.`)}
+  ${ojo(`<strong>La ventana es estricta.</strong> Fuera de esas fechas <strong>no te puedes
+    inscribir</strong> — no hay excepciones: así funciona la convocatoria estatal. El pago corre
+    aparte, con el vencimiento de tu ficha. Consulta el Calendario y no lo dejes para el último día.`)}
+  <div class="panel-gestor">
+    <div class="pg-titulo">🤝 ¿Tienes centro de asesoría? Respira: casi todo esto lo hace tu gestor</div>
+    <p class="pg-intro">Si un gestor te acompaña, no te estreses con estos trámites. Esto es lo que
+      hace <strong>él por ti</strong>:</p>
+    <div class="pg-fila"><span class="pg-icono">📄</span><div><strong>Tus documentos</strong>
+      <span>Puede subirlos por ti al expediente, si se los entregas.</span></div></div>
+    <div class="pg-fila"><span class="pg-icono">📝</span><div><strong>La inscripción</strong>
+      <span>La hace él — es el único que puede inscribirte. Por eso en tu portal no verás botones
+      de inscripción: no te falta nada, así debe ser.</span></div></div>
+    <div class="pg-fila"><span class="pg-icono">🏦</span><div><strong>El pago</strong>
+      <span>Él solicita la ficha ante la Tesorería, paga y sube el comprobante.</span></div></div>
+    <p class="pg-cierre">Tú te encargas de lo importante: <strong>estudiar y presentarte el día del
+      examen</strong>. Sus datos de contacto están en tu sección Inscripción.</p>
+  </div>
 `);
 
 // Lámina: el camino del pago en 4 estaciones (lo que el usuario pidió ver claro).
@@ -324,7 +378,7 @@ const LAMINA_PAGO = `
   </div>`;
 
 const CAP5A = pagina(`
-  ${encabezadoCap(5, 'Paso 3 · Paga tu examen', 'Cada examen cuesta $131. La orden la emite la Tesorería del Estado.')}
+  ${encabezadoCap(5, 'Paso 3 · Paga tu examen', 'La orden la emite la Tesorería del Estado; el costo vigente lo ves en tu portal.')}
   ${paso('5.1', 'Así es el camino completo', `Toda orden de pago pasa por <strong>4 estaciones</strong>.
     En tu sección Pagos siempre ves en cuál va la tuya:`)}
   ${lamina(LAMINA_PAGO, 'El camino de tu pago, de la solicitud a la confirmación')}
@@ -564,6 +618,9 @@ const HTML = `<!doctype html>
   .est-doc { font-size: 10pt; }
   .est-doc strong { font-weight: 600; }
   .est-desc { font-size: 9pt; color: ${C.gris}; }
+  .est-subir { grid-template-columns: 52mm 1fr 32mm; }
+  .boton-subir { background: ${C.guinda}; color: #fff; font-weight: 600; font-size: 9pt;
+                 border-radius: 2mm; padding: 2mm 3.5mm; text-align: center; white-space: nowrap; }
 
   /* Lámina: selección de módulos */
   .mods { display: flex; flex-direction: column; gap: 2.8mm; max-width: 150mm; margin: 0 auto; }
@@ -602,6 +659,34 @@ const HTML = `<!doctype html>
                                margin-right: 2mm; vertical-align: middle; }
   .punto-rosa { background: ${C.rosaInscripcion}; border: 0.4mm solid ${C.rosaBorde}; }
   .punto-morado { background: ${C.moradoExamen}; }
+
+  /* Lámina: exámenes inscritos */
+  .exs { display: flex; flex-direction: column; gap: 4mm; max-width: 158mm; margin: 0 auto; }
+  .ex-fila { display: grid; grid-template-columns: 20mm 1fr 40mm; gap: 5mm; align-items: center;
+             background: ${C.cremaClaro}; border: 0.35mm solid ${C.linea}; border-radius: 3mm;
+             padding: 4.5mm 5mm; }
+  .ex-fecha { background: ${C.guinda}; color: #fff; border-radius: 2.5mm; text-align: center;
+              padding: 2.5mm 0; line-height: 1.25; }
+  .ex-fecha strong { display: block; font-size: 14pt; }
+  .ex-fecha span { display: block; font-size: 7.5pt; letter-spacing: 0.15em; }
+  .ex-fecha em { display: block; font-style: normal; font-size: 8pt; opacity: 0.85; }
+  .ex-info strong { display: block; font-size: 10.5pt; font-weight: 600; color: ${C.guindaNoche};
+                    line-height: 1.4; margin-bottom: 1mm; }
+  .ex-info span { font-size: 9pt; color: ${C.gris}; }
+  .ex-fila .chip { justify-self: end; }
+
+  /* Panel del gestor (en grande: quita el estrés de quien sí tiene centro) */
+  .panel-gestor { background: #fdf7f9; border: 0.5mm solid ${C.rosaBorde}; border-radius: 4mm;
+                  padding: 8mm; margin-top: 8mm; }
+  .pg-titulo { font-size: 14pt; font-weight: 700; color: ${C.guindaNoche}; margin-bottom: 2.5mm; }
+  .pg-intro { color: ${C.gris}; margin-bottom: 5mm; }
+  .pg-fila { display: flex; gap: 5mm; align-items: flex-start; background: #fff;
+             border: 0.35mm solid ${C.linea}; border-radius: 3mm; padding: 4.5mm 5mm;
+             margin-bottom: 3mm; }
+  .pg-icono { font-size: 14pt; }
+  .pg-fila strong { display: block; font-size: 11.5pt; font-weight: 700; color: ${C.guindaNoche}; }
+  .pg-fila span { font-size: 9.5pt; color: ${C.gris}; line-height: 1.55; }
+  .pg-cierre { margin-top: 5mm; font-size: 11pt; color: ${C.guindaNoche}; }
 
   /* Tarjetas */
   .tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 4mm; }

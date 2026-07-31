@@ -65,6 +65,9 @@ const PASOS = [
   // Cap. 1 — primer ingreso (pantallas públicas: no requieren demo)
   { archivo: '01-login', ruta: '/login', publico: true },
   { archivo: '02-recuperar-password', ruta: '/recuperar-password', publico: true },
+  // Las dos salidas de "no puedo entrar", como tarjetas sueltas (anchas):
+  { archivo: '02b-opcion-correo', ruta: '/recuperar-password', publico: true, elementoTexto: { base: 'button', texto: 'Recibir correo de recuperación' } },
+  { archivo: '02c-opcion-buscar', ruta: '/login', publico: true, elementoTexto: { base: 'a, button', texto: 'No recuerdas si tienes cuenta' } },
 
   // Cap. 2 — conoce tu portal (alumno nuevo)
   { archivo: '03-inicio-nuevo', ruta: '/estudiante', escenario: 'nuevo' },
@@ -191,6 +194,13 @@ for (const paso of PASOS) {
         fullPage: true,
         clip: { x: caja.x + scroll.x, y, width: caja.width, height: alto },
       });
+    } else if (paso.elementoTexto) {
+      // Recorta el elemento que CONTIENE un texto (tarjetas de opción sin
+      // ancla data-tour propia).
+      const el = page.locator(paso.elementoTexto.base).filter({ hasText: paso.elementoTexto.texto }).first();
+      await el.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await el.screenshot({ path: destino });
     } else if (paso.elemento) {
       // En un recorte de bloque, el encabezado pegajoso, la barra inferior y el
       // botón flotante de tutorial quedan PINTADOS ENCIMA si el bloque pasa por
