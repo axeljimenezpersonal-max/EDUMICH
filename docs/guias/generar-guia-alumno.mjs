@@ -134,6 +134,8 @@ const I = {
   copiar: () => icono('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
   paloma: (c) => icono('<path d="M20 6L9 17l-5-5"/>', { color: c }),
   busqueda: () => icono('<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>'),
+  correo: () => icono('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>'),
+  ojoVer: () => icono('<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>', { color: '#a89a8e' }),
   credencial: () => icono('<rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M14 9h5"/><path d="M14 13h5"/><path d="M5 17c.5-1.5 1.8-2 3-2s2.5.5 3 2"/>'),
 };
 
@@ -186,26 +188,49 @@ const CAMINO = pagina(`
    esta guía te enseña a hacer todo tú.`)}
 `);
 
+// Lámina: el acceso, dibujado en grande (el screenshot de teléfono quedaba
+// chico para lo único que importa: dónde va el correo y dónde la contraseña).
+const LAMINA_LOGIN = `
+  <div class="login">
+    <div class="login-kicker">ACCESO AL SISTEMA</div>
+    <div class="login-titulo">Bienvenido</div>
+    <div class="login-campos">
+      <div class="campo"><div class="campo-etq">CORREO INSTITUCIONAL</div>
+        <div class="campo-caja">${I.correo()} ana.ramirez@correo.com</div></div>
+      <div class="campo"><div class="campo-etq">CONTRASEÑA</div>
+        <div class="campo-caja">•••••••• <span class="campo-ojo">${I.ojoVer()}</span></div></div>
+    </div>
+    <div class="boton-guinda login-boton">Entrar</div>
+  </div>`;
+
 const CAP1A = pagina(`
   ${encabezadoCap(1, 'Tu primer ingreso', 'De tu correo de bienvenida a tu portal en tres minutos.')}
-  ${dosCol(`
-    ${paso('1.1', 'Recibe tu correo de bienvenida', `Cuando tu cuenta se crea, te llega un correo de
-      <strong>Preparatoria Abierta Michoacán</strong> con tus credenciales: tu usuario —el mismo
-      correo que registraste— y una <strong>contraseña temporal</strong>. Si no lo ves, revisa
-      <em>correo no deseado</em>.`)}
-    ${paso('1.2', 'Entra al portal', `Abre <strong>prepa.modula22.mx</strong>, toca <strong>Iniciar sesión</strong>
-      y escribe tu correo y contraseña. El botón del ojo te deja ver lo que escribes.`)}
-    ${paso('1.3', 'Cambia tu contraseña', `La primera vez, el portal te pide elegir tu contraseña definitiva.
-      Escríbela dos veces y guárdala donde no la pierdas.`)}
-  `, figura(img('01-login'), 'La pantalla de inicio de sesión', { telefono: true }))}
+  ${paso('1.1', 'Recibe tu correo de bienvenida', `Cuando tu cuenta se crea, te llega un correo de
+    <strong>Preparatoria Abierta Michoacán</strong> con tus credenciales: tu usuario —el mismo
+    correo que registraste— y una <strong>contraseña temporal</strong>. Si no lo ves, revisa
+    <em>correo no deseado</em>.`)}
+  ${paso('1.2', 'Entra al portal', `Abre <strong>prepa.modula22.mx</strong>, toca <strong>Iniciar
+    sesión</strong> y escribe tu correo y contraseña. El botón del ojo te deja ver lo que escribes.`)}
+  ${lamina(LAMINA_LOGIN, 'Tu correo arriba, tu contraseña abajo, y Entrar')}
+  ${paso('1.3', 'Cambia tu contraseña', `La primera vez, el portal te pide elegir tu contraseña
+    definitiva. Escríbela dos veces y guárdala donde no la pierdas.`)}
 `);
+
+// Lámina: la opción de recuperar, en horizontal (la captura salía vertical).
+const LAMINA_RECUPERAR = `
+  <div class="opcion-ancha">
+    <span class="oa-icono">${I.correo()}</span>
+    <div><strong>Recibir correo de recuperación</strong>
+      <span>Te enviamos un enlace a tu correo para crear una contraseña nueva.</span></div>
+    <span class="oa-continuar">Continuar →</span>
+  </div>`;
 
 const CAP1B = pagina(`
   ${kicker('CAPÍTULO 01 · CONTINUACIÓN')}
   ${paso('1.4', '¿La olvidaste? Recupérala por correo', `En el inicio de sesión toca
     <strong>Olvidé mi contraseña</strong> y elige <strong>recibir correo de recuperación</strong>:
     te llega un enlace para elegir una contraseña nueva.`)}
-  ${figura(img('02b-opcion-correo'), 'La opción para recuperar tu contraseña por correo', { alto: '44mm' })}
+  ${lamina(LAMINA_RECUPERAR, 'La opción para recuperar tu contraseña por correo')}
   ${paso('1.5', '¿No sabes si ya tienes cuenta?', `En la misma pantalla de inicio de sesión está la opción
     para <strong>buscar tu cuenta</strong> con tu CURP o tu nombre, antes de solicitar una nueva.`)}
   ${figura(img('02c-opcion-buscar'), 'La opción para buscar si ya tienes cuenta', { alto: '34mm' })}
@@ -213,24 +238,38 @@ const CAP1B = pagina(`
     <strong>caduca en 1 hora</strong>. Úsalo en cuanto llegue.`)}
 `);
 
+// Lámina: tu Inicio, dibujado — el saludo, qué te toca hoy y el menú de abajo.
+const LAMINA_INICIO = `
+  <div class="inicio">
+    <div class="inicio-cab">
+      <div><div class="inicio-hola">Hola, Ana</div>
+        <div class="inicio-sub">Portal del estudiante</div></div>
+      ${chip('Expediente 3/5', C.ambarFondo, C.ambarTexto)}
+    </div>
+    <div class="inicio-etq">QUÉ TE TOCA HOY</div>
+    <div class="inicio-tarea">${I.doc()} Sube tu comprobante de domicilio <span class="inicio-ir">Ir →</span></div>
+    <div class="inicio-tarea">${I.busqueda()} Revisa cuándo abre la próxima ventana <span class="inicio-ir">Ir →</span></div>
+    <div class="inicio-menu">
+      <span class="im-activo">Inicio</span><span>Expediente</span><span>Inscripción</span><span>Pagos</span><span>Más</span>
+    </div>
+  </div>`;
+
 const CAP2 = pagina(`
   ${encabezadoCap(2, 'Conoce tu portal', 'Todo vive en el menú. Si te pierdes, vuelve a Inicio.')}
-  ${dosCol(`
-    ${paso('2.1', 'Tu Inicio', `Cada vez que entres verás en qué punto vas y qué te toca hacer.
-      En el teléfono el menú va abajo; el botón <strong>Más</strong> abre el resto de las secciones.`)}
-    <div class="glosario">
-      <div><strong>Expediente</strong><span>tus documentos</span></div>
-      <div><strong>Inscripción</strong><span>tus exámenes</span></div>
-      <div><strong>Pagos</strong><span>fichas y comprobantes</span></div>
-      <div><strong>Calificaciones</strong><span>tus resultados</span></div>
-      <div><strong>Pruebas</strong><span>exámenes de práctica</span></div>
-      <div><strong>ID</strong><span>tu credencial</span></div>
-      <div><strong>Calendario</strong><span>fechas del ciclo</span></div>
-      <div><strong>Preguntas frecuentes</strong><span>dudas resueltas</span></div>
-    </div>
-    ${cita(`El botón de ayuda <strong>(?)</strong> reinicia el tutorial en pantalla cuando quieras,
-      sección por sección.`)}
-  `, figura(img('03-inicio-nuevo'), 'Tu Inicio: el punto de partida', { telefono: true }))}
+  ${paso('2.1', 'Tu Inicio', `Cada vez que entres verás en qué punto vas y qué te toca hacer.
+    En el teléfono el menú va abajo; el botón <strong>Más</strong> abre el resto de las secciones.`)}
+  ${lamina(LAMINA_INICIO, 'Tu Inicio: el saludo, tus pendientes y el menú siempre abajo')}
+  <div class="glosario">
+    <div><strong>Expediente</strong><span>tus documentos</span></div>
+    <div><strong>Inscripción</strong><span>tus exámenes</span></div>
+    <div><strong>Pagos</strong><span>fichas y comprobantes</span></div>
+    <div><strong>Calificaciones</strong><span>tus resultados</span></div>
+    <div><strong>Pruebas</strong><span>exámenes de práctica</span></div>
+    <div><strong>ID</strong><span>tu credencial</span></div>
+    <div><strong>Calendario</strong><span>fechas del ciclo</span></div>
+    <div><strong>Preguntas frecuentes</strong><span>dudas resueltas</span></div>
+  </div>
+  ${cita(`El botón de ayuda <strong>(?)</strong> reinicia el tutorial en pantalla cuando quieras.`)}
 `);
 
 // Lámina: la lista de documentos, dibujada (el usuario pidió LISTA, no prosa).
@@ -860,6 +899,45 @@ const HTML = `<!doctype html>
   .faq-abierta { border-color: ${C.guinda}; }
   .faq-preg { font-weight: 600; font-size: 10pt; color: ${C.guindaNoche}; }
   .faq-resp { font-size: 9pt; color: ${C.gris}; margin-top: 1.5mm; line-height: 1.55; }
+
+  /* Lámina: login */
+  .login { max-width: 132mm; margin: 0 auto; }
+  .login-kicker { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.22em; color: ${C.guinda}; }
+  .login-titulo { font-size: 17pt; font-weight: 700; color: ${C.guindaNoche}; margin: 1mm 0 4mm; }
+  .login-campos { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-bottom: 4mm; }
+  .campo-etq { font-size: 7pt; font-weight: 700; letter-spacing: 0.16em; color: ${C.gris};
+               margin-bottom: 1.5mm; }
+  .campo-caja { display: flex; gap: 3mm; align-items: center; border: 0.4mm solid ${C.linea};
+                border-radius: 2.5mm; background: #fff; padding: 3.5mm 4mm; font-size: 10pt;
+                color: ${C.tinta}; }
+  .campo-ojo { margin-left: auto; }
+  .login-boton { max-width: 60mm; margin: 0 auto; }
+
+  /* Lámina: opción ancha (recuperar) */
+  .opcion-ancha { max-width: 140mm; margin: 0 auto; display: flex; gap: 5mm; align-items: center;
+                  border: 0.45mm solid ${C.guinda}; border-radius: 3mm; background: ${C.cremaClaro};
+                  padding: 5mm 6mm; }
+  .oa-icono .ico { width: 7mm; height: 7mm; }
+  .opcion-ancha > div { flex: 1; }
+  .opcion-ancha strong { display: block; font-size: 11.5pt; font-weight: 700; color: ${C.guindaNoche}; }
+  .opcion-ancha span { font-size: 9pt; color: ${C.gris}; }
+  .oa-continuar { font-weight: 700; color: ${C.guinda}; white-space: nowrap; font-size: 9.5pt; }
+
+  /* Lámina: inicio */
+  .inicio { max-width: 140mm; margin: 0 auto; }
+  .inicio-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4mm; }
+  .inicio-hola { font-size: 15pt; font-weight: 700; color: ${C.guindaNoche}; }
+  .inicio-sub { font-size: 8.5pt; color: ${C.gris}; }
+  .inicio-etq { font-size: 7pt; font-weight: 700; letter-spacing: 0.2em; color: ${C.dorado};
+                margin-bottom: 2mm; }
+  .inicio-tarea { display: flex; gap: 3.5mm; align-items: center; background: #fff;
+                  border: 0.35mm solid ${C.linea}; border-radius: 2.5mm; padding: 3.2mm 4.5mm;
+                  font-size: 9.5pt; color: ${C.tinta}; margin-bottom: 2.4mm; }
+  .inicio-ir { margin-left: auto; color: ${C.guinda}; font-weight: 700; font-size: 8.5pt; }
+  .inicio-menu { display: flex; justify-content: space-between; border-top: 0.35mm solid ${C.linea};
+                 margin-top: 4mm; padding: 3mm 2mm 0; font-size: 8pt; color: ${C.gris}; }
+  .im-activo { color: ${C.guinda}; font-weight: 700; border-top: 0.8mm solid ${C.guinda};
+               margin-top: -3.2mm; padding-top: 2.4mm; }
 
   /* Tarjetas */
   .tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 4mm; }
