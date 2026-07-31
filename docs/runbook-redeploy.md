@@ -51,11 +51,18 @@ construye con otra etiqueta y verifica antes de promover.
 ## 3. Reconstruir — y comprobar la imagen ANTES de tocar el contenedor
 
 ```bash
-docker build -t modula22:nuevo . 2>&1 | tail -20
+docker build -t modula22:nuevo . 2>&1 | tee ~/build.log
 ```
 
-Debe cerrar con `naming to docker.io/library/modula22:nuevo done`. Si tronó, los
-últimos renglones dicen dónde.
+**`tee`, no `tail`.** `tail` retiene toda la salida hasta el final: la pantalla
+se queda en blanco varios minutos y el build parece colgado. No lo está — pero
+ya pasó que se interrumpiera con `Ctrl-C` creyendo que sí, y entonces la imagen
+se queda vieja sin que nada avise. `tee` muestra el avance en vivo y además
+deja el registro en `~/build.log`.
+
+Tarda varios minutos (`pnpm install` y dos compilados). Debe cerrar con
+`naming to docker.io/library/modula22:nuevo done`. Si tronó, el final del
+registro dice dónde.
 
 Ahora comprueba que la imagen nueva de verdad trae el cambio. Se busca dentro
 del bundle ya compilado una cadena que solo exista en el código nuevo:
@@ -143,4 +150,5 @@ docker exec -it modula22 node lib/db/importar-cp.mjs            # catálogo SEPO
 | Todo "salió bien" y el cambio no aparece | **La causa más común.** La imagen es vieja: el build corrió antes del `fetch`, o falló, y `docker run` levantó la `:latest` anterior. Diagnóstico de un golpe: `docker exec modula22 grep -rl "TEXTO_NUEVO" artifacts/student-portal/dist/public/assets/` — si no aparece, el problema es la imagen, no el navegador |
 | La imagen SÍ trae el cambio y el navegador no | Caché del navegador o de Cloudflare. `Cmd+Shift+R`. El `index.html` se sirve con `no-cache`, así que debería bastar |
 | `No encontré el archivo …` dentro del contenedor | El Dockerfile copia `lib/`, `artifacts/` y `attached_assets/`, **no** `docs/`. Los datos que el contenedor necesita van en `lib/db/datos/` |
+| El build "no imprime nada" y parece colgado | No está colgado: son varios minutos y `pnpm install` no da señales. Si lo lanzaste con `\| tail`, la salida no aparece hasta el final — usa `\| tee`. Interrumpirlo deja la imagen vieja **sin ningún error visible** |
 | El contenedor arranca y se muere | `docker logs modula22` — casi siempre es `.env.production` o el certificado `rds-ca.pem` |
