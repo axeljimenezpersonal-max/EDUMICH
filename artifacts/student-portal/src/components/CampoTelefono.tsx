@@ -84,13 +84,21 @@ interface Props {
   disabled?: boolean;
   placeholder?: string;
   className?: string;
-  /** Texto de ayuda bajo el campo. */
-  ayuda?: string;
+  /** Texto de ayuda bajo el campo. `null` lo omite (para formularios densos). */
+  ayuda?: string | null;
+  /**
+   * Se ve y se puede copiar, pero no se edita. Distinto de `disabled`: se usa
+   * donde el dato está bajo candado y aun así hay que poder leerlo y copiarlo.
+   */
+  soloLectura?: boolean;
+  /** Sustituye a `gov-input` donde el formulario tiene su propio estilo. */
+  inputClassName?: string;
 }
 
 export function CampoTelefono({
   value, onChange, id, required, disabled,
   placeholder = '443 123 4567', className = '', ayuda,
+  soloLectura = false, inputClassName = 'gov-input',
 }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   // Dónde debe quedar el cursor después de que React repinte con el texto ya
@@ -156,20 +164,27 @@ export function CampoTelefono({
           autoComplete="tel-national"
           required={required}
           disabled={disabled}
+          readOnly={soloLectura}
           value={mostrado}
           onChange={alCambiar}
           onKeyDown={alTeclear}
           placeholder={placeholder}
           // 10 dígitos + los 2 espacios que pone el propio campo.
           maxLength={12}
-          className="gov-input"
-          style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+          className={`${inputClassName} ${soloLectura ? 'cursor-not-allowed bg-stone-50' : ''}`}
+          style={{
+            borderTopLeftRadius: 0,
+            borderBottomLeftRadius: 0,
+            ...(soloLectura ? { color: '#6b635e' } : null),
+          }}
           aria-describedby={ayuda && id ? `${id}-ayuda` : undefined}
         />
       </div>
-      <p id={ayuda && id ? `${id}-ayuda` : undefined} className="mt-1 text-[11px] text-stone-400">
-        {ayuda ?? '10 dígitos, sin lada de país.'}
-      </p>
+      {ayuda !== null && (
+        <p id={ayuda && id ? `${id}-ayuda` : undefined} className="mt-1 text-[11px] text-stone-400">
+          {ayuda ?? '10 dígitos, sin lada de país.'}
+        </p>
+      )}
     </div>
   );
 }

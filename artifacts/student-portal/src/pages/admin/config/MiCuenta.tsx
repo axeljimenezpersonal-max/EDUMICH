@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { User, Save, RefreshCw, Mail, Phone, Briefcase, Lock } from 'lucide-react';
-import { soloDiezDigitos, telefonoCanonico } from '../../../components/CampoTelefono';
+import { CampoTelefono } from '../../../components/CampoTelefono';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ function Toggle({
 
 // Campo de texto que se bloquea una vez que tiene un valor guardado.
 function CampoBloqueable({
-  icon, label, value, onChange, placeholder, bloqueado, type = 'text',
+  icon, label, value, onChange, placeholder, bloqueado, type = 'text', telefono = false,
 }: {
   icon: React.ReactNode;
   label: string;
@@ -60,23 +60,39 @@ function CampoBloqueable({
   placeholder: string;
   bloqueado: boolean;
   type?: string;
+  /** Usa el campo de teléfono de la plataforma: `+52` fijo y agrupado 3-3-4. */
+  telefono?: boolean;
 }) {
+  // La caja del input se hereda de los campos hermanos para que el teléfono no
+  // quede descuadrado al lado del nombre y el cargo.
+  const claseInput = `w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none ${
+    bloqueado ? '' : 'focus:border-[var(--color-guinda-700)]'
+  }`;
   return (
     <div>
       <label className="text-xs font-semibold text-stone-500 mb-1 flex items-center gap-1">
         {icon} {label} {bloqueado && <Lock size={10} strokeWidth={2.5} style={{ color: '#a89a8e' }} />}
       </label>
-      <input
-        type={type}
-        readOnly={bloqueado}
-        className={`w-full text-sm border border-stone-200 rounded-lg px-3 py-2 focus:outline-none ${
-          bloqueado ? 'bg-stone-50 cursor-not-allowed' : 'focus:border-[var(--color-guinda-700)]'
-        }`}
-        style={bloqueado ? { color: '#6b635e' } : undefined}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-      />
+      {telefono ? (
+        <CampoTelefono
+          value={value}
+          onChange={onChange}
+          soloLectura={bloqueado}
+          inputClassName={claseInput}
+          placeholder={placeholder}
+          ayuda={null}
+        />
+      ) : (
+        <input
+          type={type}
+          readOnly={bloqueado}
+          className={`${claseInput} ${bloqueado ? 'bg-stone-50 cursor-not-allowed' : ''}`}
+          style={bloqueado ? { color: '#6b635e' } : undefined}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={placeholder}
+        />
+      )}
     </div>
   );
 }
@@ -252,10 +268,10 @@ export default function MiCuenta({ onDirty, registerSave, registerDiscard }: Pro
                 <CampoBloqueable
                   icon={<Phone size={11} strokeWidth={2} />}
                   label="Teléfono"
-                  type="tel"
-                  value={soloDiezDigitos(cuenta.telefono)}
-                  onChange={(v) => setCuentaField('telefono', telefonoCanonico(v))}
-                  placeholder="+52 443 123 4567"
+                  telefono
+                  value={cuenta.telefono}
+                  onChange={(v) => setCuentaField('telefono', v)}
+                  placeholder="443 123 4567"
                   bloqueado={bloqTel}
                 />
                 <div className="md:col-span-2">
