@@ -77,7 +77,7 @@ import {
   cedulaDatosSchema,
 } from '../services/cedula';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
-import { nombreArchivoUtf8 } from '../utils/archivo';
+import { nombreArchivoAscii } from '../utils/archivo';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
@@ -98,7 +98,7 @@ const uploadExpediente = multer({
     },
     filename: (_req, file, cb) => {
       const ts = Date.now();
-      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const safe = nombreArchivoAscii(file.originalname);
       cb(null, `${ts}_${safe}`);
     },
   }),
@@ -1073,7 +1073,7 @@ router.post(
         tipo,
         estado: 'pendiente_revision',
         rutaArchivo: refArchivo,
-        nombreOriginal: nombreArchivoUtf8(req.file.originalname),
+        nombreOriginal: nombreArchivoAscii(req.file.originalname),
         tamanoBytes: req.file.size,
         subidoPorUserId: userId,
         subidoEn: new Date(),
@@ -1084,7 +1084,7 @@ router.post(
         set: {
           estado: 'pendiente_revision',
           rutaArchivo: refArchivo,
-          nombreOriginal: nombreArchivoUtf8(req.file.originalname),
+          nombreOriginal: nombreArchivoAscii(req.file.originalname),
           tamanoBytes: req.file.size,
           subidoPorUserId: userId,
           subidoEn: new Date(),

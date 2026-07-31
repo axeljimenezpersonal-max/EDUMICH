@@ -30,7 +30,7 @@ import {
   relacionObservaciones,
 } from '@workspace/db/schema';
 import { authRequired } from '../middleware/auth';
-import { nombreArchivoUtf8 } from '../utils/archivo';
+import { nombreArchivoAscii } from '../utils/archivo';
 import { assertTransicion, type PagoExamenEstado } from '../services/pagoExamen';
 import { DIAS_PARA_VENCER_PAGO } from '../config/reglas';
 import { STORAGE_ES_EFIMERO, guardarSubida, archivoStream, archivoExiste } from '../services/storage';
@@ -412,7 +412,7 @@ router.post('/:id/comprobante', subirComprobanteMw, async (req, res) => {
       .update(pagosExamen)
       .set({
         comprobantePath: refComprobante,
-        comprobanteNombre: nombreArchivoUtf8(req.file.originalname),
+        comprobanteNombre: nombreArchivoAscii(req.file.originalname),
         metodoPago: metodoPago ?? p.metodoPago,
         estado: 'en_revision',
         motivoRechazo: null,
@@ -1013,7 +1013,7 @@ router.post('/:id/emitir', upload.single('orden'), async (req, res) => {
         linkPago: linkPago ?? p.linkPago,
         fechaVencimiento: vencimientoFinal,
         ordenPagoPath: refOrden ?? p.ordenPagoPath,
-        ordenPagoNombre: req.file ? nombreArchivoUtf8(req.file.originalname) : p.ordenPagoNombre,
+        ordenPagoNombre: req.file ? nombreArchivoAscii(req.file.originalname) : p.ordenPagoNombre,
         fechaEmision: new Date(),
         estado: 'emitida',
         updatedAt: new Date(),

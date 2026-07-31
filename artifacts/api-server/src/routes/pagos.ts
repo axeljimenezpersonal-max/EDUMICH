@@ -13,7 +13,7 @@ import fsp from 'node:fs/promises';
 import { z } from 'zod';
 import { guardarSubida, archivoStream, archivoExiste } from '../services/storage';
 import { db } from '../db';
-import { nombreArchivoUtf8 } from '../utils/archivo';
+import { nombreArchivoAscii } from '../utils/archivo';
 import {
   pagos,
   estudiantes,
@@ -38,7 +38,7 @@ const uploadPago = multer({
     },
     filename: (_req, file, cb) => {
       const ts = Date.now();
-      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const safe = nombreArchivoAscii(file.originalname);
       cb(null, `${ts}_${safe}`);
     },
   }),
@@ -187,7 +187,7 @@ router.post(
         referenciaBancaria: data.referenciaBancaria ?? null,
         notas: data.notas ?? null,
         rutaComprobante: refComprobante,
-        nombreComprobante: nombreArchivoUtf8(file.originalname),
+        nombreComprobante: nombreArchivoAscii(file.originalname),
         tamanoBytes: file.size,
         estado: 'pendiente',
         subidoPorUserId: req.user!.userId,

@@ -8,6 +8,7 @@
  * - Alumno (de un gestor con aula): ve todo y entrega tareas con archivo.
  * - Foro tipo chat con adjuntos (imagen/PDF) para gestor + alumnos del aula.
  */
+import { nombreArchivoAscii } from '../utils/archivo';
 import path from 'node:path';
 import fsp from 'node:fs/promises';
 import { Router, type Request, type Response, type NextFunction } from 'express';
@@ -43,7 +44,7 @@ function crearUpload(permitidos: string[]) {
         cb(null, AULA_DIR);
       },
       filename: (_req, file, cb) => {
-        const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+        const safe = nombreArchivoAscii(file.originalname);
         cb(null, `${Date.now()}_${safe}`);
       },
     }),

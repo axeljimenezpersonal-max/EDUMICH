@@ -71,7 +71,7 @@ import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
 import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
-import { nombreArchivoUtf8 } from '../utils/archivo';
+import { nombreArchivoAscii } from '../utils/archivo';
 import { hoyEnMexico } from '../utils/fechas';
 import { normalizarTelefonoOMantener } from '../utils/telefono';
 
@@ -108,7 +108,7 @@ const upload = multer({
     },
     filename: (_req, file, cb) => {
       const ts = Date.now();
-      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const safe = nombreArchivoAscii(file.originalname);
       cb(null, `${ts}_${safe}`);
     },
   }),
@@ -620,7 +620,7 @@ router.post(
         const docsInserted = [];
         for (const def of docDefs) {
           const ref = await guardarSubida(def.file, 'expediente');
-          const nombreOriginal = nombreArchivoUtf8(def.file.originalname);
+          const nombreOriginal = nombreArchivoAscii(def.file.originalname);
           const [doc] = await tx
             .insert(expedienteDocumentos)
             .values({
@@ -961,7 +961,7 @@ router.post('/alumnos/:id/documentos', upload.single('archivo'), async (req, res
     .values({
       inscripcionId: insc.id,
       nombre,
-      archivoOriginal: nombreArchivoUtf8(file.originalname),
+      archivoOriginal: nombreArchivoAscii(file.originalname),
       storageKey: await guardarSubida(file, 'expediente'),
       tamanoBytes: file.size,
       tipoSugerido,
@@ -1259,7 +1259,7 @@ const uploadExpedienteGestor = multer({
     },
     filename: (_req, file, cb) => {
       const ts = Date.now();
-      const safe = file.originalname.replace(/[^a-zA-Z0-9._-]/g, '_');
+      const safe = nombreArchivoAscii(file.originalname);
       cb(null, `${ts}_${safe}`);
     },
   }),
@@ -1379,7 +1379,7 @@ router.post(
         tipo,
         estado: 'pendiente_revision',
         rutaArchivo: refArchivo,
-        nombreOriginal: nombreArchivoUtf8(req.file.originalname),
+        nombreOriginal: nombreArchivoAscii(req.file.originalname),
         tamanoBytes: req.file.size,
         subidoPorUserId: gestorId,
         subidoEn: new Date(),
@@ -1390,7 +1390,7 @@ router.post(
         set: {
           estado: 'pendiente_revision',
           rutaArchivo: refArchivo,
-          nombreOriginal: nombreArchivoUtf8(req.file.originalname),
+          nombreOriginal: nombreArchivoAscii(req.file.originalname),
           tamanoBytes: req.file.size,
           subidoPorUserId: gestorId,
           subidoEn: new Date(),
@@ -3105,7 +3105,7 @@ router.post('/pagos-grupales/:id/comprobante', uploadComprobanteGrupal.single('c
   await db.update(pagosGrupales)
     .set({
       rutaComprobante: refComprobanteGrupal,
-      nombreComprobante: nombreArchivoUtf8(req.file.originalname),
+      nombreComprobante: nombreArchivoAscii(req.file.originalname),
       fechaPago,
       estado: 'en_revision',
       motivoRechazo: null,

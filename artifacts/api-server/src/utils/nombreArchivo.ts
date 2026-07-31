@@ -26,6 +26,21 @@
  *   pide.
  */
 
+/**
+ * Quita acentos y ñ CONSERVANDO todo lo demás: `Muñoz` → `Munoz`.
+ *
+ * Va antes de sanear un nombre de archivo. Si se saneara directo, cada acento
+ * se volvería un guion bajo (`Muñoz` → `Mu_oz`) y el nombre queda ilegible
+ * justo para quien tiene que reconocerlo en una carpeta.
+ */
+export function aplanarAcentos(texto: string): string {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/ñ/g, 'n')
+    .replace(/Ñ/g, 'N');
+}
+
 /** Quita acentos, ñ y cualquier cosa que no sobreviva a un sistema de archivos. */
 function aplanar(texto: string): string {
   return texto
