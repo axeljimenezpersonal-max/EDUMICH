@@ -377,6 +377,18 @@ const LAMINA_PAGO = `
     <div class="rp"><div class="rp-n">4</div><strong>Confirmado</strong><span>La coordinación valida. Tu lugar queda asegurado.</span></div>
   </div>`;
 
+// Lámina: el examen sin cubrir con su botón de solicitar (5.2 pedía foto).
+const LAMINA_SOLICITAR = `
+  <div class="exs">
+    <div class="ex-fila">
+      <div class="ex-fecha"><strong>23</strong><span>AGO</span><em>11:00</em></div>
+      <div class="ex-info"><strong>Módulo 5 · Argumentación</strong>
+        <span>Domingo · Centro de Servicios Morelia</span></div>
+      ${chip('Sin pagar', C.rojoFondo, C.rojo)}
+    </div>
+    <div class="mod-boton">Solicitar orden de pago</div>
+  </div>`;
+
 const CAP5A = pagina(`
   ${encabezadoCap(5, 'Paso 3 · Paga tu examen', 'La orden la emite la Tesorería del Estado; el costo vigente lo ves en tu portal.')}
   ${paso('5.1', 'Así es el camino completo', `Toda orden de pago pasa por <strong>4 estaciones</strong>.
@@ -384,14 +396,19 @@ const CAP5A = pagina(`
   ${lamina(LAMINA_PAGO, 'El camino de tu pago, de la solicitud a la confirmación')}
   ${paso('5.2', 'Solicita tu orden', `En <strong>Pagos</strong>, cada examen sin cubrir trae su botón
     <strong>Solicitar orden</strong>. Con un toque arranca el camino de arriba.`)}
+  ${lamina(LAMINA_SOLICITAR, 'Ejemplo: un examen sin cubrir, con su botón para solicitar la orden')}
 `);
 
 const CAP5B = pagina(`
   ${kicker('CAPÍTULO 05 · CONTINUACIÓN')}
-  ${paso('5.3', 'Paga con tu línea de captura', `Cuando la orden queda emitida aparece este bloque:
-    <strong>(1)</strong> descarga tu orden y copia la <strong>línea de captura</strong> para pagar en banco,
-    tienda o en línea; <strong>(2)</strong> ya que pagaste, elige cómo y sube tu comprobante.`)}
-  ${figura(img('07d-linea-captura'), 'El bloque de pago: la línea de captura arriba, tu comprobante abajo', { alto: '108mm' })}
+  ${paso('5.3', 'Descarga tu orden y págala', `Cuando la orden queda emitida aparece este bloque:
+    descarga tu orden en PDF, copia la <strong>línea de captura</strong> y págala en banco, tienda o
+    en línea, antes de su vencimiento.`)}
+  ${figura(img('07d-linea-captura'), 'Paso 1 del bloque: tu orden, tu línea de captura y el vencimiento', { alto: '56mm' })}
+  ${paso('5.4', '¿Ya pagaste? Sube tu comprobante', `En el mismo bloque, elige cómo pagaste y adjunta la
+    foto o PDF de tu comprobante. Al confirmarse, tu lugar queda asegurado. Si tienes centro de
+    asesoría, <strong>este pago lo hace tu gestor por ti</strong>, igual que la inscripción.`)}
+  ${figura(img('07e-comprobante'), 'Paso 2 del bloque: elige el método y sube tu comprobante', { alto: '44mm' })}
   ${ojo(`Tu ficha <strong>vence a los 7 días</strong> de emitida, y solo lo pagado se califica.`)}
 `);
 
@@ -412,12 +429,14 @@ const CAP7 = pagina(`
   ${encabezadoCap(7, 'Paso 4 · Tus resultados', 'Se aprueba con 60. El certificado son 22 módulos.')}
   ${dosCol(`
     ${paso('7.1', 'Consulta tus calificaciones', `Después de cada etapa, cada módulo aparece con su
-      calificación, cuántos de los 22 llevas aprobados y tu promedio.`)}
-    ${paso('7.2', 'Descarga tu historial', `El botón de descargar te da tu historial en PDF, útil para
-      cualquier trámite.`)}
+      calificación — y abajo, tu tarjeta de avance: cuántos de los 22 llevas aprobados y tu promedio.
+      Cada módulo aprobado es un logro: ¡míralo crecer!`)}
     ${cita(`<strong>¿No aprobaste uno?</strong> No pasa nada definitivo: lo vuelves a presentar en una
       etapa siguiente. Inscríbelo otra vez cuando abra la ventana.`)}
-  `, figura(img('10-calificaciones'), 'Tu historial académico en Calificaciones', { telefono: true }))}
+  `, figura(img('10-calificaciones'), 'Tu historial y tu tarjeta de avance', { telefono: true }))}
+  ${paso('7.2', 'Descarga tu historial', `El botón <strong>Descargar historial (PDF)</strong> te da tu
+    documento con todo tu avance, útil para cualquier trámite.`)}
+  ${figura(img('10b-calif-descargar'), 'El botón para descargar tu historial en PDF', { alto: '40mm' })}
 `);
 
 const CAP8A = pagina(`

@@ -100,7 +100,12 @@ const PASOS = [
     // "Solo faltan 2" es único del bloque de pago; "Ya puedes pagar" también
     // aparece en el aviso de arriba y anclaba la franja donde no era.
     archivo: '07d-linea-captura', ruta: '/estudiante/pagos', escenario: 'avanzado',
-    franja: { contenedor: '[data-tour="pagos-ordenes"] > div > div:nth-child(2)', desdeTexto: 'Solo faltan 2', alto: 760 },
+    franja: { contenedor: '[data-tour="pagos-ordenes"] > div > div:nth-child(2)', desdeTexto: 'Solo faltan 2', alto: 520 },
+  },
+  {
+    // El paso 2 del mismo bloque, aparte: subir el comprobante.
+    archivo: '07e-comprobante', ruta: '/estudiante/pagos', escenario: 'avanzado',
+    franja: { contenedor: '[data-tour="pagos-ordenes"] > div > div:nth-child(2)', desdeTexto: 'Ya pagaste', alto: 470 },
   },
 
   // Cap. 6 — día del examen
@@ -110,6 +115,10 @@ const PASOS = [
   // Cap. 7 — resultados. Vista de pantalla, no recorte: el bloque completo de
   // calificaciones mide 4 veces su ancho y reducido no se lee.
   { archivo: '10-calificaciones', ruta: '/estudiante/calificaciones', escenario: 'avanzado' },
+  {
+    archivo: '10b-calif-descargar', ruta: '/estudiante/calificaciones', escenario: 'avanzado',
+    franja: { contenedor: '[data-tour="calif-contenido"]', desdeTexto: 'Descargar historial', alto: 300 },
+  },
 
   // Cap. 8 — herramientas
   { archivo: '11-pruebas', ruta: '/estudiante/modulos', escenario: 'avanzado' },
