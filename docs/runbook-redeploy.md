@@ -39,18 +39,39 @@ git reset --hard origin/deploy/aws-v1
 git log --oneline -1
 ```
 
-**Verifica que el hash sea el que esperas antes de construir.** Esto no es
-ceremonia: ya pasó una vez que el `fetch` no corrió, el `docker build` salió
-100 % de caché, el despliegue "funcionó" sin un solo error y el cambio
-sencillamente no estaba. Un build exitoso no prueba que el código sea nuevo.
+El hash debe ser el que esperas. **Pero que el hash esté bien NO prueba que el
+despliegue vaya a llevar tu cambio**: lo que se publica es la *imagen*, no el
+disco. Si el `build` corrió antes de este `fetch`, o si falló, `docker run`
+levanta la imagen `modula22:latest` que ya existía y arranca sin una sola queja.
+Eso se ve exactamente igual que un despliegue exitoso. Por eso el paso 3
+construye con otra etiqueta y verifica antes de promover.
 
 ---
 
-## 3. Reconstruir y levantar
+## 3. Reconstruir — y comprobar la imagen ANTES de tocar el contenedor
 
 ```bash
-docker build -t modula22:latest .
+docker build -t modula22:nuevo . 2>&1 | tail -20
+```
+
+Debe cerrar con `naming to docker.io/library/modula22:nuevo done`. Si tronó, los
+últimos renglones dicen dónde.
+
+Ahora comprueba que la imagen nueva de verdad trae el cambio. Se busca dentro
+del bundle ya compilado una cadena que solo exista en el código nuevo:
+
+```bash
+docker run --rm modula22:nuevo grep -rl "TEXTO_NUEVO" artifacts/student-portal/dist/public/assets/ | head -3
+```
+
+Si no imprime nada, **para aquí**: cambiar el contenedor no arregla una imagen
+que no tiene el cambio.
+
+Con la imagen verificada, ya se promueve y se cambia el contenedor:
+
+```bash
 docker rm -f modula22
+docker tag modula22:nuevo modula22:latest
 docker run -d --name modula22 --restart unless-stopped \
   -p 127.0.0.1:3001:3001 \
   --env-file .env.production \
@@ -60,6 +81,10 @@ docker run -d --name modula22 --restart unless-stopped \
 
 Caddy escucha en el 80/443 y reenvía al 3001, que solo está expuesto en
 `127.0.0.1` — el contenedor no se asoma a internet por su cuenta.
+
+El portal **sí** se compila dentro de la imagen (`Dockerfile`, línea 20) y el
+api-server lo sirve como estático. No hay un despliegue aparte del frontend: si
+el bundle de adentro está viejo, es la imagen.
 
 ---
 
@@ -115,6 +140,7 @@ docker exec -it modula22 node lib/db/importar-cp.mjs            # catálogo SEPO
 | Síntoma | Causa que ya vimos |
 |---|---|
 | `permission denied` en cualquier `docker` | Sigues como `ssm-user`; falta `sudo su - ubuntu` |
-| El build pasa pero el cambio no aparece | El `git fetch` no corrió; el build salió de caché. Revisa el hash (paso 2) |
+| Todo "salió bien" y el cambio no aparece | **La causa más común.** La imagen es vieja: el build corrió antes del `fetch`, o falló, y `docker run` levantó la `:latest` anterior. Diagnóstico de un golpe: `docker exec modula22 grep -rl "TEXTO_NUEVO" artifacts/student-portal/dist/public/assets/` — si no aparece, el problema es la imagen, no el navegador |
+| La imagen SÍ trae el cambio y el navegador no | Caché del navegador o de Cloudflare. `Cmd+Shift+R`. El `index.html` se sirve con `no-cache`, así que debería bastar |
 | `No encontré el archivo …` dentro del contenedor | El Dockerfile copia `lib/`, `artifacts/` y `attached_assets/`, **no** `docs/`. Los datos que el contenedor necesita van en `lib/db/datos/` |
 | El contenedor arranca y se muere | `docker logs modula22` — casi siempre es `.env.production` o el certificado `rds-ca.pem` |
