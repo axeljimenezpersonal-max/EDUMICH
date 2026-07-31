@@ -4,8 +4,7 @@ import { CampoTelefono } from '../../components/CampoTelefono';
 import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
-  FileSearch, UserCheck, MailCheck, Clock, Phone, Home, Search, ChevronRight,
-} from 'lucide-react';
+  FileSearch, UserCheck, MailCheck, Clock, Phone, Home, Search, ChevronRight, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
@@ -195,6 +194,24 @@ export default function SolicitarCuenta() {
   const emailLimpio = form.email.trim();
   const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailLimpio);
 
+  // ¿Ese correo YA tiene cuenta? Se consulta en cuanto el correo tiene forma
+  // válida, para avisarlo AQUÍ y no después de capturar todo el trámite (antes
+  // el choque aparecía hasta que la administración intentaba aprobar).
+  const [correoYaTieneCuenta, setCorreoYaTieneCuenta] = useState(false);
+  const [revisandoCorreo, setRevisandoCorreo] = useState(false);
+  useEffect(() => {
+    if (!emailValido) { setCorreoYaTieneCuenta(false); return; }
+    let vivo = true;
+    setRevisandoCorreo(true);
+    const t = setTimeout(() => {
+      api.get<{ existe: boolean }>(`/publico/correo-existe?email=${encodeURIComponent(emailLimpio.toLowerCase())}`)
+        .then((r) => { if (vivo) setCorreoYaTieneCuenta(!!r.existe); })
+        .catch(() => { if (vivo) setCorreoYaTieneCuenta(false); })
+        .finally(() => { if (vivo) setRevisandoCorreo(false); });
+    }, 500);
+    return () => { vivo = false; clearTimeout(t); };
+  }, [emailLimpio, emailValido]);
+
   // ── Validación por paso ─────────────────────────────────────────────────
   function validarPaso(n: number): string | null {
     if (n === 1) {
@@ -214,6 +231,7 @@ export default function SolicitarCuenta() {
       // llegar con un espacio invisible al final, y el patrón (que prohíbe
       // espacios) lo rechazaba aunque el correo fuera correcto.
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Escribe un correo electrónico válido.';
+      if (correoYaTieneCuenta) return 'Ese correo ya tiene una cuenta. Inicia sesión o recupera tu contraseña en vez de solicitar otra.';
       if (!form.telefono.trim()) return 'Escribe tu número de teléfono.';
       if (!aceptaAviso) return 'Debes aceptar el aviso de privacidad.';
       return null;
@@ -809,6 +827,38 @@ export default function SolicitarCuenta() {
                   <div className="mt-1 text-[11px] text-stone-400">
                     Te enviaremos un código para verificar que es tuyo.
                   </div>
+                ) : correoYaTieneCuenta ? (
+                  /* Ya hay cuenta con ese correo: no tiene caso solicitar otra.
+                     Se ofrece el camino correcto en el momento exacto. */
+                  <div className="mt-2 rounded-lg border border-amber-300 bg-amber-50 p-3">
+                    <div className="flex items-start gap-2">
+                      <AlertTriangle size={14} className="mt-0.5 shrink-0 text-amber-700" />
+                      <div className="min-w-0">
+                        <div className="text-[12px] font-bold text-amber-900">
+                          Este correo ya tiene una cuenta en Módula 22
+                        </div>
+                        <p className="mt-0.5 text-[11px] leading-relaxed text-amber-800">
+                          No necesitas solicitar otra: entra con ella o recupera tu contraseña.
+                        </p>
+                        <div className="mt-2 flex flex-col gap-1.5">
+                          <a href="/login" className="group flex items-center gap-1.5 text-[12px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]">
+                            <span className="underline decoration-2 underline-offset-2">Iniciar sesión</span>
+                            <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
+                          </a>
+                          <a href="/recuperar-password" className="group flex items-center gap-1.5 text-[12px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]">
+                            <span className="underline decoration-2 underline-offset-2">Olvidé mi contraseña</span>
+                            <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
+                          </a>
+                          <a href="/encontrar-cuenta" className="group flex items-center gap-1.5 text-[12px] font-bold text-[var(--color-guinda-700)] hover:text-[var(--color-guinda-800)]">
+                            <span className="underline decoration-2 underline-offset-2">No estoy seguro de tener cuenta</span>
+                            <ChevronRight size={13} className="transition-transform group-hover:translate-x-1" />
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : revisandoCorreo ? (
+                  <div className="mt-1 text-[11px] text-stone-400">Comprobando el correo…</div>
                 ) : emailValido ? (
                   <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-green-700">
                     <Check size={12} /> Correo válido · te enviaremos un código para verificarlo

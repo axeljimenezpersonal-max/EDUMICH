@@ -354,6 +354,39 @@ function verifyEmailToken(
 }
 
 // ─── POST /publico/email/solicitar-codigo ─────────────────────────────────
+// ─── GET /publico/correo-existe ───────────────────────────────────────────
+// ¿Ese correo ya tiene cuenta? Sirve para avisarlo EN EL FORMULARIO, cuando la
+// persona aún puede corregir, en vez de dejarla capturar todo el trámite para
+// que choque al final.
+//
+// Sobre la privacidad: esto permitiría sondear si un correo está registrado.
+// Se acota a lo mínimo —devuelve solo sí/no, sin nombre ni estado de la
+// cuenta— y va con límite de peticiones. El propio login ya revela lo mismo a
+// quien insista, y aquí el beneficio (no perder un trámite completo) pesa más.
+const limiteCorreoExiste = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 40,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Demasiadas consultas. Espera unos minutos.' },
+});
+
+router.get('/correo-existe', limiteCorreoExiste, async (req, res) => {
+  const email = String(req.query.email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.json({ existe: false });
+    return;
+  }
+  try {
+    const [fila] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
+    res.json({ existe: !!fila });
+  } catch {
+    // Ante un fallo se responde "no existe": el candado de verdad está al pedir
+    // el código y al guardar la solicitud, no en este aviso de cortesía.
+    res.json({ existe: false });
+  }
+});
+
 router.post('/email/solicitar-codigo', async (req, res) => {
   const parse = z
     .object({
@@ -385,15 +418,20 @@ router.post('/email/solicitar-codigo', async (req, res) => {
     return;
   }
 
-  // Para auto_registro: no debe existir ya un user con ese email
-  if (tipo === 'auto_registro') {
-    const [existing] = await db.select().from(users).where(eq(users.email, email));
-    if (existing) {
-      res.status(409).json({
-        error: 'Ya existe una cuenta con este correo. Inicia sesión o recupera tu contraseña.',
-      });
-      return;
-    }
+  // NINGÚN camino (auto-registro NI solicitud de cuenta) debe avanzar si ese
+  // correo ya tiene cuenta. Antes solo se revisaba en `auto_registro`, así que
+  // por "solicitud_cuenta" se colaban solicitudes imposibles: se capturaba todo
+  // el trámite y el choque aparecía hasta que la administración intentaba
+  // aprobarla. Se corta aquí, al pedir el código, que es cuando la persona aún
+  // puede corregir. Cuenta ACTIVA o dada de baja: si existe, existe.
+  const [existing] = await db.select({ activo: users.activo }).from(users).where(eq(users.email, email));
+  if (existing) {
+    res.status(409).json({
+      error: 'Ya existe una cuenta con este correo.',
+      yaExiste: true,
+      cuentaActiva: existing.activo,
+    });
+    return;
   }
 
   // Generar código
@@ -668,6 +706,18 @@ router.post('/solicitudes-cuenta', async (req, res) => {
   const tokenData = verifyEmailToken(data.emailVerificadoToken);
   if (!tokenData || tokenData.email !== data.email || tokenData.tipo !== 'solicitud_cuenta') {
     res.status(401).json({ error: 'Token de verificación de email inválido o expirado.' });
+    return;
+  }
+
+  // Última barrera antes de guardar: aunque el token de correo sea válido, la
+  // cuenta pudo crearse en el intervalo. Una solicitud para un correo que ya
+  // tiene cuenta es imposible de aprobar, así que no debe nacer.
+  const [cuentaExistente] = await db.select({ id: users.id }).from(users).where(eq(users.email, data.email));
+  if (cuentaExistente) {
+    res.status(409).json({
+      error: 'Ya existe una cuenta con ese correo. Inicia sesión o recupera tu contraseña en vez de solicitar una cuenta nueva.',
+      yaExiste: true,
+    });
     return;
   }
 
