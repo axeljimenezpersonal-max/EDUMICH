@@ -191,16 +191,23 @@ const CAMINO = pagina(`
 // Lámina: el acceso, dibujado en grande (el screenshot de teléfono quedaba
 // chico para lo único que importa: dónde va el correo y dónde la contraseña).
 const LAMINA_LOGIN = `
-  <div class="login">
-    <div class="login-kicker">ACCESO AL SISTEMA</div>
-    <div class="login-titulo">Bienvenido</div>
-    <div class="login-campos">
-      <div class="campo"><div class="campo-etq">CORREO INSTITUCIONAL</div>
-        <div class="campo-caja">${I.correo()} ana.ramirez@correo.com</div></div>
-      <div class="campo"><div class="campo-etq">CONTRASEÑA</div>
-        <div class="campo-caja">•••••••• <span class="campo-ojo">${I.ojoVer()}</span></div></div>
+  <div class="login2">
+    <div class="login2-cab">
+      <div class="login2-gob">GOBIERNO DE MICHOACÁN</div>
+      <div class="login2-logo">MÓDULA<span>22</span></div>
+      <div class="login2-plan">PLAN 22 · PREPARATORIA ABIERTA</div>
     </div>
-    <div class="boton-guinda login-boton">Entrar</div>
+    <div class="login2-cuerpo">
+      <div class="login-kicker">ACCESO AL SISTEMA</div>
+      <div class="login-titulo">Bienvenido</div>
+      <div class="login2-sub">Inicia sesión con tus credenciales institucionales.</div>
+      <div class="campo"><div class="campo-etq">Correo institucional</div>
+        <div class="campo-caja">${I.correo()} <em>usuario@michoacan.gob.mx</em></div></div>
+      <div class="campo"><div class="campo-etq">Contraseña</div>
+        <div class="campo-caja">•••••••• <span class="campo-ojo">${I.ojoVer()}</span></div></div>
+      <div class="login2-olvide">¿Olvidaste tu contraseña?</div>
+      <div class="boton-guinda">Entrar</div>
+    </div>
   </div>`;
 
 const CAP1A = pagina(`
@@ -211,9 +218,7 @@ const CAP1A = pagina(`
     <em>correo no deseado</em>.`)}
   ${paso('1.2', 'Entra al portal', `Abre <strong>prepa.modula22.mx</strong>, toca <strong>Iniciar
     sesión</strong> y escribe tu correo y contraseña. El botón del ojo te deja ver lo que escribes.`)}
-  ${lamina(LAMINA_LOGIN, 'Tu correo arriba, tu contraseña abajo, y Entrar')}
-  ${paso('1.3', 'Cambia tu contraseña', `La primera vez, el portal te pide elegir tu contraseña
-    definitiva. Escríbela dos veces y guárdala donde no la pierdas.`)}
+  ${lamina(LAMINA_LOGIN, 'La pantalla de inicio de sesión: tu correo, tu contraseña y Entrar')}
 `);
 
 // Lámina: la opción de recuperar, en horizontal (la captura salía vertical).
@@ -227,6 +232,8 @@ const LAMINA_RECUPERAR = `
 
 const CAP1B = pagina(`
   ${kicker('CAPÍTULO 01 · CONTINUACIÓN')}
+  ${paso('1.3', 'Cambia tu contraseña', `La primera vez, el portal te pide elegir tu contraseña
+    definitiva. Escríbela dos veces y guárdala donde no la pierdas.`)}
   ${paso('1.4', '¿La olvidaste? Recupérala por correo', `En el inicio de sesión toca
     <strong>Olvidé mi contraseña</strong> y elige <strong>recibir correo de recuperación</strong>:
     te llega un enlace para elegir una contraseña nueva.`)}
@@ -522,17 +529,41 @@ const LAMINA_DESCARGAR = `
     <div class="boton-guinda">${I.descarga('#ffffff')} Descargar historial (PDF)</div>
   </div>`;
 
+// Lámina: el historial con su tarjeta de avance, dibujado (la captura de
+// teléfono no era intuitiva).
+const LAMINA_CALIF = `
+  <div class="califs">
+    <div class="calif-fila">
+      <div class="calif-mod"><strong>Módulo 1 · De la información al conocimiento</strong>
+        <span>Etapa 2699-A</span></div>
+      <div class="calif-nota">84</div>
+      ${chip('Aprobado', C.verdeFondo, C.verde)}
+    </div>
+    <div class="calif-fila">
+      <div class="calif-mod"><strong>Módulo 4 · Matemáticas y representaciones</strong>
+        <span>Etapa 2699-B · presentado</span></div>
+      <div class="calif-nota calif-pend">—</div>
+      ${chip('En proceso', C.ambarFondo, C.ambarTexto)}
+    </div>
+    <div class="avance">
+      <div class="av-etq">AVANCE ACADÉMICO</div>
+      <div class="av-titulo">3 módulos aprobados <span>de 22 del Plan Modular</span></div>
+      <div class="av-nums">
+        <div><strong>8.4</strong><span>PROMEDIO</span></div>
+        <div><strong>14%</strong><span>AVANCE</span></div>
+      </div>
+    </div>
+  </div>`;
+
 const CAP7 = pagina(`
   ${encabezadoCap(7, 'Paso 4 · Tus resultados', 'Se aprueba con 60. El certificado son 22 módulos.')}
-  ${dosCol(`
-    ${paso('7.1', 'Consulta tus calificaciones', `Después de cada etapa, cada módulo aparece con su
-      calificación — y abajo, tu tarjeta de avance: cuántos de los 22 llevas aprobados y tu promedio.
-      Cada módulo aprobado es un logro: ¡míralo crecer!`)}
-    ${cita(`<strong>¿No aprobaste uno?</strong> No pasa nada definitivo: lo vuelves a presentar en una
-      etapa siguiente. Inscríbelo otra vez cuando abra la ventana.`)}
-  `, figura(img('10-calificaciones'), 'Tu historial y tu tarjeta de avance', { telefono: true }))}
+  ${paso('7.1', 'Consulta tus calificaciones', `Después de cada etapa, cada módulo aparece con su
+    calificación — y abajo, tu tarjeta de avance: cuántos de los 22 llevas aprobados y tu promedio.
+    Cada módulo aprobado es un logro. ¿No aprobaste uno? No pasa nada definitivo: lo vuelves a
+    presentar cuando abra la siguiente ventana.`)}
+  ${lamina(LAMINA_CALIF, 'Ejemplo: tus calificaciones por módulo y tu tarjeta de avance')}
   ${paso('7.2', 'Descarga tu historial', `El botón <strong>Descargar historial (PDF)</strong> está
-    arriba de tus calificaciones.`)}
+    arriba de tus calificaciones. Te da tu documento con todo tu avance, útil para cualquier trámite.`)}
   ${lamina(LAMINA_DESCARGAR, 'Ejemplo: el botón para llevarte tu historial')}
 `);
 
@@ -912,6 +943,43 @@ const HTML = `<!doctype html>
                 color: ${C.tinta}; }
   .campo-ojo { margin-left: auto; }
   .login-boton { max-width: 60mm; margin: 0 auto; }
+
+  /* Login fiel a la página */
+  .login2 { max-width: 96mm; margin: 0 auto; border: 0.4mm solid ${C.linea}; border-radius: 3.5mm;
+            overflow: hidden; background: #fff; box-shadow: 0 1mm 2.5mm rgba(46,8,20,0.07); }
+  .login2-cab { background: linear-gradient(150deg, ${C.guindaNoche}, ${C.guinda}); color: #fff;
+                text-align: center; padding: 5mm 4mm; }
+  .login2-gob { font-size: 6pt; letter-spacing: 0.24em; opacity: 0.8; }
+  .login2-logo { font-size: 17pt; font-weight: 700; letter-spacing: 0.06em; margin: 1.5mm 0 0.5mm; }
+  .login2-logo span { color: ${C.doradoSuave}; font-size: 10pt; vertical-align: super; }
+  .login2-plan { font-size: 6pt; letter-spacing: 0.22em; color: ${C.doradoSuave}; }
+  .login2-cuerpo { padding: 5mm 6mm 6mm; }
+  .login2-sub { font-size: 8.5pt; color: ${C.gris}; margin: 1mm 0 4mm; }
+  .login2 .campo { margin-bottom: 3mm; }
+  .login2 .campo-caja em { font-style: normal; color: #a89a8e; }
+  .login2-olvide { text-align: right; font-size: 8pt; font-weight: 600; color: ${C.guinda};
+                   margin: -1mm 0 3mm; }
+  .login2 .login-titulo { font-size: 14pt; margin-bottom: 0; }
+  .login2 .login-kicker { font-size: 6.5pt; }
+
+  /* Lámina: calificaciones */
+  .califs { max-width: 150mm; margin: 0 auto; display: flex; flex-direction: column; gap: 2.8mm; }
+  .calif-fila { display: grid; grid-template-columns: 1fr 16mm 30mm; gap: 4mm; align-items: center;
+                background: #fff; border: 0.35mm solid ${C.linea}; border-radius: 2.5mm;
+                padding: 3mm 4.5mm; }
+  .calif-mod strong { display: block; font-size: 10pt; font-weight: 600; color: ${C.guindaNoche}; }
+  .calif-mod span { font-size: 8pt; color: ${C.gris}; }
+  .calif-nota { font-size: 14pt; font-weight: 700; color: ${C.verde}; text-align: center; }
+  .calif-pend { color: #b8aca1; }
+  .calif-fila .chip { justify-self: end; }
+  .avance { background: linear-gradient(120deg, #14532d, ${C.verde}); color: #fff; border-radius: 3mm;
+            padding: 4.5mm 6mm; display: flex; align-items: center; gap: 8mm; margin-top: 1mm; }
+  .av-etq { display: none; }
+  .av-titulo { flex: 1; font-size: 12.5pt; font-weight: 700; line-height: 1.3; }
+  .av-titulo span { display: block; font-size: 8pt; font-weight: 400; opacity: 0.85; }
+  .av-nums { display: flex; gap: 7mm; }
+  .av-nums strong { display: block; font-size: 15pt; }
+  .av-nums span { font-size: 6.5pt; letter-spacing: 0.18em; opacity: 0.85; }
 
   /* Lámina: opción ancha (recuperar) */
   .opcion-ancha { max-width: 140mm; margin: 0 auto; display: flex; gap: 5mm; align-items: center;
