@@ -146,11 +146,23 @@ export const CHEQUEOS: Chequeo[] = [
   },
   {
     clave: 'alumnos_sin_gestor',
-    titulo: 'Alumnos sin gestor asignado',
+    titulo: 'Alumnos sin centro que NO pidieron ir por su cuenta',
     nivel: 'aviso',
-    significa: 'Nadie los acompaña ni aparece en la carga de ningún gestor.',
-    arreglo: 'Asignarles gestor desde el panel de administración.',
-    sql: `SELECT count(*)::int AS n FROM estudiantes WHERE gestor_id IS NULL`,
+    // No se cuenta a quien eligió auto-gestión: llevar la prepa sin centro es un
+    // camino válido del sistema, no una falla que arreglar. Contarlos aquí
+    // convertía una decisión de la persona en un pendiente de la
+    // administración, y empujaba justo a lo que el candado anticorrupción
+    // prohíbe: asignarle centro a quien no lo pidió.
+    significa: 'Venían acompañados y se quedaron sin centro (baja o reasignación que no llegó).',
+    arreglo: 'Preguntarles si quieren otro centro o prefieren seguir por su cuenta. No asignar sin confirmar.',
+    sql: `SELECT count(*)::int AS n
+            FROM estudiantes e
+           WHERE e.gestor_id IS NULL
+             AND e.registro_tipo IS DISTINCT FROM 'auto_registro'
+             AND NOT EXISTS (
+                   SELECT 1 FROM solicitudes_cuenta s
+                    WHERE s.curp = e.curp AND s.modalidad_preferida = 'auto_gestion'
+                 )`,
   },
   {
     clave: 'alumnos_sin_municipio',

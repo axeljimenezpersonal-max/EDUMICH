@@ -11,19 +11,54 @@
  */
 import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '../db';
-import { estudiantes, expedienteDocumentos } from '@workspace/db/schema';
+import { estudiantes, expedienteDocumentos, solicitudesCuenta } from '@workspace/db/schema';
 import { notificar, notificarATodosLosAdmins } from './notificar';
 import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 
 /** Nombre y gestor del alumno, para dirigir y redactar el aviso. */
-async function datosAlumno(estudianteId: number): Promise<{ nombre: string; gestorId: number | null } | null> {
+async function datosAlumno(
+  estudianteId: number,
+): Promise<{ nombre: string; gestorId: number | null; registroTipo: string | null; curp: string | null } | null> {
   const [e] = await db
-    .select({ nombre: estudiantes.nombreCompleto, gestorId: estudiantes.gestorId })
+    .select({
+      nombre: estudiantes.nombreCompleto,
+      gestorId: estudiantes.gestorId,
+      registroTipo: estudiantes.registroTipo,
+      curp: estudiantes.curp,
+    })
     .from(estudiantes)
     .where(eq(estudiantes.userId, estudianteId))
     .limit(1);
   if (!e) return null;
-  return { nombre: e.nombre ?? 'Un alumno', gestorId: e.gestorId ?? null };
+  return {
+    nombre: e.nombre ?? 'Un alumno',
+    gestorId: e.gestorId ?? null,
+    registroTipo: e.registroTipo ?? null,
+    curp: e.curp ?? null,
+  };
+}
+
+/**
+ * ¿Esta persona eligió llevar su proceso POR SU CUENTA?
+ *
+ * Importa para no empujar a la administración a asignarle un centro. Llevar la
+ * prepa sin gestor es un camino válido del sistema, no un pendiente; y el
+ * candado anticorrupción prohíbe expresamente asignarle centro a quien pidió
+ * auto-gestión. Un aviso que diga "asígnale uno" contradice esa regla.
+ *
+ * Se deduce de dos señales, en orden:
+ *  - quien se auto-registró en el portal entró solo, sin más que averiguar;
+ *  - quien mandó solicitud lo dejó dicho en `modalidadPreferida`.
+ */
+async function vaPorSuCuenta(alumno: { registroTipo: string | null; curp: string | null }): Promise<boolean> {
+  if (alumno.registroTipo === 'auto_registro') return true;
+  if (!alumno.curp) return false;
+  const [sol] = await db
+    .select({ modalidad: solicitudesCuenta.modalidadPreferida })
+    .from(solicitudesCuenta)
+    .where(eq(solicitudesCuenta.curp, alumno.curp))
+    .limit(1);
+  return sol?.modalidad === 'auto_gestion';
 }
 
 /** Nombre legible del tipo de documento para el texto del aviso. */
@@ -118,15 +153,27 @@ export async function avisarSiExpedienteQuedoCompleto(estudianteId: number, tipo
       cuerpo: `${alumno.nombre} tiene sus ${obligatorios.length} documentos aprobados. Ya solo falta su matrícula para poder inscribirse.`,
       enlace: '/gestor/alumnos',
     });
-  } else {
-    // `alumno_sin_gestor` también estaba muerto. Un expediente completo sin
-    // gestor asignado es justo cuando conviene avisarlo: ya va a necesitar quien
-    // lo acompañe a inscribirse.
+  } else if (await vaPorSuCuenta(alumno)) {
+    // NO es un pendiente: es el camino que la persona eligió. El aviso existe
+    // solo para que la administración sepa que ahí no hay centro a quién
+    // avisarle, y dice expresamente que no se le asigne uno —asignárselo es
+    // justo lo que el candado anticorrupción prohíbe—.
     await notificarATodosLosAdmins({
       tipo: 'alumno_sin_gestor',
-      prioridad: 'alta',
-      titulo: 'Alumno completo sin gestor asignado',
-      cuerpo: `${alumno.nombre} completó su expediente pero no tiene gestor. Asígnale uno para que pueda avanzar.`,
+      prioridad: 'normal',
+      titulo: 'Expediente completo · alumno por su cuenta',
+      cuerpo: `${alumno.nombre} completó su expediente y lleva su proceso por su cuenta, sin centro de asesoría. No se le asigna centro: él mismo se inscribe y paga. Solo falta su matrícula oficial.`,
+      enlace: '/admin/alumnos',
+    });
+  } else {
+    // Aquí sí es una anomalía: venía acompañado y se quedó sin centro (lo dieron
+    // de baja, lo reasignaron y no llegó). Por eso se pregunta antes de mover
+    // nada: puede que ya prefiera seguir solo.
+    await notificarATodosLosAdmins({
+      tipo: 'alumno_sin_gestor',
+      prioridad: 'normal',
+      titulo: 'Expediente completo · se quedó sin centro',
+      cuerpo: `${alumno.nombre} completó su expediente y ya no tiene centro de asesoría asignado. Confirma con él si quiere que se le asigne otro o prefiere seguir por su cuenta.`,
       enlace: '/admin/alumnos',
     });
   }
