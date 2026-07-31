@@ -63,19 +63,59 @@ function Contenido() {
         </p>
       </div>
 
-      {/* Leyenda: qué significa cada color de la cuadrícula */}
-      <div className="mb-4 flex flex-wrap items-center gap-2.5 rounded-xl border border-stone-200 bg-white px-4 py-3">
-        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-stone-600">
-          <Info size={13} className="text-stone-400" /> Cómo leerlo:
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-xs text-stone-600">
-          <span className="h-4 w-4 rounded" style={{ background: CAL_EXAMEN.fondo }} /> Día de examen
-        </span>
-        <span className="inline-flex items-center gap-1.5 text-xs text-stone-600">
-          <span className="h-4 w-4 rounded" style={{ background: CAL_INSCRIPCION.fondo, border: `1px solid ${CAL_INSCRIPCION.borde}` }} /> Ventana de inscripción
-        </span>
-        <span className="text-xs text-stone-400">Toca un día marcado para ver su detalle.</span>
+      {/* Leyenda: qué significa cada color de la cuadrícula.
+          Va en grande y con la muestra IGUAL a la casilla real: la leyenda es
+          lo que vuelve legible el resto de la pantalla, y en la versión chica
+          —cuadritos de 16 px y letra de 12— se perdía justo debajo del título.
+          Quien no descifra los colores no puede usar el calendario. */}
+      <div className="mb-5 grid gap-3 sm:grid-cols-2">
+        <div
+          className="flex items-center gap-4 rounded-2xl border-2 p-4"
+          style={{ borderColor: CAL_EXAMEN.borde, background: CAL_EXAMEN.fondoSuave }}
+        >
+          <div
+            className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl font-serif text-xl font-bold text-white shadow-sm"
+            style={{ background: CAL_EXAMEN.fondo }}
+            aria-hidden
+          >
+            18
+          </div>
+          <div className="min-w-0">
+            <div className="text-base font-bold leading-tight" style={{ color: CAL_EXAMEN.texto }}>
+              Día de examen
+            </div>
+            <p className="mt-0.5 text-[13px] leading-snug text-stone-600">
+              Morado relleno. Es el día que te presentas a aplicar.
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="flex items-center gap-4 rounded-2xl border-2 p-4"
+          style={{ borderColor: CAL_INSCRIPCION.borde, background: CAL_INSCRIPCION.fondoSuave }}
+        >
+          <div
+            className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-xl font-serif text-xl font-bold shadow-sm"
+            style={{ background: CAL_INSCRIPCION.fondo, color: CAL_INSCRIPCION.texto, border: `2px solid ${CAL_INSCRIPCION.borde}` }}
+            aria-hidden
+          >
+            14
+          </div>
+          <div className="min-w-0">
+            <div className="text-base font-bold leading-tight" style={{ color: CAL_INSCRIPCION.texto }}>
+              Ventana de inscripción
+            </div>
+            <p className="mt-0.5 text-[13px] leading-snug text-stone-600">
+              Rosa claro. Son los únicos días en que puedes inscribirte y pagar.
+            </p>
+          </div>
+        </div>
       </div>
+
+      <p className="mb-4 flex items-center gap-1.5 text-[13px] text-stone-500">
+        <Info size={14} className="flex-shrink-0 text-stone-400" />
+        Toca cualquier día marcado para ver su detalle.
+      </p>
 
       <CalendarioOficial seccion />
 
