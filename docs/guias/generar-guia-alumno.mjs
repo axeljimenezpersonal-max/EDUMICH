@@ -109,7 +109,7 @@ function paso(n, titulo, cuerpo) {
 
 const dosCol = (izq, der) => `<div class="doscol"><div class="doscol-izq">${izq}</div><div class="doscol-der">${der}</div></div>`;
 const cita = (texto) => `<div class="cita">${texto}</div>`;
-const ojo = (texto) => `<div class="cita ojo"><div class="ojo-k">⚠ OJO</div>${texto}</div>`;
+const ojo = (texto) => `<div class="cita ojo"><div class="ojo-k">OJO</div>${texto}</div>`;
 const tarjeta = (titulo, cuerpo) => `<div class="tarjeta"><h4>${esc(titulo)}</h4><p>${cuerpo}</p></div>`;
 
 function encabezadoCap(numero, titulo, lede) {
@@ -118,6 +118,24 @@ function encabezadoCap(numero, titulo, lede) {
   <h2 class="cap-titulo">${esc(titulo)}</h2>
   ${lede ? `<p class="lede">${lede}</p>` : ''}`;
 }
+
+/**
+ * Iconos PROPIOS, dibujados con el trazo del portal (lucide): nada de emojis
+ * del sistema — se ven distintos en cada aparato y baratos impresos.
+ */
+function icono(paths, opts = {}) {
+  const t = opts.color ?? C.guinda;
+  return `<svg class="ico" viewBox="0 0 24 24" fill="none" stroke="${t}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
+}
+const I = {
+  doc: () => icono('<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6"/><path d="M9 17h6"/>'),
+  descarga: (c) => icono('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>', { color: c }),
+  subir: (c) => icono('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 8l5-5 5 5"/><path d="M12 3v12"/>', { color: c }),
+  copiar: () => icono('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
+  paloma: (c) => icono('<path d="M20 6L9 17l-5-5"/>', { color: c }),
+  busqueda: () => icono('<circle cx="11" cy="11" r="8"/><path d="M21 21l-4.3-4.3"/>'),
+  credencial: () => icono('<rect x="2" y="4" width="20" height="16" rx="2"/><circle cx="8" cy="11" r="2"/><path d="M14 9h5"/><path d="M14 13h5"/><path d="M5 17c.5-1.5 1.8-2 3-2s2.5.5 3 2"/>'),
+};
 
 /** Chip de estado, igual que en el portal. */
 const chip = (texto, fondo, color) =>
@@ -237,17 +255,17 @@ const CAP3A = pagina(`
 const LAMINA_ESTADOS = `
   <div class="estados">
     <div class="est-fila">
-      <div class="est-doc">📄 <strong>CURP</strong></div>
+      <div class="est-doc">${I.doc()} <strong>CURP</strong></div>
       ${chip('Aprobado', C.verdeFondo, C.verde)}
       <span class="est-desc">Listo: este ya cuenta para tu 5/5.</span>
     </div>
     <div class="est-fila">
-      <div class="est-doc">📄 <strong>Acta de nacimiento</strong></div>
+      <div class="est-doc">${I.doc()} <strong>Acta de nacimiento</strong></div>
       ${chip('En revisión', C.ambarFondo, C.ambarTexto)}
       <span class="est-desc">La administración lo está revisando. Solo espera.</span>
     </div>
     <div class="est-fila est-mal">
-      <div class="est-doc">📄 <strong>Comprobante de domicilio</strong></div>
+      <div class="est-doc">${I.doc()} <strong>Comprobante de domicilio</strong></div>
       ${chip('Rechazado', C.rojoFondo, C.rojo)}
       <span class="est-desc"><strong>Motivo: "borroso / mayor a 3 meses".</strong> Corrige y súbelo otra vez.</span>
     </div>
@@ -259,19 +277,19 @@ const LAMINA_ESTADOS = `
 const LAMINA_SUBIR = `
   <div class="estados">
     <div class="est-fila est-subir">
-      <div class="est-doc">📄 <strong>CURP</strong></div>
+      <div class="est-doc">${I.doc()} <strong>CURP</strong></div>
       <span class="est-desc">Aún sin archivo</span>
-      <span class="boton-subir">⬆ Subir PDF</span>
+      <span class="boton-subir">${I.subir('#ffffff')} Subir PDF</span>
     </div>
     <div class="est-fila est-subir">
-      <div class="est-doc">📄 <strong>Acta de nacimiento</strong></div>
+      <div class="est-doc">${I.doc()} <strong>Acta de nacimiento</strong></div>
       <span class="est-desc">Aún sin archivo</span>
-      <span class="boton-subir">⬆ Subir PDF</span>
+      <span class="boton-subir">${I.subir('#ffffff')} Subir PDF</span>
     </div>
     <div class="est-fila est-subir">
-      <div class="est-doc">📄 <strong>Certificado de secundaria</strong></div>
+      <div class="est-doc">${I.doc()} <strong>Certificado de secundaria</strong></div>
       <span class="est-desc">Aún sin archivo</span>
-      <span class="boton-subir">⬆ Subir PDF</span>
+      <span class="boton-subir">${I.subir('#ffffff')} Subir PDF</span>
     </div>
   </div>`;
 
@@ -295,6 +313,8 @@ const CAP3C = pagina(`
   ${figura(img('05b-exp-matricula'), 'Tu matrícula oficial, ya asignada', { alto: '62mm' })}
   ${ojo(`Sin expediente completo <strong>no puedes inscribirte</strong>, y la revisión puede tomar días.
     No lo dejes para la semana de la inscripción.`)}
+  ${cita(`<strong>¿Tienes centro de asesoría?</strong> Tu gestor también puede subir estos documentos
+    por ti, si se los entregas.`)}
 `);
 
 // Lámina: cómo se marcan los módulos (la captura real salía ilegible).
@@ -352,20 +372,9 @@ const CAP4C = pagina(`
   ${ojo(`<strong>La ventana es estricta.</strong> Fuera de esas fechas <strong>no te puedes
     inscribir</strong> — no hay excepciones: así funciona la convocatoria estatal. El pago corre
     aparte, con el vencimiento de tu ficha. Consulta el Calendario y no lo dejes para el último día.`)}
-  <div class="panel-gestor">
-    <div class="pg-titulo">🤝 ¿Tienes centro de asesoría? Respira: casi todo esto lo hace tu gestor</div>
-    <p class="pg-intro">Si un gestor te acompaña, no te estreses con estos trámites. Esto es lo que
-      hace <strong>él por ti</strong>:</p>
-    <div class="pg-fila"><span class="pg-icono">📄</span><div><strong>Tus documentos</strong>
-      <span>Puede subirlos por ti al expediente, si se los entregas.</span></div></div>
-    <div class="pg-fila"><span class="pg-icono">📝</span><div><strong>La inscripción</strong>
-      <span>La hace él — es el único que puede inscribirte. Por eso en tu portal no verás botones
-      de inscripción: no te falta nada, así debe ser.</span></div></div>
-    <div class="pg-fila"><span class="pg-icono">🏦</span><div><strong>El pago</strong>
-      <span>Él solicita la ficha ante la Tesorería, paga y sube el comprobante.</span></div></div>
-    <p class="pg-cierre">Tú te encargas de lo importante: <strong>estudiar y presentarte el día del
-      examen</strong>. Sus datos de contacto están en tu sección Inscripción.</p>
-  </div>
+  ${cita(`<strong>¿Tienes centro de asesoría?</strong> La inscripción la hace tu gestor — es el único
+    que puede inscribirte, por eso en tu portal no verás botones de inscripción. No te preocupes:
+    no te falta nada. Si tienes dudas, comunícate con tu centro o con el Instituto (IEMSyS).`)}
 `);
 
 // Lámina: el camino del pago en 4 estaciones (lo que el usuario pidió ver claro).
@@ -399,31 +408,80 @@ const CAP5A = pagina(`
   ${lamina(LAMINA_SOLICITAR, 'Ejemplo: un examen sin cubrir, con su botón para solicitar la orden')}
 `);
 
+// Láminas del pago, dibujadas (los recortes de pantalla no se leían bien).
+const LAMINA_ORDEN = `
+  <div class="orden">
+    <div class="orden-fila orden-boton">${I.doc()} <div><strong>Ver / descargar orden de pago (PDF)</strong>
+      <span>Documento oficial de la plataforma del Estado</span></div> ${I.descarga()}</div>
+    <div class="orden-etq">LÍNEA DE CAPTURA</div>
+    <div class="orden-fila orden-linea"><strong>9800&nbsp;0131&nbsp;4402&nbsp;8834</strong> ${I.copiar()}</div>
+    <div class="orden-vence">Vence el <strong>4 de agosto</strong> — 7 días después de emitida</div>
+  </div>`;
+
+const LAMINA_COMPROBANTE = `
+  <div class="orden">
+    <div class="orden-etq">¿CÓMO PAGASTE?</div>
+    <div class="metodos">
+      <span class="metodo">Ventanilla bancaria</span>
+      <span class="metodo metodo-sel">Tienda de conveniencia</span>
+      <span class="metodo">Pago en línea</span>
+    </div>
+    <div class="adjuntar">${I.descarga(C.gris)} Adjunta la foto o el PDF de tu comprobante</div>
+  </div>`;
+
 const CAP5B = pagina(`
   ${kicker('CAPÍTULO 05 · CONTINUACIÓN')}
-  ${paso('5.3', 'Descarga tu orden y págala', `Cuando la orden queda emitida aparece este bloque:
-    descarga tu orden en PDF, copia la <strong>línea de captura</strong> y págala en banco, tienda o
-    en línea, antes de su vencimiento.`)}
-  ${figura(img('07d-linea-captura'), 'Paso 1 del bloque: tu orden, tu línea de captura y el vencimiento', { alto: '56mm' })}
-  ${paso('5.4', '¿Ya pagaste? Sube tu comprobante', `En el mismo bloque, elige cómo pagaste y adjunta la
-    foto o PDF de tu comprobante. Al confirmarse, tu lugar queda asegurado. Si tienes centro de
-    asesoría, <strong>este pago lo hace tu gestor por ti</strong>, igual que la inscripción.`)}
-  ${figura(img('07e-comprobante'), 'Paso 2 del bloque: elige el método y sube tu comprobante', { alto: '44mm' })}
+  ${paso('5.3', 'Descarga tu orden y págala', `Cuando la orden queda emitida aparece tu orden en PDF y
+    tu <strong>línea de captura</strong>: cópiala y págala en banco, tienda o en línea, antes de su
+    vencimiento.`)}
+  ${lamina(LAMINA_ORDEN, 'Ejemplo: tu orden emitida, con su línea de captura y su vencimiento')}
+  ${paso('5.4', '¿Ya pagaste? Sube tu comprobante', `En el mismo bloque, elige cómo pagaste y adjunta tu
+    comprobante. Al confirmarse, tu lugar queda asegurado. Con centro de asesoría, <strong>este pago lo
+    hace tu gestor por ti</strong>, igual que la inscripción.`)}
+  ${lamina(LAMINA_COMPROBANTE, 'Ejemplo: elige el método y adjunta tu comprobante')}
   ${ojo(`Tu ficha <strong>vence a los 7 días</strong> de emitida, y solo lo pagado se califica.`)}
 `);
 
+// Lámina: la credencial digital, dibujada en horizontal (la captura vertical
+// del teléfono no gustó; el diseño real de la credencial NO se toca — esto es
+// un retrato editorial de sus datos).
+const LAMINA_CREDENCIAL = `
+  <div class="cred">
+    <div class="cred-franja">
+      <div class="cred-marca">MODULA · PLAN 22</div>
+      <div class="cred-inst">Preparatoria Abierta · IEMSyS<br/>Gobierno de Michoacán</div>
+    </div>
+    <div class="cred-cuerpo">
+      <div class="cred-foto">AR</div>
+      <div class="cred-datos">
+        <div class="cred-nombre">Ana Sofía Ramírez López</div>
+        <div class="cred-fila"><span>CURP</span><strong>RALA****MMNMPN**</strong></div>
+        <div class="cred-fila"><span>MATRÍCULA</span><strong>2026160100482</strong></div>
+        <div class="cred-fila"><span>VIGENCIA</span><strong>Julio de 2027</strong></div>
+      </div>
+      <div class="cred-sello">${I.credencial()}<span>Credencial<br/>digital</span></div>
+    </div>
+  </div>`;
+
 const CAP6 = pagina(`
   ${encabezadoCap(6, 'El día del examen', 'Identificación, tu sede y llegar con tiempo.')}
-  ${dosCol(`
-    ${paso('6.1', 'Lleva tu identificación', `Una identificación oficial (INE, o tu credencial de
-      estudiante del portal). Es lo que te piden al entrar.`)}
-    ${paso('6.2', 'Ubica tu sede desde antes', `La dirección y el mapa están en tu
-      <strong>Inscripción</strong>. Llega con tiempo: los horarios de aplicación son exactos
-      (09:00 y 11:00).`)}
-    ${paso('6.3', 'Tu credencial digital', `Vive en <strong>ID</strong>, con tu foto. Te identifica
-      dentro del programa.`)}
-  `, figura(img('09-identificacion'), 'Tu credencial de estudiante, en la sección ID', { telefono: true }))}
+  ${paso('6.1', 'Lleva tu identificación', `Una identificación oficial (INE, o tu credencial de
+    estudiante del portal). Es lo que te piden al entrar.`)}
+  ${paso('6.2', 'Ubica tu sede desde antes', `La dirección y el mapa están en tu
+    <strong>Inscripción</strong>. Llega con tiempo: los horarios de aplicación son exactos
+    (09:00 y 11:00).`)}
+  ${paso('6.3', 'Tu credencial digital', `Vive en la sección <strong>ID</strong> de tu portal, con tu
+    foto. Te identifica dentro del programa.`)}
+  ${lamina(LAMINA_CREDENCIAL, 'Ejemplo: tu credencial digital de estudiante')}
 `);
+
+// Lámina: descargar el historial (el zoom del recorte no gustó).
+const LAMINA_DESCARGAR = `
+  <div class="orden">
+    <div class="orden-fila orden-boton">${I.doc()} <div><strong>Tu historial académico en PDF</strong>
+      <span>Módulos aprobados, calificaciones y promedio — para cualquier trámite</span></div></div>
+    <div class="boton-guinda">${I.descarga('#ffffff')} Descargar historial (PDF)</div>
+  </div>`;
 
 const CAP7 = pagina(`
   ${encabezadoCap(7, 'Paso 4 · Tus resultados', 'Se aprueba con 60. El certificado son 22 módulos.')}
@@ -434,33 +492,57 @@ const CAP7 = pagina(`
     ${cita(`<strong>¿No aprobaste uno?</strong> No pasa nada definitivo: lo vuelves a presentar en una
       etapa siguiente. Inscríbelo otra vez cuando abra la ventana.`)}
   `, figura(img('10-calificaciones'), 'Tu historial y tu tarjeta de avance', { telefono: true }))}
-  ${paso('7.2', 'Descarga tu historial', `El botón <strong>Descargar historial (PDF)</strong> te da tu
-    documento con todo tu avance, útil para cualquier trámite.`)}
-  ${figura(img('10b-calif-descargar'), 'El botón para descargar tu historial en PDF', { alto: '40mm' })}
+  ${paso('7.2', 'Descarga tu historial', `El botón <strong>Descargar historial (PDF)</strong> está
+    arriba de tus calificaciones.`)}
+  ${lamina(LAMINA_DESCARGAR, 'Ejemplo: el botón para llevarte tu historial')}
 `);
+
+// Lámina: una pregunta de práctica con su retroalimentación (mejor que
+// cualquier captura apretada: enseña QUÉ te da una prueba).
+const LAMINA_PRUEBA = `
+  <div class="prueba">
+    <div class="prueba-cab">Prueba de práctica · Módulo 1 — De la información al conocimiento</div>
+    <div class="prueba-preg">¿Cuál de las siguientes fuentes es la más confiable para un trabajo escolar?</div>
+    <div class="opcion">A · Un comentario en redes sociales</div>
+    <div class="opcion opcion-ok">${I.paloma(C.verde)} B · Un artículo de una revista académica</div>
+    <div class="opcion">C · Un rumor compartido por mensajería</div>
+    <div class="prueba-retro"><strong>¡Correcto!</strong> Las fuentes académicas pasan por revisión antes
+      de publicarse. Al terminar, la prueba te dice tus aciertos y qué temas repasar — puedes repetirla
+      las veces que quieras.</div>
+  </div>`;
 
 const CAP8A = pagina(`
   ${encabezadoCap(8, 'Herramientas · Pruebas', 'Practica antes de presentar.')}
-  ${dosCol(`
-    ${paso('8.1', 'Qué son', `Evaluaciones de práctica por módulo, dentro de tu portal.
-      <strong>No cuentan para tu calificación</strong> ni quedan en tu historial oficial: son un
-      entrenamiento para llegar seguro al examen real.`)}
-    ${paso('8.2', 'Cómo usarlas', `Entra a <strong>Pruebas</strong>, elige el módulo que vas a presentar
-      y responde. Puedes repetirlas las veces que quieras; el portal te da tu puntaje al momento.`)}
-    ${cita(`Presentar sin practicar es ir a ciegas. Una prueba antes del examen te dice exactamente
-      qué repasar.`)}
-  `, figura(img('11-pruebas'), 'Pruebas: tu área de práctica por módulo', { telefono: true }))}
+  ${paso('8.1', 'Qué son', `Evaluaciones de práctica por módulo, dentro de tu portal.
+    <strong>No cuentan para tu calificación</strong> ni quedan en tu historial oficial: son un
+    entrenamiento para llegar seguro al examen real.`)}
+  ${paso('8.2', 'Cómo usarlas', `Entra a <strong>Pruebas</strong>, elige el módulo que vas a presentar
+    y responde. El portal te da tu puntaje al momento y te dice qué repasar. Repítelas las veces
+    que quieras.`)}
+  ${lamina(LAMINA_PRUEBA, 'Ejemplo: así se ve una pregunta de práctica, con su explicación')}
 `);
+
+// Lámina: el centro de ayuda con una duda ya abierta (ejemplo bueno, no captura).
+const LAMINA_FAQ = `
+  <div class="faql">
+    <div class="faq-buscador">${I.busqueda()} <span>Escribe tu pregunta…</span></div>
+    <div class="faq-item faq-abierta">
+      <div class="faq-preg">¿Cuándo puedo inscribirme?</div>
+      <div class="faq-resp">Solo dentro de la ventana de inscripción de cada etapa (4 a 5 días).
+        Consulta la sección Calendario para ver las fechas de tu ciclo.</div>
+    </div>
+    <div class="faq-item"><div class="faq-preg">¿Qué documentos necesita mi expediente?</div></div>
+    <div class="faq-item"><div class="faq-preg">¿Qué llevo el día del examen?</div></div>
+  </div>`;
 
 const CAP8B = pagina(`
   ${kicker('CAPÍTULO 08 · PREGUNTAS FRECUENTES')}
-  ${dosCol(`
-    ${paso('8.3', 'Tu primera parada para dudas', `Las preguntas más comunes del trámite ya están
-      respondidas ahí: inscripción, pagos, documentos y examen. Tiene buscador.`)}
-    ${paso('8.4', 'Antes de llamar, busca', `Casi siempre la respuesta ya está escrita, a cualquier
-      hora. Si de verdad no aparece, al pie de esa misma pantalla vienen el teléfono y el horario
-      de atención.`)}
-  `, figura(img('13-faq'), 'Preguntas frecuentes, con su buscador', { telefono: true }))}
+  ${paso('8.3', 'Tu primera parada para dudas', `Las preguntas más comunes del trámite ya están
+    respondidas en tu portal: inscripción, pagos, documentos y examen. Tiene buscador.`)}
+  ${paso('8.4', 'Antes de llamar, busca', `Casi siempre la respuesta ya está escrita, a cualquier
+    hora. Si de verdad no aparece, al pie de esa misma pantalla vienen el teléfono y el horario
+    de atención.`)}
+  ${lamina(LAMINA_FAQ, 'Ejemplo: buscas tu duda y la respuesta se abre ahí mismo')}
 `);
 
 // Lámina: calendario de ejemplo del ciclo (8 etapas, inscripción y examen).
@@ -706,6 +788,78 @@ const HTML = `<!doctype html>
   .pg-fila strong { display: block; font-size: 11.5pt; font-weight: 700; color: ${C.guindaNoche}; }
   .pg-fila span { font-size: 9.5pt; color: ${C.gris}; line-height: 1.55; }
   .pg-cierre { margin-top: 5mm; font-size: 11pt; color: ${C.guindaNoche}; }
+
+  /* Iconos propios */
+  .ico { width: 5mm; height: 5mm; flex-shrink: 0; vertical-align: -1mm; }
+
+  /* Lámina: orden de pago / descargar historial */
+  .orden { max-width: 130mm; margin: 0 auto; display: flex; flex-direction: column; gap: 3mm; }
+  .orden-fila { display: flex; gap: 4mm; align-items: center; }
+  .orden-boton { background: ${C.cremaClaro}; border: 0.45mm solid ${C.guinda}; border-radius: 3mm;
+                 padding: 4mm 5mm; }
+  .orden-boton strong { display: block; font-size: 10.5pt; font-weight: 600; color: ${C.guindaNoche}; }
+  .orden-boton span { font-size: 8.5pt; color: ${C.gris}; }
+  .orden-boton > div { flex: 1; }
+  .orden-etq { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.2em; color: ${C.gris};
+               margin-top: 1mm; }
+  .orden-linea { background: ${C.cremaClaro}; border: 0.35mm solid ${C.linea}; border-radius: 2.5mm;
+                 padding: 3.5mm 5mm; justify-content: space-between; }
+  .orden-linea strong { font-size: 13pt; letter-spacing: 0.08em; color: ${C.guindaNoche}; }
+  .orden-vence { font-size: 9pt; color: ${C.gris}; }
+  .metodos { display: flex; gap: 3mm; }
+  .metodo { flex: 1; text-align: center; border: 0.35mm solid ${C.linea}; border-radius: 2.5mm;
+            padding: 3mm; font-size: 9pt; background: #fff; color: ${C.gris}; }
+  .metodo-sel { border-color: ${C.guinda}; color: ${C.guinda}; font-weight: 600; background: #fdf7f9; }
+  .adjuntar { border: 0.45mm dashed #c9bcae; border-radius: 2.5mm; padding: 4mm; text-align: center;
+              color: ${C.gris}; font-size: 9.5pt; display: flex; gap: 3mm; align-items: center;
+              justify-content: center; }
+  .boton-guinda { background: ${C.guinda}; color: #fff; font-weight: 600; font-size: 10.5pt;
+                  border-radius: 2.5mm; padding: 3.5mm; text-align: center; display: flex; gap: 3mm;
+                  align-items: center; justify-content: center; }
+
+  /* Lámina: credencial (retrato editorial, horizontal) */
+  .cred { max-width: 128mm; margin: 0 auto; border: 0.4mm solid ${C.linea}; border-radius: 4mm;
+          overflow: hidden; box-shadow: 0 1mm 2.5mm rgba(46,8,20,0.08); background: #fff; }
+  .cred-franja { background: linear-gradient(120deg, ${C.guindaNoche}, ${C.guinda}); color: #fff;
+                 padding: 4mm 6mm; display: flex; justify-content: space-between; align-items: center; }
+  .cred-marca { font-weight: 700; letter-spacing: 0.22em; font-size: 8.5pt; color: ${C.doradoSuave}; }
+  .cred-inst { font-size: 6.5pt; text-align: right; opacity: 0.85; line-height: 1.5; }
+  .cred-cuerpo { display: flex; gap: 6mm; padding: 5mm 6mm; align-items: center; }
+  .cred-foto { width: 17mm; height: 17mm; border-radius: 3mm; background: ${C.crema};
+               border: 0.4mm solid ${C.linea}; color: ${C.guinda}; font-weight: 700; font-size: 15pt;
+               display: flex; align-items: center; justify-content: center; }
+  .cred-datos { flex: 1; }
+  .cred-nombre { font-weight: 700; font-size: 12pt; color: ${C.guindaNoche}; margin-bottom: 1.5mm; }
+  .cred-fila { display: flex; gap: 4mm; font-size: 8.5pt; padding: 0.8mm 0; }
+  .cred-fila span { min-width: 20mm; color: ${C.gris}; letter-spacing: 0.12em; font-size: 7pt;
+                    font-weight: 700; padding-top: 0.4mm; }
+  .cred-fila strong { font-weight: 600; color: ${C.tinta}; }
+  .cred-sello { text-align: center; color: ${C.guinda}; font-size: 7pt; font-weight: 700;
+                line-height: 1.4; }
+  .cred-sello .ico { width: 7mm; height: 7mm; display: block; margin: 0 auto 1mm; }
+
+  /* Lámina: pregunta de práctica */
+  .prueba { max-width: 148mm; margin: 0 auto; }
+  .prueba-cab { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase;
+                color: ${C.dorado}; margin-bottom: 3mm; }
+  .prueba-preg { font-weight: 600; font-size: 11pt; color: ${C.guindaNoche}; margin-bottom: 3mm; }
+  .opcion { border: 0.35mm solid ${C.linea}; border-radius: 2.5mm; background: #fff; padding: 3mm 4.5mm;
+            font-size: 9.5pt; color: ${C.gris}; margin-bottom: 2.2mm; display: flex; gap: 3mm;
+            align-items: center; }
+  .opcion-ok { border-color: ${C.verde}; background: ${C.verdeFondo}; color: #14532d; font-weight: 600; }
+  .prueba-retro { background: ${C.cremaClaro}; border-left: 1.2mm solid ${C.verde}; border-radius: 2mm;
+                  padding: 3.5mm 5mm; font-size: 9.5pt; color: #374035; margin-top: 3mm; }
+
+  /* Lámina: preguntas frecuentes */
+  .faql { max-width: 140mm; margin: 0 auto; display: flex; flex-direction: column; gap: 2.6mm; }
+  .faq-buscador { display: flex; gap: 3mm; align-items: center; border: 0.4mm solid ${C.linea};
+                  border-radius: 6mm; background: #fff; padding: 3mm 5mm; color: #a89a8e;
+                  font-size: 9.5pt; }
+  .faq-item { border: 0.35mm solid ${C.linea}; border-radius: 2.5mm; background: #fff;
+              padding: 3.2mm 5mm; }
+  .faq-abierta { border-color: ${C.guinda}; }
+  .faq-preg { font-weight: 600; font-size: 10pt; color: ${C.guindaNoche}; }
+  .faq-resp { font-size: 9pt; color: ${C.gris}; margin-top: 1.5mm; line-height: 1.55; }
 
   /* Tarjetas */
   .tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 4mm; }
