@@ -84,6 +84,32 @@ const router = Router();
 
 router.use(authRequired, requireRol('admin'));
 
+/**
+ * Última revisión de CURP antes de convertir una solicitud en alumno.
+ *
+ * Al enviar la solicitud ya se comprobó que la CURP estuviera libre, pero entre
+ * ese momento y la aprobación pueden pasar días: es normal que la persona,
+ * mientras espera, se acerque a un centro de asesoría y quede dada de alta ahí.
+ * Aprobar entonces crearía DOS expedientes de la misma persona; con matrículas
+ * distintas de por medio eso ya no se deshace solo. Se devuelve null cuando no
+ * hay choque, o el cuerpo del 409 cuando sí lo hay.
+ */
+async function curpYaRegistrada(
+  curp: string | null,
+): Promise<{ error: string; curpDuplicada: true; alumnoExistenteId: number } | null> {
+  if (!curp) return null;
+  const [existente] = await db
+    .select({ userId: estudiantes.userId, nombre: estudiantes.nombreCompleto })
+    .from(estudiantes)
+    .where(eq(estudiantes.curp, curp.toUpperCase().trim()));
+  if (!existente) return null;
+  return {
+    error: `Ya existe un alumno registrado con esa CURP (${existente.nombre}). Revísalo: si es la misma persona, esta solicitud se rechaza —el expediente ya existe—; no se aprueba.`,
+    curpDuplicada: true,
+    alumnoExistenteId: existente.userId,
+  };
+}
+
 // ── Jefatura ────────────────────────────────────────────────────────────────
 // La TITULAR (Velia) es jefa; su equipo son administradores operativos. Ambos
 // operan casi todo, pero las facultades de jefatura —alta/baja de gestores y
@@ -900,6 +926,9 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
     res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
     return;
   }
+
+  const choqueCurp = await curpYaRegistrada(solicitud.curp);
+  if (choqueCurp) { res.status(409).json(choqueCurp); return; }
 
   const tempPassword = generarCodigoTemporal();
   const passwordHash = await bcrypt.hash(tempPassword, 10);
@@ -3721,6 +3750,9 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
     res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
     return;
   }
+
+  const choqueCurpV2 = await curpYaRegistrada(solicitud.curp);
+  if (choqueCurpV2) { res.status(409).json(choqueCurpV2); return; }
 
   // ── CANDADO ANTICORRUPCIÓN ────────────────────────────────────────────
   // Si la persona declaró que viene POR SU CUENTA (auto-gestión), nadie puede

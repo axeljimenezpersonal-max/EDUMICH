@@ -49,6 +49,7 @@ import { puedeRevelarCredenciales, sendBienvenidaCredenciales } from '../service
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
 import { urlPortalLogin, urlPortalBase } from '../utils/portal';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
+import { validarCurp } from '../utils/curp';
 import { generarFichaPreregistro, generarFichaRegistro, generarFichaPago, type MetodoPagoFicha } from '../services/pdf';
 import {
   obtenerDatosCedula,
@@ -860,6 +861,36 @@ router.patch('/alumnos/:id', async (req, res) => {
   if (Object.keys(data).length === 0) {
     res.status(400).json({ error: 'No hay campos para actualizar' });
     return;
+  }
+
+  // Corregir la CURP pasa por el mismo filtro que capturarla de nuevo: si no,
+  // una corrección a mano puede meter una CURP inválida —o la de otro alumno—
+  // por una puerta que el alta sí tenía cerrada.
+  if (data.curp) {
+    const curpNueva = data.curp.toUpperCase().trim();
+    const resultado = validarCurp(curpNueva, {
+      nombres: alumno.nombres ?? undefined,
+      apellidoPaterno: alumno.apellidoPaterno ?? undefined,
+      apellidoMaterno: alumno.apellidoMaterno ?? undefined,
+      fechaNacimiento: data.fechaNacimiento ?? alumno.fechaNacimiento ?? undefined,
+      sexo: alumno.sexo ?? undefined,
+    });
+    if (!resultado.valida) {
+      res.status(400).json({ error: resultado.errores[0] ?? 'CURP inválida.', campo: 'curp' });
+      return;
+    }
+    const [ocupada] = await db
+      .select({ userId: estudiantes.userId, nombre: estudiantes.nombreCompleto })
+      .from(estudiantes)
+      .where(and(eq(estudiantes.curp, curpNueva), ne(estudiantes.userId, alumnoId)));
+    if (ocupada) {
+      res.status(409).json({
+        error: `Esa CURP ya está registrada en otro alumno (${ocupada.nombre}). Verifica cuál de los dos expedientes es el correcto antes de cambiarla.`,
+        campo: 'curp',
+      });
+      return;
+    }
+    data.curp = curpNueva;
   }
 
   const updateFields: Record<string, unknown> = {};

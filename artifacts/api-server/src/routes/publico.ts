@@ -53,13 +53,25 @@ const curpLimiter = rateLimit({
   message: { error: 'Demasiadas consultas. Intenta de nuevo en unos minutos.' },
 });
 
-/** ¿La CURP ya está ocupada por un alumno o una solicitud activa? */
-async function curpOcupada(curp: string): Promise<string | null> {
+/**
+ * ¿La CURP ya está ocupada por un alumno o una solicitud activa?
+ *
+ * Devuelve además el MOTIVO, porque la salida no es la misma: quien ya es
+ * alumno tiene cuenta y lo que necesita es recuperarla; quien solo tiene una
+ * solicitud en revisión todavía no tiene nada que recuperar y lo único que
+ * corresponde es esperar. Mandarlo a "recupera tu contraseña" ahí sería
+ * mandarlo a una pantalla que no le va a servir.
+ */
+type MotivoCurp = 'alumno' | 'solicitud_pendiente' | 'solicitud_aprobada';
+
+async function curpOcupada(curp: string): Promise<{ mensaje: string; motivo: MotivoCurp } | null> {
   const [alumno] = await db
     .select({ userId: estudiantes.userId })
     .from(estudiantes)
     .where(eq(estudiantes.curp, curp));
-  if (alumno) return 'Ya existe un alumno registrado con esa CURP.';
+  if (alumno) {
+    return { mensaje: 'Ya existe un alumno registrado con esa CURP.', motivo: 'alumno' };
+  }
 
   const [solicitud] = await db
     .select({ id: solicitudesCuenta.id, estado: solicitudesCuenta.estado })
@@ -67,8 +79,14 @@ async function curpOcupada(curp: string): Promise<string | null> {
     .where(and(eq(solicitudesCuenta.curp, curp), sql`${solicitudesCuenta.estado} IN ('pendiente','aprobada')`));
   if (solicitud) {
     return solicitud.estado === 'pendiente'
-      ? 'Ya hay una solicitud en revisión con esa CURP. Espera la respuesta de la administración.'
-      : 'Esa CURP ya tiene una solicitud aprobada.';
+      ? {
+          mensaje: 'Ya hay una solicitud en revisión con esa CURP. Espera la respuesta de la administración: te llegará por correo.',
+          motivo: 'solicitud_pendiente',
+        }
+      : {
+          mensaje: 'Esa CURP ya tiene una solicitud aprobada, así que la cuenta ya existe. Revisa tu correo o recupera tu contraseña.',
+          motivo: 'solicitud_aprobada',
+        };
   }
   return null;
 }
@@ -238,7 +256,16 @@ router.post('/validar-curp', curpLimiter, async (req, res) => {
   if (resultado.valida) {
     const ocupada = await curpOcupada(curp.toUpperCase().trim());
     if (ocupada) {
-      res.json({ valida: false, errores: [ocupada], entidadNacimiento: resultado.entidadNacimiento });
+      // `ocupada` distingue "esa CURP ya está en el sistema" de "esa CURP está
+      // mal escrita": lo primero no se arregla corrigiendo el dato, así que la
+      // interfaz ofrece la salida correcta en vez de dejar a la persona
+      // reescribiendo una CURP que estaba bien.
+      res.json({
+        valida: false,
+        ocupada: ocupada.motivo,
+        errores: [ocupada.mensaje],
+        entidadNacimiento: resultado.entidadNacimiento,
+      });
       return;
     }
   }
@@ -743,7 +770,7 @@ router.post('/solicitudes-cuenta', async (req, res) => {
   // Unicidad: ni alumnos existentes ni solicitudes activas.
   const ocupada = await curpOcupada(curpNormalizada);
   if (ocupada) {
-    res.status(409).json({ error: ocupada });
+    res.status(409).json({ error: ocupada.mensaje, ocupada: ocupada.motivo });
     return;
   }
 

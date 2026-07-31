@@ -133,6 +133,10 @@ export default function SolicitarCuenta() {
   });
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  // Por qué está ocupada la CURP, cuando lo está. Cambia la salida que se
+  // ofrece: con cuenta ya creada se recupera el acceso; con una solicitud aún
+  // en revisión no hay nada que recuperar y lo correcto es esperar.
+  const [curpOcupada, setCurpOcupada] = useState<'alumno' | 'solicitud_pendiente' | 'solicitud_aprobada' | null>(null);
 
   // Autollenado de domicilio por código postal (catálogo SEPOMEX de Michoacán).
   const {
@@ -242,6 +246,7 @@ export default function SolicitarCuenta() {
   const [validandoCurp, setValidandoCurp] = useState(false);
 
   async function avanzar() {
+    setCurpOcupada(null); // el motivo anterior no debe teñir el error siguiente
     const error = validarPaso(paso);
     if (error) {
       setFormError(error);
@@ -254,7 +259,12 @@ export default function SolicitarCuenta() {
       setValidandoCurp(true);
       setFormError(null);
       try {
-        const r = await api.post<{ valida: boolean; errores: string[]; entidadNacimiento?: string }>(
+        const r = await api.post<{
+          valida: boolean;
+          ocupada?: 'alumno' | 'solicitud_pendiente' | 'solicitud_aprobada';
+          errores: string[];
+          entidadNacimiento?: string;
+        }>(
           '/publico/validar-curp',
           {
             curp: form.curp,
@@ -266,9 +276,14 @@ export default function SolicitarCuenta() {
           }
         );
         if (!r.valida) {
+          // Una CURP OCUPADA no se arregla corrigiendo el dato: la persona ya
+          // está en el sistema. Se le da el camino de salida en vez de dejarla
+          // reescribiendo una CURP que está bien.
+          setCurpOcupada(r.ocupada ?? null);
           setFormError(r.errores[0] ?? 'La CURP no es válida.');
           return;
         }
+        setCurpOcupada(null);
         // Autollenar la entidad de nacimiento con la que codifica la CURP.
         if (r.entidadNacimiento && !form.entidadNacimiento) {
           setForm((prev) => ({ ...prev, entidadNacimiento: r.entidadNacimiento! }));
@@ -287,6 +302,7 @@ export default function SolicitarCuenta() {
 
   function regresar() {
     setFormError(null);
+    setCurpOcupada(null);
     setPaso((p) => Math.max(1, p - 1));
   }
 
@@ -983,10 +999,22 @@ export default function SolicitarCuenta() {
             // Si el tropiezo es porque la persona YA EXISTE (CURP o correo
             // duplicado), el error no puede ser un callejón sin salida: ahí
             // mismo se ofrece buscar su cuenta y recuperar el acceso.
-            const yaExiste = /ya existe|ya est[áa] registrad|duplicad|en uso/i.test(formError);
+            // Cuando el servidor dice POR QUÉ está ocupada la CURP se le hace
+            // caso; la coincidencia de texto queda solo para los mensajes que
+            // no traen ese dato (correo duplicado, choques desde otras rutas).
+            const yaExiste =
+              curpOcupada === 'alumno' ||
+              curpOcupada === 'solicitud_aprobada' ||
+              (curpOcupada === null && /ya existe|ya est[áa] registrad|duplicad|en uso/i.test(formError));
             return (
               <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700">
                 {formError}
+                {curpOcupada === 'solicitud_pendiente' && (
+                  <div className="mt-2.5 border-t border-red-200 pt-2.5 text-[12px] text-red-800/80">
+                    Tu solicitud ya está en la fila: no hace falta volver a enviarla. Cuando la
+                    administración la revise te llegará un correo con tus datos de acceso.
+                  </div>
+                )}
                 {yaExiste && (
                   <div className="mt-2.5 flex flex-col gap-1.5 border-t border-red-200 pt-2.5">
                     <span className="text-[12px] text-red-800/80">
