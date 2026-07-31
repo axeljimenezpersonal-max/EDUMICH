@@ -186,6 +186,11 @@ export async function sendEmail(
       replyTo,
       subject: opts.subject,
       html: opts.html,
+      // La versión en texto plano NO es opcional para la entrega: un correo que
+      // solo trae HTML es una de las señales que más pesan para marcarlo como
+      // no deseado, porque es lo que hace el correo basura. Las plantillas ya
+      // la venían generando —se guardaba en outbox— pero nunca se enviaba.
+      text: opts.textPlain,
     });
   } catch (err) {
     estado = 'fallido';
@@ -325,11 +330,24 @@ export async function sendRecuperarPassword(
   opts?: { relatedUserId?: number }
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const html = getRecuperarPasswordHTML(data);
+  const textPlain = [
+    'Preparatoria Abierta · IEMSyS · Gobierno de Michoacán',
+    '',
+    `Hola ${data.nombre}:`,
+    '',
+    'Pediste restablecer tu contraseña. Abre este enlace para elegir una nueva:',
+    data.resetUrl,
+    '',
+    'El enlace caduca en 1 hora y solo sirve una vez.',
+    '',
+    'Si no lo pediste, ignora este mensaje: tu contraseña actual sigue funcionando.',
+  ].join('\n');
   return sendEmail({
     to: email,
     toName: data.nombre,
     subject: 'Recupera tu contraseña — Preparatoria Abierta Michoacán',
     html,
+    textPlain,
     evento: 'recuperar_password',
     relatedUserId: opts?.relatedUserId,
   });
@@ -371,10 +389,22 @@ export async function sendVerificationCode(
     return { enviado: true, modo: 'dev', codigo };
   }
   const html = getVerificationEmailHTML(codigo);
+  const textPlain = [
+    'Preparatoria Abierta · IEMSyS · Gobierno de Michoacán',
+    '',
+    'Verifica tu correo electrónico',
+    '',
+    `Tu código es: ${codigo}`,
+    '',
+    'Escríbelo en la pantalla donde lo pediste. Expira en 10 minutos.',
+    '',
+    'Si no solicitaste este código, ignora este mensaje: nadie puede usarlo sin tu correo.',
+  ].join('\n');
   const result = await sendEmail({
     to: email,
     subject: `Tu código de verificación: ${codigo}`,
     html,
+    textPlain,
     evento: 'verificacion_email',
   });
   return result;
