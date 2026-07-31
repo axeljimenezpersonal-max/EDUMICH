@@ -9,7 +9,12 @@
  * Se usa en TODA la plataforma (alumno, gestor, admin, creador, sedes y
  * formularios públicos) para que capturar un teléfono se sienta igual en todas
  * las pantallas y el dato salga siempre parejo.
+ *
+ * Mientras se escribe, el número se agrupa solo: `443 123 4567`. Los espacios
+ * son presentación pura —lo que se guarda son los diez dígitos— pero hacen que
+ * el número se pueda revisar de un vistazo en vez de contar dígitos pegados.
  */
+import { useLayoutEffect, useRef } from 'react';
 
 /**
  * Deja solo los 10 dígitos nacionales de un valor guardado.
@@ -38,6 +43,37 @@ export function telefonoCanonico(valor: string | null | undefined): string {
   return d ? `+52 ${d}` : '';
 }
 
+/**
+ * `4431234567` → `443 123 4567`.
+ *
+ * Se agrupa 3-3-4 porque así se dicta un teléfono en México y así se lee de un
+ * vistazo para comprobarlo. Los espacios son SOLO presentación: lo que se
+ * guarda siguen siendo los diez dígitos pelones.
+ */
+export function agruparTelefono(digitos: string): string {
+  const d = digitos.slice(0, 10);
+  return [d.slice(0, 3), d.slice(3, 6), d.slice(6, 10)].filter(Boolean).join(' ');
+}
+
+/**
+ * En qué posición del texto ya agrupado quedan `n` dígitos a la izquierda.
+ *
+ * Es lo que permite devolver el cursor a su lugar después de reformatear: la
+ * posición en caracteres cambia cuando entran o salen espacios, pero "voy en el
+ * quinto dígito" no cambia, y eso es lo que la persona tiene en la cabeza.
+ */
+function posicionTrasNDigitos(texto: string, n: number): number {
+  if (n <= 0) return 0;
+  let vistos = 0;
+  for (let i = 0; i < texto.length; i++) {
+    if (/\d/.test(texto[i])) {
+      vistos++;
+      if (vistos === n) return i + 1;
+    }
+  }
+  return texto.length;
+}
+
 interface Props {
   /** Valor guardado (con o sin +52: se normaliza para mostrarlo). */
   value: string | null | undefined;
@@ -56,6 +92,51 @@ export function CampoTelefono({
   value, onChange, id, required, disabled,
   placeholder = '443 123 4567', className = '', ayuda,
 }: Props) {
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  // Dónde debe quedar el cursor después de que React repinte con el texto ya
+  // agrupado. Sin esto, cada espacio que entra empuja el cursor al final y
+  // corregir un dígito de en medio se vuelve imposible.
+  const caretPendiente = useRef<number | null>(null);
+
+  const mostrado = agruparTelefono(soloDiezDigitos(value));
+
+  useLayoutEffect(() => {
+    if (caretPendiente.current === null || !inputRef.current) return;
+    inputRef.current.setSelectionRange(caretPendiente.current, caretPendiente.current);
+    caretPendiente.current = null;
+  });
+
+  function alCambiar(e: React.ChangeEvent<HTMLInputElement>) {
+    const crudo = e.target.value;
+    const caret = e.target.selectionStart ?? crudo.length;
+    // Lo único que sobrevive al reformateo es cuántos DÍGITOS quedaron a la
+    // izquierda del cursor: los espacios los pone el campo, no la persona.
+    const digitosAntes = crudo.slice(0, caret).replace(/\D/g, '').length;
+    const digitos = soloDiezDigitos(crudo);
+    caretPendiente.current = posicionTrasNDigitos(
+      agruparTelefono(digitos),
+      Math.min(digitosAntes, digitos.length),
+    );
+    onChange(digitos ? `+52 ${digitos}` : '');
+  }
+
+  function alTeclear(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key !== 'Backspace') return;
+    const input = e.currentTarget;
+    const pos = input.selectionStart ?? 0;
+    // Con texto seleccionado, o al inicio, el comportamiento normal ya sirve.
+    if (input.selectionEnd !== pos || pos === 0) return;
+    if (input.value[pos - 1] !== ' ') return;
+    // Borrar el espacio no borraría nada visible —el campo lo vuelve a poner— y
+    // la tecla parecería descompuesta. Se borra el dígito de antes, que es lo
+    // que la persona quiso.
+    e.preventDefault();
+    const restante = input.value.slice(0, pos - 2) + input.value.slice(pos);
+    const digitos = soloDiezDigitos(restante);
+    caretPendiente.current = posicionTrasNDigitos(agruparTelefono(digitos), pos - 2);
+    onChange(digitos ? `+52 ${digitos}` : '');
+  }
+
   return (
     <div className={className}>
       <div className="flex">
@@ -69,15 +150,18 @@ export function CampoTelefono({
         </span>
         <input
           id={id}
+          ref={inputRef}
           type="tel"
           inputMode="numeric"
           autoComplete="tel-national"
           required={required}
           disabled={disabled}
-          value={soloDiezDigitos(value)}
-          onChange={(e) => onChange(telefonoCanonico(e.target.value))}
+          value={mostrado}
+          onChange={alCambiar}
+          onKeyDown={alTeclear}
           placeholder={placeholder}
-          maxLength={10}
+          // 10 dígitos + los 2 espacios que pone el propio campo.
+          maxLength={12}
           className="gov-input"
           style={{ borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
           aria-describedby={ayuda && id ? `${id}-ayuda` : undefined}

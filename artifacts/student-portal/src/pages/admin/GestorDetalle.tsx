@@ -11,7 +11,7 @@ import { useAdminPerfil } from '../../lib/useAdmin';
 import { confirmar } from '../../components/Confirmador';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_GESTOR_DETALLE, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
-import { soloDiezDigitos, telefonoCanonico } from '../../components/CampoTelefono';
+import { CampoTelefono } from '../../components/CampoTelefono';
 
 // ─── Types ────────────────────────────────────────────────────────────────
 
@@ -307,15 +307,7 @@ function EditarGestorModal({
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>Teléfono</label>
-            <input
-              type="tel"
-              className="w-full px-3 py-2 text-sm border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400"
-              placeholder="434-342-9876"
-              value={soloDiezDigitos(form.telefono)}
-              onChange={(e) => set('telefono', telefonoCanonico(e.target.value))}
-              inputMode="numeric"
-              maxLength={10}
-            />
+            <CampoTelefono value={form.telefono} onChange={(v) => set('telefono', v)} />
           </div>
           <div>
             <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>Capacidad máxima</label>
