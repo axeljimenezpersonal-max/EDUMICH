@@ -131,17 +131,20 @@ const PORTADA = pagina(`
 const INDICE = pagina(`
   ${kicker('CONTENIDO')}
   <h2 class="cap-titulo">Lo que vas<br/>a encontrar</h2>
+  <p class="lede" style="margin-top:-2mm">En orden de prioridad: primero lo que no puede esperar.</p>
   <div class="indice indice-compacto">
-    <div class="ind-fila"><span class="ind-n">01</span><span class="ind-t">El ciclo de una etapa</span><span class="ind-d">las 8 estaciones del programa</span></div>
-    <div class="ind-fila"><span class="ind-n">02</span><span class="ind-t">Convocatorias y sedes</span><span class="ind-d">la sección más delicada</span></div>
-    <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Solicitudes de cuenta</span><span class="ind-d">la puerta de entrada</span></div>
-    <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Alumnos · la ficha</span><span class="ind-d">expediente, matrícula, cédula y bajas</span></div>
-    <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">La red de gestores</span><span class="ind-d">altas, permisos y desempeño</span></div>
-    <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">Fichas de pago</span><span class="ind-d">emitir, conciliar, controlar</span></div>
+    <div class="ind-fila"><span class="ind-n">01</span><span class="ind-t">El expediente</span><span class="ind-d">la prioridad de cada día</span></div>
+    <div class="ind-fila"><span class="ind-n">02</span><span class="ind-t">Fichas de pago</span><span class="ind-d">emitir, conciliar, controlar</span></div>
+    <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Matrícula y credencial</span><span class="ind-d">capturar y emitir</span></div>
+    <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Cédula y módulos</span><span class="ind-d">la inscripción formal</span></div>
+    <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Alumnos · la ficha</span><span class="ind-d">acciones, correcciones y bajas</span></div>
+    <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">Solicitudes de cuenta</span><span class="ind-d">la puerta de entrada</span></div>
     <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Calificaciones</span><span class="ind-d">de la relación oficial al portal</span></div>
-    <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">Comunicación</span><span class="ind-d">anuncios y preguntas frecuentes</span></div>
-    <div class="ind-fila"><span class="ind-n">09</span><span class="ind-t">Padrón histórico y verificación</span><span class="ind-d">la memoria y el candado</span></div>
-    <div class="ind-fila"><span class="ind-n">10</span><span class="ind-t">Titular y operativo</span><span class="ind-d">quién puede qué</span></div>
+    <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">Convocatorias y sedes</span><span class="ind-d">la sección más delicada</span></div>
+    <div class="ind-fila"><span class="ind-n">09</span><span class="ind-t">La red de gestores</span><span class="ind-d">altas, permisos y desempeño</span></div>
+    <div class="ind-fila"><span class="ind-n">10</span><span class="ind-t">Comunicación</span><span class="ind-d">anuncios y preguntas frecuentes</span></div>
+    <div class="ind-fila"><span class="ind-n">11</span><span class="ind-t">Padrón histórico y verificación</span><span class="ind-d">la memoria y el candado</span></div>
+    <div class="ind-fila"><span class="ind-n">12</span><span class="ind-t">Titular y operativo</span><span class="ind-d">quién puede qué</span></div>
     <div class="ind-fila"><span class="ind-n">✓</span><span class="ind-t">El pulso de la administración</span><span class="ind-d">cada día y cada etapa</span></div>
   </div>
 `);
@@ -167,11 +170,11 @@ const PRIORIDADES = pagina(`
   ${kicker('ANTES DE EMPEZAR')}
   <h2 class="cap-titulo">Tus prioridades</h2>
   <p class="lede">El alumno sigue un camino y el gestor lleva un grupo. La administración no: opera un
-  tablero. El orden es éste.</p>
+  tablero. Esta guía va de lo más prioritario a lo menos.</p>
   <div class="camino camino3">
-    <div class="cam"><div class="cam-n">1</div><h4>Lo de hoy</h4><p>Las 4 tarjetas del Inicio. Se atienden a diario; nada se acumula.</p></div>
-    <div class="cam"><div class="cam-n">2</div><h4>Lo de cada etapa</h4><p>El ciclo del capítulo 1. Ocho veces al año, siempre igual.</p></div>
-    <div class="cam"><div class="cam-n">3</div><h4>Lo ocasional</h4><p>Red de gestores, comunicación, padrón, configuración.</p></div>
+    <div class="cam"><div class="cam-n">1</div><h4>Documentos y pagos</h4><p>La cadena diaria: el expediente aprobado abre la ficha, la ficha se emite y el pago se concilia. Capítulos 1 al 4.</p></div>
+    <div class="cam"><div class="cam-n">2</div><h4>Personas y decisiones</h4><p>La ficha del alumno, las solicitudes nuevas y las calificaciones. Capítulos 5 al 7.</p></div>
+    <div class="cam"><div class="cam-n">3</div><h4>El marco</h4><p>Convocatorias, la red de gestores, comunicación y padrón. Capítulos 8 al 12.</p></div>
   </div>
   ${lamina(LAMINA_DIA, 'Así se ve tu Inicio: la convocatoria activa arriba y los pendientes del día como atajos')}
 `);
@@ -192,7 +195,7 @@ const LAMINA_CICLO = `
   <div class="ciclo-pie">${I.qr(C.dorado)} Credenciales y verificación acompañan todo el año, fuera del ciclo.</div>`;
 
 const CAP1 = pagina(`
-  ${encabezadoCap(1, 'El ciclo de una etapa', 'Ocho estaciones, ocho veces al año. Todo lo demás de esta guía es el detalle de cada una.')}
+  ${kicker('ANTES DE EMPEZAR · EL MAPA')}\n  <h2 class="cap-titulo">El ciclo de una etapa</h2>\n  <p class="lede">Ocho estaciones, ocho veces al año. Es el orden del calendario — los capítulos van en otro: el de tus prioridades.</p>${''}
   ${lamina(LAMINA_CICLO, 'El ciclo completo: lo que la administración mueve en cada etapa, en orden')}
   ${cita(`Las estaciones 1 y 2 abren el flujo, la 6 y la 7 lo cobran y la 8 lo cierra. Si una se atora,
   las siguientes se detienen solas: <strong>el sistema no deja avanzar a quien no ha pasado por la
@@ -210,14 +213,14 @@ const LAMINA_ETAPAS = `
   </div>`;
 
 const CAP2 = pagina(`
-  ${encabezadoCap(2, 'Convocatorias y sedes', 'El calendario oficial de la DGB gobierna todo el sistema.')}
-  ${paso('2.1', 'Precarga el año completo', `Sube el PDF oficial de la convocatoria: el sistema lo lee y
+  ${encabezadoCap(8, 'Convocatorias y sedes', 'El calendario oficial de la DGB gobierna todo el sistema.')}
+  ${paso('8.1', 'Precarga el año completo', `Sube el PDF oficial de la convocatoria: el sistema lo lee y
     te muestra una <strong>previa</strong> de qué etapas se crearán y cuáles ya existían, antes de
     tocar nada. Nada se aplica sin que lo confirmes.`)}
-  ${paso('2.2', 'La etapa activa gobierna', `Sus fechas abren y cierran la <strong>ventana de
+  ${paso('8.2', 'La etapa activa gobierna', `Sus fechas abren y cierran la <strong>ventana de
     inscripción</strong> de todo el estado y aparecen en el Inicio de todos los roles. La ventana
     es estricta: fuera de fechas nadie inscribe.`)}
-  ${paso('2.3', 'Las sedes son por etapa', `En la pestaña <strong>Sedes</strong> se dan de alta y se
+  ${paso('8.3', 'Las sedes son por etapa', `En la pestaña <strong>Sedes</strong> se dan de alta y se
     define cuáles se ofrecen en cada etapa. El alumno elige entre ésas — las sedes no se deducen
     de su municipio.`)}
   ${lamina(LAMINA_ETAPAS, 'Así se ve la precarga: el PDF oficial entra y el sistema propone, tú confirmas')}
@@ -241,14 +244,14 @@ const LAMINA_BANDEJA = `
   </div>`;
 
 const CAP3 = pagina(`
-  ${encabezadoCap(3, 'Solicitudes de cuenta', 'Nadie entra al sistema sin pasar por esta bandeja.')}
-  ${paso('3.1', 'Prioriza por antigüedad', `La bandeja marca las solicitudes con <strong>más de 7 días
+  ${encabezadoCap(6, 'Solicitudes de cuenta', 'Nadie entra al sistema sin pasar por esta bandeja.')}
+  ${paso('6.1', 'Prioriza por antigüedad', `La bandeja marca las solicitudes con <strong>más de 7 días
     esperando</strong>. Ordena por "más antigua primero" y que ninguna envejezca: detrás de cada una
     hay una persona esperando estudiar.`)}
-  ${paso('3.2', 'Aprobar crea la cuenta', `Revisas los datos (la CURP ya llegó validada contra los
+  ${paso('6.2', 'Aprobar crea la cuenta', `Revisas los datos (la CURP ya llegó validada contra los
     alumnos y el padrón), eliges un <strong>gestor de su municipio</strong> — o ninguno, si la persona
     pidió llevar su trámite por su cuenta — y el sistema crea la cuenta y le envía sus credenciales.`)}
-  ${paso('3.3', 'Rechazar lleva motivo', `El motivo le llega a la persona tal como lo escribas.
+  ${paso('6.3', 'Rechazar lleva motivo', `El motivo le llega a la persona tal como lo escribas.
     Puedes previsualizar el correo antes de decidir, en ambos sentidos.`)}
   ${lamina(LAMINA_BANDEJA, 'Así se ve la bandeja: tres pestañas, la urgencia marcada y las dos decisiones')}
 `);
@@ -276,13 +279,14 @@ const LAMINA_FICHA_A = `
   </div>`;
 
 const CAP4A = pagina(`
-  ${encabezadoCap(4, 'Alumnos · la ficha', 'La pantalla más densa del panel: todo el trámite de una persona en un solo lugar.')}
-  ${paso('4.1', 'Encuentra a cualquiera', `La lista busca por nombre o CURP y filtra por municipio,
+  ${encabezadoCap(5, 'Alumnos · la ficha', 'La pantalla más densa del panel: todo el trámite de una persona en un solo lugar.')}
+  ${paso('5.1', 'Encuentra a cualquiera', `La lista busca por nombre o CURP y filtra por municipio,
     estado del expediente, gestor y etapa. Las tarjetas del Inicio llegan aquí con el filtro ya
     puesto.`)}
-  ${paso('4.2', 'Su ficha lo tiene todo', `Seis pestañas: documentos, cédula, módulos, pagos,
-    calificaciones y credencial. Lo que sigue de este capítulo recorre las que piden decisión.`)}
-  ${paso('4.3', 'Y ahora también se corrige', `<strong>Editar información</strong> abre el nombre, la
+  ${paso('5.2', 'Su ficha lo tiene todo', `Seis pestañas: documentos, cédula, módulos, pagos,
+    calificaciones y credencial. Documentos, matrícula y cédula ya pasaron por los capítulos
+    anteriores — ésta es la puerta a todos.`)}
+  ${paso('5.3', 'Y ahora también se corrige', `<strong>Editar información</strong> abre el nombre, la
     CURP, la fecha de nacimiento, el teléfono y la dirección. La CURP corregida pasa por el mismo
     filtro que un alta: estructura, coherencia y duplicados. El correo no se edita: es la llave de
     la cuenta.`)}
@@ -309,13 +313,13 @@ const LAMINA_DOCS_A = `
   </div>`;
 
 const CAP4B = pagina(`
-  ${kicker('CAPÍTULO 04 · CONTINÚA')}
-  <h2 class="cap-titulo">El expediente: revisa y decide</h2>
-  <p class="lede">Cinco documentos obligatorios y la fotografía. Tu revisión es la que hace avanzar el trámite.</p>
-  ${paso('4.4', 'Los cinco que no perdonan', `CURP, acta de nacimiento, identificación oficial,
+  ${encabezadoCap(1, 'El expediente: revisa y decide', `Cinco documentos obligatorios y la
+  fotografía. La tarjeta "Documentos por revisar" del Inicio te deja aquí: en la pestaña
+  Documentos de la ficha del alumno.`)}
+  ${paso('1.1', 'Los cinco que no perdonan', `CURP, acta de nacimiento, identificación oficial,
     comprobante de domicilio y certificado de secundaria. La fotografía se usa para la credencial
     y la cédula. Los suben el alumno o su gestor; los apruebas tú.`)}
-  ${paso('4.5', 'Aprobar o rechazar con motivo', `El motivo del rechazo les llega tal cual: escribe
+  ${paso('1.2', 'Aprobar o rechazar con motivo', `El motivo del rechazo les llega tal cual: escribe
     qué está mal y qué esperas recibir ("se lee cortado, vuelve a subirlo completo"). Un documento
     rechazado se puede volver a subir de inmediato.`)}
   ${lamina(LAMINA_DOCS_A, 'Así se ve la pestaña de documentos: cada uno con su estado y su motivo')}
@@ -339,16 +343,14 @@ const LAMINA_MATRICULA = `
   </div>`;
 
 const CAP4C = pagina(`
-  ${kicker('CAPÍTULO 04 · CONTINÚA')}
-  <h2 class="cap-titulo">Matrícula y credencial</h2>
-  <p class="lede">La matrícula la genera el Estado. Aquí se captura — y con ella se abre todo lo demás.</p>
-  ${paso('4.6', 'Captura, no invención', `Cuando el expediente queda 5/5, el Estado asigna la matrícula
+  ${encabezadoCap(3, 'Matrícula y credencial', 'La matrícula la genera el Estado. Aquí se captura — y con ella se abre todo lo demás.')}
+  ${paso('3.1', 'Captura, no invención', `Cuando el expediente queda 5/5, el Estado asigna la matrícula
     oficial y tú la <strong>capturas</strong> en la pestaña Credencial, con casilla de confirmación:
     una matrícula mal escrita persigue al alumno en cada documento oficial.`)}
-  ${paso('4.7', 'Emite su credencial digital', `Con la matrícula capturada se emite, se previsualiza
+  ${paso('3.2', 'Emite su credencial digital', `Con la matrícula capturada se emite, se previsualiza
     por ambos lados y se descarga en PDF. Si venció se <strong>renueva</strong>; si se necesita un
     folio nuevo, se <strong>repone</strong>.`)}
-  ${paso('4.8', 'Verifícala en la sede', `Desde <strong>Verificación</strong>, con el teléfono: se
+  ${paso('3.3', 'Verifícala en la sede', `Desde <strong>Verificación</strong>, con el teléfono: se
     escanea el QR de la credencial y el sistema confirma que es auténtica y de quién es. El QR va
     firmado — uno falso no pasa.`)}
   ${lamina(LAMINA_MATRICULA, 'El orden de la pestaña Credencial: matrícula primero, credencial después')}
@@ -368,13 +370,11 @@ const LAMINA_FIRMA = `
   </div>`;
 
 const CAP4D = pagina(`
-  ${kicker('CAPÍTULO 04 · CONTINÚA')}
-  <h2 class="cap-titulo">Cédula y módulos</h2>
-  <p class="lede">La inscripción formal: los módulos en el sistema y la cédula firmada.</p>
-  ${paso('4.9', 'Inscribe sus módulos', `Desde la pestaña Módulos, hasta <strong>4 por
+  ${encabezadoCap(4, 'Cédula y módulos', 'La inscripción formal: los módulos en el sistema y la cédula firmada.')}
+  ${paso('4.1', 'Inscribe sus módulos', `Desde la pestaña Módulos, hasta <strong>4 por
     convocatoria</strong>. El sistema valida solo los choques de horario y el tope — no deja
     inscribir de más.`)}
-  ${paso('4.10', 'Edita y firma la cédula', `La cédula se arma con los datos del alumno y se
+  ${paso('4.2', 'Edita y firma la cédula', `La cédula se arma con los datos del alumno y se
     <strong>firma digitalmente en pantalla</strong>. La firma queda fija en el documento: aunque
     después cambie la firma guardada, la cédula ya emitida no se altera. Ambos perfiles de
     administración firman, cada quien con la suya.`)}
@@ -399,13 +399,13 @@ const LAMINA_BAJA = `
   </div>`;
 
 const CAP4E = pagina(`
-  ${kicker('CAPÍTULO 04 · CIERRE')}
+  ${kicker('CAPÍTULO 05 · CIERRE')}
   <h2 class="cap-titulo">La baja, en dos pasos</h2>
   <p class="lede">Separar "ya no entra" de "ya no vuelve" evita borrar por accidente.</p>
-  ${paso('4.11', 'Inactivo: la pausa', `Cierra el acceso y las sesiones, pide motivo y se deshace con
+  ${paso('5.4', 'Inactivo: la pausa', `Cierra el acceso y las sesiones, pide motivo y se deshace con
     <strong>Reactivar</strong> en la misma pantalla. Mientras esté inactivo, su correo, su teléfono
     y su CURP siguen ocupados.`)}
-  ${paso('4.12', 'Definitiva: la salida', `Sobre un alumno ya inactivo aparece <strong>Dar de baja
+  ${paso('5.5', 'Definitiva: la salida', `Sobre un alumno ya inactivo aparece <strong>Dar de baja
     definitiva</strong>: libera su correo, su teléfono y su CURP para que puedan usarse en un
     registro nuevo — y conserva su registro completo como historial. Pide escribir
     <strong>BAJA</strong> porque no hay vuelta atrás.`)}
@@ -428,13 +428,13 @@ const LAMINA_RED = `
   </div>`;
 
 const CAP5A = pagina(`
-  ${encabezadoCap(5, 'La red de gestores', 'Un aliado en cada municipio. Aquí se cuida esa red.')}
-  ${paso('5.1', 'La red de un vistazo', `Cada centro con su municipio, sus alumnos y su desempeño.
+  ${encabezadoCap(9, 'La red de gestores', 'Un aliado en cada municipio. Aquí se cuida esa red.')}
+  ${paso('9.1', 'La red de un vistazo', `Cada centro con su municipio, sus alumnos y su desempeño.
     Desde aquí entras a la ficha de cualquiera.`)}
-  ${paso('5.2', 'El alta es de la titular', `<strong>Nuevo gestor</strong> crea la cuenta del centro,
+  ${paso('9.2', 'El alta es de la titular', `<strong>Nuevo gestor</strong> crea la cuenta del centro,
     la asigna a su municipio y envía las credenciales por correo. Es una de las cuatro facultades
-    exclusivas de la titular (capítulo 10).`)}
-  ${paso('5.3', 'Los alumnos se heredan', `Si un centro cierra o cambia, la titular
+    exclusivas de la titular (capítulo 12).`)}
+  ${paso('9.3', 'Los alumnos se heredan', `Si un centro cierra o cambia, la titular
     <strong>reasigna</strong> a sus alumnos a otro gestor, con la razón registrada. Ningún alumno se
     queda huérfano por un cambio administrativo.`)}
   ${lamina(LAMINA_RED, 'Así se ve la red: cada centro con su estado, y el alta reservada a la titular')}
@@ -453,14 +453,14 @@ const LAMINA_PERMISOS = `
   </div>`;
 
 const CAP5B = pagina(`
-  ${kicker('CAPÍTULO 05 · CONTINÚA')}
+  ${kicker('CAPÍTULO 09 · CONTINÚA')}
   <h2 class="cap-titulo">La ficha del centro</h2>
   <p class="lede">Cada centro se configura desde su ficha: qué puede hacer y qué tiene activo.</p>
-  ${paso('5.4', 'Permisos de pago', `Por centro se habilita el pago <strong>individual</strong>, el
+  ${paso('9.4', 'Permisos de pago', `Por centro se habilita el pago <strong>individual</strong>, el
     <strong>grupal</strong> o ambos. Es la palanca de la administración sobre cómo paga cada centro.`)}
-  ${paso('5.5', 'Aula virtual', `Un beneficio que se enciende centro por centro. Los módulos y
+  ${paso('9.5', 'Aula virtual', `Un beneficio que se enciende centro por centro. Los módulos y
     pruebas del alumno son un derecho aparte: no dependen de esta llave.`)}
-  ${paso('5.6', 'Cuidados mayores', `Editar sus datos y su capacidad, reenviar credenciales y reset de
+  ${paso('9.6', 'Cuidados mayores', `Editar sus datos y su capacidad, reenviar credenciales y reset de
     contraseña los hace cualquier perfil; <strong>activar o desactivar el centro</strong> es de la
     titular.`)}
   ${lamina(LAMINA_PERMISOS, 'Así se ve la ficha del centro: sus permisos como interruptores')}
@@ -488,11 +488,11 @@ const LAMINA_ORDEN_A = `
   </div>`;
 
 const CAP6A = pagina(`
-  ${encabezadoCap(6, 'Fichas de pago', 'Modula no cobra ni genera líneas de captura: las emite el Estado. Aquí se cargan y se concilian.')}
-  ${paso('6.1', 'Nace solicitada', `El gestor —o el alumno— pide su ficha y la orden aparece en tu
+  ${encabezadoCap(2, 'Fichas de pago', 'Modula no cobra ni genera líneas de captura: las emite el Estado. Aquí se cargan y se concilian.')}
+  ${paso('2.1', 'Nace solicitada', `El gestor —o el alumno— pide su ficha y la orden aparece en tu
     bandeja como <strong>Solicitada</strong>, con el pendiente marcado en el Inicio. La orden trae
     los datos fiscales del centro listos para copiar.`)}
-  ${paso('6.2', 'Tú la emites', `Generas la línea en la plataforma del Estado y aquí cargas el
+  ${paso('2.2', 'Tú la emites', `Generas la línea en la plataforma del Estado y aquí cargas el
     <strong>PDF de la orden</strong> con su fecha de vencimiento — y la línea de captura si quieres
     mostrarla junto a la ficha. Al emitir, el centro la ve y puede descargarla y pagar.`)}
   ${lamina(LAMINA_ORDEN_A, 'Así se ve una orden: su camino de 4 estaciones y lo que se captura al emitirla')}
@@ -517,14 +517,14 @@ const LAMINA_CONCILIA = `
   </div>`;
 
 const CAP6B = pagina(`
-  ${kicker('CAPÍTULO 06 · CONTINÚA')}
+  ${kicker('CAPÍTULO 02 · CONTINÚA')}
   <h2 class="cap-titulo">Conciliar y controlar</h2>
   <p class="lede">El pago no existe hasta que tú lo confirmas contra el comprobante.</p>
-  ${paso('6.3', 'Concilia cada comprobante', `Compara el comprobante con la orden: si coincide,
+  ${paso('2.3', 'Concilia cada comprobante', `Compara el comprobante con la orden: si coincide,
     <strong>Conciliar</strong> deja el pago confirmado y los exámenes quedan firmes. Si algo no
     cuadra, <strong>rechaza el comprobante con motivo</strong> y el centro lo repone. Una orden
     equivocada se puede cancelar.`)}
-  ${paso('6.4', 'Tus dos documentos de control', `Por etapa y por centro se descargan la relación de
+  ${paso('2.4', 'Tus dos documentos de control', `Por etapa y por centro se descargan la relación de
     <strong>Exámenes solicitados</strong> (lo que falta por pagar) y la de <strong>Inscritos
     pagados</strong> (lo que ya quedó firme). Con esos dos PDF se rinde cuentas de la etapa.`)}
   ${lamina(LAMINA_CONCILIA, 'Así se ve la conciliación: el comprobante, las dos decisiones y los dos PDF de control')}
@@ -574,12 +574,12 @@ const LAMINA_ANUNCIO = `
   </div>`;
 
 const CAP8 = pagina(`
-  ${encabezadoCap(8, 'Comunicación', 'Dos canales tuyos: el megáfono y el mostrador de dudas.')}
-  ${paso('8.1', 'Anuncios: el megáfono', `Aparecen como banner en el inicio de alumnos y gestores.
+  ${encabezadoCap(10, 'Comunicación', 'Dos canales tuyos: el megáfono y el mostrador de dudas.')}
+  ${paso('10.1', 'Anuncios: el megáfono', `Aparecen como banner en el inicio de alumnos y gestores.
     Tienen prioridad (informativo, importante, urgente), pueden llevar un botón con enlace y se
     <strong>segmentan</strong> por municipio, etapa o gestor: el aviso le llega solo a quien le toca.
     Lo que ya no aplica se archiva, no se deja al aire.`)}
-  ${paso('8.2', 'Preguntas frecuentes: el mostrador', `Es el centro de ayuda que ven alumnos y
+  ${paso('10.2', 'Preguntas frecuentes: el mostrador', `Es el centro de ayuda que ven alumnos y
     gestores. Cada pregunta lleva su respuesta, su categoría y su <strong>audiencia</strong> (alumno,
     gestor o ambos). Marca como principales las 5 de cada categoría que más se repiten: el resto
     vive en el buscador.`)}
@@ -599,14 +599,14 @@ const LAMINA_PADRON = `
   </div>`;
 
 const CAP9 = pagina(`
-  ${encabezadoCap(9, 'Padrón histórico y verificación', 'La memoria del programa y el candado contra duplicados.')}
-  ${paso('9.1', 'El padrón es permanente', `Todo alumno con matrícula queda registrado ahí y
+  ${encabezadoCap(11, 'Padrón histórico y verificación', 'La memoria del programa y el candado contra duplicados.')}
+  ${paso('11.1', 'El padrón es permanente', `Todo alumno con matrícula queda registrado ahí y
     <strong>nunca se depura</strong>: aunque su cuenta desaparezca, su rastro ante el Estado se
     conserva. Es información confidencial — solo administración y dirección la ven completa.`)}
-  ${paso('9.2', 'Se alimenta sin miedo', `El Excel oficial se puede volver a subir cuando haga falta:
+  ${paso('11.2', 'Se alimenta sin miedo', `El Excel oficial se puede volver a subir cuando haga falta:
     el sistema <strong>actualiza por matrícula</strong>, no duplica. Y al dar de alta a cualquier
     persona, la CURP se coteja contra este padrón: los duplicados se detienen en la puerta.`)}
-  ${paso('9.3', 'Verificación en la sede', `Desde el teléfono, la sección <strong>Verificación</strong>
+  ${paso('11.3', 'Verificación en la sede', `Desde el teléfono, la sección <strong>Verificación</strong>
     escanea el QR de una credencial y confirma al instante que es auténtica y de quién es.`)}
   ${lamina(LAMINA_PADRON, 'Así se ve el padrón: se importa, se consulta y se exporta — sin duplicar jamás')}
 `);
@@ -614,7 +614,7 @@ const CAP9 = pagina(`
 // ── Cap. 10 · Titular y operativo ──────────────────────────────────────────
 
 const CAP10 = pagina(`
-  ${encabezadoCap(10, 'Titular y operativo', 'Dos perfiles de administración. Casi todo lo hacen ambos — esto es lo que no.')}
+  ${encabezadoCap(12, 'Titular y operativo', 'Dos perfiles de administración. Casi todo lo hacen ambos — esto es lo que no.')}
   <div class="tarjetas">
     ${tarjeta('Solo la titular', `Cuatro facultades: <strong>alta de gestores</strong>,
       <strong>activar o desactivar un centro</strong>, <strong>reasignar los alumnos</strong> de un
@@ -623,12 +623,12 @@ const CAP10 = pagina(`
       —<strong>la firma incluida, cada quien con la suya</strong>—, fichas de pago, conciliación,
       calificaciones, credenciales, bajas, anuncios, preguntas y padrón.`)}
   </div>
-  ${paso('10.1', 'Configuración: lo que sí se toca', `<strong>Mi cuenta</strong> y
+  ${paso('12.1', 'Configuración: lo que sí se toca', `<strong>Mi cuenta</strong> y
     <strong>Seguridad</strong> son personales y se cambian con confianza. <strong>Documentos
     requeridos</strong> y <strong>Etapas DGB</strong> son parámetros institucionales: se tocan poco
     y afectan a todos.`)}
-  ${paso('10.2', 'Reportes, en preparación', `La sección existe y se habilitará con datos reales
-    cuando haya un mes completo de operación. Mientras, los dos PDF de control del capítulo 6 son
+  ${paso('12.2', 'Reportes, en preparación', `La sección existe y se habilitará con datos reales
+    cuando haya un mes completo de operación. Mientras, los dos PDF de control del capítulo 2 son
     el reporte de cada etapa.`)}
   ${cita(`La etiqueta junto a tu nombre dice qué perfil eres. Si un botón no aparece, no está
   fallando el sistema: es facultad del otro perfil.`)}
@@ -867,18 +867,18 @@ ${PORTADA}
 ${INDICE}
 ${PRIORIDADES}
 ${CAP1}
-${CAP2}
-${CAP3}
-${CAP4A}
 ${CAP4B}
-${CAP4C}
-${CAP4D}
-${CAP4E}
-${CAP5A}
-${CAP5B}
 ${CAP6A}
 ${CAP6B}
+${CAP4C}
+${CAP4D}
+${CAP4A}
+${CAP4E}
+${CAP3}
 ${CAP7}
+${CAP2}
+${CAP5A}
+${CAP5B}
 ${CAP8}
 ${CAP9}
 ${CAP10}
