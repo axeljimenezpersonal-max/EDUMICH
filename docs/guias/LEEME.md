@@ -5,12 +5,18 @@
 | Guia | Version | Estado |
 |---|---|---|
 | **Alumno** (`Guia-Alumno-Modula22.pdf`) | **v1 · julio 2026** | ✅ APROBADA por Axel (commit `9e83f2a`). No se retoca sin pedirlo. |
-| Gestor (`Guia-Gestor-Modula22.pdf`) | v2 | En revision con Axel |
-| Administracion | — | Pendiente |
+| Gestor (`Guia-Gestor-Modula22.pdf`) | v2 | Axel: "ya estuvo" (aprobada de palabra) |
+| Administracion (`Guia-Administracion-Modula22.pdf`) | v1 | En revision con Axel |
 
 Regenerar la del alumno: `node docs/guias/capturar-alumno.mjs` (portal dev
 corriendo) y luego `node docs/guias/generar-guia-alumno.mjs`.
 La del gestor no usa capturas: `node docs/guias/generar-guia-gestor.mjs`.
+La de administracion tampoco: `node docs/guias/generar-guia-admin.mjs`.
+
+> La de administracion es USO INTERNO (solo Secretaria) y ademas de las
+> reglas generales: SIN datos de ejemplo (rotulos genericos, pies "Asi se
+> ve...", nunca "Ejemplo:"), ordenada por prioridades y sin documentar lo
+> apagado (Reportes una linea, pase de examen nada, chat nada).
 
 > ⚠️ Pendiente de decision: la guia del alumno v1 dice "se aprueba con 60"
 > en 4 lugares, pero Axel corrigio despues (ronda gestor v2) que las
