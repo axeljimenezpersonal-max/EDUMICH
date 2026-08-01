@@ -28,8 +28,8 @@ La guía se ordena así:
 
 ## Estructura (20 páginas)
 
-> **v2 (pedido de Axel):** los capítulos van DE LO MÁS PRIORITARIO A LO
-> MENOS: 01 Expediente → 02 Fichas de pago → 03 Matrícula y credencial →
+> **v2-v3 (pedido de Axel):** los capítulos van DE LO MÁS PRIORITARIO A LO
+> MENOS: 01 Expediente → 02 Matrícula y credencial → 03 Fichas de pago →
 > 04 Cédula y módulos → 05 Alumnos·la ficha (+bajas) → 06 Solicitudes →
 > 07 Calificaciones → 08 Convocatorias y sedes → 09 Red de gestores →
 > 10 Comunicación → 11 Padrón y verificación → 12 Titular y operativo.

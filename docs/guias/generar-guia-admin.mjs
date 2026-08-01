@@ -134,8 +134,8 @@ const INDICE = pagina(`
   <p class="lede" style="margin-top:-2mm">En orden de prioridad: primero lo que no puede esperar.</p>
   <div class="indice indice-compacto">
     <div class="ind-fila"><span class="ind-n">01</span><span class="ind-t">El expediente</span><span class="ind-d">la prioridad de cada día</span></div>
-    <div class="ind-fila"><span class="ind-n">02</span><span class="ind-t">Fichas de pago</span><span class="ind-d">emitir, conciliar, controlar</span></div>
-    <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Matrícula y credencial</span><span class="ind-d">capturar y emitir</span></div>
+    <div class="ind-fila"><span class="ind-n">02</span><span class="ind-t">Matrícula y credencial</span><span class="ind-d">capturar y emitir</span></div>
+    <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Fichas de pago</span><span class="ind-d">emitir, conciliar, controlar</span></div>
     <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Cédula y módulos</span><span class="ind-d">la inscripción formal</span></div>
     <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Alumnos · la ficha</span><span class="ind-d">acciones, correcciones y bajas</span></div>
     <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">Solicitudes de cuenta</span><span class="ind-d">la puerta de entrada</span></div>
@@ -172,7 +172,7 @@ const PRIORIDADES = pagina(`
   <p class="lede">El alumno sigue un camino y el gestor lleva un grupo. La administración no: opera un
   tablero. Esta guía va de lo más prioritario a lo menos.</p>
   <div class="camino camino3">
-    <div class="cam"><div class="cam-n">1</div><h4>Documentos y pagos</h4><p>La cadena diaria: el expediente aprobado abre la ficha, la ficha se emite y el pago se concilia. Capítulos 1 al 4.</p></div>
+    <div class="cam"><div class="cam-n">1</div><h4>Documentos y pagos</h4><p>La cadena diaria: expediente aprobado, matrícula capturada, ficha emitida y pago conciliado. Capítulos 1 al 4.</p></div>
     <div class="cam"><div class="cam-n">2</div><h4>Personas y decisiones</h4><p>La ficha del alumno, las solicitudes nuevas y las calificaciones. Capítulos 5 al 7.</p></div>
     <div class="cam"><div class="cam-n">3</div><h4>El marco</h4><p>Convocatorias, la red de gestores, comunicación y padrón. Capítulos 8 al 12.</p></div>
   </div>
@@ -343,14 +343,14 @@ const LAMINA_MATRICULA = `
   </div>`;
 
 const CAP4C = pagina(`
-  ${encabezadoCap(3, 'Matrícula y credencial', 'La matrícula la genera el Estado. Aquí se captura — y con ella se abre todo lo demás.')}
-  ${paso('3.1', 'Captura, no invención', `Cuando el expediente queda 5/5, el Estado asigna la matrícula
+  ${encabezadoCap(2, 'Matrícula y credencial', 'La matrícula la genera el Estado. Aquí se captura — y con ella se abre todo lo demás.')}
+  ${paso('2.1', 'Captura, no invención', `Cuando el expediente queda 5/5, el Estado asigna la matrícula
     oficial y tú la <strong>capturas</strong> en la pestaña Credencial, con casilla de confirmación:
     una matrícula mal escrita persigue al alumno en cada documento oficial.`)}
-  ${paso('3.2', 'Emite su credencial digital', `Con la matrícula capturada se emite, se previsualiza
+  ${paso('2.2', 'Emite su credencial digital', `Con la matrícula capturada se emite, se previsualiza
     por ambos lados y se descarga en PDF. Si venció se <strong>renueva</strong>; si se necesita un
     folio nuevo, se <strong>repone</strong>.`)}
-  ${paso('3.3', 'Verifícala en la sede', `Desde <strong>Verificación</strong>, con el teléfono: se
+  ${paso('2.3', 'Verifícala en la sede', `Desde <strong>Verificación</strong>, con el teléfono: se
     escanea el QR de la credencial y el sistema confirma que es auténtica y de quién es. El QR va
     firmado — uno falso no pasa.`)}
   ${lamina(LAMINA_MATRICULA, 'El orden de la pestaña Credencial: matrícula primero, credencial después')}
@@ -488,11 +488,11 @@ const LAMINA_ORDEN_A = `
   </div>`;
 
 const CAP6A = pagina(`
-  ${encabezadoCap(2, 'Fichas de pago', 'Modula no cobra ni genera líneas de captura: las emite el Estado. Aquí se cargan y se concilian.')}
-  ${paso('2.1', 'Nace solicitada', `El gestor —o el alumno— pide su ficha y la orden aparece en tu
+  ${encabezadoCap(3, 'Fichas de pago', 'Modula no cobra ni genera líneas de captura: las emite el Estado. Aquí se cargan y se concilian.')}
+  ${paso('3.1', 'Nace solicitada', `El gestor —o el alumno— pide su ficha y la orden aparece en tu
     bandeja como <strong>Solicitada</strong>, con el pendiente marcado en el Inicio. La orden trae
     los datos fiscales del centro listos para copiar.`)}
-  ${paso('2.2', 'Tú la emites', `Generas la línea en la plataforma del Estado y aquí cargas el
+  ${paso('3.2', 'Tú la emites', `Generas la línea en la plataforma del Estado y aquí cargas el
     <strong>PDF de la orden</strong> con su fecha de vencimiento — y la línea de captura si quieres
     mostrarla junto a la ficha. Al emitir, el centro la ve y puede descargarla y pagar.`)}
   ${lamina(LAMINA_ORDEN_A, 'Así se ve una orden: su camino de 4 estaciones y lo que se captura al emitirla')}
@@ -517,14 +517,14 @@ const LAMINA_CONCILIA = `
   </div>`;
 
 const CAP6B = pagina(`
-  ${kicker('CAPÍTULO 02 · CONTINÚA')}
+  ${kicker('CAPÍTULO 03 · CONTINÚA')}
   <h2 class="cap-titulo">Conciliar y controlar</h2>
   <p class="lede">El pago no existe hasta que tú lo confirmas contra el comprobante.</p>
-  ${paso('2.3', 'Concilia cada comprobante', `Compara el comprobante con la orden: si coincide,
+  ${paso('3.3', 'Concilia cada comprobante', `Compara el comprobante con la orden: si coincide,
     <strong>Conciliar</strong> deja el pago confirmado y los exámenes quedan firmes. Si algo no
     cuadra, <strong>rechaza el comprobante con motivo</strong> y el centro lo repone. Una orden
     equivocada se puede cancelar.`)}
-  ${paso('2.4', 'Tus dos documentos de control', `Por etapa y por centro se descargan la relación de
+  ${paso('3.4', 'Tus dos documentos de control', `Por etapa y por centro se descargan la relación de
     <strong>Exámenes solicitados</strong> (lo que falta por pagar) y la de <strong>Inscritos
     pagados</strong> (lo que ya quedó firme). Con esos dos PDF se rinde cuentas de la etapa.`)}
   ${lamina(LAMINA_CONCILIA, 'Así se ve la conciliación: el comprobante, las dos decisiones y los dos PDF de control')}
@@ -628,7 +628,7 @@ const CAP10 = pagina(`
     requeridos</strong> y <strong>Etapas DGB</strong> son parámetros institucionales: se tocan poco
     y afectan a todos.`)}
   ${paso('12.2', 'Reportes, en preparación', `La sección existe y se habilitará con datos reales
-    cuando haya un mes completo de operación. Mientras, los dos PDF de control del capítulo 2 son
+    cuando haya un mes completo de operación. Mientras, los dos PDF de control del capítulo 3 son
     el reporte de cada etapa.`)}
   ${cita(`La etiqueta junto a tu nombre dice qué perfil eres. Si un botón no aparece, no está
   fallando el sistema: es facultad del otro perfil.`)}
@@ -868,9 +868,9 @@ ${INDICE}
 ${PRIORIDADES}
 ${CAP1}
 ${CAP4B}
+${CAP4C}
 ${CAP6A}
 ${CAP6B}
-${CAP4C}
 ${CAP4D}
 ${CAP4A}
 ${CAP4E}
