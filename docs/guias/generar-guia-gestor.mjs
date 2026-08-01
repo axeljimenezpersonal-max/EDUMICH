@@ -127,9 +127,9 @@ const INDICE = pagina(`
     <div class="ind-fila"><span class="ind-n">02</span><span class="ind-t">Paso 1 · Registra a tu alumno</span><span class="ind-d">alta, CURP y su cuenta</span></div>
     <div class="ind-fila"><span class="ind-n">03</span><span class="ind-t">Paso 2 · Su expediente</span><span class="ind-d">tus alumnos y su ficha</span></div>
     <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Paso 3 · Inscríbelos</span><span class="ind-d">en lote, dentro de la ventana</span></div>
-    <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Paso 4 · Paga sus exámenes</span><span class="ind-d">ficha individual o grupal</span></div>
+    <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Paso 4 · Paga sus exámenes</span><span class="ind-d">la ficha grupal, de la solicitud al comprobante</span></div>
     <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">Paso 5 · Sus resultados</span><span class="ind-d">seguimiento y descarga</span></div>
-    <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Herramientas</span><span class="ind-d">calendario, ayuda y mensajes</span></div>
+    <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Herramientas</span><span class="ind-d">calendario, preguntas y mi aula</span></div>
     <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">¿Necesitas ayuda?</span><span class="ind-d">a quién y con qué datos</span></div>
     <div class="ind-fila"><span class="ind-n">✓</span><span class="ind-t">Tu lista de cotejo</span><span class="ind-d">una etapa con tus alumnos</span></div>
   </div>
@@ -326,12 +326,16 @@ const LAMINA_GRUPAL = `
   </div>`;
 
 const CAP5A = pagina(`
-  ${encabezadoCap(5, 'Paso 4 · Paga sus exámenes', 'Ante la Tesorería del Estado: tú solicitas, pagas y compruebas.')}
+  ${encabezadoCap(5, 'Paso 4 · Paga sus exámenes', 'Ante la Tesorería del Estado — y en grupo, que es como más te conviene.')}
   ${paso('5.1', 'Primero: que ya estén inscritos', `El pago es <strong>por examen inscrito</strong>.
     Si alguien te falta, regresa al capítulo 4 antes de solicitar nada.`)}
-  ${paso('5.2', 'Ficha individual o grupal', `Puedes pedir una ficha por alumno, o <strong>juntar a
-    varios en una sola</strong> y pagar todo el grupo de una vez, con una única línea de captura.`)}
+  ${paso('5.2', 'Solicita UNA ficha grupal', `Junta a todos tus alumnos de la etapa en una sola
+    solicitud: <strong>una ficha, una línea de captura, un solo pago</strong> para todo el grupo.
+    (También puedes pedirla individual, pero en grupo es un trámite en vez de diez.)`)}
   ${lamina(LAMINA_GRUPAL, 'Ejemplo: dos alumnos, tres exámenes — una sola ficha grupal')}
+  ${paso('5.3', 'La Secretaría la emite', `Tu solicitud llega a la coordinación, y la Tesorería emite
+    tu <strong>ficha de pago oficial</strong>. Cuando esté lista, aparece en tu panel para
+    descargarla.`)}
 `);
 
 const LAMINA_FICHA = `
@@ -342,6 +346,9 @@ const LAMINA_FICHA = `
       <span class="rm rm-ok">Solicitada</span><span class="rm rm-ok">Emisión</span>
       <span class="rm">Pago</span><span class="rm">Confirmada</span>
     </div>
+    <div class="orden-fila orden-boton">${I.doc()} <div><strong>Descargar ficha de pago (PDF)</strong>
+      <span>Documento oficial de la Tesorería — trae tu línea de captura y su vencimiento</span></div>
+      ${I.descarga()}</div>
     <div class="orden-etq">LÍNEA DE CAPTURA</div>
     <div class="orden-fila orden-linea"><strong>9800&nbsp;0131&nbsp;4402&nbsp;8834</strong> ${I.copiar()}</div>
     <div class="adjuntar">${I.descarga(C.gris)} Ya pagaste: adjunta el comprobante y la coordinación lo valida</div>
@@ -349,12 +356,15 @@ const LAMINA_FICHA = `
 
 const CAP5B = pagina(`
   ${kicker('CAPÍTULO 05 · CONTINUACIÓN')}
-  ${paso('5.3', 'Sigue cada ficha', `Cada ficha muestra su folio, cuántos exámenes cubre y en qué
-    estación va: <strong>solicitada → emisión → pago → confirmada</strong>. Con la línea de captura
-    pagas en banco, tienda o en línea, y subes tu comprobante en la misma ficha.`)}
-  ${lamina(LAMINA_FICHA, 'Ejemplo: una ficha emitida — su camino, su línea de captura y su comprobante')}
-  ${ojo(`La ficha <strong>vence a los 7 días</strong> de emitida, y solo lo pagado se califica: un
-    examen presentado sin pago confirmado no tiene resultado.`)}
+  ${paso('5.4', 'Descarga la ficha y págala', `Cada ficha muestra su camino:
+    <strong>solicitada → emisión → pago → confirmada</strong>. Ya emitida,
+    <strong>descárgala en PDF</strong> y págala con su línea de captura en banco, tienda o en
+    línea, antes del vencimiento que la propia ficha indica.`)}
+  ${paso('5.5', 'Adjunta el comprobante', `En la misma ficha, sube la foto o el PDF de tu
+    comprobante. La coordinación lo valida y la ficha queda <strong>confirmada</strong>: tus
+    alumnos aparecen como inscritos pagados.`)}
+  ${lamina(LAMINA_FICHA, 'Ejemplo: la ficha emitida — descárgala, págala y adjunta tu comprobante')}
+  ${ojo(`Solo lo pagado se califica: un examen presentado sin pago confirmado no tiene resultado.`)}
 `);
 
 // ── Cap. 6 · Sus resultados ────────────────────────────────────────────────
@@ -363,28 +373,28 @@ const LAMINA_RESULTADOS = `
   <div class="califs">
     <div class="calif-fila">
       <div class="calif-mod"><strong>Ana Sofía Ramírez · M1</strong><span>Etapa 2699-A</span></div>
-      <div class="calif-nota">84</div>
+      <div class="calif-nota">8.4</div>
       ${chip('Aprobado', C.verdeFondo, C.verde)}
     </div>
     <div class="calif-fila">
       <div class="calif-mod"><strong>María José Hernández · M1</strong><span>Etapa 2699-A</span></div>
-      <div class="calif-nota">58</div>
-      ${chip('No aprobado', C.rojoFondo, C.rojo)}
+      <div class="calif-nota">5.8</div>
+      ${chip('Por presentar de nuevo', C.ambarFondo, C.ambarTexto)}
     </div>
     <div class="avance">
       <div class="av-titulo">Tu centro en la etapa 2699-A <span>9 exámenes presentados</span></div>
       <div class="av-nums">
-        <div><strong>78%</strong><span>APROBACIÓN</span></div>
+        <div><strong>7</strong><span>APROBADOS</span></div>
         <div><strong>7.9</strong><span>PROMEDIO</span></div>
       </div>
     </div>
   </div>`;
 
 const CAP6 = pagina(`
-  ${encabezadoCap(6, 'Paso 5 · Sus resultados', 'Se aprueba con 60. Aquí ves quién avanza y quién necesita otro intento.')}
+  ${encabezadoCap(6, 'Paso 5 · Sus resultados', 'El avance de tus alumnos: sus módulos aprobados y su promedio.')}
   ${paso('6.1', 'Dos vistas', `Por <strong>alumno</strong> (su historial completo) o por
-    <strong>etapa</strong> (cómo le fue a tu grupo en esa aplicación). Tu resumen te da la
-    aprobación y el promedio del centro de un vistazo.`)}
+    <strong>etapa</strong> (cómo le fue a tu grupo en esa aplicación). Tu resumen te dice de un
+    vistazo cuántos aprobaron y el promedio de tu centro.`)}
   ${paso('6.2', 'El que no aprobó, vuelve', `No es definitivo: lo inscribes otra vez en una etapa
     siguiente. Úsalo para planear el repaso con las <strong>Pruebas</strong> de su portal.`)}
   ${lamina(LAMINA_RESULTADOS, 'Ejemplo: resultados por alumno y el resumen de tu centro')}
@@ -417,23 +427,44 @@ const CAP7A = pagina(`
   ${lamina(LAMINA_CALENDARIO, 'EJEMPLO del ritmo del año — las fechas exactas de tu ciclo están en tu portal')}
 `);
 
-const LAMINA_MENSAJES = `
-  <div class="chatl">
-    <div class="burbuja b-gestor">Buenas tardes, ¿me apoyan con la matrícula de mi alumna Ana Sofía?
-      Su expediente ya está en 5/5.</div>
-    <div class="burbuja b-secre">¡Hola! Claro: la vemos hoy mismo. En cuanto quede, te llega el aviso.</div>
+// Lámina: preguntas frecuentes del gestor, con una respuesta REAL del portal
+// (copiada literal del contenido publicado).
+const LAMINA_FAQ_G = `
+  <div class="faql">
+    <div class="faq-buscador">${I.busqueda()} <span>Escribe tu pregunta…</span></div>
+    <div class="faq-item faq-abierta">
+      <div class="faq-preg">¿Cómo doy de alta a un alumno?</div>
+      <div class="faq-resp">Entra a "Nuevo alumno", captura sus datos y sube los 5 documentos
+        obligatorios (CURP, acta, identificación, comprobante de domicilio y certificado de
+        secundaria). La administración revisa el expediente y asigna la matrícula.</div>
+    </div>
+    <div class="faq-item"><div class="faq-preg">¿Qué documentos necesita el expediente?</div></div>
+    <div class="faq-item"><div class="faq-preg">¿Qué hago si registré mal la CURP de un alumno?</div></div>
+  </div>`;
+
+// Lámina: Mi aula — cómo se verá el aula virtual del centro.
+const LAMINA_AULA = `
+  <div class="aula">
+    <div class="aula-cab"><div><strong>Mi aula</strong><span>Aula virtual de tu centro</span></div>
+      ${chip('En preparación', C.ambarFondo, C.ambarTexto)}</div>
+    <div class="aula-clases">
+      <div class="aula-clase"><strong>Módulo 4 · Matemáticas</strong>
+        <span>Foro · Tareas · Materiales · Videos</span></div>
+      <div class="aula-clase"><strong>Módulo 5 · Argumentación</strong>
+        <span>Foro · Tareas · Materiales · Videos</span></div>
+    </div>
+    <div class="aula-nota">${I.candado()} Aparece con candado hasta que se habilite para tu centro.</div>
   </div>`;
 
 const CAP7B = pagina(`
-  ${kicker('CAPÍTULO 07 · AYUDA Y COMUNICACIÓN')}
-  ${paso('7.2', 'Centro de ayuda', `Las dudas comunes del trámite —altas, documentos, inscripción y
-    pagos— ya están respondidas, con buscador. Es tu primera parada.`)}
-  ${paso('7.3', 'Mensajes con la Secretaría', `Un chat directo con la administración, que queda
-    <strong>registrado</strong>: lo acordado ahí no se pierde. Úsalo para casos de un alumno
-    concreto.`)}
-  ${lamina(LAMINA_MENSAJES, 'Ejemplo: una conversación con la Secretaría, registrada')}
-  ${paso('7.4', 'Mi aula', `El aula virtual de tu centro (clases, materiales, tareas) está en
-    preparación: aparece con candado hasta habilitarse. Te avisaremos.`)}
+  ${kicker('CAPÍTULO 07 · PREGUNTAS FRECUENTES Y MI AULA')}
+  ${paso('7.2', 'Preguntas frecuentes', `Las dudas comunes del trámite —altas, documentos,
+    inscripción y pagos— ya están respondidas en tu portal, con buscador. Es tu primera parada.`)}
+  ${lamina(LAMINA_FAQ_G, 'Ejemplo: buscas tu duda y la respuesta se abre ahí mismo')}
+  ${paso('7.3', 'Mi aula', `El aula virtual de tu centro: clases por módulo con foro, tareas,
+    materiales y videos, en línea o de forma híbrida. Está en preparación — te avisaremos cuando
+    se habilite.`)}
+  ${lamina(LAMINA_AULA, 'Así se verá tu aula: una clase por módulo, con todo su material')}
 `);
 
 // ── Cap. 8 · Ayuda + Anexo ─────────────────────────────────────────────────
@@ -441,12 +472,12 @@ const CAP7B = pagina(`
 const CAP8 = pagina(`
   ${encabezadoCap(8, '¿Necesitas ayuda?', 'En este orden llegas más rápido a la respuesta.')}
   <div class="tarjetas">
-    ${tarjeta('1 · Centro de ayuda', `La mayoría de las dudas del trámite ya están resueltas ahí,
-      con buscador.`)}
-    ${tarjeta('2 · Mensajes', `Para casos de un alumno concreto: escribe a la Secretaría desde tu
-      panel; la conversación queda registrada.`)}
-    ${tarjeta('3 · Teléfono del Instituto', `El número y horario vigentes están al pie del Centro
-      de ayuda.`)}
+    ${tarjeta('1 · Preguntas frecuentes', `La mayoría de las dudas del trámite ya están resueltas
+      ahí, con buscador.`)}
+    ${tarjeta('2 · La administración', `Para casos de un alumno concreto, contacta a la
+      coordinación de la Secretaría.`)}
+    ${tarjeta('3 · Teléfono del Instituto', `El número y horario vigentes están al pie de las
+      Preguntas frecuentes.`)}
     ${tarjeta('Ten a la mano', `Tu municipio y la CURP del alumno del que hablas: agilizan
       cualquier revisión.`)}
   </div>
@@ -462,7 +493,7 @@ const ANEXO = pagina(`
     <div class="cot"><span class="cuadro"></span>Ubiqué la ventana en el Calendario</div>
     <div class="cot"><span class="cuadro"></span>Inscribí el lote DENTRO de la ventana (hasta 4 módulos c/u)</div>
     <div class="cot"><span class="cuadro"></span>Solicité la ficha (individual o grupal)</div>
-    <div class="cot"><span class="cuadro"></span>Pagué antes del vencimiento (7 días) y subí el comprobante</div>
+    <div class="cot"><span class="cuadro"></span>Descargué la ficha, pagué antes de su vencimiento y subí el comprobante</div>
     <div class="cot"><span class="cuadro"></span>Confirmados: mis alumnos aparecen como inscritos pagados</div>
     <div class="cot"><span class="cuadro"></span>Les avisé sede, día y hora — y que lleven identificación</div>
     <div class="cot"><span class="cuadro"></span>Revisé sus calificaciones y planeé los reintentos</div>
@@ -650,7 +681,7 @@ const HTML = `<!doctype html>
 
   /* Resultados */
   .califs { max-width: 150mm; margin: 0 auto; display: flex; flex-direction: column; gap: 2.8mm; }
-  .calif-fila { display: grid; grid-template-columns: 1fr 16mm 32mm; gap: 4mm; align-items: center;
+  .calif-fila { display: grid; grid-template-columns: 1fr 13mm 44mm; gap: 3mm; align-items: center;
                 background: #fff; border: 0.35mm solid ${C.linea}; border-radius: 2.5mm;
                 padding: 3mm 4.5mm; }
   .calif-mod strong { display: block; font-size: 10pt; font-weight: 600; color: ${C.guindaNoche}; }
@@ -688,6 +719,30 @@ const HTML = `<!doctype html>
               border-bottom-right-radius: 1mm; }
   .b-secre { align-self: flex-start; background: #fff; border: 0.35mm solid ${C.linea};
              color: ${C.tinta}; border-bottom-left-radius: 1mm; }
+
+  /* FAQ */
+  .faql { max-width: 140mm; margin: 0 auto; display: flex; flex-direction: column; gap: 2.6mm; }
+  .faq-buscador { display: flex; gap: 3mm; align-items: center; border: 0.4mm solid ${C.linea};
+                  border-radius: 6mm; background: #fff; padding: 3mm 5mm; color: #a89a8e;
+                  font-size: 9.5pt; }
+  .faq-item { border: 0.35mm solid ${C.linea}; border-radius: 2.5mm; background: #fff;
+              padding: 3.2mm 5mm; }
+  .faq-abierta { border-color: ${C.guinda}; }
+  .faq-preg { font-weight: 600; font-size: 10pt; color: ${C.guindaNoche}; }
+  .faq-resp { font-size: 9pt; color: ${C.gris}; margin-top: 1.5mm; line-height: 1.55; }
+
+  /* Mi aula */
+  .aula { max-width: 140mm; margin: 0 auto; }
+  .aula-cab { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3mm; }
+  .aula-cab strong { display: block; font-size: 12pt; color: ${C.guindaNoche}; }
+  .aula-cab span { font-size: 8.5pt; color: ${C.gris}; }
+  .aula-clases { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; }
+  .aula-clase { background: #fff; border: 0.35mm solid ${C.linea}; border-radius: 2.5mm;
+                padding: 4mm 4.5mm; }
+  .aula-clase strong { display: block; font-size: 10pt; font-weight: 600; color: ${C.guindaNoche}; }
+  .aula-clase span { font-size: 8pt; color: ${C.gris}; }
+  .aula-nota { display: flex; gap: 2.5mm; align-items: center; margin-top: 3mm; font-size: 9pt;
+               color: ${C.gris}; }
 
   /* Tarjetas y cotejo */
   .tarjetas { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin-top: 4mm; }
