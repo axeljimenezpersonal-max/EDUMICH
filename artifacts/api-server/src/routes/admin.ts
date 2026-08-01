@@ -58,6 +58,8 @@ import { generarRelacionExamenes, generarRelacionExamenesTodos } from '../servic
 import { generarInscritosPagados } from '../services/inscritosPagadosPdf';
 import { nombreArchivoExpediente } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
+import { validarCurp } from '../utils/curp';
+import { normalizarTelefonoOMantener } from '../utils/telefono';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
 import { avisarSiExpedienteQuedoCompleto } from '../utils/notificarExpediente';
@@ -2014,6 +2016,15 @@ router.post('/alumnos/:id/reactivar', async (req, res) => {
     if (!u || u.rol !== 'estudiante') { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
     if (u.activo) { res.status(409).json({ error: 'Este alumno ya está activo.' }); return; }
 
+    // Una baja definitiva no se deshace: el correo/CURP liberados pudieron
+    // haberse reutilizado ya en otra cuenta.
+    const [est] = await db.select({ estadoCuenta: estudiantes.estadoCuenta })
+      .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+    if (est?.estadoCuenta === 'baja_definitiva') {
+      res.status(409).json({ error: 'Este alumno tiene baja definitiva: ya no se puede reactivar.' });
+      return;
+    }
+
     await db.update(users).set({ activo: true, updatedAt: new Date() }).where(eq(users.id, alumnoId));
     await tryAuditLog({
       userId: req.user!.userId, accion: 'reactivar_alumno', entidad: 'estudiantes', entidadId: alumnoId,
@@ -2023,6 +2034,171 @@ router.post('/alumnos/:id/reactivar', async (req, res) => {
   } catch (e) {
     console.error('[admin/alumnos/reactivar]', e);
     res.status(500).json({ error: 'No se pudo reactivar al alumno' });
+  }
+});
+
+// ─── POST /admin/alumnos/:id/baja-definitiva ───────────────────────────────
+// Segundo paso de la baja (solo sobre un alumno YA inactivo). El registro NO
+// se borra —es el historial y, si tiene matrícula, su rastro va al padrón
+// histórico— pero el correo, el teléfono y la CURP se LIBERAN para que puedan
+// volver a usarse en un registro nuevo. Es irreversible.
+router.post('/alumnos/:id/baja-definitiva', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  const motivo = String((req.body as { motivo?: string })?.motivo ?? '').trim().slice(0, 300);
+  try {
+    const [u] = await db
+      .select({ rol: users.rol, email: users.email, activo: users.activo })
+      .from(users).where(eq(users.id, alumnoId));
+    if (!u || u.rol !== 'estudiante') { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+    if (u.activo) {
+      res.status(409).json({ error: 'El alumno sigue activo. Primero ponlo inactivo (dar de baja) y después aplica la baja definitiva.' });
+      return;
+    }
+
+    const [est] = await db
+      .select({ estadoCuenta: estudiantes.estadoCuenta, telefono: estudiantes.telefono, curp: estudiantes.curp })
+      .from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+    if (!est) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+    if (est.estadoCuenta === 'baja_definitiva') {
+      res.status(409).json({ error: 'Este alumno ya tiene baja definitiva.' });
+      return;
+    }
+
+    // Antes de liberar la CURP, asegurar su rastro en el padrón histórico
+    // (solo aplica si tiene matrícula; sin ella el registro del estudiante
+    // se conserva igual en la tabla).
+    await registrarEnPadronHistorico(alumnoId);
+
+    const ahora = new Date();
+    // El correo es NOT NULL y único: se sustituye por una marca interna que
+    // nunca choca ni recibe correo (dominio reservado .invalid, RFC 2606).
+    const correoLiberado = `baja-${alumnoId}@liberado.invalid`;
+
+    await db.transaction(async (tx) => {
+      await tx.update(estudiantes).set({
+        estadoCuenta: 'baja_definitiva',
+        bajaDefinitivaEn: ahora,
+        bajaDefinitivaPor: req.user!.userId,
+        bajaDefinitivaMotivo: motivo || null,
+        correoHistorico: u.email,
+        telefonoHistorico: est.telefono,
+        curpHistorica: est.curp,
+        telefono: null,
+        curp: null,
+        // Que la depuración nocturna jamás lo convierta en hard delete.
+        protegidaContraEliminacion: true,
+        updatedAt: ahora,
+      }).where(eq(estudiantes.userId, alumnoId));
+
+      await tx.update(users).set({
+        email: correoLiberado,
+        activo: false,
+        updatedAt: ahora,
+      }).where(eq(users.id, alumnoId));
+    });
+
+    await invalidarSesiones(alumnoId);
+
+    await tryAuditLog({
+      userId: req.user!.userId, accion: 'baja_definitiva_alumno', entidad: 'estudiantes', entidadId: alumnoId,
+      detalle: `Admin aplicó baja definitiva al alumno ${u.email}${motivo ? ` — motivo: ${motivo}` : ''}. Correo, teléfono y CURP liberados.`,
+      metadata: { emailOriginal: u.email, telefonoOriginal: est.telefono, curpOriginal: est.curp, motivo: motivo || null }, req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[admin/alumnos/baja-definitiva]', e);
+    res.status(500).json({ error: 'No se pudo aplicar la baja definitiva' });
+  }
+});
+
+// ─── PATCH /admin/alumnos/:id — editar datos del alumno ────────────────────
+// Mismo contrato que el del gestor (PATCH /gestor/alumnos/:id) pero sin el
+// candado de propiedad: la administración puede corregir a cualquier alumno,
+// incluidos los que van por su cuenta o se quedaron sin gestor. El correo no
+// se edita desde aquí (es la llave de la cuenta).
+const adminEditarAlumnoSchema = z.object({
+  nombreCompleto: z.string().min(2).max(200).optional(),
+  telefono: z.string().max(30).nullable().optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v))),
+  direccion: z.string().max(500).nullable().optional(),
+  fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  curp: z.string().length(18).toUpperCase().nullable().optional(),
+});
+
+router.patch('/alumnos/:id', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+  try {
+    const [alumno] = await db.select().from(estudiantes).where(eq(estudiantes.userId, alumnoId));
+    if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+    if (alumno.estadoCuenta === 'baja_definitiva') {
+      res.status(409).json({ error: 'Este alumno tiene baja definitiva: su información ya no se edita.' });
+      return;
+    }
+
+    const parse = adminEditarAlumnoSchema.safeParse(req.body);
+    if (!parse.success) {
+      res.status(400).json({ error: 'Datos inválidos', detalles: parse.error.issues });
+      return;
+    }
+    const data = parse.data;
+    if (Object.keys(data).length === 0) {
+      res.status(400).json({ error: 'No hay campos para actualizar' });
+      return;
+    }
+
+    // Corregir la CURP pasa por el mismo filtro que capturarla de nuevo
+    // (estructura + coherencia + duplicados), igual que en el gestor.
+    if (data.curp) {
+      const curpNueva = data.curp.toUpperCase().trim();
+      const resultado = validarCurp(curpNueva, {
+        nombres: alumno.nombres ?? undefined,
+        apellidoPaterno: alumno.apellidoPaterno ?? undefined,
+        apellidoMaterno: alumno.apellidoMaterno ?? undefined,
+        fechaNacimiento: data.fechaNacimiento ?? alumno.fechaNacimiento ?? undefined,
+        sexo: alumno.sexo ?? undefined,
+      });
+      if (!resultado.valida) {
+        res.status(400).json({ error: resultado.errores[0] ?? 'CURP inválida.', campo: 'curp' });
+        return;
+      }
+      const [ocupada] = await db
+        .select({ userId: estudiantes.userId, nombre: estudiantes.nombreCompleto })
+        .from(estudiantes)
+        .where(and(eq(estudiantes.curp, curpNueva), ne(estudiantes.userId, alumnoId)));
+      if (ocupada) {
+        res.status(409).json({
+          error: `Esa CURP ya está registrada en otro alumno (${ocupada.nombre}). Verifica cuál de los dos expedientes es el correcto antes de cambiarla.`,
+          campo: 'curp',
+        });
+        return;
+      }
+      data.curp = curpNueva;
+    }
+
+    const updateFields: Record<string, unknown> = {};
+    if (data.nombreCompleto !== undefined) updateFields.nombreCompleto = data.nombreCompleto;
+    if (data.telefono !== undefined) updateFields.telefono = data.telefono;
+    if (data.direccion !== undefined) updateFields.direccion = data.direccion;
+    if (data.fechaNacimiento !== undefined) updateFields.fechaNacimiento = data.fechaNacimiento;
+    if (data.curp !== undefined) updateFields.curp = data.curp;
+    updateFields.updatedAt = new Date();
+
+    await db.update(estudiantes).set(updateFields).where(eq(estudiantes.userId, alumnoId));
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'editar_alumno',
+      entidad: 'estudiantes',
+      entidadId: alumnoId,
+      detalle: `Admin actualizó datos del alumno: ${Object.keys(updateFields).filter(k => k !== 'updatedAt').join(', ')}`,
+      metadata: { campos: Object.keys(updateFields).filter(k => k !== 'updatedAt') },
+      req,
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[admin/alumnos/patch]', e);
+    res.status(500).json({ error: 'No se pudo actualizar la información del alumno' });
   }
 });
 
@@ -2153,7 +2329,7 @@ router.get('/alumnos', async (req, res) => {
   };
 
   const estadoCuentaParam = (req.query.estadoCuenta as string) || '';
-  const VALID_ESTADO_CUENTA = ['activa', 'aviso_enviado', 'soft_deleted'];
+  const VALID_ESTADO_CUENTA = ['activa', 'aviso_enviado', 'soft_deleted', 'baja_definitiva'];
   const estadoCuentaSnippet = VALID_ESTADO_CUENTA.includes(estadoCuentaParam)
     ? sql`AND e.estado_cuenta = ${estadoCuentaParam}`
     : sql`AND COALESCE(e.estado_cuenta, 'activa') != 'soft_deleted' AND COALESCE(e.estado_cuenta, 'activa') != 'hard_deleted'`;
@@ -2327,7 +2503,7 @@ router.get('/alumnos', async (req, res) => {
         municipio: r.municipio_id ? { id: r.municipio_id, nombre: r.municipio_nombre ?? '' } : null,
         gestor: r.gestor_id ? { id: r.gestor_id, nombreCompleto: r.gestor_nombre ?? '', iniciales: gestorIniciales } : null,
         estadoExpediente: r.estado_expediente as 'activo' | 'esperando_matricula' | 'modulos_pendientes' | 'pago_pendiente' | 'en_proceso' | 'rechazado' | 'sin_documentos' | 'inactivo',
-        estadoCuenta: (r.estado_cuenta ?? 'activa') as 'activa' | 'aviso_enviado' | 'soft_deleted' | 'hard_deleted',
+        estadoCuenta: (r.estado_cuenta ?? 'activa') as 'activa' | 'aviso_enviado' | 'soft_deleted' | 'hard_deleted' | 'baja_definitiva',
         docsAprobados,
         docsTotal: Number(r.docs_total ?? 0),
         ultimaActividad: ultimaActividad ? ultimaActividad.toISOString() : null,
@@ -2393,6 +2569,8 @@ router.get('/alumnos/:id', async (req, res) => {
       matricula_capturada_en: Date | null;
       licencia_digital: string | null;
       licencia_emitida_en: Date | null;
+      estado_cuenta: string | null;
+      baja_definitiva_en: Date | null;
     };
 
     type ExamenRow = {
@@ -2428,6 +2606,7 @@ router.get('/alumnos/:id', async (req, res) => {
           e.folio_preregistro, e.preregistro_vigente_hasta::text AS preregistro_vigente_hasta,
           e.matricula_oficial_dgb, e.matricula_capturada_en,
           e.licencia_digital, e.licencia_emitida_en,
+          e.estado_cuenta, e.baja_definitiva_en,
           CASE
             WHEN u.activo = false THEN 'inactivo'
             WHEN EXISTS (SELECT 1 FROM expediente_documentos ed WHERE ed.estudiante_id = e.user_id AND ed.estado = 'rechazado') THEN 'rechazado'
@@ -2523,6 +2702,12 @@ router.get('/alumnos/:id', async (req, res) => {
         matriculaCapturadaEn: r.matricula_capturada_en ? new Date(r.matricula_capturada_en as string | Date).toISOString() : null,
         licenciaDigital: r.licencia_digital ?? null,
         licenciaEmitidaEn: r.licencia_emitida_en ? new Date(r.licencia_emitida_en as string | Date).toISOString() : null,
+        // `activo` se seleccionaba pero nunca se devolvía: el portal no podía
+        // saber que el alumno estaba de baja (la insignia y el botón de
+        // reactivar no reaccionaban).
+        activo: r.activo,
+        estadoCuenta: r.estado_cuenta ?? 'activa',
+        bajaDefinitivaEn: r.baja_definitiva_en ? new Date(r.baja_definitiva_en as string | Date).toISOString() : null,
       },
       documentos: docs.map((d) => ({
         id: d.id,

@@ -40,6 +40,12 @@ export const estadoCuentaEnum = pgEnum('estado_cuenta', [
   'aviso_enviado',
   'soft_deleted',
   'hard_deleted',
+  // Baja DEFINITIVA decidida por un administrador (dos pasos: primero
+  // inactivo, luego baja). El registro se conserva como historial, pero el
+  // correo, el telefono y la CURP se liberan para poder reutilizarse; las
+  // copias quedan en las columnas *_historico. La depuracion nocturna NO
+  // toca este estado.
+  'baja_definitiva',
 ]);
 
 export const avisosPrioridadEnum = pgEnum('avisos_prioridad', [
@@ -337,6 +343,15 @@ export const estudiantes = pgTable(
     softDeleteMotivo: varchar('soft_delete_motivo', { length: 200 }),
     hardDeletedEn: timestamp('hard_deleted_en'),
     protegidaContraEliminacion: boolean('protegida_contra_eliminacion').notNull().default(false),
+    // ── Baja definitiva (por administrador) ──
+    // Al aplicarla se liberan email/telefono/curp (los indices unicos quedan
+    // libres) y aqui se guarda la copia historica de cada uno.
+    bajaDefinitivaEn: timestamp('baja_definitiva_en'),
+    bajaDefinitivaPor: integer('baja_definitiva_por').references(() => users.id),
+    bajaDefinitivaMotivo: varchar('baja_definitiva_motivo', { length: 300 }),
+    correoHistorico: varchar('correo_historico', { length: 255 }),
+    telefonoHistorico: varchar('telefono_historico', { length: 30 }),
+    curpHistorica: varchar('curp_historica', { length: 18 }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   },

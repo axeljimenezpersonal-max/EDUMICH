@@ -473,6 +473,21 @@ const migrations = [
      updated_at timestamp NOT NULL DEFAULT now()
    )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS centros_padron_centro_idx ON centros_padron (centro)`,
+  // Baja definitiva de alumno (dos pasos: inactivo → baja). El registro se
+  // conserva; email/telefono/curp se liberan y su copia queda en *_historico.
+  `ALTER TYPE estado_cuenta ADD VALUE IF NOT EXISTS 'baja_definitiva'`,
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS baja_definitiva_en timestamp`,
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS baja_definitiva_por integer REFERENCES users(id)`,
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS baja_definitiva_motivo varchar(300)`,
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS correo_historico varchar(255)`,
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS telefono_historico varchar(30)`,
+  `ALTER TABLE estudiantes
+     ADD COLUMN IF NOT EXISTS curp_historica varchar(18)`,
 ];
 
 export async function runStartupMigrations() {

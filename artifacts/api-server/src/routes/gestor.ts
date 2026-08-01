@@ -851,6 +851,10 @@ router.patch('/alumnos/:id', async (req, res) => {
     res.status(404).json({ error: 'Alumno no encontrado' });
     return;
   }
+  if (alumno.estadoCuenta === 'baja_definitiva') {
+    res.status(409).json({ error: 'Este alumno tiene baja definitiva: su información ya no se edita.' });
+    return;
+  }
 
   const parse = editarAlumnoSchema.safeParse(req.body);
   if (!parse.success) {
