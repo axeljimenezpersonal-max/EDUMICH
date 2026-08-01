@@ -69,6 +69,10 @@ La del gestor no usa capturas: `node docs/guias/generar-guia-gestor.mjs`.
     son: Calendario, Preguntas frecuentes y Mi aula.
 21. La seccion de ayuda se llama **"Preguntas frecuentes"** (no "Centro de
     ayuda") y su contenido en la guia se copia LITERAL del portal.
+22. **NUNCA informacion real de la plataforma** en las guias: nada de
+    centros reales (UTEC salio de la v2 del gestor por esto), cuentas,
+    correos ni matriculas verdaderas. Todo dato de ejemplo es ficticio y
+    ante la duda se barre el generador con grep antes de enviar.
 
 **Proceso**
 16. Todo regenerable por comando; las capturas no se retocan a mano.

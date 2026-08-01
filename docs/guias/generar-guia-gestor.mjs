@@ -156,7 +156,7 @@ const CAMINO = pagina(`
 const LAMINA_PANEL = `
   <div class="panel">
     <div class="panel-cab">
-      <div><div class="panel-hola">Hola, UTEC Morelia</div>
+      <div><div class="panel-hola">Hola, Centro Guadalupe Victoria</div>
         <div class="panel-sub">Panel del gestor</div></div>
       ${chip('Etapa 2699-B · inscripción abierta', C.verdeFondo, C.verde)}
     </div>
