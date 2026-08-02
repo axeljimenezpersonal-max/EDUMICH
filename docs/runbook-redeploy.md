@@ -169,24 +169,30 @@ interfaz).
 
 `importar-temarios.mjs` deja el PDF de cada módulo en el almacenamiento y
 registra la fila `tipo = 'temario'` que el alumno ve en "Material de estudio".
-Los PDF **no viajan en la imagen**: se copian primero al EC2 y de ahí al
-contenedor.
+
+**Los PDF que ya están en el repo SÍ viajan en la imagen.** Viven en
+`lib/db/datos/temarios/` y el Dockerfile copia `lib/`, así que después de un
+redeploy ya están dentro del contenedor y no hay nada que transferir — que es
+lo que conviene, porque quien opera el despliegue entra por Session Manager
+(navegador) y **no tiene `scp`**:
 
 ```bash
-# 1. del equipo al EC2 (fuera de la sesión SSM, desde tu máquina)
-scp temarios/*.pdf ubuntu@<host>:~/temarios/
+# ENSAYO — no escribe nada, solo dice a qué módulo iría cada PDF
+docker exec -it modula22 node lib/db/importar-temarios.mjs lib/db/datos/temarios
 
-# 2. del EC2 al contenedor
+# de verdad
+docker exec -it modula22 node lib/db/importar-temarios.mjs lib/db/datos/temarios --aplicar
+```
+
+Para un PDF suelto que NO esté en el repo (y sin pasar por el panel), primero
+hay que meterlo al contenedor:
+
+```bash
 docker cp ~/temarios modula22:/tmp/temarios
-
-# 3. ENSAYO — no escribe nada, solo dice qué haría y a qué módulo va cada PDF
-docker exec -it modula22 node lib/db/importar-temarios.mjs /tmp/temarios
-
-# 4. de verdad
 docker exec -it modula22 node lib/db/importar-temarios.mjs /tmp/temarios --aplicar
 ```
 
-**Revisa el ensayo antes del paso 4.** El módulo sale del nombre del archivo
+**Revisa el ensayo antes de aplicar.** El módulo sale del nombre del archivo
 (`TEMARIO_MODULO_7.pdf`, `Modulo-7.pdf`, `M7.pdf`…); lo que no se puede deducir
 se salta con su motivo, pero el emparejamiento que sí encontró solo lo puede
 confirmar una persona. Al final lista los módulos que siguen sin temario.
