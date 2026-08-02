@@ -31,6 +31,6 @@ mantener este formato por claridad.
 
 ## Estado
 
-Cargados: 1 al 6, y 8 al 14.
+Cargados: del 1 al 18.
 
-**Faltan: 7, y del 15 al 22.**
+**Faltan: 19, 20, 21 y 22.**
