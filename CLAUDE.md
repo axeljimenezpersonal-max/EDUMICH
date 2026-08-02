@@ -143,8 +143,10 @@ causa. Si algo no se puede verificar desde ahí, debe decirse en vez de suponer.
 Todo el detalle está en **`docs/seguridad/07-hoja-de-ruta.md`**. Lo abierto más
 importante:
 
-1. **Migración a AWS** — región recomendada `mx-central-1` (México). Hoy la base
-   está en `us-east-2` (Ohio): los datos ya están fuera del país.
+1. ~~Migración a AWS~~ — **HECHA** (confirmado 2026-08-02): la base vive en RDS
+   `mx-central-1` (México), instancia `modula22-db`, base interna `postgres`.
+   Neon ya no se usa. Los archivos subidos van en disco del EC2
+   (`~/modula22-storage`, montado como volumen — ver runbook-redeploy.md).
 2. **Sin alertas**: nadie se entera si el sistema se cae.
 3. **El trabajo que borra cuentas** corre a las 3 AM sin lock; con más de una
    instancia se ejecutaría N veces.

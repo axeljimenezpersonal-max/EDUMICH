@@ -1,5 +1,13 @@
 # Runbook — mudanza de la base: Neon (Ohio) → RDS (mx-central-1)
 
+> **RESULTADO (2026-08-02): la mudanza YA ESTABA HECHA.** Al ejecutar la fase 0
+> se descubrió que `DATABASE_URL` de producción ya apuntaba a
+> `modula22-db...mx-central-1.rds.amazonaws.com` (base interna `postgres`).
+> Neon ya no está en uso. Este runbook se conserva como procedimiento de
+> referencia por si algún día hay otra mudanza. Lo que sí se hizo ese día:
+> rotar la contraseña maestra, montar el volumen de storage (ver
+> runbook-redeploy.md) y limpiar la base `modula` vacía que se creó por error.
+
 Es el pendiente #1 de la hoja de ruta: los datos hoy viven fuera del país.
 La mudanza reutiliza el respaldo/restauración **ya probados** el 2026-07-20
 (`lib/db/respaldo.mjs`, `lib/db/restaurar.mjs`, runbook-restauracion.md).

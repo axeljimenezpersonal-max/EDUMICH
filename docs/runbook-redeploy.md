@@ -83,8 +83,15 @@ docker run -d --name modula22 --restart unless-stopped \
   -p 127.0.0.1:3001:3001 \
   --env-file .env.production \
   -v ~/modula22/rds-ca.pem:/app/rds-ca.pem:ro \
+  -v ~/modula22-storage:/app/storage \
   modula22:latest
 ```
+
+**El volumen `~/modula22-storage:/app/storage` NO es opcional.** El storage de
+archivos es local (`STORAGE_DIR=/app/storage`): sin ese `-v`, los documentos
+que suben los alumnos viven DENTRO del contenedor y **cada `docker rm` los
+borra**. Se descubrió el 2026-08-02; hasta esa fecha no había archivos reales
+que perder, pero a partir de ahí el volumen va SIEMPRE en el comando.
 
 Caddy escucha en el 80/443 y reenvía al 3001, que solo está expuesto en
 `127.0.0.1` — el contenedor no se asoma a internet por su cuenta.
