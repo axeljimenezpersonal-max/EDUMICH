@@ -997,10 +997,22 @@ export default function AdminAlumnoDetalle() {
     }))) return;
     setResettingPwd(true);
     try {
-      await api.post(`/admin/gestores/${alumnoId}/reset-password`, {});
-      showToast('Contraseña temporal enviada al correo del alumno', true);
-    } catch {
-      showToast('Error al enviar contraseña temporal', false);
+      // Ruta propia del alumno. Antes apuntaba a la de gestores y con un alumno
+      // siempre fallaba con "Gestor no encontrado".
+      const r = await api.post<{ ok: boolean; emailEnviado: boolean; errorCorreo: string | null }>(
+        `/admin/alumnos/${alumnoId}/reset-password`, {},
+      );
+      // La contraseña YA cambió aunque el correo no salga: decirlo tal cual, no
+      // cantar un éxito que dejaría al alumno sin poder entrar y sin aviso.
+      if (r.emailEnviado) {
+        showToast('Contraseña temporal enviada al correo del alumno', true);
+      } else {
+        showToast('La contraseña se restableció, pero el correo NO salió. Avísale por otra vía.', false);
+      }
+      const fresco = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
+      setData(fresco);
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al enviar contraseña temporal', false);
     } finally {
       setResettingPwd(false);
     }

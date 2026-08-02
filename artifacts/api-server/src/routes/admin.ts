@@ -3485,6 +3485,92 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
   }
 });
 
+// ─── POST /admin/alumnos/:id/reset-password ───────────────────────────────
+// La ficha del alumno mandaba este botón a /admin/gestores/:id/reset-password,
+// que busca el id en la tabla de GESTORES: con un alumno nunca lo encontraba y
+// respondía "Gestor no encontrado", que la pantalla traducía a "Error al enviar
+// contraseña temporal". El correo jamás se intentaba. Esta es su ruta propia.
+router.post('/alumnos/:id/reset-password', async (req, res) => {
+  const alumnoId = Number(req.params.id);
+  if (!alumnoId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  try {
+    const [alumno] = await db
+      .select({ nombreCompleto: estudiantes.nombreCompleto, gestorId: estudiantes.gestorId })
+      .from(estudiantes)
+      .where(eq(estudiantes.userId, alumnoId));
+    if (!alumno) { res.status(404).json({ error: 'Alumno no encontrado' }); return; }
+
+    const [userRow] = await db
+      .select({ email: users.email, activo: users.activo })
+      .from(users)
+      .where(eq(users.id, alumnoId));
+    if (!userRow) { res.status(404).json({ error: 'Usuario no encontrado' }); return; }
+    if (!userRow.activo) {
+      res.status(409).json({ error: 'El alumno está inactivo: reactívalo antes de enviarle una contraseña.' });
+      return;
+    }
+
+    const tempPassword = generarPasswordTemporal();
+    const passwordHash = await bcrypt.hash(tempPassword, 10);
+
+    await db.update(users)
+      .set({ passwordHash, passwordTemporal: true, bienvenidaEnviadaEn: null, updatedAt: new Date() })
+      .where(eq(users.id, alumnoId));
+    // La contraseña anterior deja de valer: cortar también las sesiones vivas.
+    await invalidarSesiones(alumnoId);
+
+    // Su gestor va en el correo cuando lo tiene, igual que en el alta.
+    let gestorInfo: { nombre: string; telefono: string | null; municipio: string | null } | undefined;
+    if (alumno.gestorId) {
+      const [g] = await db
+        .select({ nombre: gestores.nombreCompleto, telefono: gestores.telefonoPublico, municipioId: gestores.municipioId })
+        .from(gestores)
+        .where(eq(gestores.userId, alumno.gestorId));
+      if (g) {
+        const [mun] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, g.municipioId));
+        gestorInfo = { nombre: g.nombre, telefono: g.telefono ?? null, municipio: mun?.nombre ?? null };
+      }
+    }
+
+    // El fallo del correo NO se traga: si no sale, quien opera tiene que
+    // enterarse — la contraseña ya cambió y el alumno se quedaría sin ella.
+    let emailEnviado = false;
+    let errorCorreo: string | null = null;
+    try {
+      const emailResult = await sendBienvenidaCredenciales(userRow.email, {
+        nombreAlumno: alumno.nombreCompleto,
+        email: userRow.email,
+        passwordTemporal: tempPassword,
+        portalUrl: urlPortalLogin(),
+        gestor: gestorInfo,
+      });
+      emailEnviado = emailResult.enviado;
+      if (emailEnviado) {
+        await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, alumnoId));
+      }
+    } catch (e) {
+      errorCorreo = e instanceof Error ? e.message : 'Error desconocido al enviar';
+      console.error('[admin/alumnos/reset-password] fallo el envio:', e);
+    }
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'reset_password_alumno',
+      entidad: 'users',
+      entidadId: alumnoId,
+      detalle: `Admin restableció la contraseña del alumno ${userRow.email}${emailEnviado ? '' : ' — el correo NO salió'}`,
+      metadata: { email: userRow.email, emailEnviado, errorCorreo },
+      req,
+    });
+
+    res.json({ ok: true, emailEnviado, errorCorreo });
+  } catch (err) {
+    console.error('[admin/alumnos/reset-password]', err);
+    res.status(500).json({ error: 'No se pudo restablecer la contraseña' });
+  }
+});
+
 // ─── POST /admin/gestores/:gestorId/desactivar ────────────────────────────
 const desactivarGestorSchema = z.object({
   razon: z.string().optional(),
