@@ -2,7 +2,7 @@ import { useState, useRef, lazy, Suspense } from 'react';
 import { useParams, useLocation } from 'wouter';
 import {
   UserCircle, Shield, Building, FileText, CreditCard,
-  Calendar, MapPin, Mail, Share2, ClipboardList, Info, Trash2,
+  Calendar, MapPin, Mail, Share2, ClipboardList, Info, Trash2, BookOpen,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -19,6 +19,7 @@ const MiCuenta = lazy(() => import('./config/MiCuenta'));
 const Seguridad = lazy(() => import('./config/Seguridad'));
 const DatosInstitucionales = lazy(() => import('./config/DatosInstitucionales'));
 const DocumentosRequeridos = lazy(() => import('./config/DocumentosRequeridos'));
+const TemariosModulos = lazy(() => import('./config/TemariosModulos'));
 const Pagos = lazy(() => import('./config/Pagos'));
 const EtapasDGB = lazy(() => import('./config/EtapasDGB'));
 const Municipios = lazy(() => import('./config/Municipios'));
@@ -36,7 +37,7 @@ const GUINDA = '#6B1530';
 
 type Seccion =
   | 'mi-cuenta' | 'seguridad' | 'datos-institucionales'
-  | 'documentos-requeridos' | 'pagos' | 'etapas-dgb'
+  | 'documentos-requeridos' | 'temarios-modulos' | 'pagos' | 'etapas-dgb'
   | 'municipios' | 'plantillas-correo' | 'integraciones' | 'bitacora' | 'depuracion' | 'acerca-de';
 
 type NavGroup = { label: string; items: { id: Seccion; label: string; icon: React.FC<{ size?: number }> }[] };
@@ -55,6 +56,9 @@ function navGroups(esJefe: boolean): NavGroup[] {
       label: 'INSTITUCIÓN',
       items: [
         { id: 'documentos-requeridos', label: 'Documentos requeridos', icon: FileText },
+        // Ambos perfiles la ven; subir y quitar es de la titular (candado en el
+        // servidor, y la pantalla solo muestra los botones a quien puede).
+        { id: 'temarios-modulos', label: 'Temarios de módulos', icon: BookOpen },
         { id: 'etapas-dgb', label: 'Etapas DGB', icon: Calendar },
       ],
     },
@@ -222,6 +226,7 @@ function SectionRenderer({ seccion, onDirty, registerSave, registerDiscard }: Se
     case 'seguridad':           return <Seguridad {...commonProps} />;
     case 'datos-institucionales': return <DatosInstitucionales {...commonProps} />;
     case 'documentos-requeridos': return <DocumentosRequeridos {...commonProps} />;
+    case 'temarios-modulos':    return <TemariosModulos />;
     case 'pagos':               return <Pagos {...commonProps} />;
     case 'etapas-dgb':          return <EtapasDGB {...commonProps} />;
     case 'municipios':          return <Municipios {...commonProps} />;

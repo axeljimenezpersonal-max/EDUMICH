@@ -7,7 +7,7 @@
 import { Router } from 'express';
 import { and, eq, ne, sql, desc, gte, count, countDistinct, isNull, inArray, isNotNull, SQL } from 'drizzle-orm';
 import crypto from 'node:crypto';
-import { guardarSubida, archivoStream, archivoExiste, archivoEliminar, archivoBuffer } from '../services/storage';
+import { guardarSubida, archivoStream, archivoExiste, archivoEliminar, archivoBuffer, refEsS3 } from '../services/storage';
 import { registrarEnPadronHistorico } from '../services/padronHistorico';
 import { parsearRelacionCalificaciones } from '../services/relacionCalificacionesPdf';
 import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
@@ -21,6 +21,7 @@ import {
   examenesInscripciones,
   estudiantes,
   modulos,
+  modulosMateriales,
   pagos,
   calificaciones,
   estudiantesModulosProgreso,
@@ -6149,6 +6150,316 @@ router.post('/pagos-grupales/:id/rechazar', async (req, res) => {
     titulo: 'Pago grupal rechazado — acción requerida',
     cuerpo: `Tu pago grupal ${pg.folio} fue rechazado. Motivo: ${parse.data.motivo}`,
     enlace: '/gestor/pagos',
+  });
+
+  res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TEMARIOS DE LOS MÓDULOS (PDF)
+//
+// Mismo destino y misma convención que lib/db/importar-temarios.mjs, para que
+// el panel y el script sean dos caminos hacia el MISMO resultado:
+//   · tipo        = 'temario'
+//   · archivo     = <almacenamiento>/modulos/temario-M<numero>.pdf
+//   · ruta en BD  = 'modulos/temario-M<numero>.pdf' (relativa; o 's3:<key>')
+//   · idempotente = reemplaza la fila del módulo, nunca duplica
+// Subir por el panel y luego correr el script (o al revés) deja un solo temario.
+//
+// Ver es facultad de cualquier administrador; subir y quitar son de la TITULAR.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const CARPETA_TEMARIOS = 'modulos'; // dentro del almacenamiento
+const TEMARIOS_DIR = process.env.STORAGE_DIR
+  ? path.join(process.env.STORAGE_DIR, CARPETA_TEMARIOS)
+  : path.join(process.cwd(), 'storage', CARPETA_TEMARIOS);
+
+/** Nombre visible del material (lo lee una persona: lleva acentos). */
+const nombreTemario = (numero: number) => `Temario oficial — Módulo ${numero}`;
+/** Ruta que se guarda en la BD para el almacenamiento local (ASCII, relativa). */
+const rutaTemario = (numero: number) => `${CARPETA_TEMARIOS}/temario-M${numero}.pdf`;
+
+/**
+ * Las filas de materiales guardan la ruta RELATIVA al almacenamiento (así las
+ * deja el script y así las resuelve la descarga del alumno). Para borrar el
+ * archivo hay que volverla absoluta: `archivoEliminar` con una ruta relativa
+ * borraría respecto del directorio de trabajo, no del almacenamiento.
+ */
+function refBorrableMaterial(ruta: string): string {
+  if (refEsS3(ruta)) return ruta;
+  const base = process.env.STORAGE_DIR || path.join(process.cwd(), 'storage');
+  return path.isAbsolute(ruta) ? ruta : path.join(base, ruta.replace(/^\//, ''));
+}
+
+/** ¿El archivo del material está realmente ahí? (si no, el alumno baja un PDF de relleno) */
+async function temarioPresente(ruta: string): Promise<boolean> {
+  try {
+    return await archivoExiste(refBorrableMaterial(ruta));
+  } catch {
+    return false;
+  }
+}
+
+/** Valida `:numero` ANTES de que multer escriba nada con él en el nombre. */
+function moduloPorNumero(
+  req: import('express').Request,
+  res: import('express').Response,
+  next: import('express').NextFunction,
+) {
+  const numero = Number(req.params.numero);
+  if (!Number.isInteger(numero) || numero < 1 || numero > 99) {
+    res.status(400).json({ error: 'Número de módulo inválido' });
+    return;
+  }
+  next();
+}
+
+// El PDF se escribe primero con nombre temporal EN LA MISMA CARPETA y solo se
+// renombra al definitivo cuando pasó la validación: si alguien sube un archivo
+// que no es PDF, el temario que ya estaba cargado no se pierde.
+const uploadTemario = multer({
+  storage: multer.diskStorage({
+    destination: async (_req, _file, cb) => {
+      await fsp.mkdir(TEMARIOS_DIR, { recursive: true });
+      cb(null, TEMARIOS_DIR);
+    },
+    filename: (req, _file, cb) => cb(null, `temario-M${Number(req.params.numero)}-${Date.now()}.parcial`),
+  }),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype !== 'application/pdf') { cb(new Error('Solo se acepta PDF')); return; }
+    cb(null, true);
+  },
+});
+
+/** multer.single con los errores traducidos a algo que se pueda leer en pantalla. */
+function recibirTemario(
+  req: import('express').Request,
+  res: import('express').Response,
+  next: import('express').NextFunction,
+) {
+  uploadTemario.single('archivo')(req, res, (err: unknown) => {
+    if (!err) { next(); return; }
+    const esGrande = err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE';
+    res.status(400).json({
+      error: esGrande
+        ? 'El archivo pesa más de 20 MB. Comprime el PDF o divídelo antes de subirlo.'
+        : 'Solo se acepta un archivo PDF.',
+    });
+  });
+}
+
+/** ¿Es un PDF de verdad? La cabecera del formato es `%PDF`. */
+async function tieneCabeceraPdf(ruta: string): Promise<boolean> {
+  let fh: Awaited<ReturnType<typeof fsp.open>> | undefined;
+  try {
+    fh = await fsp.open(ruta, 'r');
+    const buf = Buffer.alloc(5);
+    const { bytesRead } = await fh.read(buf, 0, 5, 0);
+    return bytesRead >= 4 && buf.subarray(0, 4).toString('latin1') === '%PDF';
+  } catch {
+    return false;
+  } finally {
+    await fh?.close().catch(() => {});
+  }
+}
+
+// ─── GET /admin/modulos ───────────────────────────────────────────────────
+// Los 22 módulos con el estado de su temario. La ve cualquier administrador.
+router.get('/modulos', async (_req, res) => {
+  const filas = await db
+    .select({
+      id: modulos.id,
+      numero: modulos.numero,
+      nombre: modulos.nombre,
+      nivel: modulos.nivel,
+      materialId: modulosMateriales.id,
+      materialNombre: modulosMateriales.nombre,
+      materialRuta: modulosMateriales.rutaArchivo,
+      materialTamano: modulosMateriales.tamanoBytes,
+      materialFecha: modulosMateriales.createdAt,
+    })
+    .from(modulos)
+    .leftJoin(
+      modulosMateriales,
+      and(eq(modulosMateriales.moduloId, modulos.id), eq(modulosMateriales.tipo, 'temario')),
+    )
+    .orderBy(modulos.numero);
+
+  // Si una carga vieja dejó dos filas para el mismo módulo, manda la más
+  // antigua — es la que el script y estas rutas reemplazan.
+  const porModulo = new Map<number, (typeof filas)[number]>();
+  for (const f of filas) {
+    const previa = porModulo.get(f.id);
+    if (!previa || (f.materialId !== null && (previa.materialId === null || f.materialId < previa.materialId))) {
+      porModulo.set(f.id, f);
+    }
+  }
+
+  const lista = [...porModulo.values()].sort((a, b) => a.numero - b.numero);
+  const salida = await Promise.all(
+    lista.map(async (m) => ({
+      id: m.id,
+      numero: m.numero,
+      nombre: m.nombre,
+      nivel: m.nivel,
+      temario: m.materialId === null || m.materialRuta === null
+        ? null
+        : {
+            id: m.materialId,
+            nombre: m.materialNombre,
+            tamanoBytes: m.materialTamano,
+            subidoEn: m.materialFecha,
+            // false = hay fila pero no hay archivo: el alumno se baja un PDF de
+            // relleno sin que nada avise. Hay que volver a cargarlo.
+            archivoPresente: await temarioPresente(m.materialRuta),
+          },
+    })),
+  );
+
+  res.json({ modulos: salida });
+});
+
+// ─── POST /admin/modulos/:numero/temario ──────────────────────────────────
+// Sube o reemplaza el temario de un módulo. Solo la administradora titular.
+router.post('/modulos/:numero/temario', soloJefe, moduloPorNumero, recibirTemario, async (req, res) => {
+  const numero = Number(req.params.numero);
+  const temporal = req.file?.path;
+
+  const limpiarTemporal = async () => {
+    if (temporal) await fsp.rm(temporal, { force: true }).catch(() => {});
+  };
+
+  if (!temporal) { res.status(400).json({ error: 'No se recibió ningún archivo' }); return; }
+
+  const [modulo] = await db
+    .select({ id: modulos.id, nombre: modulos.nombre })
+    .from(modulos)
+    .where(eq(modulos.numero, numero));
+  if (!modulo) {
+    await limpiarTemporal();
+    res.status(404).json({ error: `No existe el módulo ${numero} en el plan de estudios` });
+    return;
+  }
+
+  // El navegador puede anunciar "application/pdf" para cualquier cosa: lo que
+  // decide es la cabecera del archivo.
+  if (!(await tieneCabeceraPdf(temporal))) {
+    await limpiarTemporal();
+    res.status(400).json({ error: 'El archivo no es un PDF válido (le falta la cabecera %PDF).' });
+    return;
+  }
+
+  let tamano = 0;
+  try {
+    tamano = (await fsp.stat(temporal)).size;
+  } catch {}
+
+  // Ya validado: el temporal pasa a ser el archivo definitivo.
+  const destinoFinal = path.join(TEMARIOS_DIR, `temario-M${numero}.pdf`);
+  try {
+    await fsp.rename(temporal, destinoFinal);
+  } catch {
+    await limpiarTemporal();
+    res.status(500).json({ error: 'No se pudo guardar el archivo en el almacenamiento.' });
+    return;
+  }
+
+  const ref = await guardarSubida({ path: destinoFinal, mimetype: 'application/pdf' }, CARPETA_TEMARIOS);
+  // Local: se guarda la ruta RELATIVA (como el script), no la absoluta que
+  // devuelve el driver. S3: la ref `s3:modulos/temario-M<n>.pdf`.
+  const ruta = refEsS3(ref) ? ref : rutaTemario(numero);
+  const nombre = nombreTemario(numero);
+
+  const previos = await db
+    .select({ id: modulosMateriales.id, ruta: modulosMateriales.rutaArchivo })
+    .from(modulosMateriales)
+    .where(and(eq(modulosMateriales.moduloId, modulo.id), eq(modulosMateriales.tipo, 'temario')))
+    .orderBy(modulosMateriales.id);
+
+  let materialId: number;
+  let reemplazo = false;
+
+  if (previos.length === 0) {
+    const [creado] = await db
+      .insert(modulosMateriales)
+      .values({ moduloId: modulo.id, tipo: 'temario', nombre, rutaArchivo: ruta, tamanoBytes: tamano })
+      .returning({ id: modulosMateriales.id });
+    materialId = creado.id;
+  } else {
+    reemplazo = true;
+    materialId = previos[0].id;
+    await db
+      .update(modulosMateriales)
+      // `createdAt` se refresca a propósito: en pantalla es "subido el", y tras
+      // un reemplazo la fecha vieja mentiría.
+      .set({ nombre, rutaArchivo: ruta, tamanoBytes: tamano, createdAt: new Date() })
+      .where(eq(modulosMateriales.id, materialId));
+
+    if (previos.length > 1) {
+      await db
+        .delete(modulosMateriales)
+        .where(inArray(modulosMateriales.id, previos.slice(1).map((p) => p.id)));
+    }
+    // Archivos que quedaron colgando de las filas anteriores (otra ruta u otro
+    // almacenamiento). Nunca el que se acaba de escribir.
+    for (const p of previos) {
+      if (p.ruta && p.ruta !== ruta) await archivoEliminar(refBorrableMaterial(p.ruta)).catch(() => {});
+    }
+  }
+
+  await tryAuditLog({
+    userId: req.user!.userId,
+    accion: reemplazo ? 'reemplazar_temario_modulo' : 'subir_temario_modulo',
+    entidad: 'modulos_materiales',
+    entidadId: materialId,
+    detalle: `${reemplazo ? 'Reemplazó' : 'Cargó'} el temario del módulo ${numero} (${modulo.nombre})`,
+    metadata: { moduloNumero: numero, ruta, tamanoBytes: tamano },
+    req,
+  });
+
+  res.json({
+    ok: true,
+    reemplazo,
+    temario: { id: materialId, nombre, tamanoBytes: tamano, subidoEn: new Date().toISOString(), archivoPresente: true },
+  });
+});
+
+// ─── DELETE /admin/modulos/:numero/temario ────────────────────────────────
+// Quita el temario del módulo (fila y archivo). Solo la administradora titular.
+router.delete('/modulos/:numero/temario', soloJefe, moduloPorNumero, async (req, res) => {
+  const numero = Number(req.params.numero);
+
+  const [modulo] = await db
+    .select({ id: modulos.id, nombre: modulos.nombre })
+    .from(modulos)
+    .where(eq(modulos.numero, numero));
+  if (!modulo) { res.status(404).json({ error: `No existe el módulo ${numero} en el plan de estudios` }); return; }
+
+  const previos = await db
+    .select({ id: modulosMateriales.id, ruta: modulosMateriales.rutaArchivo })
+    .from(modulosMateriales)
+    .where(and(eq(modulosMateriales.moduloId, modulo.id), eq(modulosMateriales.tipo, 'temario')))
+    .orderBy(modulosMateriales.id);
+
+  if (previos.length === 0) {
+    res.status(404).json({ error: `El módulo ${numero} no tiene temario cargado` });
+    return;
+  }
+
+  await db.delete(modulosMateriales).where(inArray(modulosMateriales.id, previos.map((p) => p.id)));
+  for (const p of previos) {
+    if (p.ruta) await archivoEliminar(refBorrableMaterial(p.ruta)).catch(() => {});
+  }
+
+  await tryAuditLog({
+    userId: req.user!.userId,
+    accion: 'eliminar_temario_modulo',
+    entidad: 'modulos_materiales',
+    entidadId: previos[0].id,
+    detalle: `Quitó el temario del módulo ${numero} (${modulo.nombre})`,
+    metadata: { moduloNumero: numero },
+    req,
   });
 
   res.json({ ok: true });

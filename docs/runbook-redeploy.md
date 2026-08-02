@@ -150,6 +150,23 @@ docker exec -it modula22 node lib/db/importar-temarios.mjs …    # temarios PDF
 
 ### Cargar los temarios de los módulos
 
+Hay **dos caminos** y los dos escriben exactamente lo mismo:
+
+| Camino | Quién | Cuándo conviene |
+|---|---|---|
+| **Panel** · Configuración → Institución → *Temarios de módulos* | Administradora **titular** (`administradores.es_jefe`) | Uno o dos temarios, o reemplazar el de un módulo. No necesita a nadie de sistemas. |
+| **Script** `importar-temarios.mjs` (abajo) | Sistemas, dentro del contenedor | Carga masiva: los 22 de una vez. |
+
+Misma convención en ambos: `tipo = 'temario'`, archivo en
+`<almacenamiento>/modulos/temario-M<n>.pdf`, ruta relativa en la fila y **un
+solo temario por módulo** (se reemplaza la fila existente, no se duplica). Da
+igual el orden: subir por el panel y después correr el script —o al revés— deja
+un único temario por módulo. Ambos rechazan lo que no sea PDF de verdad
+(cabecera `%PDF`); el panel además limita a 20 MB por archivo y deja constancia
+en la bitácora. El administrador **operativo** ve la pantalla en modo consulta:
+no puede subir ni quitar (el candado está en el servidor, no solo en la
+interfaz).
+
 `importar-temarios.mjs` deja el PDF de cada módulo en el almacenamiento y
 registra la fila `tipo = 'temario'` que el alumno ve en "Material de estudio".
 Los PDF **no viajan en la imagen**: se copian primero al EC2 y de ahí al
