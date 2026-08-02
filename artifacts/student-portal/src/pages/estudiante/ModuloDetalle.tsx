@@ -279,6 +279,13 @@ export default function ModuloDetalle() {
   const { modulo, unidades, materiales, progreso } = data;
   const estado = progreso.estado as ProgresoEstado;
 
+  // El botón grande dice "temario", así que tiene que bajar el temario: si el
+  // módulo tiene además libro o guía, el primer material de la lista no siempre
+  // es el que promete el botón. Sin temario cargado, se ofrece lo que haya y se
+  // le llama por su nombre.
+  const temario = materiales.find((m) => m.tipo === 'temario');
+  const descargaPrincipal = temario ?? materiales[0];
+
   return (
     <EstudianteLayout>
       {/* Back link */}
@@ -345,14 +352,14 @@ export default function ModuloDetalle() {
             </button>
           )}
 
-          {materiales.length > 0 && (
+          {descargaPrincipal && (
             <a
-              href={materiales[0].urlDescarga}
+              href={descargaPrincipal.urlDescarga}
               download
               className="flex items-center gap-2 text-sm px-4 py-2 rounded-md border border-[var(--color-guinda-700)] text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] transition-colors"
             >
               <Download size={15} />
-              Descargar temario PDF
+              {temario ? 'Descargar temario PDF' : 'Descargar material PDF'}
             </a>
           )}
         </div>

@@ -145,7 +145,41 @@ Escriben en la base (correr a conciencia):
 ```bash
 docker exec -it modula22 node lib/db/importar-centros.mjs       # padrón de centros de asesoría
 docker exec -it modula22 node lib/db/importar-cp.mjs            # catálogo SEPOMEX
+docker exec -it modula22 node lib/db/importar-temarios.mjs …    # temarios PDF de los módulos
 ```
+
+### Cargar los temarios de los módulos
+
+`importar-temarios.mjs` deja el PDF de cada módulo en el almacenamiento y
+registra la fila `tipo = 'temario'` que el alumno ve en "Material de estudio".
+Los PDF **no viajan en la imagen**: se copian primero al EC2 y de ahí al
+contenedor.
+
+```bash
+# 1. del equipo al EC2 (fuera de la sesión SSM, desde tu máquina)
+scp temarios/*.pdf ubuntu@<host>:~/temarios/
+
+# 2. del EC2 al contenedor
+docker cp ~/temarios modula22:/tmp/temarios
+
+# 3. ENSAYO — no escribe nada, solo dice qué haría y a qué módulo va cada PDF
+docker exec -it modula22 node lib/db/importar-temarios.mjs /tmp/temarios
+
+# 4. de verdad
+docker exec -it modula22 node lib/db/importar-temarios.mjs /tmp/temarios --aplicar
+```
+
+**Revisa el ensayo antes del paso 4.** El módulo sale del nombre del archivo
+(`TEMARIO_MODULO_7.pdf`, `Modulo-7.pdf`, `M7.pdf`…); lo que no se puede deducir
+se salta con su motivo, pero el emparejamiento que sí encontró solo lo puede
+confirmar una persona. Al final lista los módulos que siguen sin temario.
+
+Es idempotente: si el módulo ya tenía temario lo reemplaza, no duplica. Los
+archivos van a `/app/storage/modulos/temario-M<n>.pdf`, o sea al volumen
+`~/modula22-storage` — sobreviven al `docker rm`, pero **no** están en la
+imagen: si algún día se levanta el contenedor sin el `-v`, el alumno se baja un
+PDF de relleno que dice "material en preparación" y nada lo avisa. El propio
+script señala esas filas huérfanas al final.
 
 ---
 

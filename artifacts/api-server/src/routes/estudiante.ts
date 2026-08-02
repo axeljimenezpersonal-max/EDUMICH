@@ -78,6 +78,7 @@ import {
 } from '../services/cedula';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { nombreArchivoAscii } from '../utils/archivo';
+import { aplanarAcentos } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
@@ -852,7 +853,14 @@ router.get('/modulos/:moduloId/material/:materialId/descargar', async (req, res)
     return;
   }
 
-  const safeName = material.nombre.replace(/[^a-zA-Z0-9_\- ]/g, '').trim() || 'material';
+  // El nombre se ve en pantalla con sus acentos ("Temario oficial — Módulo 1"),
+  // pero el archivo que se baja va en ASCII: aplanar antes de sanear, o "Módulo"
+  // llegaría como "Mdulo".
+  const safeName =
+    aplanarAcentos(material.nombre)
+      .replace(/[^a-zA-Z0-9_\- ]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim() || 'material';
 
   // Material en S3 (p. ej. libros del Plan 22, 100+ MB): descarga directa desde
   // S3 con URL firmada temporal — no pasa por el servidor.
@@ -861,8 +869,13 @@ router.get('/modulos/:moduloId/material/:materialId/descargar', async (req, res)
     if (url) { res.redirect(url); return; }
   }
 
-  const STORAGE_DIR = path.join(process.cwd(), 'storage');
-  const filePath = path.join(STORAGE_DIR, material.rutaArchivo.replace(/^\//, ''));
+  // La ruta guardada es relativa al almacenamiento (`modulos/temario-M1.pdf`),
+  // como la deja lib/db/importar-temarios.mjs. Se admite absoluta por si alguna
+  // fila vieja guardó la ruta completa que devuelve el driver local.
+  const STORAGE_DIR = process.env.STORAGE_DIR || path.join(process.cwd(), 'storage');
+  const filePath = path.isAbsolute(material.rutaArchivo)
+    ? material.rutaArchivo
+    : path.join(STORAGE_DIR, material.rutaArchivo.replace(/^\//, ''));
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `attachment; filename="${safeName}.pdf"`);
