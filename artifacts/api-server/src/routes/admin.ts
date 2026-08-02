@@ -3463,8 +3463,13 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
     await db.update(users)
       .set({ passwordHash, passwordTemporal: true, bienvenidaEnviadaEn: null, updatedAt: new Date() })
       .where(eq(users.id, gestorId));
+    // La contraseña anterior deja de valer: cortar también las sesiones vivas.
+    await invalidarSesiones(gestorId);
 
+    // El fallo del correo NO se traga: si no sale, quien opera tiene que
+    // enterarse — la contraseña ya cambió y el gestor se quedaría fuera.
     let emailEnviado = false;
+    let errorCorreo: string | null = null;
     try {
       const emailResult = await sendBienvenidaCredenciales(userRow.email, {
         nombreAlumno: gestor.nombreCompleto,
@@ -3476,9 +3481,22 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
       if (emailEnviado) {
         await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, gestorId));
       }
-    } catch {}
+    } catch (e) {
+      errorCorreo = e instanceof Error ? e.message : 'Error desconocido al enviar';
+      console.error('[admin/gestores/reset-password] fallo el envio:', e);
+    }
 
-    res.json({ ok: true, emailEnviado });
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'reset_password_gestor',
+      entidad: 'gestores',
+      entidadId: gestorId,
+      detalle: `Admin restableció la contraseña del gestor ${userRow.email}${emailEnviado ? '' : ' — el correo NO salió'}`,
+      metadata: { email: userRow.email, emailEnviado, errorCorreo },
+      req,
+    });
+
+    res.json({ ok: true, emailEnviado, errorCorreo });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });

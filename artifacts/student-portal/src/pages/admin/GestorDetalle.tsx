@@ -522,10 +522,18 @@ export default function GestorDetalle() {
     }))) return;
     setResettingPwd(true);
     try {
-      await api.post(`/admin/gestores/${gestor.id}/reset-password`, {});
-      showToast('Contraseña temporal enviada al correo del gestor', true);
-    } catch {
-      showToast('Error al enviar contraseña temporal', false);
+      // La contraseña YA cambió aunque el correo no salga: si el envío falla hay
+      // que decirlo, no cantar un éxito que deja al gestor fuera sin aviso.
+      const r = await api.post<{ ok: boolean; emailEnviado: boolean }>(
+        `/admin/gestores/${gestor.id}/reset-password`, {},
+      );
+      if (r.emailEnviado) {
+        showToast('Contraseña temporal enviada al correo del gestor', true);
+      } else {
+        showToast('La contraseña se restableció, pero el correo NO salió. Avísale por otra vía.', false);
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al enviar contraseña temporal', false);
     } finally {
       setResettingPwd(false);
     }
@@ -536,15 +544,21 @@ export default function GestorDetalle() {
     if (!gestor) return;
     if (!(await confirmar({
       title: 'Reenviar credenciales',
-      message: <>Se reenviarán los datos de acceso a <strong>{gestor.email}</strong> con una contraseña temporal nueva.</>,
+      message: <>Se enviarán los datos de acceso a <strong>{gestor.email}</strong> con una contraseña temporal nueva. <strong>La contraseña que use hoy dejará de funcionar.</strong></>,
       confirmLabel: 'Reenviar',
     }))) return;
     setReenviando(true);
     try {
-      await api.post(`/admin/gestores/${gestor.id}/reset-password`, {});
-      showToast('Credenciales de acceso reenviadas al correo del gestor', true);
-    } catch {
-      showToast('Error al reenviar las credenciales', false);
+      const r = await api.post<{ ok: boolean; emailEnviado: boolean }>(
+        `/admin/gestores/${gestor.id}/reset-password`, {},
+      );
+      if (r.emailEnviado) {
+        showToast('Credenciales de acceso reenviadas al correo del gestor', true);
+      } else {
+        showToast('La contraseña se restableció, pero el correo NO salió. Avísale por otra vía.', false);
+      }
+    } catch (e) {
+      showToast(e instanceof Error ? e.message : 'Error al reenviar las credenciales', false);
     } finally {
       setReenviando(false);
     }
