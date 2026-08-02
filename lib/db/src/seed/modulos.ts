@@ -7,7 +7,13 @@
  *   1 — Comunicación y bases            (módulos 1-6)
  *   2 — Pensamiento matemático y textos (módulos 7-8)
  *   3 — Métodos y contextos             (módulos 9-13)
- *   4 — Especialidades                  (módulos 14-21)
+ *   4 — Especialidades                  (módulos 14-22)
+ *
+ * El Plan Modular son 22: 21 del componente BÁSICO y 1 del componente
+ * PROFESIONAL (el 22, dedicado a informática). Este catálogo tenía solo 21
+ * —faltaba el profesional— y el faltante se detectó el 2026-08-02 porque el
+ * portal ya contaba 9 módulos en el nivel 4 (`META_NIVEL` de
+ * CalificacionesTabContent) y la base entregaba 8.
  */
 
 export interface ModuloSeed {
@@ -42,4 +48,6 @@ export const MODULOS_PREPA_ABIERTA: ModuloSeed[] = [
   { numero: 19, nombre: 'Ciencias experimentales', nivel: 4 },
   { numero: 20, nombre: 'Cultura digital', nivel: 4 },
   { numero: 21, nombre: 'Procesos educativos en el siglo XXI', nivel: 4 },
+  // Componente PROFESIONAL (el único del plan).
+  { numero: 22, nombre: 'Informática', nivel: 4 },
 ];
