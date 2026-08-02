@@ -1,8 +1,8 @@
 import { useState, useRef, lazy, Suspense } from 'react';
 import { useParams, useLocation } from 'wouter';
 import {
-  UserCircle, Shield, Building, FileText, CreditCard,
-  Calendar, MapPin, Mail, Share2, ClipboardList, Info, Trash2, BookOpen,
+  UserCircle, Shield, FileText,
+  Calendar, ClipboardList, Info, BookOpen, ArrowRight,
 } from 'lucide-react';
 import { AdminLayout } from './AdminLayout';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -21,7 +21,6 @@ const DatosInstitucionales = lazy(() => import('./config/DatosInstitucionales'))
 const DocumentosRequeridos = lazy(() => import('./config/DocumentosRequeridos'));
 const TemariosModulos = lazy(() => import('./config/TemariosModulos'));
 const Pagos = lazy(() => import('./config/Pagos'));
-const EtapasDGB = lazy(() => import('./config/EtapasDGB'));
 const Municipios = lazy(() => import('./config/Municipios'));
 const PlantillasCorreo = lazy(() => import('./config/PlantillasCorreo'));
 const Integraciones = lazy(() => import('./config/Integraciones'));
@@ -59,7 +58,8 @@ function navGroups(esJefe: boolean): NavGroup[] {
         // Ambos perfiles la ven; subir y quitar es de la titular (candado en el
         // servidor, y la pantalla solo muestra los botones a quien puede).
         { id: 'temarios-modulos', label: 'Temarios de módulos', icon: BookOpen },
-        { id: 'etapas-dgb', label: 'Etapas DGB', icon: Calendar },
+        // "Etapas DGB" ya NO vive aquí: el calendario de etapas se administra
+        // —y se lee— en Convocatorias, que es donde están los datos reales.
       ],
     },
     ...(esJefe ? [{
@@ -228,7 +228,7 @@ function SectionRenderer({ seccion, onDirty, registerSave, registerDiscard }: Se
     case 'documentos-requeridos': return <DocumentosRequeridos {...commonProps} />;
     case 'temarios-modulos':    return <TemariosModulos />;
     case 'pagos':               return <Pagos {...commonProps} />;
-    case 'etapas-dgb':          return <EtapasDGB {...commonProps} />;
+    case 'etapas-dgb':          return <EtapasDGBMudada />;
     case 'municipios':          return <Municipios {...commonProps} />;
     case 'plantillas-correo':   return <PlantillasCorreo {...commonProps} />;
     case 'integraciones':       return <Integraciones {...commonProps} />;
@@ -237,4 +237,60 @@ function SectionRenderer({ seccion, onDirty, registerSave, registerDiscard }: Se
     case 'acerca-de':           return <AcercaDe />;
     default:                    return <MiCuenta {...commonProps} />;
   }
+}
+
+// ─────────────────────────────────────────────────────────────
+// "Etapas DGB" se retiró de Configuración
+//
+// Era una MAQUETA: las etapas estaban escritas a mano dentro del propio
+// archivo, con el estado ("activa", "próxima") congelado el día en que alguien
+// tecleó el arreglo, y el botón "Sincronizar con SEP-DGB" no hacía nada. El
+// calendario de verdad vive en la base y se administra en Convocatorias
+// —precarga desde el PDF oficial, sedes de cada etapa y el estado que el
+// servidor recalcula solo—, así que la pantalla no aportaba nada y sí mentía.
+//
+// Esto queda para quien tenga la dirección guardada: dice a dónde ir en vez de
+// dejarlo en una pantalla que ya no existe.
+// ─────────────────────────────────────────────────────────────
+
+function EtapasDGBMudada() {
+  return (
+    <div style={{ maxWidth: 620 }}>
+      <div
+        className="flex items-center gap-1.5 text-[11px] font-semibold uppercase mb-1.5"
+        style={{ color: 'var(--color-guinda-700)', letterSpacing: '0.12em' }}
+      >
+        <Calendar size={12} /> CONFIGURACIÓN · INSTITUCIÓN
+      </div>
+      <h1 className="text-[22px] font-extrabold" style={{ color: '#1c1917', margin: 0 }}>
+        Etapas DGB
+      </h1>
+
+      <div
+        className="flex items-start gap-3 px-4 py-3 rounded-xl border mt-4 text-sm"
+        style={{ background: '#fdf8fb', borderColor: '#e8d5e0' }}
+      >
+        <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: 'var(--color-guinda-700)' }} />
+        <div style={{ color: '#5a0e32' }}>
+          <p className="mb-2 leading-relaxed">
+            El calendario de etapas se consulta y se administra en <strong>Convocatorias</strong>: ahí están las
+            fechas reales de cada etapa —ventana de solicitud, examen de sábado y de domingo—, su estado al día de
+            hoy y cuánta gente lleva inscrita.
+          </p>
+          <p className="leading-relaxed">
+            Desde ahí también se <strong>precargan las etapas del año</strong> a partir del PDF oficial de la DGB y
+            se definen las <strong>sedes</strong> de cada una.
+          </p>
+        </div>
+      </div>
+
+      <a
+        href="/admin/convocatorias"
+        className="inline-flex items-center gap-2 mt-4 px-4 py-2 rounded-lg text-sm font-semibold text-white no-underline"
+        style={{ background: 'var(--color-guinda-700)', textDecoration: 'none' }}
+      >
+        Ir a Convocatorias <ArrowRight size={15} />
+      </a>
+    </div>
+  );
 }

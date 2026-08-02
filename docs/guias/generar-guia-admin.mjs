@@ -625,8 +625,9 @@ const CAP10 = pagina(`
   </div>
   ${paso('12.1', 'Configuración: lo que sí se toca', `<strong>Mi cuenta</strong> y
     <strong>Seguridad</strong> son personales y se cambian con confianza. <strong>Documentos
-    requeridos</strong> y <strong>Etapas DGB</strong> son parámetros institucionales: se tocan poco
-    y afectan a todos.`)}
+    requeridos</strong> y <strong>Temarios de módulos</strong> son parámetros institucionales: se
+    tocan poco y afectan a todos. El calendario de etapas no está aquí — vive en
+    <strong>Convocatorias</strong>.`)}
   ${paso('12.2', 'Reportes, en preparación', `La sección existe y se habilitará con datos reales
     cuando haya un mes completo de operación. Mientras, los dos PDF de control del capítulo 3 son
     el reporte de cada etapa.`)}

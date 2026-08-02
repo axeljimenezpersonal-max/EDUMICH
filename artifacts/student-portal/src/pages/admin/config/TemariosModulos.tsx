@@ -11,7 +11,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BookOpen, Info, RefreshCw, CheckCircle, AlertTriangle,
-  Upload, Trash2, Lock, FileText,
+  Upload, Trash2, Lock, FileText, Eye,
 } from 'lucide-react';
 import { api, ApiError } from '../../../lib/api';
 import { fechaCorta } from '../../../lib/fechas';
@@ -257,7 +257,7 @@ export default function TemariosModulos() {
           <Lock size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#8a807a' }} />
           <span style={{ color: '#57504a' }}>
             Cargar o quitar temarios es facultad de la <strong>administradora titular</strong>. Aquí puedes consultar
-            qué módulos ya tienen su temario y cuáles faltan.
+            qué módulos ya tienen su temario, cuáles faltan y <strong>abrir el PDF</strong> de los que sí están.
           </span>
         </div>
       )}
@@ -341,40 +341,55 @@ export default function TemariosModulos() {
                   <EstadoTemario modulo={m} subiendo={subiendo} />
                 </div>
 
-                {/* Acciones (solo la titular) */}
-                {esJefe && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => elegirArchivo(m.numero)}
-                      disabled={ocupado !== null}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
-                      style={{
-                        background: m.temario ? 'white' : GUINDA,
-                        color: m.temario ? '#443e39' : 'white',
-                        borderColor: m.temario ? '#eadfd7' : GUINDA,
-                        opacity: ocupado !== null ? 0.5 : 1,
-                        cursor: ocupado !== null ? 'not-allowed' : 'pointer',
-                      }}
+                {/* Acciones. "Ver PDF" es consulta y la tienen los dos perfiles;
+                    subir y quitar siguen siendo de la titular. */}
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {m.temario?.archivoPresente && (
+                    <a
+                      href={`/api/admin/modulos/${m.numero}/temario`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      title={`Abrir el temario del módulo ${m.numero} para revisarlo`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-white no-underline"
+                      style={{ borderColor: '#eadfd7', color: '#443e39', textDecoration: 'none' }}
                     >
-                      <Upload size={12} /> {m.temario ? 'Reemplazar' : 'Subir PDF'}
-                    </button>
-                    {m.temario && (
+                      <Eye size={12} /> Ver PDF
+                    </a>
+                  )}
+                  {esJefe && (
+                    <>
                       <button
-                        onClick={() => quitar(m)}
+                        onClick={() => elegirArchivo(m.numero)}
                         disabled={ocupado !== null}
-                        title="Quitar el temario"
-                        className="p-1.5 rounded-lg border bg-white"
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border"
                         style={{
-                          borderColor: '#eadfd7',
+                          background: m.temario ? 'white' : GUINDA,
+                          color: m.temario ? '#443e39' : 'white',
+                          borderColor: m.temario ? '#eadfd7' : GUINDA,
                           opacity: ocupado !== null ? 0.5 : 1,
                           cursor: ocupado !== null ? 'not-allowed' : 'pointer',
                         }}
                       >
-                        <Trash2 size={13} style={{ color: '#b91c1c' }} />
+                        <Upload size={12} /> {m.temario ? 'Reemplazar' : 'Subir PDF'}
                       </button>
-                    )}
-                  </div>
-                )}
+                      {m.temario && (
+                        <button
+                          onClick={() => quitar(m)}
+                          disabled={ocupado !== null}
+                          title="Quitar el temario"
+                          className="p-1.5 rounded-lg border bg-white"
+                          style={{
+                            borderColor: '#eadfd7',
+                            opacity: ocupado !== null ? 0.5 : 1,
+                            cursor: ocupado !== null ? 'not-allowed' : 'pointer',
+                          }}
+                        >
+                          <Trash2 size={13} style={{ color: '#b91c1c' }} />
+                        </button>
+                      )}
+                    </>
+                  )}
+                </div>
               </div>
             );
           })

@@ -6320,6 +6320,68 @@ router.get('/modulos', async (_req, res) => {
   res.json({ modulos: salida });
 });
 
+// ─── GET /admin/modulos/:numero/temario ───────────────────────────────────
+// Sirve el PDF para poder ABRIRLO y comprobar que el archivo cargado es el que
+// se quería subir. Es consulta: la ven los DOS perfiles de administración
+// (subir y quitar siguen reservados a la titular).
+//
+// A diferencia de la descarga del alumno, aquí NUNCA se devuelve un PDF de
+// relleno: si la fila existe pero el archivo no está, se dice con todas sus
+// letras. Un PDF vacío disfrazado de temario es justo lo que impide notar que
+// la carga se perdió.
+router.get('/modulos/:numero/temario', moduloPorNumero, async (req, res) => {
+  const numero = Number(req.params.numero);
+
+  const [modulo] = await db
+    .select({ id: modulos.id })
+    .from(modulos)
+    .where(eq(modulos.numero, numero));
+  if (!modulo) {
+    res.status(404).json({ error: `No existe el módulo ${numero} en el plan de estudios` });
+    return;
+  }
+
+  // La más antigua es la que el script y estas rutas reemplazan (mismo criterio
+  // que GET /admin/modulos y que el reemplazo del POST).
+  const [material] = await db
+    .select({ ruta: modulosMateriales.rutaArchivo })
+    .from(modulosMateriales)
+    .where(and(eq(modulosMateriales.moduloId, modulo.id), eq(modulosMateriales.tipo, 'temario')))
+    .orderBy(modulosMateriales.id);
+
+  if (!material?.ruta) {
+    res.status(404).json({ error: `El módulo ${numero} no tiene temario cargado` });
+    return;
+  }
+
+  // `refBorrableMaterial` resuelve la ruta relativa contra el almacenamiento y
+  // deja pasar tal cual las refs `s3:` — las mismas que ya sabe leer el stream.
+  const ref = refBorrableMaterial(material.ruta);
+  if (!(await archivoExiste(ref))) {
+    res.status(404).json({
+      error: `El temario del módulo ${numero} está registrado, pero el archivo no está en el servidor. Vuelve a subirlo.`,
+    });
+    return;
+  }
+
+  // ASCII, regla de la casa: "Temario oficial — Módulo 7" no sobrevive a todas
+  // las herramientas desde las que se guarda una descarga.
+  const nombreDescarga = `TEMARIO_MODULO_${numero}.pdf`;
+
+  res.setHeader('Content-Type', 'application/pdf');
+  // `inline`: se abre en el visor del navegador, que es para lo que sirve —
+  // comprobar el contenido. Al guardarlo desde ahí conserva este nombre.
+  res.setHeader('Content-Disposition', `inline; filename="${nombreDescarga}"`);
+
+  // El temario tope son 20 MB: se sirve por stream (también desde S3) en vez de
+  // redirigir a una URL firmada, así el nombre en ASCII viaja con el archivo.
+  const flujo = archivoStream(ref);
+  // Sin este manejador, un fallo de lectura emite 'error' sin oyente y tumba el
+  // proceso: `pipe` no propaga los errores del origen.
+  flujo.on('error', () => { res.destroy(); });
+  flujo.pipe(res);
+});
+
 // ─── POST /admin/modulos/:numero/temario ──────────────────────────────────
 // Sube o reemplaza el temario de un módulo. Solo la administradora titular.
 router.post('/modulos/:numero/temario', soloJefe, moduloPorNumero, recibirTemario, async (req, res) => {
