@@ -73,7 +73,7 @@ function DocCard({ doc }: { doc: DocDef }) {
             className="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full"
             style={{ background: '#f7f2ed', color: '#57504a' }}
           >
-            NORMA DGB22DR-001
+            EXPEDIENTE
           </span>
         </div>
       </div>
@@ -93,8 +93,8 @@ export default function DocumentosRequeridos({ onDirty: _onDirty }: { onDirty: (
       >
         <Info size={15} strokeWidth={2} style={{ flexShrink: 0, marginTop: 1, color: '#6B1530' }} />
         <span style={{ color: '#5a0e32' }}>
-          Los 5 documentos requeridos estan establecidos por la norma oficial <strong>DGB22DR-001</strong> de la
-          Secretaria de Educacion Publica. No es posible modificarlos desde este sistema.
+          El expediente lo forman estos <strong>5 documentos obligatorios</strong>. No es posible
+          modificarlos desde este sistema.
         </span>
       </div>
 

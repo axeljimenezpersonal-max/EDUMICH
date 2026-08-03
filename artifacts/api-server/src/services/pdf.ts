@@ -439,7 +439,10 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
   let y = PAGE_H - MARGIN - 56;
 
   // Band
-  y = drawBand(page, bold, regular, 'FICHA DE PRE-REGISTRO', 'Comprobante de inicio de trámite · Norma DGB22DR-001', GUINDA, y);
+  // Sin cita de norma: este documento se entrega al ciudadano y no puede
+  // invocar una disposición que no exista. Si algún día hay una clave oficial
+  // confirmada por el IEMSyS, se pone aquí y no antes.
+  y = drawBand(page, bold, regular, 'FICHA DE PRE-REGISTRO', 'Comprobante de inicio de trámite', GUINDA, y);
 
   // ── Folio box with vigencia pill ───────────────────────────────────────
   const folioBoxH = 72;
@@ -573,7 +576,7 @@ export async function generarFichaPreregistro(data: PreregistroData): Promise<Bu
   drawText(page, 'NOTAS LEGALES', MARGIN + 12, y - 14, bold, 7.5, GUINDA);
   const notas = [
     '• Este documento NO sustituye la matrícula oficial DGB.',
-    `• Vigencia: 15 días hábiles a partir de la fecha de generación (norma DGB22DR-001).`,
+    `• Vigencia: 15 días hábiles a partir de la fecha de generación.`,
     '• La matrícula oficial es asignada exclusivamente por la Secretaría de Educación Pública (SEP-DGB).',
     '• Escanee el código QR para verificar la autenticidad de este documento.',
   ];
