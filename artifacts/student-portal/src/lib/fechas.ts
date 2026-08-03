@@ -101,6 +101,57 @@ export function diaLargo(s: string | null | undefined): string {
 }
 
 /**
+ * Las piezas de una fecha, ya en hora de Michoacán, para armar textos a la
+ * medida: `{ diaSemana: 'lunes', dia: '27', mes: 'julio', anio: '2026' }`.
+ */
+export function partesFecha(s: string | null | undefined): {
+  diaSemana: string; dia: string; mes: string; anio: string;
+} {
+  if (!s) return { diaSemana: '', dia: '', mes: '', anio: '' };
+  const puro = parteFechaPura(s);
+  const d = puro ? new Date(`${puro}T12:00:00`) : parseDbDate(s);
+  const tz = puro ? undefined : TZ;
+  const parte = (o: Intl.DateTimeFormatOptions) =>
+    d.toLocaleDateString('es-MX', { ...o, timeZone: tz }).replace('.', '');
+  return {
+    diaSemana: parte({ weekday: 'long' }),
+    dia: parte({ day: 'numeric' }),
+    mes: parte({ month: 'long' }),
+    anio: parte({ year: 'numeric' }),
+  };
+}
+
+/** Primera letra en mayúscula. Para arrancar una frase con "Lunes 27…". */
+export function mayusculaInicial(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
+
+/**
+ * Un rango escrito como lo escribe una persona:
+ *   mismo mes  → "Del lunes 27 al viernes 31 de julio"
+ *   otro mes   → "Del lunes 28 de diciembre al sábado 2 de enero"
+ * `union` cambia el conector: 'al' para un periodo, 'y' para dos días sueltos
+ * ("Sábado 22 y domingo 23 de agosto").
+ */
+export function rangoLargo(
+  a: string | null | undefined,
+  b: string | null | undefined,
+  union: 'al' | 'y' = 'al',
+): string {
+  const p = partesFecha(a);
+  const q = partesFecha(b);
+  if (!p.dia) return '';
+  if (!q.dia) return mayusculaInicial(`${p.diaSemana} ${p.dia} de ${p.mes}`);
+  const mismoMes = p.mes === q.mes && p.anio === q.anio;
+  const izq = mismoMes
+    ? `${p.diaSemana} ${p.dia}`
+    : `${p.diaSemana} ${p.dia} de ${p.mes}`;
+  const der = `${q.diaSemana} ${q.dia} de ${q.mes}`;
+  const frase = union === 'al' ? `del ${izq} al ${der}` : `${izq} y ${der}`;
+  return mayusculaInicial(frase);
+}
+
+/**
  * "sábado 22 de agosto" — día de la semana y mes COMPLETOS, sin el año.
  * Para tarjetas donde el año se muestra aparte y repetirlo en cada fecha
  * sobrecarga la línea. Igual que las demás: el día de la semana se DERIVA,

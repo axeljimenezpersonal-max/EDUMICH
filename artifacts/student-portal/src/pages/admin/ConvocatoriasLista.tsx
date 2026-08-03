@@ -4,7 +4,7 @@ import SedesLista from './SedesLista';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_CONVOCATORIAS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
-import { diaMesCorto, diaSemanaCorto, anioDe, fechaLargaSinAnio } from '../../lib/fechas';
+import { anioDe, rangoLargo } from '../../lib/fechas';
 import { estadoEtapa } from '../../lib/estadosEtapa';
 import { CAL_INSCRIPCION, CAL_EXAMEN } from '../../lib/coloresCalendario';
 import { Calendar, Users, ChevronRight, ArrowRight, Flag, Upload, X, CheckCircle2, AlertTriangle, Loader2, FileText, FileCheck2, Building2, CalendarClock, CalendarCheck } from 'lucide-react';
@@ -35,66 +35,53 @@ type ConvocatoriasData = {
   etapaActivaId: number | null;
 };
 
-/** "sáb 22 ago" — el día de la semana SIEMPRE derivado de la fecha real. */
-function conDiaSemana(d: string): string {
-  return `${diaSemanaCorto(d)} ${diaMesCorto(d)}`;
-}
-
 /**
- * "sábado 22 de agosto" — la forma larga que va en las tarjetas de etapa.
- * Se escribe completa a propósito: quien opera lee estas fechas para decidir
- * si abre o cierra una ventana, y "22 ago" obliga a un segundo de traducción
- * que a las once de la noche se paga con un error.
+ * El año SOLO cuando aporta: la pantalla ya se titula "Etapas 2026", así que
+ * imprimirlo en cada fecha es ruido. Se muestra si la etapa cruza de año
+ * —"2026–2027"—, que es justo el caso en que alguien podría equivocarse.
  */
-function fechaTarjeta(d: string): string {
-  return fechaLargaSinAnio(d);
-}
-
-/** "2026" si las dos fechas caen en el mismo año; "2026–2027" si lo cruzan. */
-function anioRango(a: string, b: string): string {
+function anioSiEsOtro(a: string, b: string): string | undefined {
   const ya = anioDe(a);
   const yb = anioDe(b);
-  return ya === yb ? ya : `${ya}–${yb}`;
+  return ya === yb ? undefined : `${ya}–${yb}`;
 }
 
 /**
- * Una de las dos franjas de fecha de la tarjeta: etiqueta chica a la izquierda
- * y la fecha GRANDE ocupando el ancho. Es lo que se lee de un vistazo, así que
- * la fecha manda y el resto acompaña.
+ * Uno de los dos momentos de la etapa. Van lado a lado y CENTRADOS: la etapa
+ * es un camino —primero te inscribes, después presentas— y leerlo de
+ * izquierda a derecha cuenta esa historia sin explicarla. Antes eran dos
+ * franjas apiladas con la etiqueta pegada al margen izquierdo, y quedaba un
+ * hueco muerto a la derecha que hacía ver la tarjeta desbalanceada.
  */
-function FranjaFecha({
-  icono, etiqueta, children, sufijo, tinte, acento, separada,
+function MomentoEtapa({
+  icono, etiqueta, fecha, anioDistinto, tinte, acento,
 }: {
   icono: React.ReactNode;
   etiqueta: string;
-  children: React.ReactNode;
-  sufijo?: string;
+  fecha: string;
+  /** Solo se imprime cuando la fecha se sale del año que se está viendo. */
+  anioDistinto?: string;
   tinte: string;
   acento: string;
-  /** Lleva línea divisoria arriba (la segunda franja de la tarjeta). */
-  separada?: boolean;
 }) {
   return (
-    <div
-      className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3.5 py-2"
-      style={{ background: tinte, borderTop: separada ? '1px solid #f0e8e0' : undefined }}
-    >
-      <span
-        className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest flex-shrink-0"
-        style={{ color: acento, minWidth: 124 }}
+    <div className="flex-1 min-w-0 text-center px-4 py-3.5" style={{ background: tinte }}>
+      <div
+        className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em]"
+        style={{ color: acento }}
       >
         {icono} {etiqueta}
-      </span>
-      <span
-        className="text-[16px] sm:text-[19px] font-bold leading-tight"
+      </div>
+      <div
+        className="text-[15px] sm:text-[17px] font-semibold leading-snug mt-1.5"
         style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
       >
-        {children}
-      </span>
-      {/* El año se va al extremo derecho: cierra la franja y evita el hueco
-          muerto que quedaba entre la fecha y el borde de la tarjeta. */}
-      {sufijo && (
-        <span className="text-[12px] font-semibold sm:ml-auto" style={{ color: '#a1968c' }}>{sufijo}</span>
+        {fecha}
+      </div>
+      {anioDistinto && (
+        <div className="text-[11px] font-semibold mt-1" style={{ color: '#a1968c' }}>
+          {anioDistinto}
+        </div>
       )}
     </div>
   );
@@ -332,9 +319,9 @@ export default function ConvocatoriasLista() {
                 Etapa {etapaActiva.clave} — Fase {etapaActiva.fase}
               </div>
               <div className="text-xs mt-0.5" style={{ opacity: 0.85 }}>
-                Inscripciones: {diaMesCorto(etapaActiva.solicitudInicio)}–{diaMesCorto(etapaActiva.solicitudFin)}
+                Inscripciones: {rangoLargo(etapaActiva.solicitudInicio, etapaActiva.solicitudFin, 'al')}
                 {' · '}
-                Examen: {conDiaSemana(etapaActiva.examenSabado)} y {conDiaSemana(etapaActiva.examenDomingo)}
+                Examen: {rangoLargo(etapaActiva.examenSabado, etapaActiva.examenDomingo, 'y')}
               </div>
             </div>
           </div>
@@ -415,46 +402,25 @@ export default function ConvocatoriasLista() {
                     {/* Renglón 1: quién es la etapa, en qué estado va y cuánta
                         gente trae. Las fechas ya NO viven aquí. */}
                     <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {/* Ancla de la etapa en la línea de tiempo: el día del
-                            examen. Va rotulada y en morado —el color del examen
-                            en todo el producto— para que nadie la confunda con
-                            la fecha de inscripción. */}
-                        <div
-                          className="flex-shrink-0 text-center rounded-lg px-2.5 py-1"
-                          style={{ background: CAL_EXAMEN.fondoSuave, border: `1px solid ${CAL_EXAMEN.borde}`, minWidth: 50 }}
+                      {/* Sin insignia de fecha: repetía el día del examen, que
+                          ya vive completo en el panel de abajo. El punto de la
+                          línea de tiempo, a la izquierda, es el ancla. */}
+                      <div className="flex items-center gap-2.5 flex-wrap min-w-0">
+                        <span
+                          className="font-bold text-[21px] sm:text-[24px] leading-none tracking-tight"
+                          style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                         >
-                          <div className="text-[8px] font-bold uppercase tracking-widest" style={{ color: CAL_EXAMEN.texto, opacity: 0.75 }}>
-                            Examen
-                          </div>
-                          <div
-                            className="text-[19px] font-bold leading-none"
-                            style={{ fontFamily: "'Poppins', sans-serif", color: CAL_EXAMEN.texto }}
-                          >
-                            {diaMesCorto(etapa.examenSabado).split(' ')[0]}
-                          </div>
-                          <div className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e', marginTop: 1 }}>
-                            {diaMesCorto(etapa.examenSabado).split(' ')[1]}
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          Etapa {etapa.clave}
+                        </span>
+                        <ChipEstado estado={etapa.estado} />
+                        {isActiva && (
                           <span
-                            className="font-bold text-[21px] sm:text-[24px] leading-none tracking-tight"
-                            style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
+                            className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
+                            style={{ background: 'var(--color-guinda-700)', color: 'white' }}
                           >
-                            Etapa {etapa.clave}
+                            Activa
                           </span>
-                          <ChipEstado estado={etapa.estado} />
-                          {isActiva && (
-                            <span
-                              className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
-                              style={{ background: 'var(--color-guinda-700)', color: 'white' }}
-                            >
-                              Activa
-                            </span>
-                          )}
-                        </div>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-4 flex-shrink-0">
@@ -475,36 +441,35 @@ export default function ConvocatoriasLista() {
                       </div>
                     </div>
 
-                    {/* Renglón 2: las FECHAS, que es a lo que se entra a esta
-                        pantalla. Dos franjas de ancho completo —inscripción
-                        arriba, examen abajo— en vez de una línea de prosa. */}
+                    {/* Renglón 2: los dos momentos de la etapa, lado a lado.
+                        Se lee como un camino: primero te inscribes, después
+                        presentas. Centrados y sin repetir el año. */}
                     <div
-                      className="mt-3 overflow-hidden"
+                      className="mt-3 overflow-hidden flex flex-col sm:flex-row"
                       style={{ border: '1px solid #f0e8e0', borderRadius: 10 }}
                     >
-                      <FranjaFecha
+                      <MomentoEtapa
                         icono={<CalendarClock size={12} />}
                         etiqueta="Inscripciones"
-                        sufijo={anioRango(etapa.solicitudInicio, etapa.solicitudFin)}
+                        fecha={rangoLargo(etapa.solicitudInicio, etapa.solicitudFin, 'al')}
+                        anioDistinto={anioSiEsOtro(etapa.solicitudInicio, etapa.solicitudFin)}
                         tinte={CAL_INSCRIPCION.fondoSuave}
                         acento={CAL_INSCRIPCION.texto}
+                      />
+                      <div
+                        className="flex-shrink-0 self-stretch flex items-center justify-center px-1"
+                        style={{ background: '#fff', borderLeft: '1px solid #f0e8e0', borderRight: '1px solid #f0e8e0' }}
                       >
-                        {fechaTarjeta(etapa.solicitudInicio)}
-                        <span className="px-2" style={{ color: CAL_INSCRIPCION.texto, opacity: 0.55 }}>→</span>
-                        {fechaTarjeta(etapa.solicitudFin)}
-                      </FranjaFecha>
-                      <FranjaFecha
+                        <ChevronRight size={14} style={{ color: '#d6c9bd' }} />
+                      </div>
+                      <MomentoEtapa
                         icono={<CalendarCheck size={12} />}
                         etiqueta="Examen"
-                        sufijo={anioRango(etapa.examenSabado, etapa.examenDomingo)}
+                        fecha={rangoLargo(etapa.examenSabado, etapa.examenDomingo, 'y')}
+                        anioDistinto={anioSiEsOtro(etapa.examenSabado, etapa.examenDomingo)}
                         tinte={CAL_EXAMEN.fondoSuave}
                         acento={CAL_EXAMEN.texto}
-                        separada
-                      >
-                        {fechaTarjeta(etapa.examenSabado)}
-                        <span className="px-2" style={{ color: CAL_EXAMEN.texto, opacity: 0.55 }}>·</span>
-                        {fechaTarjeta(etapa.examenDomingo)}
-                      </FranjaFecha>
+                      />
                     </div>
                   </a>
                   {/* Documentos de la etapa (todas las etapas) */}
