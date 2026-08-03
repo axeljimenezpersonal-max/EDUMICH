@@ -61,6 +61,7 @@ import { generarInscritosPagados } from '../services/inscritosPagadosPdf';
 import { nombreArchivoExpediente } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
 import { validarCurp } from '../utils/curp';
+import { esAprobatoria } from '../utils/calificacion';
 import { normalizarTelefonoOMantener } from '../utils/telefono';
 import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { hoyEnMexico, diasEntre } from '../utils/fechas';
@@ -564,7 +565,7 @@ router.post('/estudiantes/:estudianteId/calificaciones', async (req, res) => {
     intento = Number(cnt) + 1;
   }
 
-  const aprobado = data.calificacion >= 70;
+  const aprobado = esAprobatoria(data.calificacion);
 
   const [calif] = await db
     .insert(calificaciones)
@@ -651,7 +652,7 @@ router.patch('/calificaciones/:califId', async (req, res) => {
   const setValues: Record<string, unknown> = { updatedAt: new Date() };
   if (data.calificacion !== undefined) {
     setValues.calificacion = data.calificacion;
-    setValues.aprobado = data.calificacion >= 70;
+    setValues.aprobado = esAprobatoria(data.calificacion);
   }
   if (data.etapaClave !== undefined) setValues.etapaClave = data.etapaClave;
   if (data.fechaExamen !== undefined) setValues.fechaExamen = data.fechaExamen;
@@ -4586,8 +4587,8 @@ router.get('/convocatorias/:etapaId', async (req, res) => {
 
     const totalInscritos = estudiantesMap.size;
     const examenesTotal = rows.length;
-    const aprobados = rows.filter((r) => r.calificacion !== null && r.calificacion >= 70).length;
-    const reprobados = rows.filter((r) => r.calificacion !== null && r.calificacion < 70).length;
+    const aprobados = rows.filter((r) => esAprobatoria(r.calificacion)).length;
+    const reprobados = rows.filter((r) => r.calificacion !== null && !esAprobatoria(r.calificacion)).length;
     const pendientes = rows.filter((r) => r.calificacion === null).length;
 
     res.json({
@@ -5419,7 +5420,7 @@ async function construirFilasRelacion(ref: string): Promise<{ cabecera: any; fil
         calificacionPdf: c.calificacion,
         calificacion: cal100,
         aciertos: c.aciertos,
-        aprobado: cal100 >= 60,
+        aprobado: esAprobatoria(cal100),
         estudianteId: est?.userId ?? null,
         alumnoSistema: est?.nombreCompleto ?? null,
         gestorId: est?.gestorId ?? null,

@@ -8,6 +8,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { db } from '../db';
 import { calificaciones, modulos, sedes, estudiantes, municipios } from '@workspace/db/schema';
 import { winAnsiSafe } from '../utils/pdfText';
+import { TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
 
 const GUINDA = rgb(0.42, 0.08, 0.19);
 const GUINDA_D = rgb(0.30, 0.05, 0.14);
@@ -103,7 +104,7 @@ export async function generarHistorialPdf(
   }
   const totalAprobados = aprobadosMap.size;
   const promedio = rows.length ? Math.round(rows.reduce((s, r) => s + r.calificacion, 0) / rows.length) : 0;
-  const avance = Math.round((totalAprobados / 21) * 100);
+  const avance = Math.round((totalAprobados / TOTAL_MODULOS_PLAN22) * 100);
   const reprobados = rows.filter((r) => !r.aprobado).length;
 
   // Aprobados por nivel (1-4)
@@ -148,7 +149,7 @@ export async function generarHistorialPdf(
   ctx.page.drawLine({ start: { x: M, y: ctx.y }, end: { x: A4.w - M, y: ctx.y }, thickness: 1, color: LINEA });
   ctx.y -= 22;
   const kpis: [string, string, ReturnType<typeof rgb>][] = [
-    [`${totalAprobados}/22`, 'Módulos aprobados', GUINDA],
+    [`${totalAprobados}/${TOTAL_MODULOS_PLAN22}`, 'Módulos aprobados', GUINDA],
     [calif10(promedio), 'Promedio global', VERDE],
     [`${avance}%`, 'Avance', GUINDA],
     [`${rows.length}`, 'Exámenes presentados', GRIS],

@@ -15,6 +15,7 @@ import {
 import { authRequired } from '../middleware/auth';
 import { generarHistorialPdf } from '../services/historialPdf';
 import { hoyEnMexico } from '../utils/fechas';
+import { esAprobatoria, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
 
 const router = Router();
 router.use(authRequired);
@@ -86,7 +87,7 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     rows.length > 0
       ? Math.round(rows.reduce((s, r) => s + r.calificacion, 0) / rows.length)
       : 0;
-  const porcentajeAvance = Math.round((totalAprobados / 22) * 100);
+  const porcentajeAvance = Math.round((totalAprobados / TOTAL_MODULOS_PLAN22) * 100);
 
   const [estPdf] = await db
     .select({ p: estudiantes.calificacionesPdfPath, en: estudiantes.calificacionesPdfSubidoEn })
@@ -158,8 +159,8 @@ router.get('/estudiantes/:estudianteId', async (req, res) => {
     temasDebiles: Array.isArray(r.temas_debiles)
       ? (r.temas_debiles as string[]).join(', ')
       : typeof r.temas_debiles === 'string' ? r.temas_debiles : null,
-    // Una prueba se considera "aprobada" con ≥60 (misma escala interna 0–100).
-    aprobada: r.mejor_calificacion != null && r.mejor_calificacion >= 60,
+    // Una prueba se considera "aprobada" con el mismo mínimo que un examen.
+    aprobada: esAprobatoria(r.mejor_calificacion),
   }));
   const pruebasAprobadas = evaluacionesPractica.filter((e) => e.aprobada).length;
 

@@ -26,6 +26,7 @@
 
 import { pool } from '@workspace/db';
 import { hoyEnMexico } from '../utils/fechas';
+import { CALIF_MINIMA_APROBATORIA } from '../utils/calificacion';
 
 export type Familia = 'acumulada' | 'estado';
 
@@ -154,7 +155,7 @@ export const METRICAS: Metrica[] = [
     titulo: 'Aprobación acumulada (%)',
     familia: 'estado',
     sqlHoy: `SELECT COALESCE(round(
-               100.0 * count(*) FILTER (WHERE calificacion >= 60) / NULLIF(count(*), 0), 1
+               100.0 * count(*) FILTER (WHERE calificacion >= ${CALIF_MINIMA_APROBATORIA}) / NULLIF(count(*), 0), 1
              ), 0)::float AS v
                FROM calificaciones WHERE calificacion IS NOT NULL`,
   },

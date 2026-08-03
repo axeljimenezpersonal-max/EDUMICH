@@ -42,6 +42,7 @@ import { generarPasswordTemporal } from '../utils/password';
 import { urlPortalLogin } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
+import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
 import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
 import { resumenMetricas, serieMetricas, PROCESS_START, obtenerErroresRecientes } from '../middleware/metrics';
@@ -59,7 +60,7 @@ router.get('/depuracion-metricas', async (_req, res) => {
 });
 
 const DOCS_OBLIGATORIOS = `('curp','acta_nacimiento','ine','comprobante_domicilio','certificado_secundaria')`;
-const TOTAL_MODULOS = 22;
+const TOTAL_MODULOS = TOTAL_MODULOS_PLAN22;
 
 function num(v: unknown): number {
   return Number(v ?? 0);
@@ -666,7 +667,7 @@ router.get('/insights', async (_req, res) => {
 
     const [academico] = await uno(`
       SELECT count(*)::int AS calificaciones,
-             count(*) FILTER (WHERE calificacion >= 60)::int AS aprobadas,
+             count(*) FILTER (WHERE calificacion >= ${CALIF_MINIMA_APROBATORIA})::int AS aprobadas,
              round(avg(calificacion)::numeric, 1)::float AS promedio
         FROM calificaciones WHERE calificacion IS NOT NULL`);
 
