@@ -100,6 +100,21 @@ export function diaLargo(s: string | null | undefined): string {
   return parseDbDate(s).toLocaleDateString('es-MX', { weekday: 'long', day: '2-digit', month: 'long', timeZone: TZ });
 }
 
+/**
+ * "sábado 22 de agosto" — día de la semana y mes COMPLETOS, sin el año.
+ * Para tarjetas donde el año se muestra aparte y repetirlo en cada fecha
+ * sobrecarga la línea. Igual que las demás: el día de la semana se DERIVA,
+ * nunca se escribe a mano.
+ */
+export function fechaLargaSinAnio(s: string | null | undefined): string {
+  if (!s) return '';
+  const puro = parteFechaPura(s);
+  const d = puro ? new Date(`${puro}T12:00:00`) : parseDbDate(s);
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'long', day: 'numeric', month: 'long' };
+  if (!puro) opts.timeZone = TZ;
+  return d.toLocaleDateString('es-MX', opts).replace(',', '');
+}
+
 /** "miércoles 15 de julio de 2026" — fecha completa y clara, con día de la semana. */
 export function fechaLarga(s: string | null | undefined): string {
   if (!s) return '';

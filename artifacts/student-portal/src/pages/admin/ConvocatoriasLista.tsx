@@ -4,7 +4,7 @@ import SedesLista from './SedesLista';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_CONVOCATORIAS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
-import { diaMesCorto, diaSemanaCorto, anioDe } from '../../lib/fechas';
+import { diaMesCorto, diaSemanaCorto, anioDe, fechaLargaSinAnio } from '../../lib/fechas';
 import { estadoEtapa } from '../../lib/estadosEtapa';
 import { CAL_INSCRIPCION, CAL_EXAMEN } from '../../lib/coloresCalendario';
 import { Calendar, Users, ChevronRight, ArrowRight, Flag, Upload, X, CheckCircle2, AlertTriangle, Loader2, FileText, FileCheck2, Building2, CalendarClock, CalendarCheck } from 'lucide-react';
@@ -40,6 +40,16 @@ function conDiaSemana(d: string): string {
   return `${diaSemanaCorto(d)} ${diaMesCorto(d)}`;
 }
 
+/**
+ * "sábado 22 de agosto" — la forma larga que va en las tarjetas de etapa.
+ * Se escribe completa a propósito: quien opera lee estas fechas para decidir
+ * si abre o cierra una ventana, y "22 ago" obliga a un segundo de traducción
+ * que a las once de la noche se paga con un error.
+ */
+function fechaTarjeta(d: string): string {
+  return fechaLargaSinAnio(d);
+}
+
 /** "2026" si las dos fechas caen en el mismo año; "2026–2027" si lo cruzan. */
 function anioRango(a: string, b: string): string {
   const ya = anioDe(a);
@@ -70,19 +80,21 @@ function FranjaFecha({
       style={{ background: tinte, borderTop: separada ? '1px solid #f0e8e0' : undefined }}
     >
       <span
-        className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest flex-shrink-0"
-        style={{ color: acento, minWidth: 118 }}
+        className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest flex-shrink-0"
+        style={{ color: acento, minWidth: 124 }}
       >
         {icono} {etiqueta}
       </span>
       <span
-        className="text-[17px] sm:text-[20px] font-bold leading-tight"
+        className="text-[16px] sm:text-[19px] font-bold leading-tight"
         style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
       >
         {children}
       </span>
+      {/* El año se va al extremo derecho: cierra la franja y evita el hueco
+          muerto que quedaba entre la fecha y el borde de la tarjeta. */}
       {sufijo && (
-        <span className="text-[11px] font-semibold" style={{ color: '#a1968c' }}>{sufijo}</span>
+        <span className="text-[12px] font-semibold sm:ml-auto" style={{ color: '#a1968c' }}>{sufijo}</span>
       )}
     </div>
   );
@@ -93,12 +105,12 @@ function ChipEstado({ estado }: { estado: string }) {
   const cfg = estadoEtapa(estado);
   return (
     <span
-      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+      className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
       style={{ background: cfg.fondo, color: cfg.texto }}
     >
       {cfg.latido && (
         <span
-          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          className="w-[7px] h-[7px] rounded-full animate-pulse"
           style={{ background: 'currentColor' }}
         />
       )}
@@ -428,7 +440,7 @@ export default function ConvocatoriasLista() {
 
                         <div className="flex items-center gap-2 flex-wrap min-w-0">
                           <span
-                            className="font-bold text-[15px]"
+                            className="font-bold text-[21px] sm:text-[24px] leading-none tracking-tight"
                             style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                           >
                             Etapa {etapa.clave}
@@ -436,7 +448,7 @@ export default function ConvocatoriasLista() {
                           <ChipEstado estado={etapa.estado} />
                           {isActiva && (
                             <span
-                              className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+                              className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
                               style={{ background: 'var(--color-guinda-700)', color: 'white' }}
                             >
                               Activa
@@ -448,12 +460,12 @@ export default function ConvocatoriasLista() {
                       <div className="flex items-center gap-4 flex-shrink-0">
                         <div className="text-right">
                           <div
-                            className="text-xl font-bold leading-none"
+                            className="text-[28px] font-bold leading-none"
                             style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                           >
                             {etapa.totalInscritos}
                           </div>
-                          <div className="text-[10px] mt-0.5" style={{ color: '#6b635e' }}>inscritos</div>
+                          <div className="text-[11px] font-semibold mt-1" style={{ color: '#6b635e' }}>inscritos</div>
                         </div>
                         <ChevronRight
                           size={16}
@@ -477,9 +489,9 @@ export default function ConvocatoriasLista() {
                         tinte={CAL_INSCRIPCION.fondoSuave}
                         acento={CAL_INSCRIPCION.texto}
                       >
-                        {diaMesCorto(etapa.solicitudInicio)}
-                        <span className="px-1.5" style={{ color: CAL_INSCRIPCION.texto, opacity: 0.55 }}>→</span>
-                        {diaMesCorto(etapa.solicitudFin)}
+                        {fechaTarjeta(etapa.solicitudInicio)}
+                        <span className="px-2" style={{ color: CAL_INSCRIPCION.texto, opacity: 0.55 }}>→</span>
+                        {fechaTarjeta(etapa.solicitudFin)}
                       </FranjaFecha>
                       <FranjaFecha
                         icono={<CalendarCheck size={12} />}
@@ -489,9 +501,9 @@ export default function ConvocatoriasLista() {
                         acento={CAL_EXAMEN.texto}
                         separada
                       >
-                        {conDiaSemana(etapa.examenSabado)}
-                        <span className="px-1.5" style={{ color: CAL_EXAMEN.texto, opacity: 0.55 }}>·</span>
-                        {conDiaSemana(etapa.examenDomingo)}
+                        {fechaTarjeta(etapa.examenSabado)}
+                        <span className="px-2" style={{ color: CAL_EXAMEN.texto, opacity: 0.55 }}>·</span>
+                        {fechaTarjeta(etapa.examenDomingo)}
                       </FranjaFecha>
                     </div>
                   </a>
