@@ -216,3 +216,126 @@ script señala esas filas huérfanas al final.
 | `No encontré el archivo …` dentro del contenedor | El Dockerfile copia `lib/`, `artifacts/` y `attached_assets/`, **no** `docs/`. Los datos que el contenedor necesita van en `lib/db/datos/` |
 | El build "no imprime nada" y parece colgado | No está colgado: son varios minutos y `pnpm install` no da señales. Si lo lanzaste con `\| tail`, la salida no aparece hasta el final — usa `\| tee`. Interrumpirlo deja la imagen vieja **sin ningún error visible** |
 | El contenedor arranca y se muere | `docker logs modula22` — casi siempre es `.env.production` o el certificado `rds-ca.pem` |
+
+---
+
+## Publicar la landing pública (`modula22.mx`)
+
+La landing es **un solo archivo HTML autocontenido**: `artifacts/landing/index.html`.
+No tiene build, ni dependencias, ni llamadas a ningún tercero — la tipografía y
+el logotipo van incrustados. Eso es a propósito: es la página de venta, y tiene
+que abrir aunque el contenedor esté caído o la base no responda. **No la sirve el
+api-server**; la sirve Caddy directamente desde disco.
+
+El reparto de dominios que supone esta sección:
+
+| Dominio | Qué sirve |
+|---|---|
+| `modula22.mx` y `www.modula22.mx` | La landing pública (archivo estático) |
+| `prepa.modula22.mx` | El portal — `reverse_proxy` al contenedor en el 3001 |
+
+> ⚠️ **Hoy `modula22.mx` sirve el portal.** Mover el portal al subdominio no es
+> solo Caddy; ver "Antes de mover el portal" al final.
+
+### 1 · Copiar el archivo al servidor
+
+El archivo viaja en el repo, así que el `git fetch` + `git reset --hard` del
+paso 2 de este runbook **ya lo deja en el servidor**, en
+`~/modula22/artifacts/landing/index.html`. De ahí se copia a la carpeta que
+Caddy sirve:
+
+```bash
+sudo mkdir -p /srv/modula22-landing
+sudo cp ~/modula22/artifacts/landing/index.html /srv/modula22-landing/index.html
+sudo chown -R caddy:caddy /srv/modula22-landing
+```
+
+**Se copia, no se apunta Caddy directo a `~/modula22`**, por dos razones: el
+home de `ubuntu` no siempre es legible para el usuario `caddy`, y un
+`git reset --hard` a media petición dejaría la página servida a medias.
+
+Quien despliega entra por Session Manager (navegador) y **no tiene `scp`** — por
+eso el archivo viaja en el repo y esta copia es local al servidor. No hay nada
+que subir desde una laptop.
+
+Para actualizar la landing más adelante: mismo `cp`. No hace falta reconstruir la
+imagen ni tocar el contenedor.
+
+### 2 · El bloque de Caddy
+
+> **El `Caddyfile` no está en el repo.** El bloque de abajo está escrito
+> asumiendo la configuración estándar del servidor: Caddy en el EC2, escuchando
+> en 80/443, con el `Caddyfile` en `/etc/caddy/Caddyfile`, y el contenedor
+> expuesto solo en `127.0.0.1:3001`. **Antes de pegarlo, abre el archivo real**
+> (`sudo cat /etc/caddy/Caddyfile`) y ajusta lo que ya exista para
+> `modula22.mx` en vez de duplicarlo.
+
+```caddyfile
+# ── Landing pública ───────────────────────────────────────────────────────
+modula22.mx, www.modula22.mx {
+	encode zstd gzip
+	root * /srv/modula22-landing
+	file_server
+
+	header {
+		X-Content-Type-Options   "nosniff"
+		Referrer-Policy          "strict-origin-when-cross-origin"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+	}
+
+	# La landing es un solo archivo y se reemplaza con un cp: si el navegador la
+	# cachea, el cambio no se ve y parece que el cp no sirvió.
+	header /index.html Cache-Control "no-cache"
+
+	log {
+		output file /var/log/caddy/landing.log
+	}
+}
+
+# ── Portal (alumnado, gestores, administración) ───────────────────────────
+prepa.modula22.mx {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3001
+}
+```
+
+Recargar sin cortar conexiones:
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+`validate` primero: un `Caddyfile` con un error tumba el servicio al recargar, y
+eso se lleva también al portal.
+
+### 3 · Comprobar
+
+```bash
+curl -sI https://modula22.mx | head -3            # 200 y text/html
+curl -s https://modula22.mx | grep -c "Plan Modular"   # > 0 → es la landing, no el portal
+```
+
+Y abrirla en un teléfono: se va a ver desde un celular en una junta, no solo
+desde un escritorio.
+
+### Antes de mover el portal a `prepa.modula22.mx`
+
+Tres cosas fuera de Caddy, y si falta alguna el portal queda roto de formas poco
+evidentes:
+
+1. **DNS**: registro A de `prepa.modula22.mx` a la IP del EC2. Caddy no emite el
+   certificado hasta que el nombre resuelve.
+2. **`ALLOWED_ORIGINS`** en `.env.production` debe incluir
+   `https://prepa.modula22.mx`. La allowlist por omisión de
+   `artifacts/api-server/src/index.ts` trae `modula22.mx` y `www`, no el
+   subdominio.
+3. **`PUBLIC_PORTAL_URL=https://prepa.modula22.mx`** en `.env.production`. Sin
+   eso, `artifacts/api-server/src/utils/portal.ts` arma los enlaces de los
+   correos (bienvenida, recuperar contraseña, verificación de pase) contra
+   `https://modula22.mx`, que a partir del cambio es la landing: el enlace
+   abriría la página de venta en vez del inicio de sesión.
+
+Mientras esos tres pasos no estén hechos, **deja `modula22.mx` sirviendo el
+portal** y publica la landing en un dominio o subdominio aparte. Ninguno de los
+tres se arregla desde el `Caddyfile`.
