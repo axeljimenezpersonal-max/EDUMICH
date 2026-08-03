@@ -232,9 +232,27 @@ que decirle a Caddy que ese dominio también va al contenedor.
 | `prepa.modula22.mx` | La operación de Michoacán (login y portal) |
 
 La tarjeta de Michoacán apunta con URL **absoluta** a
-`https://prepa.modula22.mx/prepaabierta/michoacan` (campo `url` del arreglo
-`ESTADOS`). Cuando se sume otro estado, se le pone ahí su propia dirección y no
-hay nada más que tocar.
+`https://prepa.modula22.mx/michoacan` (campo `url` del arreglo `ESTADOS`).
+Cuando se sume otro estado, se le pone ahí su propia dirección y no hay nada más
+que tocar.
+
+### El estado va en la dirección
+
+Toda la operación cuelga del estado: `prepa.modula22.mx/michoacan/admin/alumnos`.
+Se lee dominio → estado → rol → pantalla.
+
+Las rutas del portal siguen escritas **sin** el prefijo (`/admin/alumnos`) y los
+enlaces también: `<Router base>` de wouter se lo pone al comparar y al generar
+cada `<Link>`. Por eso el día que entre otro estado esto es una variable
+(`BASE_ESTADO` en `student-portal/src/lib/estado.ts`) y no una migración.
+
+Hay un gemelo del lado del servidor —`BASE_ESTADO` en
+`api-server/src/utils/portal.ts`— porque los correos arman sus enlaces allá. **Si
+cambia uno, cambia el otro.**
+
+Las direcciones viejas sin estado (`/login`, `/admin`, `/prepaabierta/michoacan`)
+siguen funcionando: `PortalDelEstado` las redirige. Eso **no se quita nunca**,
+hay QR impresos y correos enviados con ellas.
 
 ### El bloque de Caddy
 

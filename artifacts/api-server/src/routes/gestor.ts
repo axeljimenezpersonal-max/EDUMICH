@@ -47,7 +47,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { puedeRevelarCredenciales, sendBienvenidaCredenciales } from '../services/email';
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
-import { urlPortalLogin, urlPortalBase } from '../utils/portal';
+import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { validarCurp } from '../utils/curp';
 import { nombreArchivoExpediente } from '../utils/nombreArchivo';
@@ -1778,7 +1778,7 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
     fotoPath: await rutaFotoAprobada(est.userId),
-    qrVerifUrl: `${urlPortalBase()}/verificar/${est.folioPreregistro}`,
+    qrVerifUrl: `${urlPortalEstado()}/verificar/${est.folioPreregistro}`,
   });
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');

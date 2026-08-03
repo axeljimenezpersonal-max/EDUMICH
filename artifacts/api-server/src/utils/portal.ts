@@ -20,7 +20,25 @@ export function urlPortalBase(): string {
   return process.env.NODE_ENV === 'production' ? 'https://modula22.mx' : 'http://localhost:5173';
 }
 
-/** URL de inicio de sesión. Ej.: "https://modula22.mx/login". */
+/**
+ * Prefijo del estado en las direcciones del portal.
+ *
+ * Las rutas viven bajo el estado: `/michoacan/login`, no `/login`. El portal
+ * redirige solo las direcciones viejas —hay QR impresos y correos enviados con
+ * ellas—, pero los correos NUEVOS deben salir ya con la dirección buena, para
+ * no gastarle un salto a nadie ni enseñar una URL que ya no es la oficial.
+ *
+ * Gemelo de `BASE_ESTADO` en `student-portal/src/lib/estado.ts`: si allá entra
+ * otro estado, aquí también.
+ */
+const BASE_ESTADO = '/michoacan';
+
+/** Base del portal CON el estado. Ej.: "https://prepa.modula22.mx/michoacan". */
+export function urlPortalEstado(): string {
+  return `${urlPortalBase()}${BASE_ESTADO}`;
+}
+
+/** URL de inicio de sesión. Ej.: "https://prepa.modula22.mx/michoacan/login". */
 export function urlPortalLogin(): string {
-  return `${urlPortalBase()}/login`;
+  return `${urlPortalEstado()}/login`;
 }

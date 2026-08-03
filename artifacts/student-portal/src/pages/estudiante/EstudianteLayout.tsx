@@ -4,6 +4,7 @@ import {
   LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, HelpCircle, CreditCard,
   GraduationCap, School, Lock, CalendarDays } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
+import { BASE_ESTADO } from '../../lib/estado';
 import { Eye } from 'lucide-react';
 import { InstitutionalHeader } from '../../components/InstitutionalHeader';
 import { PantallaVerificando } from '../../components/PantallaVerificando';
@@ -198,7 +199,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
           <Eye size={14} />
           {demoEscenario() === 'avanzado' ? 'Vista demo · datos ficticios' : 'Vista demo · alumno nuevo'}
           <button
-            onClick={() => { disableDemo(); window.location.href = '/login'; }}
+            onClick={() => { disableDemo(); window.location.href = `${BASE_ESTADO}/login`; }}
             className="ml-1 rounded-full bg-white/20 px-2 py-0.5 hover:bg-white/30 transition-colors"
           >
             Salir

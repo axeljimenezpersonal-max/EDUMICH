@@ -29,7 +29,11 @@ export const DOMINIO_NACIONAL = 'https://modula22.mx';
  */
 export const DOMINIO_MICHOACAN = 'https://prepa.modula22.mx';
 
-/** Rutas públicas que un buscador debería indexar, y a qué dominio pertenecen. */
+/**
+ * Rutas públicas que un buscador debería indexar, y a qué dominio pertenecen.
+ * Solo la raíz es nacional: en cuanto la dirección trae estado
+ * (`/michoacan/...`) ya es la operación de ese estado.
+ */
 const RUTAS_NACIONALES = new Set(['/']);
 
 /**

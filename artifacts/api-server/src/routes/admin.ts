@@ -49,7 +49,7 @@ import {
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { idsAlumnosConExamenPagado, sqlTieneExamenPagado } from '../utils/pagoAlumno';
-import { urlPortalLogin, urlPortalBase } from '../utils/portal';
+import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
 import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada, sendRecuperarPassword } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
@@ -3466,7 +3466,7 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
     await db.insert(passwordResetTokens).values({ userId: gestorId, tokenHash, expiraEn });
-    const resetUrl = `${urlPortalBase()}/reset-password?token=${token}`;
+    const resetUrl = `${urlPortalEstado()}/reset-password?token=${token}`;
 
     let emailEnviado = false;
     let errorCorreo: string | null = null;
@@ -3535,7 +3535,7 @@ router.post('/alumnos/:id/reset-password', async (req, res) => {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
     await db.insert(passwordResetTokens).values({ userId: alumnoId, tokenHash, expiraEn });
-    const resetUrl = `${urlPortalBase()}/reset-password?token=${token}`;
+    const resetUrl = `${urlPortalEstado()}/reset-password?token=${token}`;
 
     // El fallo del correo NO se traga: sin correo no hay enlace, y el alumno
     // se quedaría esperando algo que nunca llegó.
@@ -5888,7 +5888,7 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
     fotoPath: await rutaFotoAprobada(alumnoId),
-    qrVerifUrl: `${urlPortalBase()}/verificar/${est.folioPreregistro}`,
+    qrVerifUrl: `${urlPortalEstado()}/verificar/${est.folioPreregistro}`,
   });
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');

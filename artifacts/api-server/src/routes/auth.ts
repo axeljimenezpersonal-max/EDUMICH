@@ -23,7 +23,7 @@ import {
 } from '../middleware/auth';
 import { sendRecuperarPassword } from '../services/email';
 import { tryAuditLog } from '../utils/audit';
-import { urlPortalBase } from '../utils/portal';
+import { urlPortalEstado } from '../utils/portal';
 import { bloqueoDeCuenta, registrarFalloDeCuenta, limpiarFallosDeCuenta } from '../utils/bloqueoCuenta';
 import { registrarCorteLocal } from '../utils/revocacion';
 
@@ -423,7 +423,7 @@ router.post('/recuperar-password', async (req, res) => {
 
       // El enlace apunta al sitio real (modula22.mx), ignorando valores viejos
       // de dominios muertos. Ver utils/portal.
-      const resetUrl = `${urlPortalBase()}/reset-password?token=${token}`;
+      const resetUrl = `${urlPortalEstado()}/reset-password?token=${token}`;
 
       await sendRecuperarPassword(email, { nombre: email.split('@')[0], resetUrl, token });
       res.json({ ok: true, existe: true });

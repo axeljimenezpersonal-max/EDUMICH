@@ -10,6 +10,8 @@
  * mientras dure la pestaña (para que la navegación no rebote a /login).
  */
 
+import { sinPrefijoDeEstado } from './estado';
+
 const FLAG = 'modula_demo_rol';
 const FLAG_ESC = 'modula_demo_esc';
 
@@ -54,7 +56,10 @@ export function demoActive(): boolean {
   try {
     if (sessionStorage.getItem(FLAG)) return true;
   } catch { /* ignore */ }
-  return typeof window !== 'undefined' && window.location.pathname.startsWith('/demo');
+  // La dirección real trae el estado (`/michoacan/demo/estudiante`); hay que
+  // quitárselo antes de comparar o el modo demo no se enciende nunca.
+  if (typeof window === 'undefined') return false;
+  return sinPrefijoDeEstado(window.location.pathname).startsWith('/demo');
 }
 
 // ── Datos ficticios de un alumno NUEVO ─────────────────────────

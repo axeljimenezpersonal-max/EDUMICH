@@ -76,7 +76,7 @@ const ESTADOS: Estado[] = [
   { nombre: 'Guerrero', Icono: TreePalm },
   { nombre: 'Hidalgo', Icono: Sprout },
   { nombre: 'Jalisco', Icono: Guitar },
-  { nombre: 'Michoacán', Icono: Mariposa, disponible: true, url: 'https://prepa.modula22.mx/prepaabierta/michoacan' },
+  { nombre: 'Michoacán', Icono: Mariposa, disponible: true, url: 'https://prepa.modula22.mx/michoacan' },
   { nombre: 'Morelos', Icono: Leaf },
   { nombre: 'Nayarit', Icono: Sailboat },
   { nombre: 'Nuevo León', Icono: Mountain },
@@ -105,7 +105,7 @@ function TarjetaEstado({ estado, index }: { estado: Estado; index: number }) {
   if (estado.disponible) {
     // Enlace absoluto al dominio del estado: la misma tarjeta funciona igual
     // desde la puerta nacional (modula22.mx) y desde el propio portal.
-    const destino = estado.url ?? '/prepaabierta/michoacan';
+    const destino = estado.url ?? '/michoacan';
     const externo = destino.startsWith('http');
     const Envoltura = (externo ? 'a' : Link) as React.ElementType;
     return (

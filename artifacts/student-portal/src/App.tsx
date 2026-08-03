@@ -6,9 +6,10 @@
  */
 
 import { useEffect } from 'react';
-import { Switch, Route, Redirect, useLocation } from 'wouter';
+import { Switch, Route, Redirect, Router, useLocation } from 'wouter';
 import { iniciarTelemetria, registrarPantalla } from './lib/uso';
 import { fijarCanonico } from './lib/canonico';
+import { BASE_ESTADO, destinoConEstado, sinPrefijoDeEstado } from './lib/estado';
 import { demoActive } from './lib/demo';
 import Login from './pages/Login';
 import CambiarPasswordInicial from './pages/CambiarPasswordInicial';
@@ -110,11 +111,15 @@ function TelemetriaDeUso() {
   }, []);
 
   useEffect(() => {
+    // La ruta llega con el prefijo del estado (`/michoacan/gestor/alumnos`).
+    // Se le quita antes de contar: lo que se mide es la PANTALLA, y mezclarle
+    // el estado partiría en dos la misma métrica el día que entre el segundo.
+    const pantalla = sinPrefijoDeEstado(ruta);
     // Las pantallas públicas (login, registro, aviso de privacidad) no se
     // cuentan: no hay sesión, así que el servidor no sabría a qué rol
     // atribuirlas y las descartaría de todos modos.
-    if (ruta.startsWith('/login') || ruta.startsWith('/registro')) return;
-    registrarPantalla(ruta);
+    if (pantalla.startsWith('/login') || pantalla.startsWith('/registro')) return;
+    registrarPantalla(pantalla);
   }, [ruta]);
 
   return null;
@@ -146,126 +151,159 @@ export default function App() {
     <TelemetriaDeUso />
     <Canonico />
     <Switch>
-      {/* Landing pública indexable — puerta de entrada en la raíz. El portal
-          interno sigue detrás del login. */}
+      {/* Puerta nacional: el selector de estados. Es lo único que NO pertenece
+          a un estado, y por eso vive en la raíz y fuera del <Router base>. */}
       <Route path="/" component={Landing} />
-      {/* Entrada por estado: hoy solo Michoacán. Es la URL "de marca" del
-          portal; muestra el mismo login. /login se conserva porque muchos
-          redirects internos (logout, catch-all) apuntan ahí. */}
-      <Route path="/prepaabierta/michoacan" component={PrepaAbiertaMichoacan} />
-      <Route path="/login" component={Login} />
-      {/* Primer ingreso: crear contraseña + aceptar términos (todos los roles) */}
-      <Route path="/cambiar-password" component={CambiarPasswordInicial} />
-
-      {/* Demo pública: ingreso de un alumno nuevo (sin login, datos ficticios) */}
-      <Route path="/demo/estudiante" component={DemoEstudiante} />
-      <Route path="/demo"><Redirect to="/demo/estudiante" /></Route>
-
-      {/* Rutas del gestor */}
-      <Route path="/gestor" component={GestorDashboard} />
-      <Route path="/gestor/alumnos" component={AlumnosList} />
-      <Route path="/gestor/alumnos/nuevo" component={NuevoAlumno} />
-      <Route path="/gestor/pagos" component={GestorPagos} />
-      <Route path="/gestor/inscripcion" component={GestorInscripcion} />
-      <Route path="/gestor/calificaciones" component={GestorCalificaciones} />
-      <Route path="/gestor/faq" component={GestorFaq} />
-      <Route path="/gestor/aula" component={GestorAula} />
-      <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
-
-      {/* Rutas del estudiante */}
-      <Route path="/estudiante/cambiar-password" component={CambiarPasswordPrimerLogin} />
-      <Route path="/estudiante" component={EstudianteDashboard} />
-      <Route path="/estudiante/avisos" component={Avisos} />
-      <Route path="/estudiante/perfil" component={MiPerfil} />
-      <Route path="/estudiante/modulos/:id/evaluacion" component={EvaluacionPage} />
-      <Route path="/estudiante/modulos/:id" component={ModuloDetalle} />
-      <Route path="/estudiante/modulos" component={MisModulos} />
-      <Route path="/estudiante/expediente" component={MiExpediente} />
-      <Route path="/estudiante/pagos" component={MisPagos} />
-      <Route path="/estudiante/calificaciones" component={MisCalificaciones} />
-      <Route path="/estudiante/aula" component={AlumnoAula} />
-      {/* La cédula ya no se edita por el alumno: vive como consulta en el expediente */}
-      <Route path="/estudiante/cedula"><Redirect to="/estudiante/expediente" /></Route>
-      <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
-      <Route path="/estudiante/calendario" component={CalendarioEstudiante} />
-      <Route path="/gestor/calendario" component={CalendarioGestor} />
-      <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
-      <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
-      <Route path="/estudiante/identificacion" component={MiIdentificacion} />
-      <Route path="/estudiante/faq" component={EstudianteFaq} />
-
-      {/* Rutas públicas de registro */}
-      <Route path="/registro/email" component={AutoRegistroEmail} />
-      <Route path="/registro/codigo" component={AutoRegistroCodigo} />
-      <Route path="/registro/datos" component={AutoRegistroDatos} />
-      <Route path="/registro/exito" component={AutoRegistroExito} />
-      <Route path="/solicitar-cuenta" component={SolicitarCuenta} />
-      <Route path="/encontrar-cuenta" component={EncontrarCuenta} />
-      <Route path="/aviso-privacidad" component={AvisoPrivacidad} />
-      <Route path="/recuperar-password" component={RecuperarPassword} />
-      <Route path="/reset-password" component={ResetPassword} />
-
-      {/* Admin */}
-      <Route path="/admin/solicitudes" component={Solicitudes} />
-      <Route path="/admin/pagos" component={PagosAdmin} />
-      <Route path="/admin/pagos-grupales" component={AdminPagosGrupales} />
-      <Route path="/admin/ordenes-pago" component={AdminOrdenesPago} />
-      <Route path="/admin/pagos-pendientes" component={PagosPendientes} />
-      <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
-      <Route path="/admin/alumnos" component={AdminAlumnosLista} />
-      <Route path="/admin/captura-masiva-calificaciones" component={CapturaMasivaCalificaciones} />
-      <Route path="/admin/calificaciones" component={AdminCalificaciones} />
-      <Route path="/admin/gestores/:id" component={GestorDetalle} />
-      <Route path="/admin/gestores" component={GestoresLista} />
-      <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
-      <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
-      {/* Sedes ya no es sección propia: vive como pestaña dentro de
-          Convocatorias, que es quien define qué sedes se ofrecen en cada etapa.
-          La ruta vieja se conserva redirigiendo para no romper enlaces
-          guardados ni el menú de nadie. */}
-      <Route path="/admin/sedes"><Redirect to="/admin/convocatorias?vista=sedes" /></Route>
-      <Route path="/admin/anuncios" component={AnunciosLista} />
-      <Route path="/admin/faq" component={AdminFaq} />
-      <Route path="/admin/padron" component={AdminPadron} />
-      <Route path="/admin/verificacion-pase" component={VerificacionPase} />
-      <Route path="/admin/reportes" component={Reportes} />
-      <Route path="/admin/configuracion/:seccion" component={Configuracion} />
-      <Route path="/admin/configuracion"><Redirect to="/admin/configuracion/mi-cuenta" /></Route>
-      {/* Redirects: old routes → new filtered views */}
-      <Route path="/admin/documentos"><Redirect to="/admin/alumnos?filtro=docs_en_revision" /></Route>
-      <Route path="/admin/pagos"><Redirect to="/admin/alumnos?filtro=pagos_pendientes" /></Route>
-      <Route path="/admin" component={AdminInicio} />
-
-      {/* Dirección de programa — indicadores agregados, solo lectura */}
-      <Route path="/direccion/academico" component={DireccionAcademico} />
-      <Route path="/direccion/operacion" component={DireccionOperacion} />
-      <Route path="/direccion/salud" component={DireccionSalud} />
-      <Route path="/direccion/proyecciones" component={DireccionProyecciones} />
-      <Route path="/direccion/reportes" component={DireccionReportes} />
-      <Route path="/direccion/insights" component={DireccionInsights} />
-      <Route path="/direccion/uso" component={DireccionUso} />
-      <Route path="/direccion/padron" component={DireccionPadron} />
-      <Route path="/direccion/centros" component={DireccionCentros} />
-      <Route path="/direccion/acceso" component={DireccionAcceso} />
-      <Route path="/direccion/bitacora" component={DireccionBitacora} />
-      <Route path="/direccion/notas" component={DireccionNotas} />
-      <Route path="/direccion" component={DireccionPanorama} />
-
-      {/* Notificaciones — accesible desde todos los perfiles */}
-      <Route path="/notificaciones" component={Notificaciones} />
-
-      {/* Centro de capacitación — público, sin login */}
-      <Route path="/capacitacion" component={CapacitacionPortada} />
-      <Route path="/capacitacion/alumno" component={ManualAlumno} />
-      <Route path="/capacitacion/gestor" component={ManualGestor} />
-      <Route path="/capacitacion/admin" component={ManualAdmin} />
-
-      {/* Catch-all → login */}
-      <Route>
-        <Redirect to="/login" />
-      </Route>
+      {/* Todo lo demás es la operación de un estado. */}
+      <Route><PortalDelEstado /></Route>
     </Switch>
     </ErrorBoundary>
+  );
+}
+
+/**
+ * El portal de un estado, colgado de su prefijo: `/michoacan/...`.
+ *
+ * Las rutas de adentro siguen escritas SIN el prefijo (`/admin/alumnos`) y los
+ * enlaces también. `<Router base>` se lo pone al comparar la dirección y al
+ * generar cada `<Link>`, así que no hubo que tocar las 85 rutas ni los 178
+ * enlaces del portal. Ver `lib/estado.ts`.
+ */
+function PortalDelEstado() {
+  const [ruta, navegar] = useLocation();
+  const destino = destinoConEstado(ruta);
+
+  // Las direcciones viejas —sin estado— siguen llegando: están impresas en
+  // credenciales, enviadas en correos y guardadas en favoritos. Se corrigen
+  // con `replace` para no dejar basura en el botón "atrás".
+  useEffect(() => {
+    if (destino) navegar(`${destino}${window.location.search}${window.location.hash}`, { replace: true });
+  }, [destino, navegar]);
+
+  // Mientras se corrige la dirección no se pinta nada: si no, la pantalla
+  // montaría con la ruta vieja y dispararía peticiones que van a descartarse.
+  if (destino) return null;
+
+  return (
+    <Router base={BASE_ESTADO}>
+      <Switch>
+        {/* Portada del estado. Dentro de <Router base> esto es "/", o sea
+            `/michoacan`: la URL de marca del portal. Muestra el mismo login;
+            /login se conserva porque muchos redirects internos apuntan ahí. */}
+        <Route path="/" component={PrepaAbiertaMichoacan} />
+        <Route path="/login" component={Login} />
+        {/* Primer ingreso: crear contraseña + aceptar términos (todos los roles) */}
+        <Route path="/cambiar-password" component={CambiarPasswordInicial} />
+
+        {/* Demo pública: ingreso de un alumno nuevo (sin login, datos ficticios) */}
+        <Route path="/demo/estudiante" component={DemoEstudiante} />
+        <Route path="/demo"><Redirect to="/demo/estudiante" /></Route>
+
+        {/* Rutas del gestor */}
+        <Route path="/gestor" component={GestorDashboard} />
+        <Route path="/gestor/alumnos" component={AlumnosList} />
+        <Route path="/gestor/alumnos/nuevo" component={NuevoAlumno} />
+        <Route path="/gestor/pagos" component={GestorPagos} />
+        <Route path="/gestor/inscripcion" component={GestorInscripcion} />
+        <Route path="/gestor/calificaciones" component={GestorCalificaciones} />
+        <Route path="/gestor/faq" component={GestorFaq} />
+        <Route path="/gestor/aula" component={GestorAula} />
+        <Route path="/gestor/alumnos/:id" component={AlumnoDetalle} />
+
+        {/* Rutas del estudiante */}
+        <Route path="/estudiante/cambiar-password" component={CambiarPasswordPrimerLogin} />
+        <Route path="/estudiante" component={EstudianteDashboard} />
+        <Route path="/estudiante/avisos" component={Avisos} />
+        <Route path="/estudiante/perfil" component={MiPerfil} />
+        <Route path="/estudiante/modulos/:id/evaluacion" component={EvaluacionPage} />
+        <Route path="/estudiante/modulos/:id" component={ModuloDetalle} />
+        <Route path="/estudiante/modulos" component={MisModulos} />
+        <Route path="/estudiante/expediente" component={MiExpediente} />
+        <Route path="/estudiante/pagos" component={MisPagos} />
+        <Route path="/estudiante/calificaciones" component={MisCalificaciones} />
+        <Route path="/estudiante/aula" component={AlumnoAula} />
+        {/* La cédula ya no se edita por el alumno: vive como consulta en el expediente */}
+        <Route path="/estudiante/cedula"><Redirect to="/estudiante/expediente" /></Route>
+        <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
+        <Route path="/estudiante/calendario" component={CalendarioEstudiante} />
+        <Route path="/gestor/calendario" component={CalendarioGestor} />
+        <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
+        <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
+        <Route path="/estudiante/identificacion" component={MiIdentificacion} />
+        <Route path="/estudiante/faq" component={EstudianteFaq} />
+
+        {/* Rutas públicas de registro */}
+        <Route path="/registro/email" component={AutoRegistroEmail} />
+        <Route path="/registro/codigo" component={AutoRegistroCodigo} />
+        <Route path="/registro/datos" component={AutoRegistroDatos} />
+        <Route path="/registro/exito" component={AutoRegistroExito} />
+        <Route path="/solicitar-cuenta" component={SolicitarCuenta} />
+        <Route path="/encontrar-cuenta" component={EncontrarCuenta} />
+        <Route path="/aviso-privacidad" component={AvisoPrivacidad} />
+        <Route path="/recuperar-password" component={RecuperarPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
+
+        {/* Admin */}
+        <Route path="/admin/solicitudes" component={Solicitudes} />
+        <Route path="/admin/pagos" component={PagosAdmin} />
+        <Route path="/admin/pagos-grupales" component={AdminPagosGrupales} />
+        <Route path="/admin/ordenes-pago" component={AdminOrdenesPago} />
+        <Route path="/admin/pagos-pendientes" component={PagosPendientes} />
+        <Route path="/admin/alumnos/:id" component={AdminAlumnoDetalle} />
+        <Route path="/admin/alumnos" component={AdminAlumnosLista} />
+        <Route path="/admin/captura-masiva-calificaciones" component={CapturaMasivaCalificaciones} />
+        <Route path="/admin/calificaciones" component={AdminCalificaciones} />
+        <Route path="/admin/gestores/:id" component={GestorDetalle} />
+        <Route path="/admin/gestores" component={GestoresLista} />
+        <Route path="/admin/convocatorias/:id" component={ConvocatoriaDetalle} />
+        <Route path="/admin/convocatorias" component={ConvocatoriasLista} />
+        {/* Sedes ya no es sección propia: vive como pestaña dentro de
+            Convocatorias, que es quien define qué sedes se ofrecen en cada etapa.
+            La ruta vieja se conserva redirigiendo para no romper enlaces
+            guardados ni el menú de nadie. */}
+        <Route path="/admin/sedes"><Redirect to="/admin/convocatorias?vista=sedes" /></Route>
+        <Route path="/admin/anuncios" component={AnunciosLista} />
+        <Route path="/admin/faq" component={AdminFaq} />
+        <Route path="/admin/padron" component={AdminPadron} />
+        <Route path="/admin/verificacion-pase" component={VerificacionPase} />
+        <Route path="/admin/reportes" component={Reportes} />
+        <Route path="/admin/configuracion/:seccion" component={Configuracion} />
+        <Route path="/admin/configuracion"><Redirect to="/admin/configuracion/mi-cuenta" /></Route>
+        {/* Redirects: old routes → new filtered views */}
+        <Route path="/admin/documentos"><Redirect to="/admin/alumnos?filtro=docs_en_revision" /></Route>
+        <Route path="/admin/pagos"><Redirect to="/admin/alumnos?filtro=pagos_pendientes" /></Route>
+        <Route path="/admin" component={AdminInicio} />
+
+        {/* Dirección de programa — indicadores agregados, solo lectura */}
+        <Route path="/direccion/academico" component={DireccionAcademico} />
+        <Route path="/direccion/operacion" component={DireccionOperacion} />
+        <Route path="/direccion/salud" component={DireccionSalud} />
+        <Route path="/direccion/proyecciones" component={DireccionProyecciones} />
+        <Route path="/direccion/reportes" component={DireccionReportes} />
+        <Route path="/direccion/insights" component={DireccionInsights} />
+        <Route path="/direccion/uso" component={DireccionUso} />
+        <Route path="/direccion/padron" component={DireccionPadron} />
+        <Route path="/direccion/centros" component={DireccionCentros} />
+        <Route path="/direccion/acceso" component={DireccionAcceso} />
+        <Route path="/direccion/bitacora" component={DireccionBitacora} />
+        <Route path="/direccion/notas" component={DireccionNotas} />
+        <Route path="/direccion" component={DireccionPanorama} />
+
+        {/* Notificaciones — accesible desde todos los perfiles */}
+        <Route path="/notificaciones" component={Notificaciones} />
+
+        {/* Centro de capacitación — público, sin login */}
+        <Route path="/capacitacion" component={CapacitacionPortada} />
+        <Route path="/capacitacion/alumno" component={ManualAlumno} />
+        <Route path="/capacitacion/gestor" component={ManualGestor} />
+        <Route path="/capacitacion/admin" component={ManualAdmin} />
+
+        {/* Catch-all → login */}
+        <Route>
+          <Redirect to="/login" />
+        </Route>
+      </Switch>
+    </Router>
   );
 }
 

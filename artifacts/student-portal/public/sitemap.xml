@@ -17,22 +17,22 @@
 
   <!-- Michoacán -->
   <url>
-    <loc>https://prepa.modula22.mx/prepaabierta/michoacan</loc>
+    <loc>https://prepa.modula22.mx/michoacan</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://prepa.modula22.mx/solicitar-cuenta</loc>
+    <loc>https://prepa.modula22.mx/michoacan/solicitar-cuenta</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://prepa.modula22.mx/capacitacion</loc>
+    <loc>https://prepa.modula22.mx/michoacan/capacitacion</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
-    <loc>https://prepa.modula22.mx/login</loc>
+    <loc>https://prepa.modula22.mx/michoacan/login</loc>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
