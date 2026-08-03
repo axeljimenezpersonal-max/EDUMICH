@@ -48,7 +48,18 @@ function Mariposa({ className }: { className?: string }) {
  * el único `disponible`). Se pueden sustituir por los escudos oficiales cuando
  * se tengan como assets.
  */
-type Estado = { nombre: string; Icono: LucideIcon | typeof Mariposa; disponible?: boolean };
+type Estado = {
+  nombre: string;
+  Icono: LucideIcon | typeof Mariposa;
+  disponible?: boolean;
+  /**
+   * A dónde entra ese estado. Cada operación estatal vive en SU dominio, porque
+   * cada estado tiene su convocatoria, sus sedes y sus datos: `modula22.mx` es
+   * la puerta nacional y `prepa.modula22.mx` es Michoacán. Cuando se sume otro
+   * estado, aquí va su propia dirección y no hay nada más que cambiar.
+   */
+  url?: string;
+};
 const ESTADOS: Estado[] = [
   { nombre: 'Aguascalientes', Icono: FerrisWheel },
   { nombre: 'Baja California', Icono: Waves },
@@ -65,7 +76,7 @@ const ESTADOS: Estado[] = [
   { nombre: 'Guerrero', Icono: TreePalm },
   { nombre: 'Hidalgo', Icono: Sprout },
   { nombre: 'Jalisco', Icono: Guitar },
-  { nombre: 'Michoacán', Icono: Mariposa, disponible: true },
+  { nombre: 'Michoacán', Icono: Mariposa, disponible: true, url: 'https://prepa.modula22.mx/prepaabierta/michoacan' },
   { nombre: 'Morelos', Icono: Leaf },
   { nombre: 'Nayarit', Icono: Sailboat },
   { nombre: 'Nuevo León', Icono: Mountain },
@@ -92,9 +103,14 @@ function TarjetaEstado({ estado, index }: { estado: Estado; index: number }) {
   const flota = { animationDelay: `${(index * 0.13).toFixed(2)}s` };
 
   if (estado.disponible) {
+    // Enlace absoluto al dominio del estado: la misma tarjeta funciona igual
+    // desde la puerta nacional (modula22.mx) y desde el propio portal.
+    const destino = estado.url ?? '/prepaabierta/michoacan';
+    const externo = destino.startsWith('http');
+    const Envoltura = (externo ? 'a' : Link) as React.ElementType;
     return (
-      <Link
-        href="/prepaabierta/michoacan"
+      <Envoltura
+        href={destino}
         style={entrada}
         className="estado-card group relative flex flex-col items-center justify-center gap-1.5 rounded-2xl border-2 border-[var(--color-guinda-700)] bg-[var(--color-guinda-800)] p-4 text-center text-white shadow-lg transition-transform hover:-translate-y-1"
       >
@@ -106,7 +122,7 @@ function TarjetaEstado({ estado, index }: { estado: Estado; index: number }) {
         <span className="mt-0.5 inline-flex items-center gap-1 text-[11px] font-semibold" style={{ color: DORADO }}>
           Entrar al portal <ArrowRight size={12} className="transition-transform group-hover:translate-x-0.5" />
         </span>
-      </Link>
+      </Envoltura>
     );
   }
   return (
