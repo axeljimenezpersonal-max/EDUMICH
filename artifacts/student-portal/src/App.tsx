@@ -8,6 +8,7 @@
 import { useEffect } from 'react';
 import { Switch, Route, Redirect, useLocation } from 'wouter';
 import { iniciarTelemetria, registrarPantalla } from './lib/uso';
+import { fijarCanonico } from './lib/canonico';
 import { demoActive } from './lib/demo';
 import Login from './pages/Login';
 import CambiarPasswordInicial from './pages/CambiarPasswordInicial';
@@ -119,6 +120,17 @@ function TelemetriaDeUso() {
   return null;
 }
 
+/**
+ * Mantiene al día la dirección canónica al navegar. El portal es una sola
+ * página: sin esto, la etiqueta fija de `index.html` le decía al buscador
+ * "soy la raíz" estando en cualquier ruta. Ver `lib/canonico.ts`.
+ */
+function Canonico() {
+  const [ruta] = useLocation();
+  useEffect(() => { fijarCanonico(ruta); }, [ruta]);
+  return null;
+}
+
 export default function App() {
   // Si llegamos aquí es que la app montó bien: limpia la bandera de recarga por
   // chunk viejo, para que una futura falla (otro deploy) sí pueda recargar.
@@ -132,6 +144,7 @@ export default function App() {
     <Avisador />
     <Confirmador />
     <TelemetriaDeUso />
+    <Canonico />
     <Switch>
       {/* Landing pública indexable — puerta de entrada en la raíz. El portal
           interno sigue detrás del login. */}

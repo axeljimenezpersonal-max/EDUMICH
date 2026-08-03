@@ -1,28 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Cada dirección aparece UNA sola vez y en el dominio que le toca: la raíz es la
+  puerta nacional (el selector de estados) y el resto es la operación de
+  Michoacán, que vive en su propio dominio. Listar las mismas páginas en varios
+  dominios es lo que hace que un buscador reparta la fuerza y no posicione
+  ninguna. Debe coincidir con `src/lib/canonico.ts`: si ahí cambia el dominio de
+  un estado, aquí también.
+-->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!-- Puerta nacional -->
   <url>
     <loc>https://modula22.mx/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <!-- Michoacán -->
   <url>
-    <loc>https://modula22.mx/prepaabierta/michoacan</loc>
+    <loc>https://prepa.modula22.mx/prepaabierta/michoacan</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://modula22.mx/solicitar-cuenta</loc>
+    <loc>https://prepa.modula22.mx/solicitar-cuenta</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://modula22.mx/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-  <url>
-    <loc>https://modula22.mx/capacitacion</loc>
+    <loc>https://prepa.modula22.mx/capacitacion</loc>
     <changefreq>monthly</changefreq>
     <priority>0.6</priority>
+  </url>
+  <url>
+    <loc>https://prepa.modula22.mx/login</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
   </url>
 </urlset>
