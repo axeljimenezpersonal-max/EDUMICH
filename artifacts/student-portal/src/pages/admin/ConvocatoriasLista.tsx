@@ -65,7 +65,7 @@ function MomentoEtapa({
   acento: string;
 }) {
   return (
-    <div className="flex-1 min-w-0 text-center px-4 py-3.5" style={{ background: tinte }}>
+    <div className="flex-1 min-w-0 text-center px-4 py-3" style={{ background: tinte }}>
       <div
         className="inline-flex items-center justify-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.18em]"
         style={{ color: acento }}
@@ -73,7 +73,7 @@ function MomentoEtapa({
         {icono} {etiqueta}
       </div>
       <div
-        className="text-[15px] sm:text-[17px] font-semibold leading-snug mt-1.5"
+        className="text-[14px] sm:text-[15px] font-semibold leading-snug mt-1.5"
         style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
       >
         {fecha}
@@ -407,7 +407,7 @@ export default function ConvocatoriasLista() {
                           línea de tiempo, a la izquierda, es el ancla. */}
                       <div className="flex items-center gap-2.5 flex-wrap min-w-0">
                         <span
-                          className="font-bold text-[21px] sm:text-[24px] leading-none tracking-tight"
+                          className="font-bold text-[19px] sm:text-[21px] leading-none tracking-tight"
                           style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                         >
                           Etapa {etapa.clave}
@@ -426,7 +426,7 @@ export default function ConvocatoriasLista() {
                       <div className="flex items-center gap-4 flex-shrink-0">
                         <div className="text-right">
                           <div
-                            className="text-[28px] font-bold leading-none"
+                            className="text-[24px] font-bold leading-none"
                             style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
                           >
                             {etapa.totalInscritos}
