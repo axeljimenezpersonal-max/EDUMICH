@@ -4,7 +4,10 @@ import SedesLista from './SedesLista';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_A_CONVOCATORIAS, GATE_ADMIN } from '../../components/onboarding/seccionesAdmin';
 import { api } from '../../lib/api';
-import { Calendar, Users, ChevronRight, ArrowRight, Flag, Upload, X, CheckCircle2, AlertTriangle, Loader2, FileText, FileCheck2, Building2 } from 'lucide-react';
+import { diaMesCorto, diaSemanaCorto, anioDe } from '../../lib/fechas';
+import { estadoEtapa } from '../../lib/estadosEtapa';
+import { CAL_INSCRIPCION, CAL_EXAMEN } from '../../lib/coloresCalendario';
+import { Calendar, Users, ChevronRight, ArrowRight, Flag, Upload, X, CheckCircle2, AlertTriangle, Loader2, FileText, FileCheck2, Building2, CalendarClock, CalendarCheck } from 'lucide-react';
 
 type Etapa = {
   id: number;
@@ -32,25 +35,76 @@ type ConvocatoriasData = {
   etapaActivaId: number | null;
 };
 
-const ESTADO_CONFIG: Record<string, { label: string; dotColor: string; bg: string; textColor: string; pulse?: boolean }> = {
-  finalizada:           { label: 'Finalizada',            dotColor: '#374151', bg: '#f3f4f6', textColor: '#374151' },
-  en_examen:            { label: 'En examen',             dotColor: '#d97706', bg: '#fef3c7', textColor: '#92400e', pulse: true },
-  inscripcion_cerrada:  { label: 'Inscripción cerrada',   dotColor: '#c77700', bg: '#fef9c3', textColor: '#92400e' },
-  inscripcion_abierta:  { label: 'Inscripción abierta',   dotColor: '#059669', bg: '#d1fae5', textColor: '#065f46', pulse: true },
-  programada:           { label: 'Programada',            dotColor: '#ddd0c5', bg: '#f7f2ed', textColor: '#6b635e' },
-};
-
-const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-
-function fmtDate(d: string): string {
-  const [, m, day] = d.split('-');
-  return `${parseInt(day)} ${MESES[parseInt(m) - 1]}`;
+/** "sáb 22 ago" — el día de la semana SIEMPRE derivado de la fecha real. */
+function conDiaSemana(d: string): string {
+  return `${diaSemanaCorto(d)} ${diaMesCorto(d)}`;
 }
 
-function fmtDateLong(d: string): string {
-  const [y, m, day] = d.split('-');
-  const mesesLong = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
-  return `${parseInt(day)} de ${mesesLong[parseInt(m) - 1]} de ${y}`;
+/** "2026" si las dos fechas caen en el mismo año; "2026–2027" si lo cruzan. */
+function anioRango(a: string, b: string): string {
+  const ya = anioDe(a);
+  const yb = anioDe(b);
+  return ya === yb ? ya : `${ya}–${yb}`;
+}
+
+/**
+ * Una de las dos franjas de fecha de la tarjeta: etiqueta chica a la izquierda
+ * y la fecha GRANDE ocupando el ancho. Es lo que se lee de un vistazo, así que
+ * la fecha manda y el resto acompaña.
+ */
+function FranjaFecha({
+  icono, etiqueta, children, sufijo, tinte, acento, separada,
+}: {
+  icono: React.ReactNode;
+  etiqueta: string;
+  children: React.ReactNode;
+  sufijo?: string;
+  tinte: string;
+  acento: string;
+  /** Lleva línea divisoria arriba (la segunda franja de la tarjeta). */
+  separada?: boolean;
+}) {
+  return (
+    <div
+      className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3.5 py-2"
+      style={{ background: tinte, borderTop: separada ? '1px solid #f0e8e0' : undefined }}
+    >
+      <span
+        className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest flex-shrink-0"
+        style={{ color: acento, minWidth: 118 }}
+      >
+        {icono} {etiqueta}
+      </span>
+      <span
+        className="text-[17px] sm:text-[20px] font-bold leading-tight"
+        style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
+      >
+        {children}
+      </span>
+      {sufijo && (
+        <span className="text-[11px] font-semibold" style={{ color: '#a1968c' }}>{sufijo}</span>
+      )}
+    </div>
+  );
+}
+
+/** Chip de estado de la etapa (misma escala de color en toda la sección). */
+function ChipEstado({ estado }: { estado: string }) {
+  const cfg = estadoEtapa(estado);
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
+      style={{ background: cfg.fondo, color: cfg.texto }}
+    >
+      {cfg.latido && (
+        <span
+          className="w-1.5 h-1.5 rounded-full animate-pulse"
+          style={{ background: 'currentColor' }}
+        />
+      )}
+      {cfg.label}
+    </span>
+  );
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -266,9 +320,9 @@ export default function ConvocatoriasLista() {
                 Etapa {etapaActiva.clave} — Fase {etapaActiva.fase}
               </div>
               <div className="text-xs mt-0.5" style={{ opacity: 0.85 }}>
-                Inscripciones: {fmtDate(etapaActiva.solicitudInicio)}–{fmtDate(etapaActiva.solicitudFin)}
+                Inscripciones: {diaMesCorto(etapaActiva.solicitudInicio)}–{diaMesCorto(etapaActiva.solicitudFin)}
                 {' · '}
-                Examen: sáb {fmtDate(etapaActiva.examenSabado)} y dom {fmtDate(etapaActiva.examenDomingo)}
+                Examen: {conDiaSemana(etapaActiva.examenSabado)} y {conDiaSemana(etapaActiva.examenDomingo)}
               </div>
             </div>
           </div>
@@ -304,7 +358,7 @@ export default function ConvocatoriasLista() {
 
           <div className="flex flex-col gap-3">
             {data.etapas.map((etapa) => {
-              const cfg = ESTADO_CONFIG[etapa.estado] ?? ESTADO_CONFIG.programada;
+              const cfg = estadoEtapa(etapa.estado);
               const isActiva = etapa.id === data.etapaActivaId;
 
               return (
@@ -317,8 +371,8 @@ export default function ConvocatoriasLista() {
                     <div
                       className="w-5 h-5 rounded-full flex items-center justify-center"
                       style={{
-                        background: cfg.dotColor,
-                        boxShadow: `0 0 0 3px white, 0 0 0 4px ${cfg.dotColor}40`,
+                        background: cfg.punto,
+                        boxShadow: `0 0 0 3px white, 0 0 0 4px ${cfg.punto}40`,
                       }}
                     >
                       {etapa.estado === 'finalizada' && (
@@ -346,63 +400,51 @@ export default function ConvocatoriasLista() {
                       (e.currentTarget as HTMLElement).style.borderColor = isActiva ? 'var(--color-guinda-700)' : '#eadfd7';
                     }}
                   >
+                    {/* Renglón 1: quién es la etapa, en qué estado va y cuánta
+                        gente trae. Las fechas ya NO viven aquí. */}
                     <div className="flex items-center justify-between gap-4">
-                      {/* Left */}
-                      <div className="flex items-start gap-3 min-w-0">
-                        {/* Month marker */}
+                      <div className="flex items-center gap-3 min-w-0">
+                        {/* Ancla de la etapa en la línea de tiempo: el día del
+                            examen. Va rotulada y en morado —el color del examen
+                            en todo el producto— para que nadie la confunda con
+                            la fecha de inscripción. */}
                         <div
-                          className="flex-shrink-0 text-center rounded-lg px-2.5 py-1.5"
-                          style={{ background: '#f8f4ec', minWidth: 44 }}
+                          className="flex-shrink-0 text-center rounded-lg px-2.5 py-1"
+                          style={{ background: CAL_EXAMEN.fondoSuave, border: `1px solid ${CAL_EXAMEN.borde}`, minWidth: 50 }}
                         >
+                          <div className="text-[8px] font-bold uppercase tracking-widest" style={{ color: CAL_EXAMEN.texto, opacity: 0.75 }}>
+                            Examen
+                          </div>
                           <div
-                            className="text-[17px] font-bold leading-none"
-                            style={{ fontFamily: "'Poppins', sans-serif", color: 'var(--color-guinda-700)' }}
+                            className="text-[19px] font-bold leading-none"
+                            style={{ fontFamily: "'Poppins', sans-serif", color: CAL_EXAMEN.texto }}
                           >
-                            {fmtDate(etapa.examenSabado).split(' ')[0]}
+                            {diaMesCorto(etapa.examenSabado).split(' ')[0]}
                           </div>
                           <div className="text-[9px] font-semibold uppercase tracking-wide" style={{ color: '#6b635e', marginTop: 1 }}>
-                            {fmtDate(etapa.examenSabado).split(' ')[1]}
+                            {diaMesCorto(etapa.examenSabado).split(' ')[1]}
                           </div>
                         </div>
 
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span
-                              className="font-bold text-[15px]"
-                              style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
-                            >
-                              Etapa {etapa.clave}
-                            </span>
+                        <div className="flex items-center gap-2 flex-wrap min-w-0">
+                          <span
+                            className="font-bold text-[15px]"
+                            style={{ fontFamily: "'Poppins', sans-serif", color: '#2a2a2a' }}
+                          >
+                            Etapa {etapa.clave}
+                          </span>
+                          <ChipEstado estado={etapa.estado} />
+                          {isActiva && (
                             <span
                               className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
-                              style={{ background: cfg.bg, color: cfg.textColor }}
+                              style={{ background: 'var(--color-guinda-700)', color: 'white' }}
                             >
-                              {cfg.label}
+                              Activa
                             </span>
-                            {isActiva && (
-                              <span
-                                className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full"
-                                style={{ background: 'var(--color-guinda-700)', color: 'white' }}
-                              >
-                                Activa
-                              </span>
-                            )}
-                          </div>
-
-                          <div className="flex flex-wrap gap-x-5 gap-y-0.5 mt-1.5 text-xs" style={{ color: '#6b635e' }}>
-                            <span>
-                              <span className="font-medium" style={{ color: '#443e39' }}>Inscripciones:</span>{' '}
-                              {fmtDateLong(etapa.solicitudInicio)} al {fmtDateLong(etapa.solicitudFin)}
-                            </span>
-                            <span>
-                              <span className="font-medium" style={{ color: '#443e39' }}>Examen:</span>{' '}
-                              sáb {fmtDate(etapa.examenSabado)} y dom {fmtDate(etapa.examenDomingo)}
-                            </span>
-                          </div>
+                          )}
                         </div>
                       </div>
 
-                      {/* Right: inscritos + arrow */}
                       <div className="flex items-center gap-4 flex-shrink-0">
                         <div className="text-right">
                           <div
@@ -419,6 +461,38 @@ export default function ConvocatoriasLista() {
                           className="group-hover:translate-x-0.5"
                         />
                       </div>
+                    </div>
+
+                    {/* Renglón 2: las FECHAS, que es a lo que se entra a esta
+                        pantalla. Dos franjas de ancho completo —inscripción
+                        arriba, examen abajo— en vez de una línea de prosa. */}
+                    <div
+                      className="mt-3 overflow-hidden"
+                      style={{ border: '1px solid #f0e8e0', borderRadius: 10 }}
+                    >
+                      <FranjaFecha
+                        icono={<CalendarClock size={12} />}
+                        etiqueta="Inscripciones"
+                        sufijo={anioRango(etapa.solicitudInicio, etapa.solicitudFin)}
+                        tinte={CAL_INSCRIPCION.fondoSuave}
+                        acento={CAL_INSCRIPCION.texto}
+                      >
+                        {diaMesCorto(etapa.solicitudInicio)}
+                        <span className="px-1.5" style={{ color: CAL_INSCRIPCION.texto, opacity: 0.55 }}>→</span>
+                        {diaMesCorto(etapa.solicitudFin)}
+                      </FranjaFecha>
+                      <FranjaFecha
+                        icono={<CalendarCheck size={12} />}
+                        etiqueta="Examen"
+                        sufijo={anioRango(etapa.examenSabado, etapa.examenDomingo)}
+                        tinte={CAL_EXAMEN.fondoSuave}
+                        acento={CAL_EXAMEN.texto}
+                        separada
+                      >
+                        {conDiaSemana(etapa.examenSabado)}
+                        <span className="px-1.5" style={{ color: CAL_EXAMEN.texto, opacity: 0.55 }}>·</span>
+                        {conDiaSemana(etapa.examenDomingo)}
+                      </FranjaFecha>
                     </div>
                   </a>
                   {/* Documentos de la etapa (todas las etapas) */}

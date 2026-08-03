@@ -9,6 +9,7 @@ import {
 import { api } from '../../lib/api';
 import { useAdminPerfil } from '../../lib/useAdmin';
 import { formatearNombre } from '../../lib/nombre';
+import { parseDbDate } from '../../lib/fechas';
 import { safeUrl } from '../../lib/safeUrl';
 import { AppFooter } from '../../components/AppFooter';
 import { OnboardingTour } from '../../components/onboarding/OnboardingTour';
@@ -38,8 +39,11 @@ type Notif = {
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
+// `new Date(cadena)` directo sobre un timestamp de la BD lo lee como hora local
+// y se corre 6 horas: todas las notificaciones dirían "ahora" durante medio día.
+// `parseDbDate` lo interpreta bien venga con zona o sin ella (regla de fechas).
 function tiempoRelativo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
+  const diff = Date.now() - parseDbDate(iso).getTime();
   const m = Math.floor(diff / 60000);
   if (m < 1) return 'ahora';
   if (m < 60) return `hace ${m}m`;

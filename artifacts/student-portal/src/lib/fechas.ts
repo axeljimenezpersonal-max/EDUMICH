@@ -39,6 +39,42 @@ export function fechaCorta(s: string | null | undefined): string {
   return parseDbDate(s).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric', timeZone: TZ });
 }
 
+/**
+ * "22 ago" — día y mes abreviado, sin año.
+ * Para tarjetas y fichas donde el año se dice aparte (o se sobreentiende).
+ */
+export function diaMesCorto(s: string | null | undefined): string {
+  if (!s) return '';
+  const puro = parteFechaPura(s);
+  const d = puro ? new Date(`${puro}T12:00:00`) : parseDbDate(s);
+  const opts: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
+  if (!puro) opts.timeZone = TZ;
+  // Algunas versiones de ICU devuelven "22 ago." — el punto sobra en una tarjeta.
+  return d.toLocaleDateString('es-MX', opts).replace('.', '');
+}
+
+/**
+ * "sáb" — día de la semana abreviado.
+ * Se DERIVA de la fecha: nunca se escribe a mano el día de la semana, porque el
+ * calendario de la DGB puede mover una aplicación y el texto quedaría mintiendo.
+ */
+export function diaSemanaCorto(s: string | null | undefined): string {
+  if (!s) return '';
+  const puro = parteFechaPura(s);
+  const d = puro ? new Date(`${puro}T12:00:00`) : parseDbDate(s);
+  const opts: Intl.DateTimeFormatOptions = { weekday: 'short' };
+  if (!puro) opts.timeZone = TZ;
+  return d.toLocaleDateString('es-MX', opts).replace('.', '');
+}
+
+/** El año de una fecha, ya en hora de Michoacán ("2026"). */
+export function anioDe(s: string | null | undefined): string {
+  if (!s) return '';
+  const puro = parteFechaPura(s);
+  if (puro) return puro.slice(0, 4);
+  return parseDbDate(s).toLocaleDateString('en-CA', { timeZone: TZ }).slice(0, 4);
+}
+
 /** ¿Ya venció esta fecha de entrega? Vence al TERMINAR ese día calendario. */
 export function vencioFecha(s: string): boolean {
   const puro = parteFechaPura(s);

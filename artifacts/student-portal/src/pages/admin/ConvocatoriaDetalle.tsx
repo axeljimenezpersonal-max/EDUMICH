@@ -3,6 +3,8 @@ import { useRoute, useLocation, Link } from 'wouter';
 import { AdminLayout } from './AdminLayout';
 import { SedesEtapaEditor } from './SedesEtapaEditor';
 import { api, calif10 } from '../../lib/api';
+import { fechaCorta, diaMesCorto, diaSemanaCorto } from '../../lib/fechas';
+import { estadoEtapa } from '../../lib/estadosEtapa';
 import {
   ArrowLeft, Download, Users, GraduationCap, CheckCircle, XCircle,
   Clock, Search, ChevronDown, ChevronRight, Trash2,
@@ -65,28 +67,10 @@ type DetalleData = {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ESTADO_CONFIG: Record<string, { label: string; bg: string; textColor: string }> = {
-  finalizada:           { label: 'Finalizada',            bg: '#f3f4f6', textColor: '#374151' },
-  en_examen:            { label: 'En examen',             bg: '#fef3c7', textColor: '#92400e' },
-  inscripcion_cerrada:  { label: 'Inscripción cerrada',   bg: '#fef9c3', textColor: '#92400e' },
-  inscripcion_abierta:  { label: 'Inscripción abierta',   bg: '#d1fae5', textColor: '#065f46' },
-  programada:           { label: 'Programada',            bg: '#f7f2ed', textColor: '#6b635e' },
-};
-
-const MESES_LONG = [
-  'enero','febrero','marzo','abril','mayo','junio',
-  'julio','agosto','septiembre','octubre','noviembre','diciembre',
-];
-
-function fmtDate(d: string): string {
-  const [y, m, day] = d.split('-');
-  return `${parseInt(day)} de ${MESES_LONG[parseInt(m) - 1]} de ${y}`;
-}
-
-function fmtShort(d: string): string {
-  const [, m, day] = d.split('-');
-  const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-  return `${parseInt(day)} ${meses[parseInt(m) - 1]}`;
+/** "Sáb 22 ago" — día de la semana DERIVADO de la fecha, nunca escrito a mano. */
+function conDiaSemana(d: string): string {
+  const dia = diaSemanaCorto(d);
+  return `${dia.charAt(0).toUpperCase()}${dia.slice(1)} ${diaMesCorto(d)}`;
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -158,9 +142,7 @@ export default function ConvocatoriaDetalle() {
     }
   }
 
-  const estadoCfg = data
-    ? (ESTADO_CONFIG[data.etapa.estado] ?? ESTADO_CONFIG.programada)
-    : ESTADO_CONFIG.programada;
+  const estadoCfg = estadoEtapa(data?.etapa.estado);
 
   const inscritosFiltrados = (data?.inscritos ?? []).filter((i) => {
     const q = search.toLowerCase();
@@ -254,7 +236,7 @@ export default function ConvocatoriaDetalle() {
               {data && (
                 <span
                   className="text-[11px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full"
-                  style={{ background: estadoCfg.bg, color: estadoCfg.textColor }}
+                  style={{ background: estadoCfg.fondo, color: estadoCfg.texto }}
                 >
                   {estadoCfg.label}
                 </span>
@@ -295,12 +277,12 @@ export default function ConvocatoriaDetalle() {
           <div className="grid grid-cols-2 gap-3 mb-5">
             <DateCard
               label="Periodo de inscripciones"
-              value={`${fmtDate(data.etapa.solicitudInicio)} — ${fmtDate(data.etapa.solicitudFin)}`}
+              value={`${fechaCorta(data.etapa.solicitudInicio)} — ${fechaCorta(data.etapa.solicitudFin)}`}
               icon={<Clock size={14} />}
             />
             <DateCard
               label="Fechas de examen"
-              value={`Sáb ${fmtShort(data.etapa.examenSabado)} · Dom ${fmtShort(data.etapa.examenDomingo)}`}
+              value={`${conDiaSemana(data.etapa.examenSabado)} · ${conDiaSemana(data.etapa.examenDomingo)}`}
               icon={<GraduationCap size={14} />}
             />
           </div>
