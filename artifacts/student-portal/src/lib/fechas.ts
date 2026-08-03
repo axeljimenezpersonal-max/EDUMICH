@@ -127,11 +127,15 @@ export function mayusculaInicial(s: string): string {
 }
 
 /**
- * Un rango escrito como lo escribe una persona:
- *   mismo mes  → "Del lunes 27 al viernes 31 de julio"
- *   otro mes   → "Del lunes 28 de diciembre al sábado 2 de enero"
+ * Un rango de fechas para leerse de un vistazo:
+ *   mismo mes  → "Lunes 27 al Viernes 31 de julio"
+ *   otro mes   → "Lunes 28 de diciembre al Sábado 2 de enero"
  * `union` cambia el conector: 'al' para un periodo, 'y' para dos días sueltos
- * ("Sábado 22 y domingo 23 de agosto").
+ * ("Sábado 22 y Domingo 23 de agosto").
+ *
+ * Arranca con el DÍA DE LA SEMANA —sin el "Del" delante— y va con mayúscula en
+ * cada uno: lo primero que busca el ojo es qué día cae, no la preposición.
+ * El día de la semana se DERIVA de la fecha; nunca se escribe a mano.
  */
 export function rangoLargo(
   a: string | null | undefined,
@@ -141,14 +145,11 @@ export function rangoLargo(
   const p = partesFecha(a);
   const q = partesFecha(b);
   if (!p.dia) return '';
-  if (!q.dia) return mayusculaInicial(`${p.diaSemana} ${p.dia} de ${p.mes}`);
+  const conDia = (r: typeof p, conMes: boolean) =>
+    `${mayusculaInicial(r.diaSemana)} ${r.dia}${conMes ? ` de ${r.mes}` : ''}`;
+  if (!q.dia) return conDia(p, true);
   const mismoMes = p.mes === q.mes && p.anio === q.anio;
-  const izq = mismoMes
-    ? `${p.diaSemana} ${p.dia}`
-    : `${p.diaSemana} ${p.dia} de ${p.mes}`;
-  const der = `${q.diaSemana} ${q.dia} de ${q.mes}`;
-  const frase = union === 'al' ? `del ${izq} al ${der}` : `${izq} y ${der}`;
-  return mayusculaInicial(frase);
+  return `${conDia(p, !mismoMes)} ${union} ${conDia(q, true)}`;
 }
 
 /**

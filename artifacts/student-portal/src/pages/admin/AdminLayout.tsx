@@ -346,7 +346,7 @@ function SidebarSecciones({
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const [location, setLocation] = useLocation();
-  const { esJefe, cargando, autenticado, rol } = useAdminPerfil();
+  const { cargando, autenticado, rol } = useAdminPerfil();
 
   // Candado de sesión. Reutiliza el /auth/me que useAdminPerfil ya hacía (no
   // agrega consultas). Sin sesión → al login; con sesión de otro rol → a su
@@ -501,8 +501,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
                 <div className="text-[13px] font-semibold max-w-[220px] truncate" style={{ color: '#2a2a2a' }}>
                   {formatearNombre(sidebar.nombreAdmin) || 'Administrador'}
                 </div>
+                {/* Sin el rango: quién es titular y quién operativo no le
+                    aporta nada a un visitante ni a una captura de pantalla, y
+                    la diferencia real ya se ve donde importa —los botones que
+                    aparecen o no, y el candado del servidor. */}
                 <div className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)', letterSpacing: '0.1em' }}>
-                  {esJefe ? 'Administradora · Titular' : 'Administración · Operativo'}
+                  Administración
                 </div>
               </div>
               <div
