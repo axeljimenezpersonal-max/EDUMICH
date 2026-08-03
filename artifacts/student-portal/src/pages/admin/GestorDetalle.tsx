@@ -516,24 +516,22 @@ export default function GestorDetalle() {
   async function handleResetPassword() {
     if (!gestor) return;
     if (!(await confirmar({
-      title: 'Enviar contraseña temporal',
-      message: <>Se enviará una contraseña temporal a <strong>{gestor.email}</strong>. La actual dejará de funcionar.</>,
-      confirmLabel: 'Enviar',
+      title: 'Enviar enlace para cambiar contraseña',
+      message: <>Se enviará a <strong>{gestor.email}</strong> un enlace para que elija una contraseña nueva. Vence en 1 hora y su contraseña actual sigue funcionando hasta que la cambie.</>,
+      confirmLabel: 'Enviar enlace',
     }))) return;
     setResettingPwd(true);
     try {
-      // La contraseña YA cambió aunque el correo no salga: si el envío falla hay
-      // que decirlo, no cantar un éxito que deja al gestor fuera sin aviso.
       const r = await api.post<{ ok: boolean; emailEnviado: boolean }>(
         `/admin/gestores/${gestor.id}/reset-password`, {},
       );
       if (r.emailEnviado) {
-        showToast('Contraseña temporal enviada al correo del gestor', true);
+        showToast('Enlace enviado al correo del gestor. Vence en 1 hora.', true);
       } else {
-        showToast('La contraseña se restableció, pero el correo NO salió. Avísale por otra vía.', false);
+        showToast('El correo NO salió, así que no le llegó ningún enlace. Vuelve a intentarlo.', false);
       }
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error al enviar contraseña temporal', false);
+      showToast(e instanceof Error ? e.message : 'No se pudo enviar el enlace', false);
     } finally {
       setResettingPwd(false);
     }
@@ -543,8 +541,8 @@ export default function GestorDetalle() {
   async function handleReenviarCredenciales() {
     if (!gestor) return;
     if (!(await confirmar({
-      title: 'Reenviar credenciales',
-      message: <>Se enviarán los datos de acceso a <strong>{gestor.email}</strong> con una contraseña temporal nueva. <strong>La contraseña que use hoy dejará de funcionar.</strong></>,
+      title: 'Reenviar acceso',
+      message: <>Se enviará a <strong>{gestor.email}</strong> un enlace para que elija su contraseña y entre al portal.</>,
       confirmLabel: 'Reenviar',
     }))) return;
     setReenviando(true);
@@ -553,12 +551,12 @@ export default function GestorDetalle() {
         `/admin/gestores/${gestor.id}/reset-password`, {},
       );
       if (r.emailEnviado) {
-        showToast('Credenciales de acceso reenviadas al correo del gestor', true);
+        showToast('Enlace de acceso reenviado al correo del gestor', true);
       } else {
-        showToast('La contraseña se restableció, pero el correo NO salió. Avísale por otra vía.', false);
+        showToast('El correo NO salió, así que no le llegó ningún enlace. Vuelve a intentarlo.', false);
       }
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error al reenviar las credenciales', false);
+      showToast(e instanceof Error ? e.message : 'No se pudo reenviar el acceso', false);
     } finally {
       setReenviando(false);
     }

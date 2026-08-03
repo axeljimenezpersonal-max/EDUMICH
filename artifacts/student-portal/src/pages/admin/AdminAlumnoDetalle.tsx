@@ -991,9 +991,9 @@ export default function AdminAlumnoDetalle() {
   async function handleResetPassword() {
     if (!data) return;
     if (!(await confirmar({
-      title: 'Enviar contraseña temporal',
-      message: <>Se enviará una contraseña temporal a <strong>{data.alumno.email}</strong>. La actual dejará de funcionar.</>,
-      confirmLabel: 'Enviar',
+      title: 'Enviar enlace para cambiar contraseña',
+      message: <>Se enviará a <strong>{data.alumno.email}</strong> un enlace para que elija una contraseña nueva. Vence en 1 hora y su contraseña actual sigue funcionando hasta que la cambie.</>,
+      confirmLabel: 'Enviar enlace',
     }))) return;
     setResettingPwd(true);
     try {
@@ -1002,17 +1002,13 @@ export default function AdminAlumnoDetalle() {
       const r = await api.post<{ ok: boolean; emailEnviado: boolean; errorCorreo: string | null }>(
         `/admin/alumnos/${alumnoId}/reset-password`, {},
       );
-      // La contraseña YA cambió aunque el correo no salga: decirlo tal cual, no
-      // cantar un éxito que dejaría al alumno sin poder entrar y sin aviso.
       if (r.emailEnviado) {
-        showToast('Contraseña temporal enviada al correo del alumno', true);
+        showToast('Enlace enviado al correo del alumno. Vence en 1 hora.', true);
       } else {
-        showToast('La contraseña se restableció, pero el correo NO salió. Avísale por otra vía.', false);
+        showToast('El correo NO salió, así que no le llegó ningún enlace. Vuelve a intentarlo.', false);
       }
-      const fresco = await api.get<DetalleResp>(`/admin/alumnos/${alumnoId}`);
-      setData(fresco);
     } catch (e) {
-      showToast(e instanceof Error ? e.message : 'Error al enviar contraseña temporal', false);
+      showToast(e instanceof Error ? e.message : 'No se pudo enviar el enlace', false);
     } finally {
       setResettingPwd(false);
     }
@@ -1306,15 +1302,23 @@ export default function AdminAlumnoDetalle() {
                 <Pencil size={12} /> Editar información
               </button>
               <button onClick={handleResetPassword} disabled={resettingPwd}
+                title="Le llega un enlace para elegir contraseña nueva. Vence en 1 hora."
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
                 style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
-                <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Reset password'}
+                <KeyRound size={12} /> {resettingPwd ? 'Enviando...' : 'Enviar enlace de contraseña'}
               </button>
-              <button onClick={handleReenviarCredenciales} disabled={reenviando}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
-                style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
-                <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
-              </button>
+              {/* Reenviar credenciales sólo tiene sentido mientras la contraseña
+                  siga siendo la temporal del alta: en cuanto el alumno elige la
+                  suya, el servidor lo rechaza por seguridad. Antes el botón se
+                  mostraba igual y sólo servía para dar un error. */}
+              {alumno.passwordTemporal && (
+                <button onClick={handleReenviarCredenciales} disabled={reenviando}
+                  title="Reenvía los datos del primer acceso. Sólo mientras el alumno no haya elegido su contraseña."
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
+                  <Send size={12} /> {reenviando ? 'Enviando...' : 'Reenviar credenciales'}
+                </button>
+              )}
               <button onClick={abrirAsignarGestor}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors"
                 style={{ color: '#fff', border: '1px solid rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>

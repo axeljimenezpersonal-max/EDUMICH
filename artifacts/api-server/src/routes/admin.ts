@@ -45,11 +45,12 @@ import {
   pagosGrupales,
   pagosGrupalesExamenes,
   credenciales,
+  passwordResetTokens,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { idsAlumnosConExamenPagado, sqlTieneExamenPagado } from '../utils/pagoAlumno';
 import { urlPortalLogin, urlPortalBase } from '../utils/portal';
-import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada, sendRecuperarPassword } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
@@ -3457,30 +3458,24 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
     const [userRow] = await db.select({ email: users.email }).from(users).where(eq(users.id, gestorId));
     if (!userRow) { res.status(404).json({ error: 'Usuario no encontrado' }); return; }
 
-    const tempPassword = generarPasswordTemporal();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    // ENLACE, no contraseña — mismo criterio que en la ruta del alumno: el
+    // enlace caduca en 1 hora, lo usa sólo su dueño, y la contraseña actual
+    // del gestor no se toca hasta que él la cambie.
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+    await db.insert(passwordResetTokens).values({ userId: gestorId, tokenHash, expiraEn });
+    const resetUrl = `${urlPortalBase()}/reset-password?token=${token}`;
 
-    await db.update(users)
-      .set({ passwordHash, passwordTemporal: true, bienvenidaEnviadaEn: null, updatedAt: new Date() })
-      .where(eq(users.id, gestorId));
-    // La contraseña anterior deja de valer: cortar también las sesiones vivas.
-    await invalidarSesiones(gestorId);
-
-    // El fallo del correo NO se traga: si no sale, quien opera tiene que
-    // enterarse — la contraseña ya cambió y el gestor se quedaría fuera.
     let emailEnviado = false;
     let errorCorreo: string | null = null;
     try {
-      const emailResult = await sendBienvenidaCredenciales(userRow.email, {
-        nombreAlumno: gestor.nombreCompleto,
-        email: userRow.email,
-        passwordTemporal: tempPassword,
-        portalUrl: urlPortalLogin(),
+      const emailResult = await sendRecuperarPassword(userRow.email, {
+        nombre: gestor.nombreCompleto,
+        resetUrl,
+        token,
       });
       emailEnviado = emailResult.enviado;
-      if (emailEnviado) {
-        await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, gestorId));
-      }
     } catch (e) {
       errorCorreo = e instanceof Error ? e.message : 'Error desconocido al enviar';
       console.error('[admin/gestores/reset-password] fallo el envio:', e);
@@ -3488,15 +3483,15 @@ router.post('/gestores/:gestorId/reset-password', async (req, res) => {
 
     await tryAuditLog({
       userId: req.user!.userId,
-      accion: 'reset_password_gestor',
+      accion: 'enviar_enlace_password_gestor',
       entidad: 'gestores',
       entidadId: gestorId,
-      detalle: `Admin restableció la contraseña del gestor ${userRow.email}${emailEnviado ? '' : ' — el correo NO salió'}`,
+      detalle: `Admin envió enlace para restablecer contraseña al gestor ${userRow.email}${emailEnviado ? '' : ' — el correo NO salió'}`,
       metadata: { email: userRow.email, emailEnviado, errorCorreo },
       req,
     });
 
-    res.json({ ok: true, emailEnviado, errorCorreo });
+    res.json({ ok: true, emailEnviado, errorCorreo, correo: userRow.email });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Error interno';
     res.status(500).json({ error: message });
@@ -3529,44 +3524,29 @@ router.post('/alumnos/:id/reset-password', async (req, res) => {
       return;
     }
 
-    const tempPassword = generarPasswordTemporal();
-    const passwordHash = await bcrypt.hash(tempPassword, 10);
+    // ENLACE, no contraseña. Mandar una contraseña por correo la deja escrita
+    // para siempre en un buzón que no controlamos, y obliga a que alguien más
+    // la conozca. El enlace caduca en 1 hora y sólo lo usa su dueño: es el
+    // mismo mecanismo de "¿Olvidaste tu contraseña?" (auth.ts), disparado
+    // desde el panel. La contraseña actual del alumno NO se toca: si el correo
+    // no llega, sigue entrando con la suya.
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+    await db.insert(passwordResetTokens).values({ userId: alumnoId, tokenHash, expiraEn });
+    const resetUrl = `${urlPortalBase()}/reset-password?token=${token}`;
 
-    await db.update(users)
-      .set({ passwordHash, passwordTemporal: true, bienvenidaEnviadaEn: null, updatedAt: new Date() })
-      .where(eq(users.id, alumnoId));
-    // La contraseña anterior deja de valer: cortar también las sesiones vivas.
-    await invalidarSesiones(alumnoId);
-
-    // Su gestor va en el correo cuando lo tiene, igual que en el alta.
-    let gestorInfo: { nombre: string; telefono: string | null; municipio: string | null } | undefined;
-    if (alumno.gestorId) {
-      const [g] = await db
-        .select({ nombre: gestores.nombreCompleto, telefono: gestores.telefonoPublico, municipioId: gestores.municipioId })
-        .from(gestores)
-        .where(eq(gestores.userId, alumno.gestorId));
-      if (g) {
-        const [mun] = await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, g.municipioId));
-        gestorInfo = { nombre: g.nombre, telefono: g.telefono ?? null, municipio: mun?.nombre ?? null };
-      }
-    }
-
-    // El fallo del correo NO se traga: si no sale, quien opera tiene que
-    // enterarse — la contraseña ya cambió y el alumno se quedaría sin ella.
+    // El fallo del correo NO se traga: sin correo no hay enlace, y el alumno
+    // se quedaría esperando algo que nunca llegó.
     let emailEnviado = false;
     let errorCorreo: string | null = null;
     try {
-      const emailResult = await sendBienvenidaCredenciales(userRow.email, {
-        nombreAlumno: alumno.nombreCompleto,
-        email: userRow.email,
-        passwordTemporal: tempPassword,
-        portalUrl: urlPortalLogin(),
-        gestor: gestorInfo,
+      const emailResult = await sendRecuperarPassword(userRow.email, {
+        nombre: alumno.nombreCompleto,
+        resetUrl,
+        token,
       });
       emailEnviado = emailResult.enviado;
-      if (emailEnviado) {
-        await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, alumnoId));
-      }
     } catch (e) {
       errorCorreo = e instanceof Error ? e.message : 'Error desconocido al enviar';
       console.error('[admin/alumnos/reset-password] fallo el envio:', e);
@@ -3574,15 +3554,15 @@ router.post('/alumnos/:id/reset-password', async (req, res) => {
 
     await tryAuditLog({
       userId: req.user!.userId,
-      accion: 'reset_password_alumno',
+      accion: 'enviar_enlace_password_alumno',
       entidad: 'users',
       entidadId: alumnoId,
-      detalle: `Admin restableció la contraseña del alumno ${userRow.email}${emailEnviado ? '' : ' — el correo NO salió'}`,
+      detalle: `Admin envió enlace para restablecer contraseña al alumno ${userRow.email}${emailEnviado ? '' : ' — el correo NO salió'}`,
       metadata: { email: userRow.email, emailEnviado, errorCorreo },
       req,
     });
 
-    res.json({ ok: true, emailEnviado, errorCorreo });
+    res.json({ ok: true, emailEnviado, errorCorreo, correo: userRow.email });
   } catch (err) {
     console.error('[admin/alumnos/reset-password]', err);
     res.status(500).json({ error: 'No se pudo restablecer la contraseña' });
