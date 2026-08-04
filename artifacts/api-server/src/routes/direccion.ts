@@ -894,6 +894,8 @@ router.get('/accesos', async (_req, res) => {
         adminNombre: administradores.nombreCompleto,
         esJefe: administradores.esJefe,
         puesto: administradores.puesto,
+        adminEmailPublico: administradores.emailPublico,
+        gestorEmailPublico: gestores.emailPublico,
         gestorNombre: gestores.nombreCompleto,
         municipio: municipios.nombre,
         municipioId: gestores.municipioId,
@@ -917,6 +919,10 @@ router.get('/accesos', async (_req, res) => {
       telefono: r.telefono ?? null,
       puesto: r.puesto ?? null,
       esJefe: r.esJefe ?? false,
+      // Correo INSTITUCIONAL: el que se publica y va en documentos. Es otra
+      // cosa que `email`, que es con el que se entra y a donde llegan las
+      // credenciales — ése suele ser el personal de quien atiende.
+      emailPublico: (r.rol === 'admin' ? r.adminEmailPublico : r.gestorEmailPublico) ?? null,
       activo: r.activo,
       // "sin_entrar" = sigue con la contraseña temporal (nunca entró);
       // "activo" = ya la cambió en su primer ingreso.
@@ -1010,6 +1016,8 @@ const editarAccesoSchema = z.object({
   telefono: z.string().trim().max(30).nullable().optional(),
   puesto: z.string().trim().max(120).nullable().optional(),
   esJefe: z.boolean().optional(),
+  // Correo institucional (el que se publica). Cadena vacía = quitarlo.
+  emailPublico: z.string().trim().max(255).nullable().optional(),
 });
 
 router.patch('/accesos/:userId', async (req, res) => {
@@ -1053,12 +1061,14 @@ router.patch('/accesos/:userId', async (req, res) => {
       if (d.nombreCompleto !== undefined) set.nombreCompleto = d.nombreCompleto;
       if (d.municipioId !== undefined) set.municipioId = d.municipioId;
       if (d.telefono !== undefined) set.telefono = d.telefono ?? null;
+      if (d.emailPublico !== undefined) set.emailPublico = d.emailPublico?.trim() || null;
       if (Object.keys(set).length) await db.update(gestores).set(set).where(eq(gestores.userId, userId));
     } else {
       const set: Partial<typeof administradores.$inferInsert> = {};
       if (d.nombreCompleto !== undefined) set.nombreCompleto = d.nombreCompleto;
       if (d.puesto !== undefined) set.puesto = d.puesto ?? null;
       if (d.esJefe !== undefined) set.esJefe = d.esJefe;
+      if (d.emailPublico !== undefined) set.emailPublico = d.emailPublico?.trim() || null;
       if (Object.keys(set).length) await db.update(administradores).set(set).where(eq(administradores.userId, userId));
     }
 

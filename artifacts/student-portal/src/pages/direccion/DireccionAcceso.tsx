@@ -28,9 +28,10 @@ type Acceso = {
   estado: 'sin_entrar' | 'activo';
   correoEnviadoEn: string | null;
   puedeReenviar: boolean;
+  emailPublico: string | null;
 };
 
-type FormEdit = { nombreCompleto: string; email: string; municipioId: number | ''; telefono: string; puesto: string; esJefe: boolean };
+type FormEdit = { nombreCompleto: string; email: string; emailPublico: string; municipioId: number | ''; telefono: string; puesto: string; esJefe: boolean };
 
 type Tipo = 'gestor' | 'admin';
 type Municipio = { id: number; nombre: string };
@@ -59,7 +60,7 @@ export default function DireccionAcceso() {
   const [cargandoAccesos, setCargandoAccesos] = useState(true);
   const [reenviando, setReenviando] = useState<number | null>(null);
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [edit, setEdit] = useState<FormEdit>({ nombreCompleto: '', email: '', municipioId: '', telefono: '', puesto: '', esJefe: false });
+  const [edit, setEdit] = useState<FormEdit>({ nombreCompleto: '', email: '', emailPublico: '', municipioId: '', telefono: '', puesto: '', esJefe: false });
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [eliminandoId, setEliminandoId] = useState<number | null>(null);
 
@@ -68,6 +69,7 @@ export default function DireccionAcceso() {
     setEdit({
       nombreCompleto: a.nombre,
       email: a.email,
+      emailPublico: a.emailPublico ?? '',
       municipioId: a.municipioId ?? '',
       telefono: a.telefono ?? '',
       puesto: a.puesto ?? '',
@@ -78,7 +80,11 @@ export default function DireccionAcceso() {
   async function guardarEdicion(a: Acceso) {
     setGuardandoEdit(true);
     try {
-      const cuerpo: Record<string, unknown> = { nombreCompleto: edit.nombreCompleto.trim(), email: edit.email.trim() };
+      const cuerpo: Record<string, unknown> = {
+        nombreCompleto: edit.nombreCompleto.trim(),
+        email: edit.email.trim(),
+        emailPublico: edit.emailPublico.trim() || null,
+      };
       if (a.rol === 'gestor') {
         if (edit.municipioId !== '') cuerpo.municipioId = Number(edit.municipioId);
         cuerpo.telefono = edit.telefono.trim() || null;
@@ -399,7 +405,7 @@ export default function DireccionAcceso() {
                     <div className="mt-4 border-t border-stone-100 pt-4">
                       <div className="grid gap-3 sm:grid-cols-2">
                         <Campo label="Nombre completo" value={edit.nombreCompleto} onChange={(v) => setEdit((s) => ({ ...s, nombreCompleto: v }))} />
-                        <Campo label="Correo" type="email" value={edit.email} onChange={(v) => setEdit((s) => ({ ...s, email: v }))} />
+                        <Campo label="Correo de acceso" type="email" value={edit.email} onChange={(v) => setEdit((s) => ({ ...s, email: v }))} />
                         {a.rol === 'gestor' ? (
                           <>
                             <div>
@@ -420,6 +426,26 @@ export default function DireccionAcceso() {
                             </label>
                           </>
                         )}
+                      </div>
+                      {/* Los dos correos hacen trabajos distintos y por eso van
+                          separados: el de arriba es con el que se ENTRA y a
+                          donde llegan las credenciales —normalmente el personal
+                          de quien atiende—; éste es el que se PUBLICA y va en
+                          documentos. Confundirlos es mandar una contraseña a un
+                          buzón institucional que lee media oficina. */}
+                      <div className="mt-3">
+                        <Campo
+                          label="Correo institucional (el que se publica)"
+                          type="email"
+                          value={edit.emailPublico}
+                          onChange={(v) => setEdit((s) => ({ ...s, emailPublico: v }))}
+                          placeholder="opcional · ej. atencion@michoacan.gob.mx"
+                        />
+                        <p className="mt-1 text-[11px] leading-snug text-stone-500">
+                          Es el correo que se muestra y aparece en documentos. <strong>No</strong> es
+                          con el que se entra: las credenciales y los enlaces de recuperación
+                          siempre van al <em>correo de acceso</em> de arriba.
+                        </p>
                       </div>
                       <div className="mt-3 flex gap-2">
                         <button type="button" onClick={() => guardarEdicion(a)} disabled={guardandoEdit || !edit.nombreCompleto.trim() || !/\S+@\S+\.\S+/.test(edit.email)}
