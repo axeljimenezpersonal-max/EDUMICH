@@ -50,7 +50,55 @@ resultado, en una frase:
 
 ---
 
-## 2. Si sólo se hacen diez cosas
+## 1-bis. Pendientes de producto anotados en sesión (2026-08-04)
+
+No son hallazgos de seguridad; son decisiones tomadas que todavía no se
+construyen. Se anotan aquí para que no se pierdan entre una sesión y otra.
+
+### A. Separar la identidad de acceso de la dirección de entrega
+
+Hoy `users.email` hace dos trabajos a la vez: identifica a quien entra
+(`auth.ts` busca literalmente `where(eq(users.email, email))`) y recibe la
+contraseña temporal y los enlaces de recuperación. Por eso un centro de asesoría
+sólo puede entrar con un correo, y como no tienen correo institucional, entran
+con el Gmail personal de quien lo atiende.
+
+Eso amarra el acceso del **centro** a la cuenta personal de una **persona**: el
+día que esa persona se va, se lleva el acceso.
+
+La salida no es volverse proveedor de correo —eso le toca a la Secretaría, no a
+Módula— sino dejar de usar el correo como nombre de usuario:
+
+| | Qué es | De quién es |
+|---|---|---|
+| Clave de acceso | con qué entra el centro (`utec.morelia`) | la emite Módula |
+| Correo de entrega | a dónde le llegan credenciales y avisos | el personal de quien lo atiende |
+
+Antes de construirlo hay que mirar si `gestores.clave_centro` está poblada en los
+centros reales o es un campo que casi nadie llena: no se puede fundar la clave de
+acceso sobre una columna vacía.
+
+**Es un cambio al login**, o sea lo más delicado del sistema. No se mete junto
+con otra cosa y se prueba con una cuenta de prueba antes de tocar una real.
+
+### B. Recordatorios automáticos
+
+No existe ningún envío programado. Todo correo sale como reacción a algo que
+alguien hizo en la pantalla. Falta el otro tipo: el que sale solo porque llegó
+una fecha.
+
+Por orden de valor:
+
+1. **Al centro**, cuando tenga alumnos inscritos a un examen próximo.
+2. **Al alumno inscrito**, un día antes de su examen: fecha, hora y sede.
+3. Cierre de ventana de solicitud a punto de pasar.
+
+Esto necesita infraestructura que hoy no está: un trabajo programado con
+**candado** (con más de una instancia se ejecutaría N veces y llegarían correos
+duplicados — el mismo defecto que ya tiene el borrado de cuentas de las 3 AM), y
+un registro de "a este alumno ya se le avisó de este examen" para no repetir.
+
+Paso a paso, y después de A.
 
 Ordenadas por **riesgo evitado ÷ esfuerzo**. Si el tiempo se acaba, que sea
 después de estas.

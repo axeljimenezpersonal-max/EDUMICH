@@ -43,7 +43,7 @@ import { urlPortalLogin } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
 import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
-import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendCorreoAccesoCambiado } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
 import { resumenMetricas, serieMetricas, PROCESS_START, obtenerErroresRecientes } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
@@ -1025,12 +1025,16 @@ router.patch('/accesos/:userId', async (req, res) => {
   }
   const d = parse.data;
   try {
-    const [u] = await db.select({ rol: users.rol }).from(users).where(eq(users.id, userId));
+    const [u] = await db.select({ rol: users.rol, email: users.email }).from(users).where(eq(users.id, userId));
     if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
       res.status(404).json({ error: 'Cuenta no encontrada' });
       return;
     }
 
+    // Cambio del correo de ACCESO. Se avisa a las dos direcciones, igual que
+    // en administración (utils/email → sendCorreoAccesoCambiado): quien pierde
+    // el acceso tiene que enterarse, y sólo la dirección anterior lo alcanza.
+    let correoAnterior: string | null = null;
     if (d.email) {
       const email = d.email.toLowerCase();
       const [dup] = await db.select({ id: users.id }).from(users).where(eq(users.email, email));
@@ -1038,7 +1042,10 @@ router.patch('/accesos/:userId', async (req, res) => {
         res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico' });
         return;
       }
-      await db.update(users).set({ email, updatedAt: new Date() }).where(eq(users.id, userId));
+      if (email !== u.email.toLowerCase()) {
+        correoAnterior = u.email;
+        await db.update(users).set({ email, updatedAt: new Date() }).where(eq(users.id, userId));
+      }
     }
 
     if (u.rol === 'gestor') {
@@ -1060,10 +1067,30 @@ router.patch('/accesos/:userId', async (req, res) => {
       accion: 'editar_acceso',
       entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
       entidadId: userId,
-      detalle: `El creador editó la cuenta ${u.rol} #${userId}`,
-      metadata: { cambios: Object.keys(d) },
+      detalle: correoAnterior
+        ? `El creador editó la cuenta ${u.rol} #${userId}. Correo de acceso: ${correoAnterior} → ${d.email!.toLowerCase()}`
+        : `El creador editó la cuenta ${u.rol} #${userId}`,
+      metadata: correoAnterior
+        ? { cambios: Object.keys(d), correoAnterior, correoNuevo: d.email!.toLowerCase() }
+        : { cambios: Object.keys(d) },
       req,
     });
+
+    if (correoAnterior) {
+      const [persona] = u.rol === 'gestor'
+        ? await db.select({ nombre: gestores.nombreCompleto }).from(gestores).where(eq(gestores.userId, userId))
+        : await db.select({ nombre: administradores.nombreCompleto }).from(administradores).where(eq(administradores.userId, userId));
+      void sendCorreoAccesoCambiado(
+        {
+          nombre: persona?.nombre ?? 'Hola',
+          correoAnterior,
+          correoNuevo: d.email!.toLowerCase(),
+          loginUrl: urlPortalLogin(),
+        },
+        { triggeredBy: req.user!.userId, relatedUserId: userId },
+      );
+    }
+
     res.json({ ok: true });
   } catch (e) {
     console.error('[direccion/accesos/editar]', e);
