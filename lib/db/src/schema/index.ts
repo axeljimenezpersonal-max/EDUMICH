@@ -1814,6 +1814,10 @@ export const outboxEventoEnum = pgEnum('outbox_evento', [
   'recuperar_password',
   'verificacion_email',
   'solicitud_rechazada',
+  // Aviso de que el correo con el que se entra a la plataforma cambió. Se manda
+  // a la dirección NUEVA y a la ANTERIOR: si el cambio no lo pidió el dueño de
+  // la cuenta, el aviso a la anterior es la única forma de que se entere.
+  'correo_acceso_cambiado',
 ]);
 
 export const outboxEstadoEnum = pgEnum('outbox_estado', [

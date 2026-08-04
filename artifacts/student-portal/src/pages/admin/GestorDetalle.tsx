@@ -233,9 +233,14 @@ function EditarGestorModal({
     titulo: gestor.titulo ?? '',
     telefono: gestor.telefono ?? '',
     capacidadMaxima: String(gestor.capacidadMaxima),
+    email: gestor.email,
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // El correo es la llave de la cuenta, no un dato más: se avisa en cuanto se
+  // toca, no al guardar, para que nadie lo cambie sin darse cuenta.
+  const correoCambia = form.email.trim().toLowerCase() !== gestor.email.toLowerCase();
 
   function set(k: keyof typeof form, v: string) {
     setForm((f) => ({ ...f, [k]: v }));
@@ -243,21 +248,25 @@ function EditarGestorModal({
 
   async function handleSubmit() {
     if (!form.nombreCompleto.trim()) { setError('El nombre es requerido.'); return; }
+    const emailLimpio = form.email.trim().toLowerCase();
+    if (!emailLimpio) { setError('El correo de acceso es requerido.'); return; }
     setSaving(true);
     setError(null);
+    const cambios = {
+      nombreCompleto: form.nombreCompleto.trim(),
+      titulo: form.titulo.trim() || null,
+      telefono: form.telefono.trim() || null,
+      capacidadMaxima: Math.max(5, Math.min(200, Number(form.capacidadMaxima) || 50)),
+    };
     try {
-      await api.patch(`/admin/gestores/${gestor.id}`, {
-        nombreCompleto: form.nombreCompleto.trim(),
-        titulo: form.titulo.trim() || null,
-        telefono: form.telefono.trim() || null,
-        capacidadMaxima: Math.max(5, Math.min(200, Number(form.capacidadMaxima) || 50)),
-      });
-      onSuccess({
-        nombreCompleto: form.nombreCompleto.trim(),
-        titulo: form.titulo.trim() || null,
-        telefono: form.telefono.trim() || null,
-        capacidadMaxima: Math.max(5, Math.min(200, Number(form.capacidadMaxima) || 50)),
-      });
+      // El correo va PRIMERO y por su propia ruta. Si está ocupado, el servidor
+      // responde 409 y aquí se corta: nada se guarda a medias, y el aviso que
+      // ve el admin es el del correo, no un "se guardó" que sería mentira.
+      if (correoCambia) {
+        await api.patch(`/admin/gestores/${gestor.id}/correo`, { email: emailLimpio });
+      }
+      await api.patch(`/admin/gestores/${gestor.id}`, cambios);
+      onSuccess(correoCambia ? { ...cambios, email: emailLimpio } : cambios);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Error al guardar cambios.');
     } finally {
@@ -319,6 +328,39 @@ function EditarGestorModal({
               value={form.capacidadMaxima}
               onChange={(e) => set('capacidadMaxima', e.target.value)}
             />
+          </div>
+
+          {/* El correo de acceso va separado del resto: no es un dato de
+              contacto, es con lo que el centro ENTRA a la plataforma y a donde
+              le llegan la contraseña temporal y los enlaces de recuperación. */}
+          <div className="mt-1 pt-4 border-t border-stone-200">
+            <label className="block text-xs font-semibold mb-1" style={{ color: '#443e39' }}>
+              Correo de acceso *
+            </label>
+            <input
+              type="email"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full px-3 py-2 text-sm border rounded-lg focus:outline-none"
+              style={{ borderColor: correoCambia ? '#d97706' : '#e7e5e4' }}
+              value={form.email}
+              onChange={(e) => set('email', e.target.value)}
+            />
+            <p className="text-[11px] mt-1 leading-snug" style={{ color: '#78716c' }}>
+              Con este correo inicia sesión el centro, y a él llegan la contraseña
+              temporal y los enlaces para recuperarla.
+            </p>
+            {correoCambia && (
+              <div
+                className="mt-2 rounded-lg px-3 py-2 text-[11.5px] leading-relaxed"
+                style={{ background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e' }}
+              >
+                <strong>Vas a cambiar el correo de acceso.</strong> A partir de que
+                guardes, <strong>{gestor.email}</strong> deja de servir para entrar.
+                La contraseña no cambia. Se avisa por correo a la dirección nueva y
+                a la anterior, y queda registrado en la bitácora.
+              </div>
+            )}
           </div>
 
           {error && <p className="text-xs font-medium" style={{ color: '#b91c1c' }}>{error}</p>}

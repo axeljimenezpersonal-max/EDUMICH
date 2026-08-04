@@ -50,7 +50,7 @@ import {
 import { authRequired, requireRol } from '../middleware/auth';
 import { idsAlumnosConExamenPagado, sqlTieneExamenPagado } from '../utils/pagoAlumno';
 import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
-import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada, sendRecuperarPassword } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaCredenciales, sendBienvenidaGestor, sendSolicitudRechazada, sendRecuperarPassword, sendCorreoAccesoCambiado } from '../services/email';
 import { cuentaCreadaAlumnoTemplate } from '../services/templates/cuenta-creada-alumno';
 import { solicitudRechazadaTemplate } from '../services/templates/solicitud-rechazada';
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
@@ -3441,6 +3441,107 @@ router.get('/etapas/:etapaId/gestores-con-inscritos', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err instanceof Error ? err.message : 'Error' });
+  }
+});
+
+// ─── PATCH /admin/gestores/:gestorId/correo ──────────────────────────────
+/**
+ * Cambia el correo con el que el gestor ENTRA a la plataforma.
+ *
+ * Va aparte del PATCH general a propósito. Los demás campos del gestor
+ * (nombre, teléfono, capacidad) son datos; éste es la llave de la cuenta:
+ * cambiarlo decide quién puede entrar y a dónde llegan la contraseña temporal y
+ * los enlaces de recuperación. Mezclarlo con un "guardar cambios" cualquiera es
+ * como se pierde una cuenta sin que nadie sepa cuándo pasó.
+ *
+ * Por eso este camino: unicidad contra TODA la tabla de usuarios (no solo
+ * gestores), registro en la bitácora, y aviso por correo a la dirección nueva y
+ * a la anterior.
+ */
+const cambiarCorreoGestorSchema = z.object({
+  email: z.string().trim().toLowerCase().email('El correo no tiene un formato válido.').max(255),
+});
+
+router.patch('/gestores/:gestorId/correo', async (req, res) => {
+  const gestorId = Number(req.params.gestorId);
+  if (!gestorId) { res.status(400).json({ error: 'ID inválido' }); return; }
+
+  const parse = cambiarCorreoGestorSchema.safeParse(req.body);
+  if (!parse.success) {
+    res.status(400).json({ error: parse.error.issues[0]?.message ?? 'Datos inválidos', campo: 'email' });
+    return;
+  }
+  const emailNuevo = parse.data.email;
+
+  try {
+    const [gestor] = await db
+      .select({ userId: gestores.userId, nombre: gestores.nombreCompleto })
+      .from(gestores)
+      .where(eq(gestores.userId, gestorId));
+    if (!gestor) { res.status(404).json({ error: 'Gestor no encontrado' }); return; }
+
+    const [cuenta] = await db
+      .select({ email: users.email })
+      .from(users)
+      .where(eq(users.id, gestorId));
+    if (!cuenta) { res.status(404).json({ error: 'La cuenta de este gestor no existe' }); return; }
+
+    const emailAnterior = cuenta.email;
+    // Sin cambio real: se responde bien y no se avisa a nadie. Guardar el mismo
+    // correo no es un evento y no debe llenar la bitácora ni el buzón de nadie.
+    if (emailAnterior.toLowerCase() === emailNuevo) {
+      res.json({ ok: true, sinCambio: true, email: emailAnterior });
+      return;
+    }
+
+    // La unicidad se revisa contra TODOS los usuarios, no solo gestores: un
+    // alumno, otro gestor y un admin comparten la misma tabla de acceso, así
+    // que un correo repetido rompe el login de los dos.
+    const [ocupado] = await db
+      .select({ id: users.id, rol: users.rol })
+      .from(users)
+      .where(and(eq(users.email, emailNuevo), ne(users.id, gestorId)));
+    if (ocupado) {
+      const deQuien: Record<string, string> = {
+        estudiante: 'un alumno',
+        gestor: 'otro centro de asesoría',
+        admin: 'una cuenta de administración',
+      };
+      res.status(409).json({
+        error: `Ese correo ya lo usa ${deQuien[ocupado.rol] ?? 'otra cuenta'} para entrar. Cada cuenta necesita el suyo.`,
+        campo: 'email',
+      });
+      return;
+    }
+
+    await db.update(users).set({ email: emailNuevo, updatedAt: new Date() }).where(eq(users.id, gestorId));
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'cambiar_correo_acceso_gestor',
+      entidad: 'users',
+      entidadId: gestorId,
+      detalle: `Correo de acceso del gestor ${gestor.nombre}: ${emailAnterior} → ${emailNuevo}`,
+      metadata: { emailAnterior, emailNuevo },
+      req,
+    });
+
+    // El aviso va después de guardar y sin bloquear la respuesta: el cambio ya
+    // ocurrió, y un buzón caído no debe dejar la pantalla colgada.
+    void sendCorreoAccesoCambiado(
+      {
+        nombre: gestor.nombre,
+        correoAnterior: emailAnterior,
+        correoNuevo: emailNuevo,
+        loginUrl: urlPortalLogin(),
+      },
+      { triggeredBy: req.user!.userId, relatedUserId: gestorId },
+    );
+
+    res.json({ ok: true, email: emailNuevo, emailAnterior });
+  } catch (e) {
+    console.error('[admin/gestores/correo]', e);
+    res.status(500).json({ error: 'No se pudo cambiar el correo de acceso' });
   }
 });
 

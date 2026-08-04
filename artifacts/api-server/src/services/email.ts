@@ -5,6 +5,7 @@ import { cuentaCreadaAlumnoTemplate } from './templates/cuenta-creada-alumno';
 import { cuentaCreadaGestorTemplate } from './templates/cuenta-creada-gestor';
 import { cuentaCreadaAdminTemplate } from './templates/cuenta-creada-admin';
 import { solicitudRechazadaTemplate, type SolicitudRechazadaData } from './templates/solicitud-rechazada';
+import { correoAccesoCambiadoTemplate } from './templates/correo-acceso-cambiado';
 import { escapeHtml } from '../utils/escapeHtml';
 import { CONTACTO_CORREO } from '../config/contacto';
 
@@ -79,7 +80,8 @@ type OutboxEvento =
   | 'aviso_eliminacion_cuenta'
   | 'recuperar_password'
   | 'verificacion_email'
-  | 'solicitud_rechazada';
+  | 'solicitud_rechazada'
+  | 'correo_acceso_cambiado';
 
 /**
  * Correos que NUNCA se copian a la cuenta institucional (`INSTITUTIONAL_CC_EMAIL`).
@@ -314,6 +316,49 @@ export async function sendSolicitudRechazada(
     evento: 'solicitud_rechazada',
     triggeredBy: opts?.triggeredBy,
   });
+}
+
+// ─── Cambio del correo de acceso ─────────────────────────────────────────
+
+/**
+ * Avisa a las DOS direcciones: la nueva y la anterior.
+ *
+ * La copia a la anterior no es cortesía, es la salvaguarda: si el cambio no lo
+ * pidió el dueño de la cuenta, ese correo es lo único que le va a llegar —a
+ * partir de ese momento ya no puede entrar con la dirección que conocía—.
+ *
+ * Los dos envíos van por separado a propósito: si el buzón viejo ya no existe y
+ * rebota, el aviso al nuevo igual se manda.
+ */
+export async function sendCorreoAccesoCambiado(
+  data: {
+    nombre: string;
+    correoAnterior: string;
+    correoNuevo: string;
+    loginUrl: string;
+  },
+  opts?: { triggeredBy?: number; relatedUserId?: number }
+): Promise<void> {
+  for (const destino of ['nueva', 'anterior'] as const) {
+    const para = destino === 'nueva' ? data.correoNuevo : data.correoAnterior;
+    const { subject, html, textPlain } = correoAccesoCambiadoTemplate({ ...data, destino });
+    try {
+      await sendEmail({
+        to: para,
+        toName: data.nombre,
+        subject,
+        html,
+        textPlain,
+        evento: 'correo_acceso_cambiado',
+        triggeredBy: opts?.triggeredBy,
+        relatedUserId: opts?.relatedUserId,
+        metadata: { destino, correoAnterior: data.correoAnterior, correoNuevo: data.correoNuevo },
+      });
+    } catch (e) {
+      // Un aviso que no sale no debe tumbar el cambio, que ya está hecho.
+      console.error('[email/correo_acceso_cambiado]', destino, e);
+    }
+  }
 }
 
 // ─── Recuperación de contraseña ───────────────────────────────────────────

@@ -488,6 +488,9 @@ const migrations = [
      ADD COLUMN IF NOT EXISTS telefono_historico varchar(30)`,
   `ALTER TABLE estudiantes
      ADD COLUMN IF NOT EXISTS curp_historica varchar(18)`,
+  // Aviso de cambio de correo de acceso (se manda a la dirección nueva y a la
+  // anterior).
+  `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'correo_acceso_cambiado'`,
 ];
 
 export async function runStartupMigrations() {
