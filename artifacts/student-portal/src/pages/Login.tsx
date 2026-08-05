@@ -164,13 +164,18 @@ export default function Login() {
               Bienvenido
             </h2>
             <p className="text-sm text-stone-600 mb-5">
-              Inicia sesión con tus credenciales institucionales.
+              Entra con el correo al que te llegaron tus credenciales.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-3">
               <div>
+                {/* "Correo de acceso", no "institucional": el correo con el que
+                    se ENTRA suele ser el personal de quien atiende, mientras que
+                    el institucional es el que se publica en documentos y no
+                    sirve para iniciar sesión. Llamarlos igual hacía que la gente
+                    intentara entrar con el que no era. */}
                 <label className="gov-label" htmlFor="email">
-                  Correo institucional
+                  Correo de acceso
                 </label>
                 <div className="relative">
                   <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
