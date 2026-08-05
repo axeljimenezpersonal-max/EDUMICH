@@ -492,6 +492,25 @@ const migrations = [
   // anterior).
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'correo_acceso_cambiado'`,
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'alerta_operacion'`,
+  // ── Bitácora de solo anexado ────────────────────────────────────────────
+  // Cadena de huellas: cada entrada firma su contenido junto con la huella de
+  // la anterior. Ver schema.auditLog.
+  `ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS hash varchar(64)`,
+  `ALTER TABLE audit_log ADD COLUMN IF NOT EXISTS hash_previo varchar(64)`,
+  `CREATE INDEX IF NOT EXISTS audit_log_id_desc_idx ON audit_log(id DESC)`,
+  // Candado en la BASE, no solo en la aplicación: la cadena DETECTA que se
+  // tocó algo, esto lo IMPIDE. Nada en el código borra ni edita la bitácora
+  // (comprobado), así que el trigger no rompe ningún flujo; lo que corta es la
+  // edición manual desde una consola conectada a producción.
+  `CREATE OR REPLACE FUNCTION audit_log_solo_anexado() RETURNS trigger AS $$
+   BEGIN
+     RAISE EXCEPTION 'La bitacora es de solo anexado: no se puede % una entrada (id=%)',
+       TG_OP, COALESCE(OLD.id, -1);
+   END; $$ LANGUAGE plpgsql`,
+  `DROP TRIGGER IF EXISTS audit_log_sin_cambios ON audit_log`,
+  `CREATE TRIGGER audit_log_sin_cambios
+     BEFORE UPDATE OR DELETE ON audit_log
+     FOR EACH ROW EXECUTE FUNCTION audit_log_solo_anexado()`,
   // Identidad (users.email, con lo que se entra) separada de la entrega
   // (correo_notificaciones, a donde llega el correo de verdad).
   `ALTER TABLE users

@@ -9,6 +9,7 @@
 import { ClipboardList } from 'lucide-react';
 import { DireccionLayout } from './DireccionLayout';
 import Bitacora from '../admin/config/Bitacora';
+import { IntegridadBitacora } from '../../components/IntegridadBitacora';
 
 export default function DireccionBitacora() {
   return (
@@ -25,6 +26,7 @@ export default function DireccionBitacora() {
             </p>
           </div>
         </div>
+        <IntegridadBitacora endpoint="/api/direccion/bitacora/integridad" />
         <Bitacora endpoint="/api/direccion/bitacora" />
       </div>
     </DireccionLayout>

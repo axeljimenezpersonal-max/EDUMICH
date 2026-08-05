@@ -1001,6 +1001,17 @@ export const auditLog = pgTable('audit_log', {
   ip: varchar('ip', { length: 45 }),
   userAgent: text('user_agent'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
+  /**
+   * Huella de esta entrada: SHA-256 de su contenido MÁS la huella de la
+   * anterior. Encadenarlas es lo que le da valor probatorio a la bitácora:
+   * cambiar una entrada vieja obliga a recalcular todas las que vinieron
+   * después, y el primer eslabón que no cuadre delata dónde se tocó.
+   *
+   * Sin esto, la bitácora era una tabla más: quien pudiera escribir en la base
+   * podía editar el registro de lo que hizo y no quedaba rastro de la edición.
+   */
+  hash: varchar('hash', { length: 64 }),
+  hashPrevio: varchar('hash_previo', { length: 64 }),
 });
 
 // ─────────────────────────────────────────────────────────────────────────

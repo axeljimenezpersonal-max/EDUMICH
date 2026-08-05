@@ -1,7 +1,41 @@
 import type { Request } from 'express';
-import { eq } from 'drizzle-orm';
+import crypto from 'node:crypto';
+import { eq, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { auditLog, users, gestores, estudiantes, administradores } from '@workspace/db/schema';
+
+/** Huella del primer eslabón: no hay entrada anterior a la que encadenarse. */
+const GENESIS = '0'.repeat(64);
+
+/**
+ * El texto exacto que se firma. El orden y los separadores son parte del
+ * contrato: si cambian, las huellas viejas dejan de reproducirse y toda la
+ * cadena anterior se vuelve inverificable. No se toca.
+ */
+function contenidoFirmable(f: {
+  createdAt: Date; userId: number | null; userRol: string | null;
+  accion: string; entidad: string; entidadId: number | null;
+  detalle: string | null; metadata: unknown; ip: string | null;
+  hashPrevio: string;
+}): string {
+  return [
+    f.createdAt.toISOString(),
+    f.userId ?? '',
+    f.userRol ?? '',
+    f.accion,
+    f.entidad,
+    f.entidadId ?? '',
+    f.detalle ?? '',
+    f.metadata == null ? '' : JSON.stringify(f.metadata),
+    f.ip ?? '',
+    f.hashPrevio,
+  ].join('|');
+}
+
+/** La huella de una entrada. Expuesta porque la verificación la recalcula. */
+export function huellaEntrada(f: Parameters<typeof contenidoFirmable>[0]): string {
+  return crypto.createHash('sha256').update(contenidoFirmable(f), 'utf8').digest('hex');
+}
 
 interface AuditParams {
   userId?: number | null;
@@ -58,17 +92,41 @@ export async function tryAuditLog(params: AuditParams): Promise<void> {
       userRol = userRol ?? info.rol;
     }
 
-    await db.insert(auditLog).values({
+    // La cadena obliga a que las entradas se anexen de una en una: dos
+    // simultáneas leerían la MISMA huella anterior y quedarían las dos
+    // colgando del mismo eslabón, que es una cadena rota. El candado de aviso
+    // las forma; la bitácora escribe poco, así que esperar no cuesta nada.
+    const createdAt = new Date();
+    const campos = {
+      createdAt,
       userId: params.userId ?? null,
-      userNombre: userNombre ?? null,
       userRol: userRol ?? null,
       accion: params.accion,
       entidad: params.entidad,
       entidadId: params.entidadId ?? null,
       detalle: params.detalle ?? null,
-      metadata: params.metadata ?? null,
+      metadata: (params.metadata ?? null) as unknown,
       ip: extractIp(params.req),
-      userAgent: extractUserAgent(params.req),
+    };
+
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext('audit_log_cadena'))`);
+      const [previa] = await tx
+        .select({ hash: auditLog.hash })
+        .from(auditLog)
+        .orderBy(sql`${auditLog.id} DESC`)
+        .limit(1);
+      const hashPrevio = previa?.hash ?? GENESIS;
+      const hash = huellaEntrada({ ...campos, hashPrevio });
+
+      await tx.insert(auditLog).values({
+        ...campos,
+        metadata: params.metadata ?? null,
+        userNombre: userNombre ?? null,
+        userAgent: extractUserAgent(params.req),
+        hashPrevio,
+        hash,
+      });
     });
   } catch (err) {
     console.error('[AuditLog] Failed to insert audit entry:', err);

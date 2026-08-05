@@ -42,6 +42,7 @@ import { generarPasswordTemporal } from '../utils/password';
 import { urlPortalLogin } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
+import { verificarBitacora } from '../services/verificarBitacora';
 import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
 import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendCorreoAccesoCambiado } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
@@ -1491,6 +1492,24 @@ function maskIpBitacora(ip: string | null): string | null {
   const p = ip.split('.');
   return p.length === 4 ? `${p[0]}.${p[1]}.x.x` : ip;
 }
+
+// ── GET /direccion/bitacora/integridad ───────────────────────────────────
+/**
+ * ¿Alguien tocó la bitácora? Recorre la cadena de huellas y dice dónde se
+ * rompe, si es que se rompe. Ver services/verificarBitacora.ts.
+ *
+ * Se consulta a petición y no en cada carga de la pantalla: recorre la tabla
+ * entera, y una comprobación que se corre sola cada vez acaba siendo una
+ * consulta pesada que nadie mira.
+ */
+router.get('/bitacora/integridad', async (_req, res) => {
+  try {
+    res.json(await verificarBitacora());
+  } catch (e) {
+    console.error('[direccion/bitacora/integridad]', e);
+    res.status(500).json({ error: 'No se pudo verificar la bitácora' });
+  }
+});
 
 router.get('/bitacora', async (req, res) => {
   const page = Math.max(1, Number(req.query.page ?? 1));
