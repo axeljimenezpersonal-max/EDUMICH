@@ -82,7 +82,8 @@ type OutboxEvento =
   | 'recuperar_password'
   | 'verificacion_email'
   | 'solicitud_rechazada'
-  | 'correo_acceso_cambiado';
+  | 'correo_acceso_cambiado'
+  | 'alerta_operacion';
 
 /**
  * Correos que NUNCA se copian a la cuenta institucional (`INSTITUTIONAL_CC_EMAIL`).
@@ -103,6 +104,7 @@ const EVENTOS_SIN_COPIA: ReadonlySet<OutboxEvento> = new Set([
   'cuenta_creada_alumno',
   'cuenta_creada_gestor',
   'cuenta_creada_admin',
+  'alerta_operacion',
 ]);
 
 interface SendEmailOptions {
@@ -266,7 +268,22 @@ export async function sendEmail(
     console.error('[OUTBOX] Error guardando en BD:', dbErr);
   }
 
-  if (estado === 'fallido') throw new Error(errorMessage!);
+  if (estado === 'fallido') {
+    // Un correo que no sale es una credencial que nadie recibe, o un enlace de
+    // recuperacion que se pierde. Se avisa —salvo si lo que fallo era la propia
+    // alerta, porque avisar de que fallo avisar es un bucle—.
+    if (opts.evento !== 'alerta_operacion') {
+      const { alertar } = await import('./alertas');
+      void alertar({
+        clave: `correo:fallido:${opts.evento}`,
+        titulo: `No se pudo enviar un correo (${opts.evento})`,
+        detalle: `${errorMessage}. La persona NO recibio lo que se le mando.`,
+        gravedad: opts.evento.startsWith('cuenta_creada') || opts.evento === 'recuperar_password' ? 'critica' : 'alta',
+        contexto: { evento: opts.evento },
+      });
+    }
+    throw new Error(errorMessage!);
+  }
   return { enviado: true, modo: 'production' };
 }
 

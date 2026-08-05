@@ -1840,6 +1840,8 @@ export const outboxEventoEnum = pgEnum('outbox_evento', [
   // a la dirección NUEVA y a la ANTERIOR: si el cambio no lo pidió el dueño de
   // la cuenta, el aviso a la anterior es la única forma de que se entere.
   'correo_acceso_cambiado',
+  // Alerta de operación al equipo que levanta el servicio (no a un ciudadano).
+  'alerta_operacion',
 ]);
 
 export const outboxEstadoEnum = pgEnum('outbox_estado', [

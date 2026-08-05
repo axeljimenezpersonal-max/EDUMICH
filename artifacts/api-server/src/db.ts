@@ -491,6 +491,7 @@ const migrations = [
   // Aviso de cambio de correo de acceso (se manda a la dirección nueva y a la
   // anterior).
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'correo_acceso_cambiado'`,
+  `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'alerta_operacion'`,
   // Identidad (users.email, con lo que se entra) separada de la entrega
   // (correo_notificaciones, a donde llega el correo de verdad).
   `ALTER TABLE users

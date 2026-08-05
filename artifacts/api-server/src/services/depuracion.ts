@@ -6,6 +6,7 @@
 
 import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import cron from 'node-cron';
+import { alertar } from './alertas';
 import { db } from '../db';
 import {
   estudiantes,
@@ -574,6 +575,15 @@ export function iniciarCronDepuracion(): void {
         // que nadie mira, a las 3 de la mañana. Y es el trabajo que BORRA
         // cuentas, así que fallar a la mitad deja el estado inconsistente.
         console.error('[DEPURACION] Error en job:', e);
+        // Ademas del aviso en la plataforma: este trabajo BORRA cuentas y corre
+        // a las 3 AM. Un aviso que solo se ve al entrar al panel llega horas
+        // tarde, y fallar a la mitad deja el estado inconsistente.
+        await alertar({
+          clave: 'depuracion:fallo',
+          titulo: 'Falló la depuración automática de las 3 AM',
+          detalle: `${e instanceof Error ? e.message : String(e)}. Es el trabajo que borra cuentas: pudo quedar a medias.`,
+          gravedad: 'critica',
+        });
         await notificarATodosLosAdmins({
           tipo: 'cuentas_eliminadas_lote',
           prioridad: 'alta',

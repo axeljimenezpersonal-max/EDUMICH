@@ -303,3 +303,57 @@ cualquiera de ésos deja al sistema sin enviar o sin recibir correo.
 primera visita real, así que hasta que el dominio no apunte al EC2 va a fallar
 —y eso está bien: reintenta solo y lo consigue en cuanto propague.
 
+
+
+---
+
+## Alertas de operación
+
+Hasta agosto de 2026 el sistema no avisaba nada: cuando algo se rompía, el
+rastro iba a la consola de un proceso que nadie mira. Ahora hay **dos mitades**,
+y se necesitan las dos.
+
+### Mitad 1 — el sistema avisa (correo)
+
+Cubre *"sigo vivo pero algo se rompió"*. Se dispara en:
+
+| Cuándo | Gravedad |
+|---|---|
+| Excepción sin capturar (el proceso va a reiniciar) | crítica |
+| Falló la depuración de las 3 AM — la que **borra cuentas** | crítica |
+| No se pudo enviar un correo de credenciales o de recuperación | crítica |
+| Error 500 en cualquier endpoint | alta |
+| Promesa rechazada sin capturar | alta |
+
+Cada alerta se manda **una vez por hora como máximo** por tipo de falla, y la
+siguiente dice cuántas veces volvió a pasar mientras callaba. Un endpoint roto
+puede fallar mil veces por minuto; mil correos no informan más que uno.
+
+**Hay que configurar a dónde llegan.** En `.env.production`:
+
+```
+ALERTAS_EMAIL=alguien@que-pueda-levantar-el-servicio.mx
+```
+
+Si no está, se cae al buzón institucional — que es un respaldo, no el diseño:
+una alerta no va a atención ciudadana, va a quien puede actuar.
+
+### Mitad 2 — alguien pregunta desde afuera
+
+**Si el servidor está caído, no puede avisar que está caído.** Por eso hace
+falta un vigilante externo que consulte cada pocos minutos:
+
+```
+https://prepa.modula22.mx/api/health
+```
+
+Ese endpoint **toca la base de datos** y responde **503** si no contesta. Antes
+respondía `ok` mientras Express siguiera en pie, aunque la base estuviera
+inalcanzable: el monitor habría dicho que todo va bien mientras nadie podía
+entrar.
+
+Cualquier servicio gratuito sirve (UptimeRobot, Better Stack, Healthchecks.io).
+Configúralo para avisar cuando el código HTTP **no sea 200**.
+
+> Sin esta mitad, un apagón del EC2 no se entera nadie: el correo de alerta
+> tendría que salir del servidor que está apagado.

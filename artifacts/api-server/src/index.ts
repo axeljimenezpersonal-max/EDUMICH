@@ -49,10 +49,12 @@ import { tomarInstantanea, rellenarHistorico } from './services/metricasDiarias'
 import { pool } from '@workspace/db';
 import { iniciarCronDepuracion } from './services/depuracion';
 import { recordarCierreDeVentana } from './utils/recordarCierreVentana';
-import { runStartupMigrations } from './db';
+import { runStartupMigrations, db } from './db';
+import { sql as sqlRaw } from 'drizzle-orm';
 import { metricsMiddleware } from './middleware/metrics';
 import { iniciarRevocacion } from './utils/revocacion';
 import { advertirConfiguracionCorreo } from './services/email';
+import { alertar, engancharAlertasDelProceso } from './services/alertas';
 
 const app = express();
 
@@ -115,9 +117,39 @@ app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/recuperar-password', authLimiter);
 app.use('/api/auth/reset-password', authLimiter);
 
-// Healthcheck
-app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, service: 'prepa-michoacan-api', ts: new Date().toISOString() });
+// ── Señal de vida para un vigilante EXTERNO ───────────────────────────────
+// Es la mitad que las alertas por correo no pueden cubrir: si el proceso está
+// caído, no puede avisar que está caído. Alguien tiene que preguntar desde
+// afuera cada pocos minutos.
+//
+// Antes respondía `ok` mientras Express siguiera en pie, sin tocar la base. Un
+// servidor que responde pero no alcanza la base está caído para cualquiera que
+// lo use, y ese 200 hacía que el monitor dijera que todo va bien mientras nadie
+// podía entrar. Ahora se toca la base y se responde 503 si no contesta, que es
+// lo que un monitor sabe interpretar.
+app.get('/api/health', async (_req, res) => {
+  const inicio = Date.now();
+  try {
+    await db.execute(sqlRaw`SELECT 1`);
+    res.json({
+      ok: true,
+      service: 'prepa-michoacan-api',
+      baseDatos: 'ok',
+      latenciaBdMs: Date.now() - inicio,
+      arribaDesdeSegundos: Math.round(process.uptime()),
+      ts: new Date().toISOString(),
+    });
+  } catch (e) {
+    // 503 y no 500: "no estoy disponible" es distinto de "me equivoqué".
+    res.status(503).json({
+      ok: false,
+      service: 'prepa-michoacan-api',
+      baseDatos: 'sin_conexion',
+      detalle: e instanceof Error ? e.message : 'sin detalle',
+      arribaDesdeSegundos: Math.round(process.uptime()),
+      ts: new Date().toISOString(),
+    });
+  }
 });
 
 app.use('/api/auth', authRoutes);
@@ -281,8 +313,20 @@ function esErrorDeConexion(e: unknown): boolean {
 }
 
 // Error handler — no filtrar detalles internos al cliente en producción.
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+app.use((err: Error, req: express.Request, res: express.Response, _next: express.NextFunction) => {
   console.error('[API Error]', err);
+  // Un 500 es un defecto, no un caso de uso. Se avisa con freno por ruta: un
+  // endpoint roto puede fallar mil veces por minuto y mil correos no informan
+  // mas que uno.
+  if (!esErrorDeConexion(err)) {
+    void alertar({
+      clave: `api:500:${req.method}:${req.route?.path ?? req.path}`,
+      titulo: `Error 500 en ${req.method} ${req.path}`,
+      detalle: err.message,
+      gravedad: 'alta',
+      contexto: { stack: (err.stack ?? '').slice(0, 400) },
+    });
+  }
   // Último cerrojo: si un corte de conexión llegara hasta aquí (el reintento del
   // pool ya cubre casi todo), se responde 503 con un mensaje honesto y
   // accionable en vez del "Error interno del servidor" que alarma sin explicar.
@@ -296,11 +340,10 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   res.status(500).json({ error: isProd ? 'Error interno del servidor' : err.message || 'Error interno' });
 });
 
-// Nada de fallos silenciosos: una promesa rechazada sin capturar se registra en
-// vez de desaparecer. Con esto, si algo se escapa, queda rastro para verlo.
-process.on('unhandledRejection', (motivo) => {
-  console.error('[proceso] promesa rechazada sin capturar:', motivo);
-});
+// Nada de fallos silenciosos: una promesa rechazada o una excepcion sin
+// capturar avisan por correo ademas de quedar en la consola. Ver
+// services/alertas.ts para el porque del freno y de lo que esto NO puede hacer.
+engancharAlertasDelProceso();
 
 const PORT = Number(process.env.PORT) || 3001;
 app.listen(PORT, '0.0.0.0', async () => {
