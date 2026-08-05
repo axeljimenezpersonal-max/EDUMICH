@@ -74,7 +74,26 @@ const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;');
 // ── Piezas ─────────────────────────────────────────────────────────────────
 
 const kicker = (t) => `<div class="kicker">${esc(t)}</div>`;
-const pagina = (contenido, extra = '') => `<section class="pagina ${extra}">${contenido}</section>`;
+/**
+ * Una página. Lleva su propio pie dentro en vez de usar el `footerTemplate` de
+ * Chromium, que se imprimía en TODAS —incluida la portada, donde repetía el
+ * título con el título a tres centímetros—. Dibujarlo aquí permite que la
+ * portada tenga el suyo y el resto el corrido.
+ *
+ * El número sale del orden en que se llama; el total se sustituye al final,
+ * cuando ya se sabe cuántas son.
+ */
+let _pags = 0;
+const pagina = (contenido, extra = '') => {
+  _pags += 1;
+  const n = _pags;
+  const pie = extra.includes('oscura') ? '' : `
+    <div class="pie-corrido">
+      <span>MODULA · PLAN 22 — GUÍA DEL ESTUDIANTE</span>
+      <span>${FECHA_VERSION.toUpperCase()} · PÁG. ${n} DE @@TOTAL@@</span>
+    </div>`;
+  return `<section class="pagina ${extra}">${contenido}${pie}</section>`;
+};
 
 /** Figura: SIEMPRE con marco y pie de foto (una foto sin pie no se entiende). */
 function figura(imagen, pie, opts = {}) {
@@ -109,7 +128,12 @@ function paso(n, titulo, cuerpo) {
 
 const dosCol = (izq, der) => `<div class="doscol"><div class="doscol-izq">${izq}</div><div class="doscol-der">${der}</div></div>`;
 const cita = (texto) => `<div class="cita">${texto}</div>`;
-const ojo = (texto) => `<div class="cita ojo"><div class="ojo-k">OJO</div>${texto}</div>`;
+/**
+ * Aviso al margen. Barra fina dorada y el texto solo: acompaña la lectura en
+ * vez de interrumpirla. Antes llevaba etiqueta "OJO" y barra gruesa en guinda,
+ * que hacía ver de alarma algo que casi siempre es una aclaración.
+ */
+const ojo = (texto) => `<div class="cita ojo">${texto}</div>`;
 const tarjeta = (titulo, cuerpo) => `<div class="tarjeta"><h4>${esc(titulo)}</h4><p>${cuerpo}</p></div>`;
 
 function encabezadoCap(numero, titulo, lede) {
@@ -154,7 +178,10 @@ const PORTADA = pagina(`
     <p class="portada-frase">Tu preparatoria son <span>4 pasos</span> que se repiten
     hasta el certificado.<br/>Esta guía te lleva de la mano por cada uno.</p>
   </div>
-  <div class="pie-portada">PREPA.MODULA22.MX · IEMSYS · GOBIERNO DE MICHOACÁN</div>
+  <div class="pie-portada">
+    <span>PREPA.MODULA22.MX · IEMSYS · GOBIERNO DE MICHOACÁN</span>
+    <span class="pie-portada-pag">PÁG. 1 DE @@TOTAL@@</span>
+  </div>
 `, 'oscura');
 
 const INDICE = pagina(`
@@ -167,7 +194,7 @@ const INDICE = pagina(`
     <div class="ind-fila"><span class="ind-n">04</span><span class="ind-t">Paso 2 · Inscríbete</span><span class="ind-d">la ventana y tus módulos</span></div>
     <div class="ind-fila"><span class="ind-n">05</span><span class="ind-t">Paso 3 · Paga tu examen</span><span class="ind-d">orden de pago · Tesorería del Estado</span></div>
     <div class="ind-fila"><span class="ind-n">06</span><span class="ind-t">El día del examen</span><span class="ind-d">identificación, sede y horario</span></div>
-    <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Paso 4 · Tus resultados</span><span class="ind-d">se aprueba con 60</span></div>
+    <div class="ind-fila"><span class="ind-n">07</span><span class="ind-t">Paso 4 · Tus resultados</span><span class="ind-d">se aprueba con 6</span></div>
     <div class="ind-fila"><span class="ind-n">08</span><span class="ind-t">Herramientas</span><span class="ind-d">pruebas, preguntas y calendario</span></div>
     <div class="ind-fila"><span class="ind-n">✓</span><span class="ind-t">Tu lista de cotejo</span><span class="ind-d">para imprimir o guardar</span></div>
   </div>
@@ -181,7 +208,7 @@ const CAMINO = pagina(`
     <div class="cam"><div class="cam-n">1</div><h4>Expediente</h4><p>Sube tus 5 documentos y espera su aprobación.</p></div>
     <div class="cam"><div class="cam-n">2</div><h4>Inscripción</h4><p>Elige hasta 4 módulos dentro de la ventana.</p></div>
     <div class="cam"><div class="cam-n">3</div><h4>Pago</h4><p>Con tu línea de captura oficial de la Tesorería.</p></div>
-    <div class="cam"><div class="cam-n">4</div><h4>Resultados</h4><p>Se aprueba con 60. Son 22 módulos en total.</p></div>
+    <div class="cam"><div class="cam-n">4</div><h4>Resultados</h4><p>Se aprueba con 6. Son 22 módulos en total.</p></div>
   </div>
   ${cita(`<strong>¿Tienes centro de asesoría?</strong> Entonces tu gestor te <strong>inscribe y paga por ti</strong>
    (pasos 2 y 3): tú subes tus documentos y te presentas al examen. Si llevas tu proceso por tu cuenta,
@@ -556,7 +583,7 @@ const LAMINA_CALIF = `
   </div>`;
 
 const CAP7 = pagina(`
-  ${encabezadoCap(7, 'Paso 4 · Tus resultados', 'Se aprueba con 60. El certificado son 22 módulos.')}
+  ${encabezadoCap(7, 'Paso 4 · Tus resultados', 'Se aprueba con 6. El certificado son 22 módulos.')}
   ${paso('7.1', 'Consulta tus calificaciones', `Después de cada etapa, cada módulo aparece con su
     calificación — y abajo, tu tarjeta de avance: cuántos de los 22 llevas aprobados y tu promedio.
     Cada módulo aprobado es un logro. ¿No aprobaste uno? No pasa nada definitivo: lo vuelves a
@@ -666,7 +693,7 @@ const ANEXO = pagina(`
     <div class="cot"><span class="cuadro"></span>Pagué antes del vencimiento (la ficha vence a los 7 días)</div>
     <div class="cot"><span class="cuadro"></span>Subí mi comprobante y me confirmaron el pago</div>
     <div class="cot"><span class="cuadro"></span>Me presenté con identificación, a tiempo, en mi sede</div>
-    <div class="cot"><span class="cuadro"></span>Revisé mi calificación (se aprueba con 60+)</div>
+    <div class="cot"><span class="cuadro"></span>Revisé mi calificación (se aprueba con 6 o más)</div>
   </div>
   ${cita(`Cada convocatoria repite este mismo ciclo. <strong>22 módulos aprobados = tu certificado.</strong>`)}
 `);
@@ -693,19 +720,32 @@ const HTML = `<!doctype html>
   .pagina::after { content: ''; position: absolute; left: 19mm; right: 19mm; bottom: 11mm;
                    border-top: 0.35mm solid ${C.linea}; }
   .pagina.oscura::after { display: none; }
+  .pie-corrido { position: absolute; left: 19mm; right: 19mm; bottom: 5.5mm;
+                 display: flex; justify-content: space-between;
+                 font-size: 6.5pt; letter-spacing: 0.22em; color: #a3968b;
+                 text-transform: uppercase; }
 
   .kicker { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.28em; color: ${C.dorado};
             text-transform: uppercase; margin-bottom: 6mm; }
 
   /* Portada */
   .oscura { background: linear-gradient(165deg, ${C.guindaNoche}, ${C.guindaOscuro} 55%, ${C.guinda}); color: #fff; }
-  .portada-centro { margin: auto 0; }
+  /* El bloque de título se ANCLA AL PIE y todo el aire queda arriba. Centrado
+     dejaba un hueco muerto abajo que hacía ver la portada a medio terminar. */
+  .portada-centro { margin-top: auto; }
   .portada-logo { font-size: 26pt; font-weight: 700; color: #fff; margin-bottom: 12mm; }
   .portada-logo span { color: ${C.dorado}; }
   .oscura h1 { font-size: 38pt; line-height: 1.12; font-weight: 700; letter-spacing: -0.015em; }
-  .portada-frase { margin-top: 14mm; font-size: 13pt; line-height: 1.75; max-width: 132mm; font-weight: 400; }
+  .portada-frase { margin-top: 12mm; font-size: 13pt; line-height: 1.7; max-width: 134mm;
+                   font-weight: 400;
+                   padding-bottom: 7mm; border-bottom: 0.3mm solid rgba(255,255,255,0.22); }
   .portada-frase span { color: ${C.doradoSuave}; font-weight: 600; }
-  .pie-portada { font-size: 7.5pt; letter-spacing: 0.24em; color: rgba(255,255,255,0.55); }
+  /* Una sola línea: firma institucional a la izquierda, paginación a la
+     derecha. Antes eran DOS —ésta y el pie corrido de Chromium, que
+     repetía el título de la guía—. Por eso el pie va dentro de la página. */
+  .pie-portada { display: flex; justify-content: space-between; align-items: baseline;
+                 margin-top: 5mm; font-size: 7pt; letter-spacing: 0.22em;
+                 color: rgba(255,255,255,0.55); }
 
   /* Índice */
   .indice { margin-top: 8mm; }
@@ -756,7 +796,7 @@ const HTML = `<!doctype html>
   /* Citas y ojo */
   .cita { border-left: 1.2mm solid ${C.dorado}; padding: 3mm 0 3mm 6mm; margin: 7mm 0;
           font-size: 11.5pt; line-height: 1.68; color: ${C.guindaNoche}; font-weight: 400; }
-  .cita.ojo { border-left-color: ${C.guinda}; }
+  .cita.ojo { border-left-color: ${C.dorado}; }
   .ojo-k { font-size: 7.5pt; font-weight: 700; letter-spacing: 0.24em; color: ${C.guinda}; margin-bottom: 1.5mm; }
 
   /* Glosario */
@@ -1045,26 +1085,21 @@ ${ANEXO}
 </body></html>`;
 
 // ── Imprimir ───────────────────────────────────────────────────────────────
-if (process.env.GUIAS_HTML_OUT) fs.writeFileSync(process.env.GUIAS_HTML_OUT, HTML);
+// Ya se sabe cuántas páginas son: se sustituye el marcador de todos los pies.
+const HTML_FINAL = HTML.replaceAll('@@TOTAL@@', String(_pags));
+if (process.env.GUIAS_HTML_OUT) fs.writeFileSync(process.env.GUIAS_HTML_OUT, HTML_FINAL);
 
 const navegador = await chromium.launch({
   executablePath: process.env.GUIAS_CHROMIUM ?? '/opt/pw-browsers/chromium',
 });
 const page = await navegador.newPage();
-await page.setContent(HTML, { waitUntil: 'networkidle' });
+await page.setContent(HTML_FINAL, { waitUntil: 'networkidle' });
 await page.pdf({
   path: SALIDA,
   format: 'Letter',
   printBackground: true,
-  displayHeaderFooter: true,
-  headerTemplate: '<span></span>',
-  footerTemplate: `
-    <div style="width:100%;font-size:6.5pt;letter-spacing:0.22em;color:#a3968b;
-                display:flex;justify-content:space-between;padding:0 19mm 4mm;
-                font-family:'Poppins','Segoe UI',sans-serif;text-transform:uppercase;">
-      <span>Modula · Plan 22 — Guía del estudiante</span>
-      <span>${FECHA_VERSION} · Pág. <span class="pageNumber"></span> de <span class="totalPages"></span></span>
-    </div>`,
+  // El pie va dentro de cada página (ver `pagina()`), no aquí.
+  displayHeaderFooter: false,
   margin: { top: '0', bottom: '0', left: '0', right: '0' },
 });
 await navegador.close();
