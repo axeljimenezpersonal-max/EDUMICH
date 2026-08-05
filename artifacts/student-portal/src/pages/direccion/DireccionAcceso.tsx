@@ -66,6 +66,10 @@ export default function DireccionAcceso() {
   const [edit, setEdit] = useState<FormEdit>({ nombreCompleto: '', email: '', emailPublico: '', correoNotificaciones: '', municipioId: '', telefono: '', puesto: '', esJefe: false });
   const [guardandoEdit, setGuardandoEdit] = useState(false);
   const [eliminandoId, setEliminandoId] = useState<number | null>(null);
+  // Filtro y búsqueda del seguimiento. Con dos cuentas sobraban; con veintitantos
+  // centros y varios administradores, una lista corrida no se puede leer.
+  const [filtro, setFiltro] = useState<'todos' | 'admin' | 'gestor'>('todos');
+  const [busqueda, setBusqueda] = useState('');
 
   function abrirEdicion(a: Acceso) {
     setEditandoId(a.userId);
@@ -160,6 +164,20 @@ export default function DireccionAcceso() {
       setEliminandoId(null);
     }
   }
+
+  // Se normaliza sin acentos para que "Tangancicuaro" encuentre a
+  // "Tangancícuaro" y "Jimenez" a "Jiménez": quien busca teclea de corrido.
+  const sinAcentos = (t: string) =>
+    t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+
+  const q = sinAcentos(busqueda.trim());
+  const accesosVisibles = accesos.filter((a) => {
+    if (filtro !== 'todos' && a.rol !== filtro) return false;
+    if (!q) return true;
+    return sinAcentos(`${a.nombre} ${a.email} ${a.correoNotificaciones ?? ''} ${a.detalle}`).includes(q);
+  });
+  const totalAdmins = accesos.filter((a) => a.rol === 'admin').length;
+  const totalGestores = accesos.filter((a) => a.rol === 'gestor').length;
 
   function cargarAccesos() {
     setCargandoAccesos(true);
@@ -372,13 +390,50 @@ export default function DireccionAcceso() {
             </button>
           </div>
 
+          {/* Filtro por tipo de cuenta y búsqueda. El conteo va en la pestaña
+              para no tener que contar a ojo cuántos centros hay dados de alta. */}
+          <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="inline-flex rounded-xl border border-stone-200 bg-white p-1">
+              {([
+                { k: 'todos' as const, t: 'Todos', n: accesos.length },
+                { k: 'admin' as const, t: 'Administración', n: totalAdmins },
+                { k: 'gestor' as const, t: 'Centros', n: totalGestores },
+              ]).map((o) => {
+                const activo = filtro === o.k;
+                return (
+                  <button
+                    key={o.k}
+                    type="button"
+                    onClick={() => setFiltro(o.k)}
+                    className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${activo ? 'text-white' : 'text-stone-500 hover:text-stone-700'}`}
+                    style={activo ? { background: GUINDA } : undefined}
+                  >
+                    {o.t}
+                    <span className={`ml-1.5 text-[10px] ${activo ? 'opacity-80' : 'text-stone-400'}`}>{o.n}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              type="search"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, correo o municipio…"
+              className="gov-input w-full sm:max-w-xs"
+            />
+          </div>
+
           {cargandoAccesos ? (
             <div className="rounded-xl border border-stone-200 bg-white p-6 text-center text-sm text-stone-400">Cargando…</div>
           ) : accesos.length === 0 ? (
             <div className="rounded-xl border border-stone-200 bg-white p-6 text-center text-sm text-stone-400">Aún no has dado de alta a nadie.</div>
+          ) : accesosVisibles.length === 0 ? (
+            <div className="rounded-xl border border-stone-200 bg-white p-6 text-center text-sm text-stone-400">
+              Ninguna cuenta coincide con lo que buscas.
+            </div>
           ) : (
             <div className="space-y-2">
-              {accesos.map((a) => (
+              {accesosVisibles.map((a) => (
                 <div key={a.userId} className="rounded-xl border border-stone-200 bg-white p-4">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
@@ -389,6 +444,18 @@ export default function DireccionAcceso() {
                         </span>
                       </div>
                       <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
+                      {/* A dónde LLEGA. Se marca en ámbar cuando no hay uno
+                          aparte y el de acceso es institucional: ahí es donde
+                          las credenciales se irían a un buzón que no existe. */}
+                      {a.correoNotificaciones ? (
+                        <div className="mt-0.5 truncate text-[11px] text-stone-400">
+                          Le llega a <span className="text-stone-500">{a.correoNotificaciones}</span>
+                        </div>
+                      ) : (
+                        <div className="mt-0.5 truncate text-[11px] text-amber-700">
+                          Sin correo de contacto · todo se manda al de acceso
+                        </div>
+                      )}
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
                         {!a.activo ? (
                           <span className="inline-flex items-center gap-1 font-semibold text-stone-500"><Ban size={11} /> Inactiva · sin acceso</span>
