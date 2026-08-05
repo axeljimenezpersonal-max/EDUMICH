@@ -73,3 +73,33 @@ export function emailLayout(opts: { preheader?: string; contenido: string }): st
 </body>
 </html>`;
 }
+
+/**
+ * Bloque "descarga tu guía" para los correos de bienvenida.
+ *
+ * Va en el correo y no solo en la plataforma porque es justo cuando hace falta:
+ * la persona todavía no ha entrado nunca. Por eso la ruta `/publico/guias/:rol`
+ * no pide sesión.
+ *
+ * `base` es la URL del portal SIN la ruta (p. ej. https://prepa.modula22.mx).
+ */
+export function emailBloqueGuia(base: string, rol: 'alumno' | 'gestor' | 'admin'): string {
+  const texto = {
+    alumno: 'Guía del alumno',
+    gestor: 'Guía del centro de asesoría',
+    admin: 'Guía de administración',
+  }[rol];
+  const url = `${base.replace(/\/$/, '')}/api/publico/guias/${rol}`;
+  return `
+    <tr><td style="padding:4px 32px 26px 32px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#faf6ef;border:1px solid #ece3d6;border-radius:12px;">
+        <tr><td style="padding:16px 18px;">
+          <div style="font-size:10px;font-weight:bold;letter-spacing:1.4px;color:${EMAIL_COLORS.guinda};text-transform:uppercase;margin-bottom:6px;">Tu guía</div>
+          <div style="font-size:13px;color:${EMAIL_COLORS.texto};line-height:1.6;">
+            Paso a paso, con capturas de cada pantalla:
+            <a href="${url}" style="color:${EMAIL_COLORS.guinda};font-weight:bold;">descargar ${texto} (PDF)</a>.
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>`;
+}

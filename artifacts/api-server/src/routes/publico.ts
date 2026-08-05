@@ -12,6 +12,8 @@ import { eq, and, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { db } from '../db';
 import {
   users,
@@ -1007,6 +1009,55 @@ router.get('/verificar/:folio', async (req, res) => {
 </html>`;
 
   res.type('html').send(html);
+});
+
+// ─── GET /publico/guias/:rol ─────────────────────────────────────────────
+/**
+ * Las guías en PDF, descargables sin sesión.
+ *
+ * Van SIN login a propósito: el enlace viaja dentro del correo de bienvenida,
+ * y a esa altura la persona todavía no ha entrado nunca. Pedirle sesión para
+ * leer la guía que le explica cómo iniciar sesión es un círculo.
+ *
+ * No hay nada sensible dentro: son instrucciones de uso con capturas de datos
+ * ficticios (ver docs/guias/LEEME.md, regla 22).
+ *
+ * Los archivos viven en `artifacts/api-server/assets/guias/` y no en `docs/`
+ * porque el Dockerfile copia `artifacts/` y NO copia `docs/`: desde docs no
+ * viajarían en la imagen y el enlace daría 404 en producción.
+ */
+const GUIAS: Record<string, { archivo: string; titulo: string }> = {
+  alumno: { archivo: 'Guia-Alumno-Modula22.pdf', titulo: 'Guia del alumno' },
+  gestor: { archivo: 'Guia-Gestor-Modula22.pdf', titulo: 'Guia del centro de asesoria' },
+  admin: { archivo: 'Guia-Administracion-Modula22.pdf', titulo: 'Guia de administracion' },
+};
+
+function rutaGuia(archivo: string): string | null {
+  const candidatos = [
+    path.join(process.cwd(), 'assets', 'guias', archivo),
+    path.join(process.cwd(), 'artifacts', 'api-server', 'assets', 'guias', archivo),
+  ];
+  return candidatos.find((c) => fs.existsSync(c)) ?? null;
+}
+
+router.get('/guias/:rol', (req, res) => {
+  const guia = GUIAS[req.params.rol];
+  if (!guia) { res.status(404).json({ error: 'Esa guía no existe' }); return; }
+
+  const ruta = rutaGuia(guia.archivo);
+  if (!ruta) {
+    console.error('[publico/guias] no encontré el archivo:', guia.archivo);
+    res.status(404).json({ error: 'La guía no está disponible en este momento' });
+    return;
+  }
+
+  // El nombre de descarga va en ASCII (regla 7): quien la abre puede estar en
+  // Windows con una configuración que rompe los acentos.
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader('Content-Disposition', `inline; filename="${guia.archivo}"`);
+  // Se cachea un día: el archivo cambia cuando se regenera la guía, no a diario.
+  res.setHeader('Cache-Control', 'public, max-age=86400');
+  fs.createReadStream(ruta).pipe(res);
 });
 
 export default router;

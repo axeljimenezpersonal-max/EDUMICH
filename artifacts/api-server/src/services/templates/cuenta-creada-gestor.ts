@@ -1,5 +1,5 @@
 import { escapeHtml } from '../../utils/escapeHtml';
-import { emailLayout, emailBoton, EMAIL_COLORS } from './_shell';
+import { emailLayout, emailBoton, emailBloqueGuia, EMAIL_COLORS } from './_shell';
 
 export interface CuentaCreadaGestorData {
   nombreGestor: string;
@@ -69,11 +69,12 @@ export function cuentaCreadaGestorTemplate(data: CuentaCreadaGestorData): {
         </tr>`).join('')}
       </table>
     </td></tr>
+    ${emailBloqueGuia(data.portalUrl, 'gestor')}
   `;
 
   const html = emailLayout({ preheader: 'Tu acceso como gestor ya está listo. Aquí están tus datos.', contenido });
 
-  const textPlain = `Bienvenido(a) ${data.nombreGestor},\n\nFuiste designado(a) como Gestor de ${data.municipio} en Módula 22 (Preparatoria Abierta Michoacán).\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+  const textPlain = `Bienvenido(a) ${data.nombreGestor},\n\nFuiste designado(a) como Gestor de ${data.municipio} en Módula 22 (Preparatoria Abierta Michoacán).\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nTu guia paso a paso (PDF): ${data.portalUrl.replace(/\/$/, '')}/api/publico/guias/gestor\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }

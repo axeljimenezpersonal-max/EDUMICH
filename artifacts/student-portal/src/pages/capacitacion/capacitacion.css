@@ -454,6 +454,14 @@
   width: 0; height: 0; border-left: 8px solid #fff;
   border-top: 5px solid transparent; border-bottom: 5px solid transparent;
 }
+/* Variante secundaria: la descarga del PDF acompaña al manual sin competirle.
+   Mismo tamaño y forma, en contorno, para que se lea como la segunda opción. */
+.cap-root .btn-sec {
+  background: transparent; color: var(--guinda); border: 1px solid var(--guinda);
+  margin-left: 8px;
+}
+.cap-root .btn-sec:hover { background: var(--guinda); color: #fff; }
+
 .cap-root .soon { font-size: 0.66rem; letter-spacing: 0.08em; color: var(--gray); margin-top: 10px; font-weight: 400; }
 
 .cap-root .footer { background: var(--guinda-deep); color: #d9b9c3; padding: 38px 28px; font-size: 0.82rem; font-weight: 300; }

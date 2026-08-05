@@ -1,5 +1,5 @@
 import { escapeHtml } from '../../utils/escapeHtml';
-import { emailLayout, emailBoton, EMAIL_COLORS } from './_shell';
+import { emailLayout, emailBoton, emailBloqueGuia, EMAIL_COLORS } from './_shell';
 
 export interface CuentaCreadaAdminData {
   nombre: string;
@@ -50,9 +50,9 @@ export function cuentaCreadaAdminTemplate(data: CuentaCreadaAdminData): {
     </td></tr>
   `;
 
-  const html = emailLayout({ preheader: 'Tu acceso a Módula 22 ya está listo. Aquí están tus datos de acceso.', contenido });
+  const html = emailLayout({ preheader: 'Tu acceso a Módula 22 ya está listo. Aquí están tus datos de acceso.', contenido: contenido + emailBloqueGuia(data.portalUrl, 'admin') });
 
-  const textPlain = `Hola ${data.nombre},\n\nSe te dio acceso como ${rolLabel} en Módula 22 (Preparatoria Abierta Michoacán).\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+  const textPlain = `Hola ${data.nombre},\n\nSe te dio acceso como ${rolLabel} en Módula 22 (Preparatoria Abierta Michoacán).\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nTu guia paso a paso (PDF): ${data.portalUrl.replace(/\/$/, '')}/api/publico/guias/admin\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }

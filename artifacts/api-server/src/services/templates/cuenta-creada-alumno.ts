@@ -1,5 +1,5 @@
 import { escapeHtml } from '../../utils/escapeHtml';
-import { emailLayout, emailBoton, EMAIL_COLORS } from './_shell';
+import { emailLayout, emailBoton, emailBloqueGuia, EMAIL_COLORS } from './_shell';
 
 export interface CuentaCreadaAlumnoData {
   nombreAlumno: string;
@@ -82,9 +82,9 @@ export function cuentaCreadaAlumnoTemplate(data: CuentaCreadaAlumnoData): {
     ${gestorSection}
   `;
 
-  const html = emailLayout({ preheader: 'Tu cuenta ya está lista. Aquí están tus datos de acceso.', contenido });
+  const html = emailLayout({ preheader: 'Tu cuenta ya está lista. Aquí están tus datos de acceso.', contenido: contenido + emailBloqueGuia(data.portalUrl, 'alumno') });
 
-  const textPlain = `Hola ${data.nombreAlumno},\n\n¡Tu cuenta en Preparatoria Abierta Michoacán ya está lista!\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nPróximos pasos:\n1. Inicia sesión.\n2. Crea tu contraseña.\n3. Completa tu expediente.\n4. Inscríbete a exámenes.\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
+  const textPlain = `Hola ${data.nombreAlumno},\n\n¡Tu cuenta en Preparatoria Abierta Michoacán ya está lista!\n\nCorreo: ${data.email}\nContraseña temporal: ${data.passwordTemporal}\n(La cambiarás al entrar por primera vez.)\n\nEntra en: ${data.portalUrl}\n\nPróximos pasos:\n1. Inicia sesión.\n2. Crea tu contraseña.\n3. Completa tu expediente.\n4. Inscríbete a exámenes.\n\nTu guia paso a paso (PDF): ${data.portalUrl.replace(/\/$/, '')}/api/publico/guias/alumno\n\nInstituto de Educación Media Superior y Superior — Gobierno de Michoacán`;
 
   return { subject, html, textPlain };
 }

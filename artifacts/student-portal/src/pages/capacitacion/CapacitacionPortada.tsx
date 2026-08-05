@@ -111,6 +111,10 @@ export default function CapacitacionPortada() {
               </div>
               <div className="spacer" />
               <Link href="/capacitacion/alumno" className="btn"><span className="tri" />Ver manual</Link>
+              {/* La guía en PDF sale del API, no del portal: los archivos viven en
+                  assets del servidor porque `docs/` no viaja en la imagen. Sin sesión,
+                  porque el mismo enlace va en el correo de bienvenida. */}
+              <a href="/api/publico/guias/alumno" target="_blank" rel="noopener" className="btn btn-sec">Descargar PDF</a>
               <div className="soon">Disponible</div>
             </article>
 
@@ -133,6 +137,10 @@ export default function CapacitacionPortada() {
               </div>
               <div className="spacer" />
               <Link href="/capacitacion/gestor" className="btn"><span className="tri" />Ver manual</Link>
+              {/* La guía en PDF sale del API, no del portal: los archivos viven en
+                  assets del servidor porque `docs/` no viaja en la imagen. Sin sesión,
+                  porque el mismo enlace va en el correo de bienvenida. */}
+              <a href="/api/publico/guias/gestor" target="_blank" rel="noopener" className="btn btn-sec">Descargar PDF</a>
               <div className="soon">Disponible</div>
             </article>
 
@@ -156,6 +164,10 @@ export default function CapacitacionPortada() {
               </div>
               <div className="spacer" />
               <Link href="/capacitacion/admin" className="btn"><span className="tri" />Ver manual</Link>
+              {/* La guía en PDF sale del API, no del portal: los archivos viven en
+                  assets del servidor porque `docs/` no viaja en la imagen. Sin sesión,
+                  porque el mismo enlace va en el correo de bienvenida. */}
+              <a href="/api/publico/guias/admin" target="_blank" rel="noopener" className="btn btn-sec">Descargar PDF</a>
               <div className="soon">Disponible</div>
             </article>
           </div>
