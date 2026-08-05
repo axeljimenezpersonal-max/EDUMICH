@@ -8,7 +8,7 @@
  */
 
 import { Router } from 'express';
-import { eq, and, sql } from 'drizzle-orm';
+import { eq, and, or, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import crypto from 'node:crypto';
@@ -34,6 +34,8 @@ import { setSessionCookie } from '../middleware/auth';
 import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
 import { urlPortalEstado } from '../utils/portal';
 import { patronLike } from '../utils/like';
+import { parseCredencialQr } from '../utils/credencialQr';
+import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { puedeRevelarCredenciales, sendVerificationCode, sendEmail, sendRecuperarPassword } from '../services/email';
 import { autoregistroConfirmacionTemplate } from '../services/templates/autoregistro-confirmacion';
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
@@ -1058,6 +1060,92 @@ router.get('/guias/:rol', (req, res) => {
   // Se cachea un día: el archivo cambia cuando se regenera la guía, no a diario.
   res.setHeader('Cache-Control', 'public, max-age=86400');
   fs.createReadStream(ruta).pipe(res);
+});
+
+// ─── GET /publico/credencial/:folio ──────────────────────────────────────
+/**
+ * Verificación pública de una credencial de estudiante.
+ *
+ * Es a donde apunta el QR impreso en la credencial. Sin sesión: quien verifica
+ * es un vigilante en la puerta de una sede, alguien de la DGB o quien aplica el
+ * examen — gente que no tiene cuenta en la plataforma y que necesita una
+ * respuesta en el celular, en segundos.
+ *
+ * ── Qué protege los datos ───────────────────────────────────────────────────
+ * El folio es legible y secuencial, así que por sí solo no protege nada: quien
+ * quisiera podría recorrerlos y sacar el padrón. Lo que impide eso es la FIRMA
+ * (`?t=`), un HMAC del folio con QR_SECRET. Sin firma válida esta ruta no
+ * devuelve NADA de la persona; solo dice que no se pudo verificar. Y para tener
+ * una firma válida hay que haber escaneado una credencial de verdad.
+ *
+ * Se devuelve lo mínimo para confirmar que la credencial es auténtica y de
+ * quien la trae: nombre, folio, sede y vigencia. Ni CURP, ni correo, ni
+ * teléfono, ni calificaciones — nada que convierta un escaneo en una ficha.
+ */
+router.get('/credencial/:folio', async (req, res) => {
+  const crudo = `${req.params.folio}${req.query.t ? `?t=${String(req.query.t)}` : ''}`;
+  const { folio, firmaValida } = parseCredencialQr(crudo);
+
+  // Respuesta deliberadamente idéntica para "firma inválida" y "no existe": si
+  // fueran distintas, se podría averiguar qué folios existen probando.
+  const noVerificada = { valida: false as const, motivo: 'No se pudo verificar esta credencial.' };
+  if (!firmaValida) { res.json(noVerificada); return; }
+
+  try {
+    const [est] = await db
+      .select({
+        userId: estudiantes.userId,
+        nombre: estudiantes.nombreCompleto,
+        matricula: estudiantes.matriculaOficialDGB,
+        municipioId: estudiantes.municipioId,
+        emitidaEn: estudiantes.licenciaEmitidaEn,
+        estadoCuenta: estudiantes.estadoCuenta,
+      })
+      .from(estudiantes)
+      // El QR de la credencial trae el folio de la licencia; el de las fichas
+      // trae el de preregistro. Los dos van firmados con la misma llave, así
+      // que la misma pantalla atiende ambos documentos.
+      .where(or(eq(estudiantes.licenciaDigital, folio), eq(estudiantes.folioPreregistro, folio)));
+
+    if (!est) { res.json(noVerificada); return; }
+
+    const [muni] = est.municipioId
+      ? await db.select({ nombre: municipios.nombre }).from(municipios).where(eq(municipios.id, est.municipioId))
+      : [];
+
+    const vence = est.emitidaEn ? new Date(est.emitidaEn) : null;
+    if (vence) vence.setMonth(vence.getMonth() + VIGENCIA_CREDENCIAL_MESES);
+    const vencida = vence ? vence.getTime() < Date.now() : true;
+
+    // Una cuenta dada de baja invalida la credencial aunque la fecha no haya
+    // pasado: el documento acredita ser estudiante, y ya no lo es.
+    // `users.activo` es el interruptor de acceso; `estado_cuenta` marca la baja
+    // administrativa y la depuración. Cualquiera de los dos invalida el
+    // documento: acredita ser estudiante, y ya no lo es.
+    const [cuenta] = await db
+      .select({ activo: users.activo })
+      .from(users)
+      .where(eq(users.id, est.userId));
+    const deBaja =
+      cuenta?.activo === false ||
+      est.estadoCuenta === 'baja_definitiva' ||
+      est.estadoCuenta === 'soft_deleted' ||
+      est.estadoCuenta === 'hard_deleted';
+
+    res.json({
+      valida: true as const,
+      folio,
+      nombre: est.nombre ?? '',
+      matricula: est.matricula ?? null,
+      sede: muni?.nombre ?? null,
+      vigenteHasta: vence ? vence.toISOString() : null,
+      vigente: !vencida && !deBaja,
+      motivo: deBaja ? 'La cuenta de esta persona ya no está activa.' : vencida ? 'La credencial está vencida.' : null,
+    });
+  } catch (e) {
+    console.error('[publico/credencial]', e);
+    res.status(500).json({ valida: false, motivo: 'No se pudo verificar en este momento.' });
+  }
 });
 
 export default router;

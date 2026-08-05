@@ -48,6 +48,7 @@ import SolicitarCuenta from './pages/publico/SolicitarCuenta';
 import Landing from './pages/publico/Landing';
 import PrepaAbiertaMichoacan from './pages/publico/PrepaAbiertaMichoacan';
 import EncontrarCuenta from './pages/publico/EncontrarCuenta';
+import VerificarCredencial from './pages/publico/VerificarCredencial';
 import AvisoPrivacidad from './pages/publico/AvisoPrivacidad';
 import RecuperarPassword from './pages/RecuperarPassword';
 import ResetPassword from './pages/ResetPassword';
@@ -240,6 +241,13 @@ function PortalDelEstado() {
         <Route path="/solicitar-cuenta" component={SolicitarCuenta} />
         <Route path="/encontrar-cuenta" component={EncontrarCuenta} />
         <Route path="/aviso-privacidad" component={AvisoPrivacidad} />
+        {/* Verificación del QR de la credencial. Dos rutas porque hay documentos
+            IMPRESOS con cada una: `/c/:folio` en la credencial y
+            `/verificar/:folio` en las fichas. Ninguno se puede reimprimir, así
+            que las dos se quedan para siempre. Van SIN login: quien escanea es
+            un vigilante en la puerta, no alguien con cuenta. */}
+        <Route path="/c/:folio" component={VerificarCredencial} />
+        <Route path="/verificar/:folio" component={VerificarCredencial} />
         <Route path="/recuperar-password" component={RecuperarPassword} />
         <Route path="/reset-password" component={ResetPassword} />
 

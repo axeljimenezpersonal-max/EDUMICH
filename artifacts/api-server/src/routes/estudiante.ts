@@ -82,7 +82,7 @@ import { aplanarAcentos } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
-import { verifyUrlCredencial } from '../utils/credencialQr';
+import { verifyUrlCredencial, verifyUrlFicha } from '../utils/credencialQr';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { hoyEnMexico } from '../utils/fechas';
 
@@ -2299,7 +2299,7 @@ router.get('/ficha-preregistro', async (req, res) => {
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
     fotoPath: await rutaFotoAprobada(est.userId),
-    qrVerifUrl: `${urlPortalEstado()}/verificar/${est.folioPreregistro}`,
+    qrVerifUrl: verifyUrlFicha(est.folioPreregistro ?? ''),
   });
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');

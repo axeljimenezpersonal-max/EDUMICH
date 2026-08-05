@@ -83,7 +83,7 @@ import { rutaFotoAprobada } from '../utils/fotoExpediente';
 import { VIGENCIA_CREDENCIAL_MESES } from '../config/reglas';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
 import { QR_SECRET } from '../config/env';
-import { parseCredencialQr } from '../utils/credencialQr';
+import { parseCredencialQr, verifyUrlFicha } from '../utils/credencialQr';
 import { patronLike } from '../utils/like';
 
 const router = Router();
@@ -5989,7 +5989,7 @@ router.get('/alumnos/:id/ficha-preregistro', async (req, res) => {
     municipio: municipio?.nombre ?? null,
     gestor: gestorRow ? { nombre: gestorRow.nombreCompleto, email: gestorRow.emailPublico ?? null } : null,
     fotoPath: await rutaFotoAprobada(alumnoId),
-    qrVerifUrl: `${urlPortalEstado()}/verificar/${est.folioPreregistro}`,
+    qrVerifUrl: verifyUrlFicha(est.folioPreregistro ?? ''),
   });
 
   const safeFolio = est.folioPreregistro!.replace(/[^a-zA-Z0-9-]/g, '');
