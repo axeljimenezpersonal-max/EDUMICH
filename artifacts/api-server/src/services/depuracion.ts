@@ -7,6 +7,7 @@
 import { and, eq, inArray, isNull, lte, sql } from 'drizzle-orm';
 import cron from 'node-cron';
 import { alertar } from './alertas';
+import { hoyEnMexico } from '../utils/fechas';
 import { db } from '../db';
 import {
   estudiantes,
@@ -181,18 +182,33 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
   const hace90Dias = new Date(ahora.getTime() - 90 * 24 * 60 * 60 * 1000);
   const hace6Meses = new Date(ahora.getTime() - 182 * 24 * 60 * 60 * 1000);
 
-  // ── Lock: solo en corridas reales. Con más de una instancia, evita que el job
-  // que BORRA cuentas corra en paralelo. Arrendamiento de 2 h (se auto-libera si
-  // el proceso muere a la mitad); se libera explícitamente al terminar. ──────
+  // ── Candado ─────────────────────────────────────────────────────────────
+  // Solo en corridas reales. Este trabajo BORRA cuentas: con más de una
+  // instancia correría N veces, y dos corridas en paralelo pueden borrar cosas
+  // que la otra estaba a punto de leer.
+  //
+  // Son DOS condiciones, no una:
+  //  · el arrendamiento de 2 h evita que dos corran a la vez (y se suelta solo
+  //    si el proceso muere a la mitad, sin dejar el trabajo trabado para
+  //    siempre);
+  //  · el día ya corrido evita que corra DOS VECES EL MISMO DÍA, que es lo que
+  //    pasaría al reiniciar el contenedor después de una corrida buena, o al
+  //    entrar una segunda instancia pasadas las 2 h. Para un trabajo que borra,
+  //    "una vez al día" tiene que ser una garantía, no una intención.
+  const hoyMX = hoyEnMexico();
   if (!ensayo) {
     const lock = await db.execute(sql`
-      INSERT INTO job_locks (nombre, bloqueado_hasta)
-      VALUES ('depuracion', now() + interval '2 hours')
-      ON CONFLICT (nombre) DO UPDATE SET bloqueado_hasta = now() + interval '2 hours'
+      INSERT INTO job_locks (nombre, bloqueado_hasta, ultimo_inicio_en, ejecuciones)
+      VALUES ('depuracion', now() + interval '2 hours', now(), 1)
+      ON CONFLICT (nombre) DO UPDATE
+        SET bloqueado_hasta = now() + interval '2 hours',
+            ultimo_inicio_en = now(),
+            ejecuciones = job_locks.ejecuciones + 1
       WHERE job_locks.bloqueado_hasta < now()
+        AND (job_locks.ultimo_dia_corrido IS NULL OR job_locks.ultimo_dia_corrido <> ${hoyMX})
       RETURNING nombre`);
     if (lock.rows.length === 0) {
-      console.log('[DEPURACION] Otra instancia tiene el lock; se salta esta corrida.');
+      console.log('[DEPURACION] Otra instancia lo tiene, o ya corrió hoy. Se salta.');
       return { avisos: 0, softDelete: 0, hardDelete: 0, ensayo, archivosHuerfanos: [] };
     }
   }
@@ -553,10 +569,19 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
     }
   }
 
-  // Liberar el lock (en corridas reales). Si algo falló antes, el arrendamiento
-  // de 2 h lo suelta solo.
+  // Suelta el candado y deja constancia de que SÍ corrió y le fue bien. El día
+  // se marca aquí y no al empezar: si truena a la mitad, el día NO queda
+  // marcado y el trabajo puede reintentarse. Marcarlo al inicio significaría
+  // que una corrida rota bloquea el resto del día.
   if (!ensayo) {
-    await db.execute(sql`UPDATE job_locks SET bloqueado_hasta = now() WHERE nombre = 'depuracion'`).catch(() => {});
+    await db.execute(sql`
+      UPDATE job_locks
+         SET bloqueado_hasta = now(),
+             ultimo_fin_en = now(),
+             ultimo_exito_en = now(),
+             ultimo_error = NULL,
+             ultimo_dia_corrido = ${hoyMX}
+       WHERE nombre = 'depuracion'`).catch(() => {});
   }
 
   console.log(`[DEPURACION] Resumen: ${avisosCount} avisos, ${softDeletedCount} soft delete, ${hardDeletedCount} hard delete`);
@@ -565,12 +590,56 @@ export async function correrDepuracion(opciones: { ensayo?: boolean } = {}): Pro
 
 // ── Iniciar cron ──────────────────────────────────────────────────────────
 
+/**
+ * ¿Corrió anoche?
+ *
+ * El candado impide que el trabajo corra de más. Esto vigila lo contrario: que
+ * deje de correr. Un trabajo destructivo que se detiene en silencio no lo nota
+ * nadie —porque no pasa nada— y para cuando se descubre lleva semanas sin
+ * depurar. Se revisa antes de cada corrida: si la última buena fue hace más de
+ * 48 horas, se avisa.
+ *
+ * No cubre el caso de que el proceso entero esté muerto: eso lo ve el vigilante
+ * externo contra /api/health. Aquí se atrapa el trabajo que falla o se salta
+ * una y otra vez mientras el servidor sigue en pie.
+ */
+async function avisarSiLlevaDiasSinCorrer(): Promise<void> {
+  try {
+    const { rows } = await db.execute<{ ultimo_exito_en: Date | null }>(sql`
+      SELECT ultimo_exito_en FROM job_locks WHERE nombre = 'depuracion'`);
+    const ultimo = rows[0]?.ultimo_exito_en ? new Date(rows[0].ultimo_exito_en) : null;
+    // Sin registro previo no se avisa: es la primera corrida desde que existe
+    // esta columna, no un trabajo abandonado.
+    if (!ultimo) return;
+    const horas = (Date.now() - ultimo.getTime()) / 36e5;
+    if (horas < 48) return;
+    await alertar({
+      clave: 'depuracion:sin-correr',
+      titulo: 'La depuración lleva días sin completarse',
+      detalle: `La última corrida buena fue hace ${Math.floor(horas / 24)} días. Debería correr todas las noches.`,
+      gravedad: 'alta',
+      contexto: { ultimoExito: ultimo.toISOString() },
+    });
+  } catch { /* vigilar no puede tumbar lo vigilado */ }
+}
+
 export function iniciarCronDepuracion(): void {
   // Todos los días a las 3 AM hora de México
   cron.schedule(
     '0 3 * * *',
     () => {
+      void avisarSiLlevaDiasSinCorrer();
       correrDepuracion().catch(async (e) => {
+        // Deja constancia del fallo y SUELTA el candado. Sin esto, una corrida
+        // que truena a la mitad dejaba el candado tomado hasta que venciera el
+        // arrendamiento de 2 h — y la corrida del día siguiente lo encontraba
+        // libre, sí, pero nadie sabía que la de hoy no se completó.
+        await db.execute(sql`
+          UPDATE job_locks
+             SET bloqueado_hasta = now(),
+                 ultimo_fin_en = now(),
+                 ultimo_error = ${e instanceof Error ? e.message : String(e)}
+           WHERE nombre = 'depuracion'`).catch(() => {});
         // Si este trabajo falla, nadie se entera: va a la consola de un proceso
         // que nadie mira, a las 3 de la mañana. Y es el trabajo que BORRA
         // cuentas, así que fallar a la mitad deja el estado inconsistente.

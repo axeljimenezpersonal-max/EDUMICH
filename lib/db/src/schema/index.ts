@@ -614,9 +614,28 @@ export const padronHistorico = pgTable('padron_historico', {
 // Lock por arrendamiento (lease) para trabajos programados. Evita que, con más
 // de una instancia, el job de depuración (que BORRA cuentas) corra N veces. Es
 // pool-safe: no depende de mantener una conexión, solo de la fecha de expiración.
+/**
+ * Candado y BITÁCORA de los trabajos programados.
+ *
+ * El candado impide que dos instancias corran a la vez el trabajo que BORRA
+ * cuentas. El resto de las columnas responde la pregunta que el candado no
+ * contesta: **¿corrió anoche?**
+ *
+ * Un trabajo destructivo que deja de ejecutarse en silencio es tan grave como
+ * uno que falla: nadie lo nota, porque no pasa nada. Sin `ultimo_exito_en` no
+ * había forma de distinguir "corrió y no había nada que borrar" de "lleva tres
+ * semanas sin correr".
+ */
 export const jobLocks = pgTable('job_locks', {
   nombre: varchar('nombre', { length: 60 }).primaryKey(),
   bloqueadoHasta: timestamp('bloqueado_hasta').notNull(),
+  ultimoInicioEn: timestamp('ultimo_inicio_en'),
+  ultimoFinEn: timestamp('ultimo_fin_en'),
+  ultimoExitoEn: timestamp('ultimo_exito_en'),
+  ultimoError: text('ultimo_error'),
+  /** Día (hora de México) de la última corrida REAL completada con éxito. */
+  ultimoDiaCorrido: varchar('ultimo_dia_corrido', { length: 10 }),
+  ejecuciones: integer('ejecuciones').notNull().default(0),
 });
 
 // Notas tipo post-it del panel del creador (Sinapsis). Recordatorios sueltos,

@@ -41,7 +41,7 @@ resultado, en una frase:
 | # | Qué | Por qué duele |
 |---|---|---|
 | **P0-10** | **Sin ningún respaldo** | Único riesgo del que no se vuelve |
-| **P0-11** | El trabajo que borra cuentas corre a ciegas a las 3 AM | Destructivo + no observado + sin red |
+| ~~**P0-11**~~ | ~~El trabajo que borra cuentas corre a ciegas a las 3 AM~~ — **RESUELTO 2026-08-05**: candado de dos condiciones (arrendamiento de 2 h + día ya corrido), constancia de cada corrida en `job_locks`, aviso si falla y aviso si lleva más de 48 h sin completarse. Visible en el panel de salud. | |
 | **P0-12** | No se registran accesos ni exportaciones | 7 de 8 preguntas forenses sin respuesta |
 | ~~Sin alertas~~ | ~~Nadie se entera si el sistema se cae~~ — **RESUELTO 2026-08-05**: alertas por correo (excepciones, fallo de la depuración de las 3 AM, correos no entregados, errores 500) + `/api/health` que toca la base y responde 503. **Falta configurar `ALERTAS_EMAIL` y el vigilante externo.** | |
 | ~~**P0-13**~~ | ~~La bitácora es modificable~~ — **RESUELTO 2026-08-05**: cadena de huellas SHA-256 (cada entrada firma su contenido más la huella de la anterior) + trigger en la base que rechaza UPDATE y DELETE. Se comprueba desde el panel del creador. Las entradas anteriores a esa fecha no tienen huella y se reportan aparte. | |

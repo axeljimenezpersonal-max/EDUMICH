@@ -410,6 +410,15 @@ const migrations = [
      nombre varchar(60) PRIMARY KEY,
      bloqueado_hasta timestamp NOT NULL
    )`,
+  // Bitácora del trabajo, junto al candado: sin esto no se puede responder
+  // "¿corrió anoche?", y un trabajo destructivo que deja de correr en silencio
+  // no lo nota nadie porque no pasa nada.
+  `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_inicio_en timestamp`,
+  `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_fin_en timestamp`,
+  `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_exito_en timestamp`,
+  `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_error text`,
+  `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_dia_corrido varchar(10)`,
+  `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ejecuciones integer NOT NULL DEFAULT 0`,
 
   // Notas tipo post-it del panel del creador.
   `CREATE TABLE IF NOT EXISTS notas_creador (

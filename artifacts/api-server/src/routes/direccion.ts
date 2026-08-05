@@ -465,7 +465,28 @@ router.get('/salud', async (_req, res) => {
       correos24h[String(r.estado)] = num(r.total);
     }
 
+    // ¿Corrió la depuración? Es el trabajo que BORRA cuentas y corre a las 3
+    // de la mañana: que deje de correr no se nota, porque no pasa nada. Aquí se
+    // ve la última corrida buena y si viene retrasada.
+    const { rows: trabajos } = await db.execute<{
+      ultimo_exito_en: Date | null; ultimo_error: string | null;
+      ultimo_dia_corrido: string | null; ejecuciones: number;
+    }>(sql`SELECT ultimo_exito_en, ultimo_error, ultimo_dia_corrido, ejecuciones
+             FROM job_locks WHERE nombre = 'depuracion'`);
+    const dep = trabajos[0] ?? null;
+    const horasDesdeExito = dep?.ultimo_exito_en
+      ? (Date.now() - new Date(dep.ultimo_exito_en).getTime()) / 36e5
+      : null;
+
     res.json({
+      depuracion: {
+        ultimoExitoEn: dep?.ultimo_exito_en ?? null,
+        ultimoDiaCorrido: dep?.ultimo_dia_corrido ?? null,
+        ultimoError: dep?.ultimo_error ?? null,
+        ejecuciones: dep?.ejecuciones ?? 0,
+        // Debería correr cada noche. Pasadas 48 h algo dejó de funcionar.
+        atrasada: horasDesdeExito === null ? null : horasDesdeExito > 48,
+      },
       uptime: {
         desdeMs: PROCESS_START,
         segundos: Math.floor((Date.now() - PROCESS_START) / 1000),
