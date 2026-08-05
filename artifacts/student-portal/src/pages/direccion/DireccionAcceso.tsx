@@ -44,6 +44,8 @@ export default function DireccionAcceso() {
   const [nombre, setNombre] = useState('');
   const [apellidos, setApellidos] = useState('');
   const [email, setEmail] = useState('');
+  // A donde LLEGA el primer acceso. Vacío = al mismo correo de acceso.
+  const [correoContacto, setCorreoContacto] = useState('');
   // Gestor
   const [municipios, setMunicipios] = useState<Municipio[]>([]);
   const [municipioId, setMunicipioId] = useState<number | ''>('');
@@ -53,7 +55,7 @@ export default function DireccionAcceso() {
   const [puesto, setPuesto] = useState('');
 
   const [enviando, setEnviando] = useState(false);
-  const [exito, setExito] = useState<{ nombre: string; email: string; correoEnviado: boolean } | null>(null);
+  const [exito, setExito] = useState<{ nombre: string; email: string; entrega: string; correoEnviado: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Seguimiento
@@ -195,7 +197,7 @@ export default function DireccionAcceso() {
   }
 
   function limpiar() {
-    setNombre(''); setApellidos(''); setEmail('');
+    setNombre(''); setApellidos(''); setEmail(''); setCorreoContacto('');
     setMunicipioId(''); setTelefono('');
     setEsJefe(false); setPuesto('');
   }
@@ -211,10 +213,15 @@ export default function DireccionAcceso() {
     try {
       const cuerpo =
         tipo === 'gestor'
-          ? { nombre: nombre.trim(), apellidos: apellidos.trim(), email: email.trim(), municipioId: Number(municipioId), telefono: telefono.trim() || undefined }
-          : { nombre: nombre.trim(), apellidos: apellidos.trim(), email: email.trim(), esJefe, puesto: puesto.trim() || undefined };
+          ? { nombre: nombre.trim(), apellidos: apellidos.trim(), email: email.trim(), correoNotificaciones: correoContacto.trim() || undefined, municipioId: Number(municipioId), telefono: telefono.trim() || undefined }
+          : { nombre: nombre.trim(), apellidos: apellidos.trim(), email: email.trim(), correoNotificaciones: correoContacto.trim() || undefined, esJefe, puesto: puesto.trim() || undefined };
       const r = await api.post<{ ok: boolean; correoEnviado: boolean }>(`/direccion/onboarding/${tipo}`, cuerpo);
-      setExito({ nombre: `${nombre.trim()} ${apellidos.trim()}`, email: email.trim(), correoEnviado: r.correoEnviado });
+      setExito({
+        nombre: `${nombre.trim()} ${apellidos.trim()}`,
+        email: email.trim(),
+        entrega: correoContacto.trim() || email.trim(),
+        correoEnviado: r.correoEnviado,
+      });
       limpiar();
       avisar('Acceso creado.', 'ok');
       cargarAccesos();
@@ -250,7 +257,10 @@ export default function DireccionAcceso() {
                 <p className="font-semibold">Cuenta creada para {exito.nombre}.</p>
                 <p className="mt-1 text-emerald-800">
                   {exito.correoEnviado
-                    ? <>Se envió el primer acceso a <strong>{exito.email}</strong>. Si no lo ve, que revise spam.</>
+                    ? <>
+                        Va a entrar con <strong>{exito.email}</strong>, y el primer acceso se
+                        envió a <strong>{exito.entrega}</strong>. Si no lo ve, que revise spam.
+                      </>
                     : <>La cuenta quedó lista, pero el correo <strong>no</strong> se envió (revisa la configuración de correo). Puedes reenviarle las credenciales más tarde.</>}
                 </p>
               </div>
@@ -296,8 +306,23 @@ export default function DireccionAcceso() {
             <Campo label="Apellidos" value={apellidos} onChange={setApellidos} placeholder="Ej. Pérez López" />
           </div>
           <div className="mt-4">
-            <Campo label="Correo" type="email" value={email} onChange={setEmail} placeholder="persona@correo.mx" />
-            <p className="mt-1 text-[11px] text-stone-400">A este correo se envía el primer acceso.</p>
+            {/* Los dos correos van desde el alta, no después: el de bienvenida
+                DICE las credenciales institucionales y LLEGA al buzón personal.
+                Si el de acceso se captura solo y luego se corrige, el primer
+                correo ya salió con la dirección equivocada. */}
+            <Campo label="Correo de acceso (con el que va a entrar)" type="email" value={email} onChange={setEmail} placeholder="ej. vlopez@modula22.mx" />
+            <p className="mt-1 text-[11px] text-stone-400">
+              Es la credencial que va a recibir y con la que inicia sesión. Puede ser
+              institucional aunque no tenga buzón detrás.
+            </p>
+          </div>
+          <div className="mt-4">
+            <Campo label="Correo de contacto (a donde le llega)" type="email" value={correoContacto} onChange={setCorreoContacto} placeholder="opcional · su correo personal" />
+            <p className="mt-1 text-[11px] text-stone-400">
+              Aquí se entrega el primer acceso y todo lo demás.{' '}
+              <strong>Si lo dejas vacío, se manda al correo de acceso</strong> —déjalo así solo
+              cuando ese correo sí reciba.
+            </p>
           </div>
 
           {/* Específicos */}

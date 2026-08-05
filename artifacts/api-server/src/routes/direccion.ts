@@ -714,7 +714,10 @@ router.get('/tendencias', async (req, res) => {
 const onboardingGestorSchema = z.object({
   nombre: z.string().trim().min(1).max(100),
   apellidos: z.string().trim().min(1).max(100),
+  // Identidad: con lo que entra. Puede ser institucional y no recibir nada.
   email: z.string().trim().email(),
+  // Entrega: a donde llega el primer acceso. Vacío = al de arriba.
+  correoNotificaciones: z.string().trim().email().optional().or(z.literal('')),
   municipioId: z.number().int().positive(),
   telefono: z.string().trim().max(30).optional(),
   capacidadMaxima: z.number().int().positive().max(500).optional(),
@@ -746,7 +749,11 @@ router.post('/onboarding/gestor', async (req, res) => {
     const nuevo = await db.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
-        .values({ email, passwordHash, rol: 'gestor', activo: true, passwordTemporal: true })
+        .values({
+          email,
+          correoNotificaciones: data.correoNotificaciones?.trim().toLowerCase() || null,
+          passwordHash, rol: 'gestor', activo: true, passwordTemporal: true,
+        })
         .returning();
       await tx.insert(gestores).values({
         userId: user.id,
@@ -800,7 +807,10 @@ router.post('/onboarding/gestor', async (req, res) => {
 const onboardingAdminSchema = z.object({
   nombre: z.string().trim().min(1).max(100),
   apellidos: z.string().trim().min(1).max(100),
+  // Identidad: con lo que entra. Puede ser institucional y no recibir nada.
   email: z.string().trim().email(),
+  // Entrega: a donde llega el primer acceso. Vacío = al de arriba.
+  correoNotificaciones: z.string().trim().email().optional().or(z.literal('')),
   esJefe: z.boolean().optional(),
   puesto: z.string().trim().max(120).optional(),
 });
@@ -827,7 +837,11 @@ router.post('/onboarding/admin', async (req, res) => {
     const nuevo = await db.transaction(async (tx) => {
       const [user] = await tx
         .insert(users)
-        .values({ email, passwordHash, rol: 'admin', activo: true, passwordTemporal: true })
+        .values({
+          email,
+          correoNotificaciones: data.correoNotificaciones?.trim().toLowerCase() || null,
+          passwordHash, rol: 'admin', activo: true, passwordTemporal: true,
+        })
         .returning();
       await tx.insert(administradores).values({
         userId: user.id,
