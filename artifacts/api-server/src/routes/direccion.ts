@@ -886,6 +886,7 @@ router.get('/accesos', async (_req, res) => {
       .select({
         userId: users.id,
         email: users.email,
+        correoNotificaciones: users.correoNotificaciones,
         rol: users.rol,
         activo: users.activo,
         passwordTemporal: users.passwordTemporal,
@@ -923,6 +924,9 @@ router.get('/accesos', async (_req, res) => {
       // cosa que `email`, que es con el que se entra y a donde llegan las
       // credenciales — ése suele ser el personal de quien atiende.
       emailPublico: (r.rol === 'admin' ? r.adminEmailPublico : r.gestorEmailPublico) ?? null,
+      // Correo de CONTACTO: a donde llega de verdad el correo. Nulo = llega al
+      // de acceso, que es como se comportaba antes de que existiera el campo.
+      correoNotificaciones: r.correoNotificaciones ?? null,
       activo: r.activo,
       // "sin_entrar" = sigue con la contraseña temporal (nunca entró);
       // "activo" = ya la cambió en su primer ingreso.
@@ -1018,6 +1022,8 @@ const editarAccesoSchema = z.object({
   esJefe: z.boolean().optional(),
   // Correo institucional (el que se publica). Cadena vacía = quitarlo.
   emailPublico: z.string().trim().max(255).nullable().optional(),
+  // Correo de CONTACTO: a donde se entrega de verdad. Nulo = al de acceso.
+  correoNotificaciones: z.string().trim().max(255).nullable().optional(),
 });
 
 router.patch('/accesos/:userId', async (req, res) => {
@@ -1054,6 +1060,13 @@ router.patch('/accesos/:userId', async (req, res) => {
         correoAnterior = u.email;
         await db.update(users).set({ email, updatedAt: new Date() }).where(eq(users.id, userId));
       }
+    }
+
+    if (d.correoNotificaciones !== undefined) {
+      await db
+        .update(users)
+        .set({ correoNotificaciones: d.correoNotificaciones?.trim().toLowerCase() || null, updatedAt: new Date() })
+        .where(eq(users.id, userId));
     }
 
     if (u.rol === 'gestor') {

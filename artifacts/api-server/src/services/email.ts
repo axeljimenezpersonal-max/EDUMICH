@@ -1,6 +1,7 @@
 import { Resend } from 'resend';
+import { eq } from 'drizzle-orm';
 import { db } from '../db';
-import { outbox } from '@workspace/db/schema';
+import { outbox, users } from '@workspace/db/schema';
 import { cuentaCreadaAlumnoTemplate } from './templates/cuenta-creada-alumno';
 import { cuentaCreadaGestorTemplate } from './templates/cuenta-creada-gestor';
 import { cuentaCreadaAdminTemplate } from './templates/cuenta-creada-admin';
@@ -116,12 +117,56 @@ interface SendEmailOptions {
   metadata?: Record<string, unknown>;
 }
 
+// ─── Identidad vs. entrega ───────────────────────────────────────────────
+
+/**
+ * A dónde se manda de verdad un correo dirigido a `email`.
+ *
+ * `users.email` es la IDENTIDAD: con eso se inicia sesión, y puede ser una
+ * dirección institucional que emite Módula sin buzón detrás
+ * (`vlopez@modula22.mx`). Lo que RECIBE es `users.correo_notificaciones` —el
+ * correo personal de quien atiende la cuenta—, y es a donde tienen que llegar
+ * las credenciales, los avisos y los enlaces de recuperación.
+ *
+ * Si no hay uno aparte, se entrega a la misma dirección: así se comportaba todo
+ * antes de que existiera el campo, y así siguen los alumnos, que sí se
+ * registran con un correo real suyo.
+ *
+ * Vive DENTRO de `sendEmail` y no en cada llamada a propósito: hay 19 lugares
+ * que mandan correo y basta olvidar uno para que una contraseña temporal se
+ * vaya a un buzón que no existe. Aquí no se puede olvidar.
+ */
+export async function direccionDeEntrega(email: string): Promise<string> {
+  try {
+    const [u] = await db
+      .select({ entrega: users.correoNotificaciones })
+      .from(users)
+      .where(eq(users.email, email.trim().toLowerCase()));
+    return u?.entrega?.trim() || email;
+  } catch {
+    // Ante cualquier falla se entrega a la dirección original: peor que llegue
+    // al buzón de siempre es que no llegue a ninguno.
+    return email;
+  }
+}
+
 // ─── Función central ─────────────────────────────────────────────────────
 
 export async function sendEmail(
   opts: SendEmailOptions
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const mode = getEmailMode();
+  const destinatario = await direccionDeEntrega(opts.to);
+  const redirigido = destinatario !== opts.to;
+  if (redirigido) {
+    // Queda anotado de quién era el correo, para que el outbox no pierda el
+    // rastro cuando la identidad y la entrega son direcciones distintas.
+    opts = {
+      ...opts,
+      to: destinatario,
+      metadata: { ...(opts.metadata ?? {}), identidadDestino: opts.to },
+    };
+  }
   const ccConfigurado = process.env.INSTITUTIONAL_CC_EMAIL ?? undefined;
   const cc = EVENTOS_SIN_COPIA.has(opts.evento) ? undefined : ccConfigurado;
   // EMAIL_FROM admite DOS formas y tú eliges cuál usar desde el entorno:
@@ -339,7 +384,14 @@ export async function sendCorreoAccesoCambiado(
   },
   opts?: { triggeredBy?: number; relatedUserId?: number }
 ): Promise<void> {
-  for (const destino of ['nueva', 'anterior'] as const) {
+  // Si las dos identidades entregan al MISMO buzón —que es lo normal cuando el
+  // correo de acceso es institucional y el de contacto es el personal— se manda
+  // una sola vez: dos correos casi idénticos al mismo lugar parecen un error.
+  const mismoBuzon =
+    (await direccionDeEntrega(data.correoNuevo)) === (await direccionDeEntrega(data.correoAnterior));
+  const destinos = mismoBuzon ? (['nueva'] as const) : (['nueva', 'anterior'] as const);
+
+  for (const destino of destinos) {
     const para = destino === 'nueva' ? data.correoNuevo : data.correoAnterior;
     const { subject, html, textPlain } = correoAccesoCambiadoTemplate({ ...data, destino });
     try {

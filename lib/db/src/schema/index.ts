@@ -214,7 +214,29 @@ export const users = pgTable(
   'users',
   {
     id: serial('id').primaryKey(),
+    /**
+     * IDENTIDAD: con esto se inicia sesión. Es único y es lo que se teclea en
+     * el login.
+     *
+     * No tiene por qué ser un buzón que reciba. Un centro de asesoría o una
+     * administradora pueden identificarse con una dirección institucional que
+     * emite Módula (`vlopez@modula22.mx`) aunque detrás no haya ningún buzón:
+     * lo que de verdad recibe es `correoNotificaciones`.
+     */
     email: varchar('email', { length: 255 }).notNull(),
+    /**
+     * ENTREGA: a dónde llega el correo de verdad —credenciales, avisos,
+     * enlaces de recuperación—. Normalmente el correo personal de quien atiende
+     * la cuenta.
+     *
+     * Nulo = no hay uno aparte y todo va a `email`, que es como funcionaba
+     * antes de que existiera este campo (y sigue siendo el caso de los
+     * alumnos, que sí se registran con su correo real).
+     *
+     * Separarlos es lo que permite que la identidad sea institucional sin que
+     * Módula tenga que volverse proveedor de correo.
+     */
+    correoNotificaciones: varchar('correo_notificaciones', { length: 255 }),
     passwordHash: varchar('password_hash', { length: 255 }).notNull(),
     rol: rolEnum('rol').notNull(),
     activo: boolean('activo').notNull().default(true),
