@@ -442,7 +442,7 @@ export interface ExamenInscrito {
   fechaExamen: string;
   hora: string;
   dia: string;
-  sede: { nombre: string; direccion: string; latitud: number | null; longitud: number | null };
+  sede: { nombre: string; direccion: string; telefono: string | null; latitud: number | null; longitud: number | null };
 }
 
 export interface ConvocatoriaResponse {

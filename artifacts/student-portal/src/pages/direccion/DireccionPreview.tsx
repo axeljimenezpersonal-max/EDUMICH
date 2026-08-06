@@ -55,6 +55,7 @@ const ATAJOS: Record<Rol, { ruta: string; label: string }[]> = {
   estudiante: [
     { ruta: '/estudiante', label: 'Inicio' },
     { ruta: '/estudiante/convocatoria', label: 'Convocatoria' },
+    { ruta: '/estudiante/examenes', label: 'Exámenes' },
     { ruta: '/estudiante/modulos', label: 'Mis módulos' },
     { ruta: '/estudiante/calificaciones', label: 'Calificaciones' },
     { ruta: '/estudiante/pagos', label: 'Pagos' },

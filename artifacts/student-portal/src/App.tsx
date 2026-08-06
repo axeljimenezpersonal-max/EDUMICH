@@ -35,6 +35,7 @@ import MiConvocatoria from './pages/estudiante/MiConvocatoria';
 import CalendarioConvocatoria from './pages/estudiante/CalendarioConvocatoria';
 import { CalendarioGestor, CalendarioEstudiante } from './pages/Calendario';
 import PaseExamen from './pages/estudiante/PaseExamen';
+import MisExamenes from './pages/estudiante/MisExamenes';
 import MiIdentificacion from './pages/estudiante/MiIdentificacion';
 import EstudianteFaq from './pages/estudiante/Faq';
 import GestorFaq from './pages/gestor/GestorFaq';
@@ -237,6 +238,7 @@ function PortalDelEstado() {
         <Route path="/estudiante/convocatoria/calendario" component={CalendarioConvocatoria} />
         <Route path="/estudiante/calendario" component={CalendarioEstudiante} />
         <Route path="/gestor/calendario" component={CalendarioGestor} />
+        <Route path="/estudiante/examenes" component={MisExamenes} />
         <Route path="/estudiante/convocatoria/pase/:id" component={PaseExamen} />
         <Route path="/estudiante/convocatoria" component={MiConvocatoria} />
         <Route path="/estudiante/identificacion" component={MiIdentificacion} />

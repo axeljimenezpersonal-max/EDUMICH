@@ -1325,6 +1325,10 @@ router.get('/convocatoria', async (req, res) => {
     sede: {
       nombre: r.sedeNombre,
       direccion: r.sedeDireccion,
+      // El teléfono ya se traía de la base y se tiraba antes de salir. El día
+      // del examen, con la sede cerrada o el alumno perdido, es el único dato
+      // que resuelve algo.
+      telefono: r.sedeTelefono,
       latitud: r.sedeLatitud ? parseFloat(r.sedeLatitud) : null,
       longitud: r.sedeLongitud ? parseFloat(r.sedeLongitud) : null,
     },

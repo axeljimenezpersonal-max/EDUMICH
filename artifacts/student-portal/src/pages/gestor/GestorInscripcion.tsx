@@ -14,6 +14,7 @@ import {
   ClipboardList, Loader2, CheckCircle2, AlertCircle, Users, CalendarClock,
   CreditCard, X, Lock, Search, Clock, CalendarCheck, ExternalLink, Trash2,
 } from 'lucide-react';
+import { ExamenesProximos } from '../../components/gestor/ExamenesProximos';
 import { GestorLayout } from './GestorLayout';
 import { api } from '../../lib/api';
 import { fechaCorta } from '../../lib/fechas';
@@ -203,6 +204,18 @@ export default function GestorInscripcion() {
         Inscribe a varios alumnos a uno o más módulos de golpe. Cada inscripción queda lista para
         solicitar su ficha en <b>Pagos</b> (individual o grupal). Cada examen cuesta <b>${costo} MXN</b>.
       </p>
+
+      {/* Lo que YA está inscrito, antes del formulario para inscribir más.
+          Aquí llega un gestor con dos preguntas distintas: "a quién le toca
+          examen" y "a quién falta inscribir". La primera se contestaba sólo con
+          el correo de la víspera, que llega tarde para lo único que el centro
+          puede hacer: llamarle a quien no ha pagado mientras se puede. */}
+      <div className="mb-7">
+        <div className="mb-2.5 flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest text-[var(--color-guinda-700)]">
+          <CalendarClock size={14} /> Exámenes que vienen
+        </div>
+        <ExamenesProximos />
+      </div>
 
       {loading ? (
         <div className="text-center text-stone-400 py-16 text-sm">Cargando…</div>

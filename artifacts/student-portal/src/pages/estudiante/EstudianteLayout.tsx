@@ -2,7 +2,7 @@ import { Link, useLocation } from 'wouter';
 import { useEffect, useState, type ReactNode } from 'react';
 import {
   LayoutDashboard, BookOpen, FolderOpen, Calendar, BadgeCheck, HelpCircle, CreditCard,
-  GraduationCap, School, Lock, CalendarDays } from 'lucide-react';
+  GraduationCap, School, Lock, CalendarDays, CalendarCheck } from 'lucide-react';
 import { api, type MeResponse } from '../../lib/api';
 import { BASE_ESTADO } from '../../lib/estado';
 import { Eye } from 'lucide-react';
@@ -18,6 +18,7 @@ const NAV = [
   { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
   { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen, tour: 'nav-expediente' },
   { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
+  { to: '/estudiante/examenes', label: 'Exámenes', icon: CalendarCheck, tour: 'nav-examenes' },
   { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
   { to: '/estudiante/calificaciones', label: 'Calificaciones', icon: GraduationCap, tour: 'nav-calificaciones' },
   { to: '/estudiante/modulos', label: 'Pruebas', icon: BookOpen, tour: 'nav-modulos' },
@@ -172,6 +173,7 @@ export function EstudianteLayout({ children }: { children: ReactNode }) {
           { to: '/estudiante', label: 'Inicio', icon: LayoutDashboard, tour: 'nav-inicio' },
           { to: '/estudiante/expediente', label: 'Expediente', icon: FolderOpen, tour: 'nav-expediente' },
           { to: '/estudiante/convocatoria', label: 'Inscripción', icon: Calendar, tour: 'nav-convocatoria' },
+          { to: '/estudiante/examenes', label: 'Exámenes', icon: CalendarCheck, tour: 'nav-examenes' },
           { to: '/estudiante/pagos', label: 'Pagos', icon: CreditCard, tour: 'nav-pagos' },
         ]}
         extras={[

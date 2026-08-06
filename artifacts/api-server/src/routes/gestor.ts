@@ -2500,6 +2500,80 @@ router.post('/alumnos/:id/inscribir-examen', async (req, res) => {
   });
 });
 
+// ─── GET /gestor/examenes-proximos ────────────────────────────────────────
+/**
+ * Los exámenes que vienen, de los alumnos de este centro.
+ *
+ * Antes de esto, el centro sólo se enteraba de la agenda de sus alumnos la
+ * VÍSPERA, por el correo de recordatorio. Eso llega tarde para lo único que el
+ * centro puede hacer de verdad: llamarle a quien no ha pagado mientras todavía
+ * se puede, y organizar el traslado.
+ *
+ * Se devuelve agrupable por fecha y con el dato de pago, porque «pre-inscrito
+ * sin pagar» es la fila sobre la que hay que actuar. Sin ese dato la lista es
+ * bonita y no sirve para nada.
+ */
+router.get('/examenes-proximos', async (req, res) => {
+  const gestorId = req.user!.userId;
+  const hoy = hoyEnMexico();
+
+  try {
+    const { rows } = await db.execute<{
+      id: number; estudiante_id: number; alumno: string;
+      modulo_numero: number; modulo_nombre: string;
+      fecha: string; hora: string; dia: string;
+      sede: string | null; sede_direccion: string | null;
+      estado: string; pagado: boolean;
+    }>(sql`
+      SELECT ei.id,
+             ei.estudiante_id,
+             e.nombre_completo AS alumno,
+             m.numero          AS modulo_numero,
+             m.nombre          AS modulo_nombre,
+             (CASE WHEN h.dia = 'sabado' THEN ce.examen_sabado ELSE ce.examen_domingo END)::text AS fecha,
+             h.hora,
+             h.dia,
+             s.nombre          AS sede,
+             s.direccion       AS sede_direccion,
+             ei.estado,
+             EXISTS (
+               SELECT 1 FROM pagos_examen_inscripciones pei
+                 JOIN pagos_examen pe ON pe.id = pei.pago_examen_id
+                WHERE pei.examen_inscripcion_id = ei.id AND pe.estado = 'pagado'
+             ) AS pagado
+        FROM examenes_inscripciones ei
+        JOIN convocatorias_etapas ce ON ce.id = ei.etapa_id
+        JOIN convocatorias_modulos_horarios h ON h.id = ei.horario_id
+        JOIN modulos m ON m.id = ei.modulo_id
+        JOIN estudiantes e ON e.user_id = ei.estudiante_id
+        LEFT JOIN sedes s ON s.id = ei.sede_id
+       WHERE e.gestor_id = ${gestorId}
+         AND ei.estado <> 'cancelado'
+         AND (CASE WHEN h.dia = 'sabado' THEN ce.examen_sabado ELSE ce.examen_domingo END) >= ${hoy}::date
+       ORDER BY fecha ASC, h.hora ASC, e.nombre_completo ASC`);
+
+    res.json({
+      hoy,
+      examenes: rows.map((r) => ({
+        id: r.id,
+        estudianteId: r.estudiante_id,
+        alumno: r.alumno,
+        modulo: { numero: r.modulo_numero, nombre: r.modulo_nombre },
+        fecha: r.fecha,
+        hora: r.hora,
+        dia: r.dia,
+        sede: r.sede,
+        sedeDireccion: r.sede_direccion,
+        estado: r.estado,
+        pagado: r.pagado === true,
+      })),
+    });
+  } catch (e) {
+    console.error('[gestor/examenes-proximos]', e);
+    res.status(500).json({ error: 'No se pudieron cargar los examenes proximos' });
+  }
+});
+
 // ─── GET /gestor/inscripcion-lote/datos — datos de la pantalla de inscripción en lote ──
 // Etapa activa + módulos que ofrece + alumnos del gestor con su elegibilidad.
 router.get('/inscripcion-lote/datos', async (req, res) => {
