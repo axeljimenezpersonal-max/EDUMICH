@@ -1035,7 +1035,19 @@ export const anunciosVistos = pgTable(
 
 export const auditLog = pgTable('audit_log', {
   id: serial('id').primaryKey(),
-  userId: integer('user_id').references(() => users.id),
+  /**
+   * SIN llave foránea a `users`, a propósito (se quitó en la v2.2).
+   *
+   * La bitácora es INMUTABLE: un trigger prohíbe UPDATE y DELETE sobre ella.
+   * Con la FK puesta, borrar a un usuario que tuviera entradas era imposible
+   * — la FK exigía tocar la bitácora (SET NULL o borrar filas) y el trigger lo
+   * prohíbe. Ni un alumno de prueba se podía eliminar, ni se podría cumplir un
+   * derecho de cancelación (LGPDPPSO).
+   *
+   * El número queda como dato histórico —igual que `userNombre` y `userRol`,
+   * que ya son fotografías del momento— y no como llave viva.
+   */
+  userId: integer('user_id'),
   userNombre: varchar('user_nombre', { length: 200 }),
   userRol: varchar('user_rol', { length: 30 }),
   accion: varchar('accion', { length: 80 }).notNull(),

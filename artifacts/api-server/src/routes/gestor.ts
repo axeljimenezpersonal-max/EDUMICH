@@ -87,7 +87,10 @@ async function getConfigPago() {
     .from(conceptosPago)
     .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
     .limit(1);
-  const costoExamen = concepto ? parseFloat(String(concepto.monto)) : 150;
+  // Respaldo si el concepto no existe: el precio REAL ($131, ver CLAUDE.md).
+  // Decia 150 - un numero inventado que, con la fila de conceptos_pago caida,
+  // se habria mostrado como precio oficial sin que nadie lo notara.
+  const costoExamen = concepto ? parseFloat(String(concepto.monto)) : 131;
 
   const [banco] = await db
     .select()

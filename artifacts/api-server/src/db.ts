@@ -431,6 +431,23 @@ const migrations = [
   `CREATE UNIQUE INDEX IF NOT EXISTS recordatorios_enviados_uq ON recordatorios_enviados(tipo, clave)`,
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
   `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
+  // v2.2: la bitácora suelta su FK a users. Es inmutable por trigger, así que
+  // la FK hacía IMBORRABLE a cualquier usuario con entradas: la cascada
+  // exigiría tocar la bitácora y el trigger lo prohíbe. El user_id queda como
+  // dato histórico (como user_nombre y user_rol, que ya son fotografías).
+  // El nombre del constraint lo puso drizzle-kit, así que se busca en vez de
+  // suponerse.
+  `DO $$
+   DECLARE c text;
+   BEGIN
+     SELECT conname INTO c FROM pg_constraint
+      WHERE conrelid = 'audit_log'::regclass AND contype = 'f'
+        AND conkey = (SELECT array_agg(attnum) FROM pg_attribute
+                       WHERE attrelid = 'audit_log'::regclass AND attname = 'user_id');
+     IF c IS NOT NULL THEN
+       EXECUTE format('ALTER TABLE audit_log DROP CONSTRAINT %I', c);
+     END IF;
+   END $$`,
 
   // Notas tipo post-it del panel del creador.
   `CREATE TABLE IF NOT EXISTS notas_creador (

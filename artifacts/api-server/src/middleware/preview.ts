@@ -71,6 +71,15 @@ const RUTAS_QUE_ESCRIBEN: { patron: RegExp; motivo: string }[] = [
     patron: /^\/chat\/mi-conversacion$/,
     motivo: 'Abrir el chat marca los mensajes como leídos. En vista previa se omite para no alterar lo que ve el gestor.',
   },
+  {
+    // Hallado en la auditoría de la v2.2: descargar el PDF del pase cambia el
+    // estado de la inscripción a `pase_descargado` si estaba en `inscrito`. En
+    // vista previa, el gestor y el admin verían "ya descargó su pase" de
+    // alguien que nunca lo hizo. El pase EN PANTALLA (el GET JSON) no escribe
+    // y sigue disponible.
+    patron: /^\/estudiante\/convocatoria\/pase\/\d+\/pdf$/,
+    motivo: 'Descargar el PDF del pase marca la inscripción como "pase descargado". En vista previa se omite; el pase en pantalla sí se puede ver.',
+  },
 ];
 
 /**

@@ -82,6 +82,25 @@ acceso sobre una columna vacía.
 **Es un cambio al login**, o sea lo más delicado del sistema. No se mete junto
 con otra cosa y se prueba con una cuenta de prueba antes de tocar una real.
 
+### A-tris. Cierre v2.2 — **2026-08-06**
+
+> Con la vista previa, Mis exámenes, la agenda del centro y Accesos con
+> alumnos, la construcción se declara **v2.2** y empiezan las pruebas reales.
+> El cierre lo ejecuta `lib/db/reinicio-v22.mjs` (simulación primero): borra a
+> todos los alumnos de prueba —filas Y archivos, con constancia anonimizada en
+> `eliminaciones_auditoria`—, reinicia los perfiles de admin/gestores
+> (contraseña por crear + sesiones fuera; el creador no se toca) y borra todos
+> los tutoriales vistos.
+>
+> **Hallazgo de la auditoría de cierre:** `audit_log.user_id` tenía FK a
+> `users` sin cascada, y la bitácora es inmutable por trigger — o sea que un
+> usuario con entradas en bitácora era IMBORRABLE (el derecho de cancelación
+> LGPDPPSO no se podía cumplir; el borrado de las 3 AM solo funcionaba con
+> cuentas que nunca iniciaron sesión). Se quitó la FK: el `user_id` queda como
+> dato histórico, igual que `user_nombre`/`user_rol`. También: el respaldo del
+> precio de examen decía $150 (el real es $131) y descargar el PDF del pase es
+> un GET que escribe (`pase_descargado`) — ya bloqueado en la vista previa.
+
 ### A-bis. Vista previa de roles — **HECHA 2026-08-06**
 
 > El creador puede ver el portal **como lo ve** un alumno, un centro o un
