@@ -1489,26 +1489,24 @@ router.get('/convocatoria/calendario', async (req, res) => {
 
       const yaInscritoEnModulos = yaInscritas.map((y) => y.moduloId);
 
-      // Build horariosDisponibles
+      // Horarios agrupados por día y hora. Las horas son claves DINÁMICAS: el
+      // calendario oficial de la DGB usa 10:00 y 13:30, y la versión anterior
+      // —con '09:00'/'11:00' fijos— TIRABA en silencio cualquier módulo cuyo
+      // horario no coincidiera con esas dos horas inventadas.
       type ModItem = { id: number; numero: number; nombre: string };
       const horariosDisponibles: {
-        sabado: { '09:00': ModItem[]; '11:00': ModItem[] };
-        domingo: { '09:00': ModItem[]; '11:00': ModItem[] };
-      } = {
-        sabado: { '09:00': [], '11:00': [] },
-        domingo: { '09:00': [], '11:00': [] },
-      };
+        sabado: Record<string, ModItem[]>;
+        domingo: Record<string, ModItem[]>;
+      } = { sabado: {}, domingo: {} };
 
       for (const h of horarios) {
-        const dayKey = h.dia as 'sabado' | 'domingo';
-        const horaKey = h.hora as '09:00' | '11:00';
-        if (horariosDisponibles[dayKey] && horariosDisponibles[dayKey][horaKey] !== undefined) {
-          horariosDisponibles[dayKey][horaKey].push({
-            id: h.moduloId,
-            numero: h.moduloNumero,
-            nombre: h.moduloNombre,
-          });
-        }
+        const dayKey = h.dia === 'domingo' ? 'domingo' : 'sabado';
+        const lista = (horariosDisponibles[dayKey][h.hora] ??= []);
+        lista.push({
+          id: h.moduloId,
+          numero: h.moduloNumero,
+          nombre: h.moduloNombre,
+        });
       }
 
       // Days remaining until solicitudFin

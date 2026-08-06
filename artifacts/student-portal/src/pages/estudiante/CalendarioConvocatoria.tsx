@@ -38,6 +38,18 @@ function formatFechaCorta(dateStr: string): string {
 type ModItem = { id: number; numero: number; nombre: string };
 type HorariosDisponibles = CalendarioMes['etapas'][0]['horariosDisponibles'];
 
+/**
+ * Las horas que este calendario trae DE VERDAD, ordenadas.
+ *
+ * Antes había un `['09:00', '11:00']` fijo aquí y otro en el servidor, y los
+ * dos tenían que coincidir entre sí y con la base para que un módulo se
+ * pintara. El calendario oficial de la DGB usa 10:00 y 13:30: con las horas
+ * fijas, todos los módulos habrían desaparecido de esta pantalla en silencio.
+ */
+function horasDe(h: HorariosDisponibles): string[] {
+  return [...new Set([...Object.keys(h.sabado), ...Object.keys(h.domingo)])].sort();
+}
+
 interface InscribirseModalProps {
   etapaId: number;
   etapaClave: string;
@@ -62,10 +74,10 @@ function InscribirseModal({
   // Build map: moduloId → slot key for conflict detection
   const moduloSlotMap = new Map<number, string>();
   const dias = ['sabado', 'domingo'] as const;
-  const horas = ['09:00', '11:00'] as const;
+  const horas = horasDe(horariosDisponibles);
   for (const dia of dias) {
     for (const hora of horas) {
-      const lista: ModItem[] = horariosDisponibles[dia][hora];
+      const lista: ModItem[] = horariosDisponibles[dia][hora] ?? [];
       for (const m of lista) {
         moduloSlotMap.set(m.id, `${dia}|${hora}`);
       }
@@ -127,13 +139,14 @@ function InscribirseModal({
   const sections: Array<{
     title: string;
     dia: 'sabado' | 'domingo';
-    hora: '09:00' | '11:00';
-  }> = [
-    { title: 'Sábado 09:00', dia: 'sabado', hora: '09:00' },
-    { title: 'Sábado 11:00', dia: 'sabado', hora: '11:00' },
-    { title: 'Domingo 09:00', dia: 'domingo', hora: '09:00' },
-    { title: 'Domingo 11:00', dia: 'domingo', hora: '11:00' },
-  ];
+    hora: string;
+  }> = dias.flatMap((dia) =>
+    horas.map((hora) => ({
+      title: `${dia === 'sabado' ? 'Sábado' : 'Domingo'} ${hora}`,
+      dia,
+      hora,
+    })),
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
@@ -159,7 +172,7 @@ function InscribirseModal({
           )}
 
           {sections.map(({ title, dia, hora }) => {
-            const lista: ModItem[] = horariosDisponibles[dia][hora];
+            const lista: ModItem[] = horariosDisponibles[dia][hora] ?? [];
             if (lista.length === 0) return null;
             return (
               <div key={title}>
@@ -246,7 +259,7 @@ interface EtapaCardProps {
 
 function EtapaCard({ etapa, onInscribirse }: EtapaCardProps) {
   const dias = ['sabado', 'domingo'] as const;
-  const horas = ['09:00', '11:00'] as const;
+  const horas = horasDe(etapa.horariosDisponibles);
 
   return (
     <div className={`border border-stone-200 rounded-xl overflow-hidden shadow-sm ${!etapa.inscripcionAbierta ? 'opacity-70' : ''}`}>
@@ -294,7 +307,7 @@ function EtapaCard({ etapa, onInscribirse }: EtapaCardProps) {
             </p>
             {horas.map((hora) => {
               const lista: Array<{ id: number; numero: number; nombre: string }> =
-                etapa.horariosDisponibles[dia][hora];
+                etapa.horariosDisponibles[dia][hora] ?? [];
               if (lista.length === 0) return null;
               return (
                 <div key={hora} className="mb-3">

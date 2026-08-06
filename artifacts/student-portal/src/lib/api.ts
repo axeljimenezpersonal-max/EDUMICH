@@ -476,15 +476,12 @@ export interface CalendarioMes {
     EtapaConvocatoria & {
       inscripcionAbierta: boolean;
       diasRestantesParaInscribirse: number;
+      // Las horas son CLAVES DINÁMICAS, no fijas: el calendario oficial de la
+      // DGB usa 10:00 y 13:30 (antes aquí decía 09:00/11:00 fijo, y el
+      // servidor TIRABA en silencio cualquier horario que no coincidiera).
       horariosDisponibles: {
-        sabado: {
-          '09:00': Array<{ id: number; numero: number; nombre: string }>;
-          '11:00': Array<{ id: number; numero: number; nombre: string }>;
-        };
-        domingo: {
-          '09:00': Array<{ id: number; numero: number; nombre: string }>;
-          '11:00': Array<{ id: number; numero: number; nombre: string }>;
-        };
+        sabado: Record<string, Array<{ id: number; numero: number; nombre: string }>>;
+        domingo: Record<string, Array<{ id: number; numero: number; nombre: string }>>;
       };
       yaInscritoEnModulos: number[];
     }

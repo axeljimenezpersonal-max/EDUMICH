@@ -281,13 +281,18 @@ function ModulosInscripcion({
 
   const h: Horariso = calendarioEtapa.horariosDisponibles;
 
+  // Las horas salen de los DATOS, no de una lista fija: el calendario oficial
+  // de la DGB usa 10:00 y 13:30, y el ['09:00','11:00'] fijo que vivía aquí
+  // habría escondido todos los módulos sin decir nada.
+  const horasDeEtapa = [...new Set([...Object.keys(h.sabado), ...Object.keys(h.domingo)])].sort();
+
   // Construir mapa de módulo → slot para conflictos
   const moduloSlotMap = new Map<number, string>();
   const dias = ['sabado', 'domingo'] as const;
-  const horas = ['09:00', '11:00'] as const;
+  const horas = horasDeEtapa;
   for (const dia of dias) {
     for (const hora of horas) {
-      const lista = h[dia][hora] as ModItem[];
+      const lista = (h[dia][hora] ?? []) as ModItem[];
       for (const m of lista) moduloSlotMap.set(m.id, `${dia}|${hora}`);
     }
   }
@@ -364,11 +369,11 @@ function ModulosInscripcion({
   // Estructura día×hora (tabla, como en la vista del gestor).
   const DIA_LABEL: Record<string, string> = { sabado: 'Sábado', domingo: 'Domingo' };
   const fechaDeDia = (d: 'sabado' | 'domingo') => (d === 'sabado' ? etapa.examenSabado : etapa.examenDomingo);
-  const horasRows = ['09:00', '11:00'] as const;
+  const horasRows = horasDeEtapa;
   const diasCols = (['sabado', 'domingo'] as const).filter((d) =>
-    horasRows.some((hh) => (h[d][hh] as ModItem[]).length > 0)
+    horasRows.some((hh) => ((h[d][hh] ?? []) as ModItem[]).length > 0)
   );
-  const todosLosModulos: ModItem[] = diasCols.flatMap((d) => horasRows.flatMap((hh) => h[d][hh] as ModItem[]));
+  const todosLosModulos: ModItem[] = diasCols.flatMap((d) => horasRows.flatMap((hh) => (h[d][hh] ?? []) as ModItem[]));
   const hayDisponibles = todosLosModulos.some((m) => !misExamenesIds.includes(m.id));
 
   // Tarjeta de un módulo dentro de una celda día×hora.
@@ -510,7 +515,7 @@ function ModulosInscripcion({
                       <Clock size={11} className="mr-1 text-stone-400 shrink-0" />{hh}
                     </div>
                     {diasCols.map((d) => {
-                      const slotMods = h[d][hh] as ModItem[];
+                      const slotMods = (h[d][hh] ?? []) as ModItem[];
                       const selectables = slotMods.filter((m) => !misExamenesIds.includes(m.id));
                       return (
                         <div key={`c-${d}-${hh}`} className="rounded-xl border border-stone-100 bg-stone-50/40 p-1.5 space-y-1.5">
