@@ -1,4 +1,6 @@
 import { Resend } from 'resend';
+import fs from 'node:fs';
+import path from 'node:path';
 import { eq } from 'drizzle-orm';
 import { db } from '../db';
 import { outbox, users } from '@workspace/db/schema';
@@ -118,6 +120,42 @@ interface SendEmailOptions {
   triggeredBy?: number;
   relatedUserId?: number;
   metadata?: Record<string, unknown>;
+  /** Archivos que viajan CON el correo (p. ej. la guía del rol en PDF). */
+  adjuntos?: { nombre: string; ruta: string }[];
+}
+
+// ─── La guía de cada rol, como adjunto ───────────────────────────────────
+
+/**
+ * Resuelve la guía del rol a un adjunto listo para `sendEmail`.
+ *
+ * Va ADJUNTA además del enlace del cuerpo, no en su lugar: el adjunto queda en
+ * el correo aunque el enlace muera o la persona esté sin red; el enlace, en
+ * cambio, siempre entrega la versión vigente. Se complementan.
+ *
+ * Devuelve null si el archivo no está — y en ese caso el correo sale SIN
+ * adjunto en vez de no salir: unas credenciales que no llegan por culpa de un
+ * PDF son un daño mayor que un correo sin guía.
+ */
+const GUIAS_ADJUNTAS: Record<'alumno' | 'gestor' | 'admin', string> = {
+  alumno: 'Guia-Alumno-Modula22.pdf',
+  gestor: 'Guia-Gestor-Modula22.pdf',
+  admin: 'Guia-Administracion-Modula22.pdf',
+};
+
+function adjuntoGuia(rol: 'alumno' | 'gestor' | 'admin'): { nombre: string; ruta: string } | null {
+  const archivo = GUIAS_ADJUNTAS[rol];
+  // Los mismos dos candidatos que la ruta /publico/guias/:rol.
+  const candidatos = [
+    path.join(process.cwd(), 'assets', 'guias', archivo),
+    path.join(process.cwd(), 'artifacts', 'api-server', 'assets', 'guias', archivo),
+  ];
+  const ruta = candidatos.find((c) => fs.existsSync(c));
+  if (!ruta) {
+    console.error(`[EMAIL] La guía de ${rol} no está en disco; el correo saldrá sin adjunto.`);
+    return null;
+  }
+  return { nombre: archivo, ruta };
 }
 
 // ─── Identidad vs. entrega ───────────────────────────────────────────────
@@ -229,6 +267,17 @@ export async function sendEmail(
   let errorMessage: string | null = null;
 
   try {
+    // Los adjuntos se leen al momento del envío, no antes: si uno falta o no
+    // se puede leer, el correo sale SIN él y queda anotado — nunca al revés.
+    const attachments: { filename: string; content: Buffer }[] = [];
+    for (const a of opts.adjuntos ?? []) {
+      try {
+        attachments.push({ filename: a.nombre, content: fs.readFileSync(a.ruta) });
+      } catch (e) {
+        console.error(`[EMAIL] No pude leer el adjunto ${a.ruta}; el correo sale sin él:`, e);
+      }
+    }
+
     await resend.emails.send({
       from: fromHeader,
       to: opts.to,
@@ -241,6 +290,7 @@ export async function sendEmail(
       // no deseado, porque es lo que hace el correo basura. Las plantillas ya
       // la venían generando —se guardaba en outbox— pero nunca se enviaba.
       text: opts.textPlain,
+      attachments: attachments.length > 0 ? attachments : undefined,
     });
   } catch (err) {
     estado = 'fallido';
@@ -311,6 +361,7 @@ export async function sendBienvenidaCredenciales(
     gestor: data.gestor,
   });
 
+  const guia = adjuntoGuia('alumno');
   return sendEmail({
     to: email,
     toName: data.nombreAlumno,
@@ -320,7 +371,8 @@ export async function sendBienvenidaCredenciales(
     evento: 'cuenta_creada_alumno',
     triggeredBy: opts?.triggeredBy,
     relatedUserId: opts?.relatedUserId,
-    metadata: opts?.metadata,
+    metadata: { ...(opts?.metadata ?? {}), guiaAdjunta: guia ? 'alumno' : null },
+    adjuntos: guia ? [guia] : undefined,
   });
 }
 
@@ -330,6 +382,7 @@ export async function sendBienvenidaGestor(
   opts?: { triggeredBy?: number; relatedUserId?: number }
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const { subject, html, textPlain } = cuentaCreadaGestorTemplate(data);
+  const guia = adjuntoGuia('gestor');
   return sendEmail({
     to: email,
     toName: data.nombreGestor,
@@ -339,7 +392,8 @@ export async function sendBienvenidaGestor(
     evento: 'cuenta_creada_gestor',
     triggeredBy: opts?.triggeredBy,
     relatedUserId: opts?.relatedUserId,
-    metadata: { municipio: data.municipio },
+    metadata: { municipio: data.municipio, guiaAdjunta: guia ? 'gestor' : null },
+    adjuntos: guia ? [guia] : undefined,
   });
 }
 
@@ -349,6 +403,7 @@ export async function sendBienvenidaAdmin(
   opts?: { triggeredBy?: number; relatedUserId?: number }
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const { subject, html, textPlain } = cuentaCreadaAdminTemplate(data);
+  const guia = adjuntoGuia('admin');
   return sendEmail({
     to: email,
     toName: data.nombre,
@@ -358,7 +413,8 @@ export async function sendBienvenidaAdmin(
     evento: 'cuenta_creada_admin',
     triggeredBy: opts?.triggeredBy,
     relatedUserId: opts?.relatedUserId,
-    metadata: { esJefe: data.esJefe },
+    metadata: { esJefe: data.esJefe, guiaAdjunta: guia ? 'admin' : null },
+    adjuntos: guia ? [guia] : undefined,
   });
 }
 

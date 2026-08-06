@@ -5,6 +5,8 @@
  * de correo: layout con tablas + estilos inline + fallbacks por bgcolor.
  */
 
+import { escapeHtml } from '../../utils/escapeHtml';
+
 // Pila de fuentes moderna y segura para correo (no se pueden incrustar webfonts
 // de forma confiable): Segoe UI en Windows/Outlook, San Francisco en Apple Mail,
 // Roboto en Android/Gmail; Arial como último respaldo.
@@ -75,6 +77,52 @@ export function emailLayout(opts: { preheader?: string; contenido: string }): st
 }
 
 /**
+ * El bloque de credenciales — compartido por los tres correos de acceso.
+ *
+ * Vivía copiado tres veces (alumno, gestor, admin) y las tres copias ya habían
+ * empezado a divergir. Ahora un cambio de diseño se hace aquí y les llega a
+ * los tres.
+ *
+ * Decisiones de diseño, todas al servicio de una sola escena: una persona
+ * frente a la pantalla de login copiando estos dos datos.
+ *
+ *  · GRANDES. El correo y la contraseña son lo único que la persona vino a
+ *    buscar; todo lo demás del correo es contexto.
+ *  · Tipografía monoespaciada MODERNA (la pila del sistema: SF Mono, Cascadia,
+ *    Consolas...) en vez de Courier New, que se veía a máquina de escribir.
+ *    Sigue siendo mono a propósito: en una contraseña, confundir O con 0 o
+ *    l con 1 cuesta un acceso fallido.
+ *  · Espaciado moderado (2px, no 4): suficiente para distinguir caracteres,
+ *    sin partir visualmente la contraseña en letras sueltas.
+ *  · SELECCIONABLES de un doble toque: cada dato vive solo en su caja, sin
+ *    texto pegado, así el doble clic (o el toque sostenido en el teléfono)
+ *    agarra el dato completo y limpio. Es lo más cerca de "copiar y pegar"
+ *    que un correo permite — los clientes de correo no ejecutan botones.
+ */
+export function emailDatosAcceso(email: string, passwordTemporal: string): string {
+  const { guinda } = EMAIL_COLORS;
+  const mono = "ui-monospace,'SF Mono','Cascadia Code',Menlo,Consolas,'Liberation Mono',monospace";
+  return `
+    <tr><td style="padding:22px 32px 8px 32px;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#fdf8f9;border:1px solid #eccdd6;border-radius:14px;overflow:hidden;">
+        <tr><td style="background:${guinda};padding:11px 20px;">
+          <span style="color:#fff;font-size:10.5px;font-weight:bold;letter-spacing:1.6px;text-transform:uppercase;">Tus datos de acceso</span>
+        </td></tr>
+        <tr><td style="padding:22px 20px 20px 20px;">
+          <div style="font-size:10.5px;color:#9a8f86;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">Correo de acceso</div>
+          <div style="font-family:${mono};font-size:19px;font-weight:bold;color:#1c1917;background:#ffffff;border:1px solid #e8dcd2;padding:14px 16px;border-radius:10px;margin-bottom:18px;text-align:center;word-break:break-all;">${escapeHtml(email)}</div>
+          <div style="font-size:10.5px;color:#9a8f86;font-weight:bold;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;">Contraseña temporal</div>
+          <div style="font-family:${mono};font-size:34px;font-weight:bold;color:${guinda};letter-spacing:2px;background:#ffffff;border:2px solid ${guinda};padding:18px 16px;border-radius:12px;text-align:center;word-break:break-all;">${escapeHtml(passwordTemporal)}</div>
+          <div style="font-size:12px;color:#78716c;margin-top:10px;text-align:center;line-height:1.6;">
+            Tócala dos veces para seleccionarla completa y cópiala.<br/>
+            <span style="color:#a24a63;">La cambiarás al entrar por primera vez.</span>
+          </div>
+        </td></tr>
+      </table>
+    </td></tr>`;
+}
+
+/**
  * Bloque "descarga tu guía" para los correos de bienvenida.
  *
  * Va en el correo y no solo en la plataforma porque es justo cuando hace falta:
@@ -96,7 +144,8 @@ export function emailBloqueGuia(base: string, rol: 'alumno' | 'gestor' | 'admin'
         <tr><td style="padding:16px 18px;">
           <div style="font-size:10px;font-weight:bold;letter-spacing:1.4px;color:${EMAIL_COLORS.guinda};text-transform:uppercase;margin-bottom:6px;">Tu guía</div>
           <div style="font-size:13px;color:${EMAIL_COLORS.texto};line-height:1.6;">
-            Paso a paso, con capturas de cada pantalla:
+            Paso a paso, con capturas de cada pantalla. <strong>Va adjunta a este
+            correo</strong> — y si el adjunto se pierde, aquí está siempre:
             <a href="${url}" style="color:${EMAIL_COLORS.guinda};font-weight:bold;">descargar ${texto} (PDF)</a>.
           </div>
         </td></tr>
