@@ -430,6 +430,7 @@ const migrations = [
    )`,
   `CREATE UNIQUE INDEX IF NOT EXISTS recordatorios_enviados_uq ON recordatorios_enviados(tipo, clave)`,
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
+  `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
 
   // Notas tipo post-it del panel del creador.
   `CREATE TABLE IF NOT EXISTS notas_creador (

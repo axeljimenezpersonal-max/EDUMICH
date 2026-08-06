@@ -55,6 +55,7 @@ import { metricsMiddleware } from './middleware/metrics';
 import { iniciarRevocacion } from './utils/revocacion';
 import { advertirConfiguracionCorreo } from './services/email';
 import { alertar, engancharAlertasDelProceso } from './services/alertas';
+import { recordarExamenesDeManana } from './services/recordatoriosExamen';
 
 const app = express();
 
@@ -225,6 +226,19 @@ cron.schedule('0 9 * * *', () => {
   recordarCierreDeVentana()
     .then((n) => { if (n > 0) console.log(`[Cierre ventana] ${n} recordatorio(s) enviados`); })
     .catch((e) => console.error('[Cierre ventana Cron]', e));
+}, { timezone: 'America/Mexico_City' });
+
+// Cron: recordatorio de examen, 9:00 de Michoacán, la VÍSPERA. A esa hora la
+// gente todavía puede resolver un traslado o llamar a quien no confirmó; a las
+// 8 de la noche ya no. Ver services/recordatoriosExamen.ts.
+cron.schedule('0 9 * * *', () => {
+  recordarExamenesDeManana()
+    .then((r) => {
+      if (r.alumnos > 0 || r.centros > 0) {
+        console.log(`[Recordatorios] ${r.manana}: ${r.alumnos} alumno(s), ${r.centros} centro(s)`);
+      }
+    })
+    .catch((e) => console.error('[Recordatorios Cron]', e));
 }, { timezone: 'America/Mexico_City' });
 
 // Cron: instantánea diaria de métricas, 23:50 de Michoacán — casi al cierre

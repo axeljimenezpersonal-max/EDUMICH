@@ -82,9 +82,18 @@ acceso sobre una columna vacía.
 **Es un cambio al login**, o sea lo más delicado del sistema. No se mete junto
 con otra cosa y se prueba con una cuenta de prueba antes de tocar una real.
 
-### B. Recordatorios automáticos
+### B. Recordatorios automáticos — **HECHO 2026-08-05** (el de examen)
 
-No existe ningún envío programado. Todo correo sale como reacción a algo que
+> Ya existe el recordatorio de examen: 9:00 de la víspera, correo al alumno
+> (módulo, hora, sede y dirección) y correo distinto al centro (su lista
+> ordenada por hora). Con candado, una sola corrida al día e idempotente por
+> `recordatorios_enviados`. Se puede **ensayar sin mandar nada** desde
+> `GET /direccion/recordatorios/ensayo`.
+>
+> Sigue pendiente el punto 3 (cierre de ventana por correo): hoy solo notifica
+> dentro de la plataforma, no manda correo.
+
+No existía ningún envío programado. Todo correo sale como reacción a algo que
 alguien hizo en la pantalla. Falta el otro tipo: el que sale solo porque llegó
 una fecha.
 

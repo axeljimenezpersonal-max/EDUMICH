@@ -43,6 +43,7 @@ import { urlPortalLogin } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
 import { verificarBitacora } from '../services/verificarBitacora';
+import { recordarExamenesDeManana } from '../services/recordatoriosExamen';
 import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
 import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendCorreoAccesoCambiado } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
@@ -1513,6 +1514,25 @@ function maskIpBitacora(ip: string | null): string | null {
   const p = ip.split('.');
   return p.length === 4 ? `${p[0]}.${p[1]}.x.x` : ip;
 }
+
+// ── GET /direccion/recordatorios/ensayo ──────────────────────────────────
+/**
+ * Ensayo del recordatorio de examen: dice a cuántos avisaría mañana SIN mandar
+ * un solo correo ni escribir nada.
+ *
+ * Existe porque, sin él, la primera vez que este trabajo corre de verdad es la
+ * víspera de un examen real, con gente esperando el aviso. Poder ensayarlo un
+ * martes cualquiera es la diferencia entre descubrir un error a tiempo y
+ * descubrirlo cuando ya no se puede arreglar.
+ */
+router.get('/recordatorios/ensayo', async (_req, res) => {
+  try {
+    res.json(await recordarExamenesDeManana({ ensayo: true }));
+  } catch (e) {
+    console.error('[direccion/recordatorios/ensayo]', e);
+    res.status(500).json({ error: e instanceof Error ? e.message : 'No se pudo ensayar' });
+  }
+});
 
 // ── GET /direccion/bitacora/integridad ───────────────────────────────────
 /**

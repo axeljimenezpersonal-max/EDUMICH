@@ -83,7 +83,8 @@ type OutboxEvento =
   | 'verificacion_email'
   | 'solicitud_rechazada'
   | 'correo_acceso_cambiado'
-  | 'alerta_operacion';
+  | 'alerta_operacion'
+  | 'recordatorio_examen';
 
 /**
  * Correos que NUNCA se copian a la cuenta institucional (`INSTITUTIONAL_CC_EMAIL`).

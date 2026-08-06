@@ -184,7 +184,7 @@ export const modulos = pgTable(
   'modulos',
   {
     id: serial('id').primaryKey(),
-    numero: integer('numero').notNull(), // 1..21
+    numero: integer('numero').notNull(), // 1..22 (Plan 22)
     nombre: varchar('nombre', { length: 200 }).notNull(),
     descripcion: text('descripcion'),
     nivel: integer('nivel'), // nivel del plan modular (1-4)
@@ -1851,6 +1851,8 @@ export const notifTipoEnum = pgEnum('notif_tipo', [
   'cuentas_eliminadas_lote',
   'credencial_renovada',
   'solicitud_renovacion_credencial',
+  // Recordatorio de examen (al alumno la vispera; al centro con su lista).
+  'recordatorio_examen',
   'chat_mensaje',
   'calificacion_disponible',
   'calificaciones_recibidas',
@@ -1898,6 +1900,8 @@ export const outboxEventoEnum = pgEnum('outbox_evento', [
   'correo_acceso_cambiado',
   // Alerta de operación al equipo que levanta el servicio (no a un ciudadano).
   'alerta_operacion',
+  // Recordatorio de examen la víspera: al alumno y a su centro.
+  'recordatorio_examen',
 ]);
 
 export const outboxEstadoEnum = pgEnum('outbox_estado', [
