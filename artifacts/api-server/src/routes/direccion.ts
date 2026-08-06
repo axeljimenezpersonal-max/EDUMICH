@@ -45,7 +45,7 @@ import { tryAuditLog } from '../utils/audit';
 import { verificarBitacora } from '../services/verificarBitacora';
 import { recordarExamenesDeManana } from '../services/recordatoriosExamen';
 import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
-import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendCorreoAccesoCambiado } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendBienvenidaCredenciales, sendCorreoAccesoCambiado } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
 import { resumenMetricas, serieMetricas, PROCESS_START, obtenerErroresRecientes } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
@@ -972,7 +972,68 @@ router.get('/accesos', async (_req, res) => {
       creadoEn: r.createdAt,
       puedeReenviar: r.passwordTemporal,
     }));
-    res.json({ accesos });
+
+    // ── Los alumnos ────────────────────────────────────────────────────────
+    // Van en consulta aparte y no en la de arriba: el alumno cuelga de otra
+    // tabla y su "detalle" es su centro, no su municipio ni su puesto.
+    //
+    // Con TOPE, que es la diferencia de fondo con administradores y gestores:
+    // de ésos hay dos docenas y siempre los habrá; de alumnos puede haber
+    // decenas de miles. Se traen los más recientes —que es lo que se está
+    // siguiendo, quién acaba de recibir su acceso— y se dice cuántos quedaron
+    // fuera en vez de callarlo.
+    const TOPE_ALUMNOS = 300;
+    const filasAlumnos = await db
+      .select({
+        userId: users.id,
+        email: users.email,
+        correoNotificaciones: users.correoNotificaciones,
+        activo: users.activo,
+        passwordTemporal: users.passwordTemporal,
+        bienvenidaEnviadaEn: users.bienvenidaEnviadaEn,
+        createdAt: users.createdAt,
+        nombre: estudiantes.nombreCompleto,
+        matricula: estudiantes.matriculaOficialDGB,
+        centro: gestores.nombreCompleto,
+      })
+      .from(users)
+      .innerJoin(estudiantes, eq(estudiantes.userId, users.id))
+      .leftJoin(gestores, eq(gestores.userId, estudiantes.gestorId))
+      .where(eq(users.rol, 'estudiante'))
+      .orderBy(desc(users.createdAt))
+      .limit(TOPE_ALUMNOS + 1);
+
+    const hayMas = filasAlumnos.length > TOPE_ALUMNOS;
+    const [{ total: totalAlumnos }] = await db
+      .select({ total: count() })
+      .from(users)
+      .where(eq(users.rol, 'estudiante'));
+
+    for (const r of filasAlumnos.slice(0, TOPE_ALUMNOS)) {
+      accesos.push({
+        userId: r.userId,
+        email: r.email,
+        rol: 'estudiante' as never,
+        nombre: r.nombre ?? r.email,
+        detalle: r.centro ?? 'Sin centro asignado',
+        municipioId: null,
+        telefono: null,
+        puesto: r.matricula ?? null,
+        esJefe: false,
+        emailPublico: null,
+        correoNotificaciones: r.correoNotificaciones ?? null,
+        activo: r.activo,
+        estado: r.passwordTemporal ? 'sin_entrar' : 'activo',
+        correoEnviadoEn: r.bienvenidaEnviadaEn,
+        creadoEn: r.createdAt,
+        puedeReenviar: r.passwordTemporal,
+      });
+    }
+
+    res.json({
+      accesos,
+      alumnos: { total: totalAlumnos, mostrados: Math.min(filasAlumnos.length, TOPE_ALUMNOS), hayMas },
+    });
   } catch (e) {
     console.error('[direccion/accesos]', e);
     res.status(500).json({ error: 'No se pudieron cargar los accesos' });
@@ -990,7 +1051,7 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
       .select({ email: users.email, rol: users.rol, passwordTemporal: users.passwordTemporal })
       .from(users)
       .where(eq(users.id, userId));
-    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor' && u.rol !== 'estudiante')) {
       res.status(404).json({ error: 'Cuenta no encontrada' });
       return;
     }
@@ -1007,7 +1068,33 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
 
     const portalUrl = urlPortalLogin();
     let correoEnviado = false;
-    if (u.rol === 'gestor') {
+    if (u.rol === 'estudiante') {
+      // El alumno recibe su plantilla, no la del gestor: le habla de su centro
+      // y de sus modulos, no de un municipio ni de un puesto.
+      const [e] = await db
+        .select({
+          nombre: estudiantes.nombreCompleto,
+          centro: gestores.nombreCompleto,
+          telefono: gestores.telefono,
+          municipio: municipios.nombre,
+        })
+        .from(estudiantes)
+        .leftJoin(gestores, eq(gestores.userId, estudiantes.gestorId))
+        .leftJoin(municipios, eq(municipios.id, gestores.municipioId))
+        .where(eq(estudiantes.userId, userId));
+      const r = await sendBienvenidaCredenciales(
+        u.email,
+        {
+          nombreAlumno: e?.nombre ?? u.email,
+          email: u.email,
+          passwordTemporal: nueva,
+          portalUrl,
+          gestor: e?.centro ? { nombre: e.centro, telefono: e.telefono ?? null, municipio: e.municipio ?? null } : undefined,
+        },
+        { triggeredBy: req.user!.userId, relatedUserId: userId },
+      );
+      correoEnviado = r.enviado;
+    } else if (u.rol === 'gestor') {
       const [g] = await db
         .select({ nombre: gestores.nombreCompleto, municipio: municipios.nombre })
         .from(gestores)
@@ -1036,7 +1123,7 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
     await tryAuditLog({
       userId: req.user!.userId,
       accion: 'reenviar_acceso',
-      entidad: u.rol === 'gestor' ? 'gestores' : 'administradores',
+      entidad: u.rol === 'gestor' ? 'gestores' : u.rol === 'estudiante' ? 'estudiantes' : 'administradores',
       entidadId: userId,
       detalle: `El creador reenvió el primer acceso a ${u.email}`,
       metadata: { rol: u.rol },
@@ -1227,7 +1314,7 @@ router.post('/accesos/:userId/desactivar', async (req, res) => {
   }
   try {
     const [u] = await db.select({ rol: users.rol, email: users.email }).from(users).where(eq(users.id, userId));
-    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor' && u.rol !== 'estudiante')) {
       res.status(404).json({ error: 'Cuenta no encontrada' });
       return;
     }
@@ -1275,7 +1362,7 @@ router.post('/accesos/:userId/reactivar', async (req, res) => {
   }
   try {
     const [u] = await db.select({ rol: users.rol, email: users.email }).from(users).where(eq(users.id, userId));
-    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor')) {
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor' && u.rol !== 'estudiante')) {
       res.status(404).json({ error: 'Cuenta no encontrada' });
       return;
     }

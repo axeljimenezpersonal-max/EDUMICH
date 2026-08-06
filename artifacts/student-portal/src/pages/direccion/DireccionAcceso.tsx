@@ -17,7 +17,7 @@ import { soloDiezDigitos, telefonoCanonico } from '../../components/CampoTelefon
 type Acceso = {
   userId: number;
   email: string;
-  rol: 'admin' | 'gestor';
+  rol: 'admin' | 'gestor' | 'estudiante';
   nombre: string;
   detalle: string;
   municipioId: number | null;
@@ -68,7 +68,11 @@ export default function DireccionAcceso() {
   const [eliminandoId, setEliminandoId] = useState<number | null>(null);
   // Filtro y búsqueda del seguimiento. Con dos cuentas sobraban; con veintitantos
   // centros y varios administradores, una lista corrida no se puede leer.
-  const [filtro, setFiltro] = useState<'todos' | 'admin' | 'gestor'>('todos');
+  const [filtro, setFiltro] = useState<'todos' | 'admin' | 'gestor' | 'estudiante'>('todos');
+  // Cuántos alumnos hay en total y cuántos caben en la lista. Ver el tope en
+  // GET /direccion/accesos: de gestores hay dos docenas, de alumnos puede haber
+  // decenas de miles y traerlos todos sería tumbar la pantalla.
+  const [alumnosInfo, setAlumnosInfo] = useState<{ total: number; mostrados: number; hayMas: boolean } | null>(null);
   const [busqueda, setBusqueda] = useState('');
 
   function abrirEdicion(a: Acceso) {
@@ -178,11 +182,12 @@ export default function DireccionAcceso() {
   });
   const totalAdmins = accesos.filter((a) => a.rol === 'admin').length;
   const totalGestores = accesos.filter((a) => a.rol === 'gestor').length;
+  const totalAlumnos = accesos.filter((a) => a.rol === 'estudiante').length;
 
   function cargarAccesos() {
     setCargandoAccesos(true);
-    api.get<{ accesos: Acceso[] }>('/direccion/accesos')
-      .then((r) => setAccesos(r.accesos))
+    api.get<{ accesos: Acceso[]; alumnos?: { total: number; mostrados: number; hayMas: boolean } }>('/direccion/accesos')
+      .then((r) => { setAccesos(r.accesos); setAlumnosInfo(r.alumnos ?? null); })
       .catch(() => setAccesos([]))
       .finally(() => setCargandoAccesos(false));
   }
@@ -398,6 +403,7 @@ export default function DireccionAcceso() {
                 { k: 'todos' as const, t: 'Todos', n: accesos.length },
                 { k: 'admin' as const, t: 'Administración', n: totalAdmins },
                 { k: 'gestor' as const, t: 'Centros', n: totalGestores },
+                { k: 'estudiante' as const, t: 'Alumnos', n: alumnosInfo?.total ?? totalAlumnos },
               ]).map((o) => {
                 const activo = filtro === o.k;
                 return (
@@ -432,6 +438,15 @@ export default function DireccionAcceso() {
               Ninguna cuenta coincide con lo que buscas.
             </div>
           ) : (
+            <>
+            {filtro === 'estudiante' && alumnosInfo?.hayMas && (
+              <div className="mb-3 rounded-xl border px-4 py-2.5 text-[12.5px] leading-relaxed"
+                   style={{ borderColor: '#f6dfae', background: '#fff8ec', color: '#7c5314' }}>
+                Se muestran los <strong>{alumnosInfo.mostrados}</strong> alumnos más recientes de{' '}
+                <strong>{alumnosInfo.total}</strong>. Los demás no están en esta lista — para encontrar
+                a alguien en concreto, búscalo en Alumnos del panel de administración.
+              </div>
+            )}
             <div className="space-y-2">
               {accesosVisibles.map((a) => (
                 <div key={a.userId} className="rounded-xl border border-stone-200 bg-white p-4">
@@ -440,7 +455,7 @@ export default function DireccionAcceso() {
                       <div className="flex items-center gap-2">
                         <span className="truncate text-sm font-semibold text-stone-900">{formatearNombre(a.nombre)}</span>
                         <span className="shrink-0 rounded-full bg-[var(--color-crema-100)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" style={{ color: 'var(--color-guinda-700)' }}>
-                          {a.rol === 'admin' ? `Admin · ${a.detalle}` : `Gestor · ${a.detalle}`}
+                          {a.rol === 'admin' ? `Admin · ${a.detalle}` : a.rol === 'gestor' ? `Gestor · ${a.detalle}` : `Alumno · ${a.detalle}`}
                         </span>
                       </div>
                       <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
@@ -487,14 +502,24 @@ export default function DireccionAcceso() {
                           <Power size={13} /> Reactivar
                         </button>
                       )}
-                      <button type="button" onClick={() => (editandoId === a.userId ? setEditandoId(null) : abrirEdicion(a))}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-semibold text-stone-600 hover:border-stone-300">
-                        <Pencil size={13} /> Editar
-                      </button>
-                      <button type="button" onClick={() => eliminar(a)} disabled={eliminandoId === a.userId}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
-                        <Trash2 size={13} /> {eliminandoId === a.userId ? 'Eliminando…' : 'Eliminar'}
-                      </button>
+                      {/* Editar y Eliminar NO se ofrecen para alumnos: el
+                          expediente de un alumno se corrige en su ficha, con
+                          sus reglas y su bitácora, no en un formulario pensado
+                          para centros. Y darlo de baja aquí es reversible;
+                          borrarlo no lo es. Lo que sí tiene sentido desde aquí
+                          es reenviarle su primer acceso. */}
+                      {a.rol !== 'estudiante' && (
+                        <>
+                          <button type="button" onClick={() => (editandoId === a.userId ? setEditandoId(null) : abrirEdicion(a))}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-stone-200 px-2.5 py-1.5 text-xs font-semibold text-stone-600 hover:border-stone-300">
+                            <Pencil size={13} /> Editar
+                          </button>
+                          <button type="button" onClick={() => eliminar(a)} disabled={eliminandoId === a.userId}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50">
+                            <Trash2 size={13} /> {eliminandoId === a.userId ? 'Eliminando…' : 'Eliminar'}
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
 
@@ -570,6 +595,7 @@ export default function DireccionAcceso() {
                 </div>
               ))}
             </div>
+            </>
           )}
         </div>
       </div>

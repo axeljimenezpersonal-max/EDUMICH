@@ -129,6 +129,13 @@ export async function recordarExamenesDeManana(
         LEFT JOIN sedes s ON s.id = ei.sede_id
         LEFT JOIN gestores g ON g.user_id = e.gestor_id
        WHERE ei.estado <> 'cancelado'
+         -- Las etapas de ENSAYO quedan fuera. Se crean para poder MIRAR la
+         -- pantalla del examen con datos (ver lib/db/ensayo-examen.mjs), y la
+         -- víspera cae dentro de la vida de esos datos: sin este filtro, un
+         -- ensayo mandaría correos de verdad, a gente de verdad, sobre un
+         -- examen que no existe. El candado vive aquí y no en el script porque
+         -- no puede depender de que alguien se acuerde de borrar a tiempo.
+         AND ce.clave NOT LIKE 'ENSAYO%'
          AND (CASE WHEN h.dia = 'sabado' THEN ce.examen_sabado ELSE ce.examen_domingo END) = ${manana}::date
        ORDER BY h.hora ASC, e.nombre_completo ASC`);
 
