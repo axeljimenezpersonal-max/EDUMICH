@@ -677,6 +677,8 @@ const CAP9 = pagina(`
     ${tarjeta('3 · Teléfono de atención', `El número y horario vigentes aparecen al pie de las Preguntas
       frecuentes del portal.`)}
     ${tarjeta('Ten a la mano', `Tu nombre completo y tu CURP: te los van a pedir para ayudarte.`)}
+    ${tarjeta('Soporte de la plataforma', `Si la página falla o no puedes entrar, escribe a
+      <strong>contacto@sinapsys.mx</strong> o llama al <strong>+52 443 380 7977</strong>.`)}
   </div>
 `);
 

@@ -660,6 +660,12 @@ const CAP10 = pagina(`
     el reporte de cada etapa.`)}
   ${cita(`La etiqueta junto a tu nombre dice qué perfil eres. Si un botón no aparece, no está
   fallando el sistema: es facultad del otro perfil.`)}
+  <div class="tarjetas" style="margin-top:4mm">
+    ${tarjeta('Soporte de la plataforma', `Si el sistema falla, no puedes entrar o encuentras un
+      error, el contacto directo es <strong>contacto@sinapsys.mx</strong> ·
+      <strong>+52 443 380 7977</strong> (encargado en Michoacán). Módula 22 es operada por
+      Synapsis; lo del trámite educativo sigue siendo del Instituto.`)}
+  </div>
 `);
 
 // ── Anexo ──────────────────────────────────────────────────────────────────

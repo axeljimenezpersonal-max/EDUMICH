@@ -508,6 +508,9 @@ const CAP8 = pagina(`
       Preguntas frecuentes.`)}
     ${tarjeta('Ten a la mano', `Tu municipio y la CURP del alumno del que hablas: agilizan
       cualquier revisión.`)}
+    ${tarjeta('Soporte de la plataforma', `Si el sistema falla o no puedes entrar, escribe a
+      <strong>contacto@sinapsys.mx</strong> o llama al <strong>+52 443 380 7977</strong>
+      (encargado en Michoacán). Módula 22 es operada por Synapsis.`)}
   </div>
 `);
 
