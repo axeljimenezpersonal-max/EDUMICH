@@ -738,9 +738,9 @@ const onboardingGestorSchema = z.object({
   nombre: z.string().trim().min(1).max(100),
   apellidos: z.string().trim().min(1).max(100),
   // Identidad: con lo que entra. Puede ser institucional y no recibir nada.
-  email: z.string().trim().email(),
+  email: z.string().trim().toLowerCase().email(),
   // Entrega: a donde llega el primer acceso. Vacío = al de arriba.
-  correoNotificaciones: z.string().trim().email().optional().or(z.literal('')),
+  correoNotificaciones: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
   municipioId: z.number().int().positive(),
   telefono: z.string().trim().max(30).optional(),
   capacidadMaxima: z.number().int().positive().max(500).optional(),
@@ -831,9 +831,9 @@ const onboardingAdminSchema = z.object({
   nombre: z.string().trim().min(1).max(100),
   apellidos: z.string().trim().min(1).max(100),
   // Identidad: con lo que entra. Puede ser institucional y no recibir nada.
-  email: z.string().trim().email(),
+  email: z.string().trim().toLowerCase().email(),
   // Entrega: a donde llega el primer acceso. Vacío = al de arriba.
-  correoNotificaciones: z.string().trim().email().optional().or(z.literal('')),
+  correoNotificaciones: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
   esJefe: z.boolean().optional(),
   puesto: z.string().trim().max(120).optional(),
 });
@@ -1139,7 +1139,7 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
 
 const editarAccesoSchema = z.object({
   nombreCompleto: z.string().trim().min(1).max(200).optional(),
-  email: z.string().trim().email().optional(),
+  email: z.string().trim().toLowerCase().email().optional(),
   municipioId: z.number().int().positive().optional(),
   telefono: z.string().trim().max(30).nullable().optional(),
   puesto: z.string().trim().max(120).nullable().optional(),

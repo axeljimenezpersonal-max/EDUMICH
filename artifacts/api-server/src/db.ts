@@ -431,6 +431,13 @@ const migrations = [
   `CREATE UNIQUE INDEX IF NOT EXISTS recordatorios_enviados_uq ON recordatorios_enviados(tipo, clave)`,
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
   `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
+  // v2.2: el correo de acceso es insensible a mayúsculas. La entrada ya se
+  // normaliza en cada esquema (trim + minúsculas); esto empareja lo GUARDADO,
+  // para que 'UTEC@MODULA22.MX' escrito en el teléfono encuentre su cuenta.
+  // Idempotente: el WHERE lo vuelve gratis en cada arranque.
+  `UPDATE users SET email = lower(email) WHERE email <> lower(email)`,
+  `UPDATE users SET correo_notificaciones = lower(correo_notificaciones)
+    WHERE correo_notificaciones IS NOT NULL AND correo_notificaciones <> lower(correo_notificaciones)`,
   // v2.2: la bitácora suelta su FK a users. Es inmutable por trigger, así que
   // la FK hacía IMBORRABLE a cualquier usuario con entradas: la cascada
   // exigiría tocar la bitácora y el trigger lo prohíbe. El user_id queda como

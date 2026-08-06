@@ -421,7 +421,7 @@ router.get('/correo-existe', limiteCorreoExiste, async (req, res) => {
 router.post('/email/solicitar-codigo', async (req, res) => {
   const parse = z
     .object({
-      email: z.string().email(),
+      email: z.string().trim().toLowerCase().email(),
       tipo: z.enum(['auto_registro', 'solicitud_cuenta']),
     })
     .safeParse(req.body);
@@ -490,7 +490,7 @@ router.post('/email/solicitar-codigo', async (req, res) => {
 router.post('/email/verificar-codigo', async (req, res) => {
   const parse = z
     .object({
-      email: z.string().email(),
+      email: z.string().trim().toLowerCase().email(),
       codigo: z.string().length(6),
       tipo: z.string(),
     })
@@ -612,7 +612,7 @@ const camposObligatorios = {
 // ─── POST /publico/auto-registro ──────────────────────────────────────────
 const autoRegistroSchema = z.object({
   emailVerificadoToken: z.string(),
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   nombreCompleto: z.string().min(2).max(200),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   telefono: z
@@ -735,7 +735,7 @@ const solicitudSchema = z.object({
   nombreCompleto: z.string().min(2).max(200),
   curp: z.string().length(18),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   telefono: z
     .string()
     // Obligatorio y completo: la pantalla ya solo admite 10 dígitos, y un

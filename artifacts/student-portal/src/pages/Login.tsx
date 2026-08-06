@@ -187,6 +187,11 @@ export default function Login() {
                     // reconocen como el identificador de un login, y lo que
                     // dispara el "¿Guardar contraseña?" al entrar.
                     autoComplete="username"
+                    // El teclado del teléfono pone la primera letra en
+                    // MAYÚSCULA solo, y aunque el servidor ya normaliza, lo que
+                    // la persona VE en la caja debe coincidir con lo que envía.
+                    autoCapitalize="none"
+                    spellCheck={false}
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}

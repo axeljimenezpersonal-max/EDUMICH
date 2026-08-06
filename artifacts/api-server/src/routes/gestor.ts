@@ -285,7 +285,7 @@ const crearAlumnoSchema = z.object({
   apellidoPaterno: z.string().max(100).optional(),
   apellidoMaterno: z.string().max(100).optional(),
   curp: z.string().length(18),
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   telefono: z.string().min(7).max(30).optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v) ?? undefined)),
   fechaNacimiento: z.string().optional(),
   // OBLIGATORIOS: van en la cédula de inscripción y en la Relación que se

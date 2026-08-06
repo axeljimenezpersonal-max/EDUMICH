@@ -70,7 +70,7 @@ async function auditarAccesoFallido(
 }
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   password: z.string().min(1),
 });
 
@@ -401,7 +401,7 @@ router.post('/establecer-password', authRequired, async (req, res) => {
 });
 
 // ─── POST /auth/recuperar-password ───────────────────────────────────────
-const recuperarSchema = z.object({ email: z.string().email() });
+const recuperarSchema = z.object({ email: z.string().trim().toLowerCase().email() });
 
 router.post('/recuperar-password', async (req, res) => {
   const parse = recuperarSchema.safeParse(req.body);

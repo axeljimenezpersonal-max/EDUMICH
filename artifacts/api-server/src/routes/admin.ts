@@ -3208,7 +3208,7 @@ router.get('/gestores/:gestorId', async (req, res) => {
 const crearGestorSchema = z.object({
   nombre: z.string().min(1),
   apellidos: z.string().min(1),
-  email: z.string().email(),
+  email: z.string().trim().toLowerCase().email(),
   municipioId: z.number().int().positive(),
   titulo: z.string().optional(),
   telefono: z.string().optional(),
