@@ -6,6 +6,7 @@
  */
 
 import { demoResponse } from './demo';
+import { USUARIO_PREVIEW, AVISO_SOLO_LECTURA } from './preview';
 
 const API_BASE = '/api';
 
@@ -44,6 +45,16 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const demo = demoResponse(path, init.method ?? 'GET');
   if (demo.hit) return demo.data as T;
 
+  const metodo = (init.method ?? 'GET').toUpperCase();
+
+  // Vista previa del creador: se corta la escritura aquí, antes de salir a la
+  // red. El servidor la rechaza igual —ahí está el candado de verdad—, pero un
+  // 403 crudo en pantalla se lee como "no tienes permiso", que no es lo que
+  // pasa: lo que pasa es que estás mirando, no operando.
+  if (USUARIO_PREVIEW !== null && metodo !== 'GET' && metodo !== 'HEAD') {
+    throw new ApiError(AVISO_SOLO_LECTURA, 403);
+  }
+
   // Timeout de seguridad: si el servidor no responde (p. ej. durante un
   // redeploy), abortamos en vez de dejar el spinner girando indefinidamente.
   const controller = new AbortController();
@@ -60,6 +71,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
         ...(init.body && !(init.body instanceof FormData)
           ? { 'Content-Type': 'application/json' }
           : {}),
+        ...(USUARIO_PREVIEW !== null ? { 'X-Preview-Usuario': String(USUARIO_PREVIEW) } : {}),
         ...init.headers,
       },
     });

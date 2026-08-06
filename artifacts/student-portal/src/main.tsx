@@ -2,10 +2,18 @@ import { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import ModulaLogo from './components/ModulaLogo';
+import { activarVistaPrevia, EN_VISTA_PREVIA } from './lib/preview';
 import './index.css';
 
+// Antes de que React monte y dispare la primera petición: si esto es una vista
+// previa del creador, hay que tener puestos los enganches ya. Fuera de la vista
+// previa no hace nada. Ver lib/preview.ts.
+activarVistaPrevia();
+
 function Root() {
-  const [splash, setSplash] = useState(true);
+  // Dentro del marco de la vista previa el splash sobra: molesta cada vez que
+  // se cambia de persona y tapa justo lo que se está intentando mirar.
+  const [splash, setSplash] = useState(!EN_VISTA_PREVIA);
 
   useEffect(() => {
     const t = setTimeout(() => setSplash(false), 800);

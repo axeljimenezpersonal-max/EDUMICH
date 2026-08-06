@@ -39,12 +39,21 @@ const ultimaVez = new Map<string, { en: number; silenciadas: number }>();
  * cae al buzón institucional para no quedarse sin destino — pero eso es un
  * respaldo, no el diseño.
  */
-function destino(): string {
-  return (
+function destinos(): string[] {
+  const crudo =
     process.env.ALERTAS_EMAIL?.trim() ||
     process.env.INSTITUTIONAL_CC_EMAIL?.trim() ||
-    CONTACTO_CORREO
-  );
+    CONTACTO_CORREO;
+
+  // Admite varias direcciones separadas por coma o punto y coma. Es lo normal:
+  // una alerta a las 3 de la mañana que sólo llega a una persona depende de que
+  // esa persona esté despierta.
+  //
+  // Va un correo POR destinatario, no uno con varios en el "para". Así cada
+  // envío queda por separado en el outbox y el fallo de un buzón —rebote,
+  // dirección dada de baja— no se lleva por delante el aviso a los demás.
+  const lista = crudo.split(/[,;]/).map((d) => d.trim()).filter(Boolean);
+  return lista.length > 0 ? lista : [CONTACTO_CORREO];
 }
 
 const COLOR: Record<Gravedad, string> = {
@@ -109,14 +118,21 @@ export async function alertar(a: Alerta): Promise<void> {
         </div>
       </div>`;
 
-    await sendEmail({
-      to: destino(),
-      subject: `[${ETIQUETA[gravedad]}] ${a.titulo} · Modula`,
-      html,
-      textPlain: `${ETIQUETA[gravedad]} — ${a.titulo}\n\n${a.detalle ?? ''}\n\n${JSON.stringify(a.contexto ?? {}, null, 2)}\n\nClave: ${a.clave}`,
-      evento: 'alerta_operacion',
-      metadata: { clave: a.clave, gravedad, repetidas },
-    });
+    const para = destinos();
+    for (const direccion of para) {
+      try {
+        await sendEmail({
+          to: direccion,
+          subject: `[${ETIQUETA[gravedad]}] ${a.titulo} · Modula`,
+          html,
+          textPlain: `${ETIQUETA[gravedad]} — ${a.titulo}\n\n${a.detalle ?? ''}\n\n${JSON.stringify(a.contexto ?? {}, null, 2)}\n\nClave: ${a.clave}`,
+          evento: 'alerta_operacion',
+          metadata: { clave: a.clave, gravedad, repetidas, destinatarios: para.length },
+        });
+      } catch (unoSolo) {
+        console.error(`[ALERTA] no se pudo enviar a ${direccion}:`, unoSolo);
+      }
+    }
   } catch (e) {
     // Sin re-alertar: si avisar falla, avisar de que falló avisar es un bucle.
     console.error('[ALERTA] no se pudo enviar la alerta:', e);

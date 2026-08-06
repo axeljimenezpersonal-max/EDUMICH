@@ -56,6 +56,7 @@ import { iniciarRevocacion } from './utils/revocacion';
 import { advertirConfiguracionCorreo } from './services/email';
 import { alertar, engancharAlertasDelProceso } from './services/alertas';
 import { recordarExamenesDeManana } from './services/recordatoriosExamen';
+import { vistaPrevia } from './middleware/preview';
 
 const app = express();
 
@@ -152,6 +153,11 @@ app.get('/api/health', async (_req, res) => {
     });
   }
 });
+
+// Vista previa del creador. Va ANTES de los routers porque tiene que resolver
+// la identidad prestada antes de que `authRequired` lea la cookie. Sin la
+// cabecera `X-Preview-Usuario` no hace absolutamente nada. Ver middleware/preview.ts.
+app.use('/api', vistaPrevia);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/gestor', gestorRoutes);

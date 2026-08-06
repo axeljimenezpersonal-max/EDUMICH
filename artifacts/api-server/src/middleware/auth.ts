@@ -90,6 +90,18 @@ export function clearSessionCookie(res: Response) {
 }
 
 export function authRequired(req: Request, res: Response, next: NextFunction) {
+  // Vista previa del creador: la identidad ya se resolvió y se validó en
+  // `middleware/preview.ts` —cookie de creador, método de lectura, objetivo
+  // existente— así que aquí sólo se adopta. Se hace antes de mirar la cookie
+  // porque la cookie sigue siendo la del creador: es a propósito, así una
+  // escritura que se colara actuaría como el creador y no como la persona
+  // observada.
+  if (req.usuarioSimulado) {
+    req.user = req.usuarioSimulado;
+    next();
+    return;
+  }
+
   const cookie = req.cookies?.[COOKIE_NAME];
   if (!cookie) {
     res.status(401).json({ error: 'No autenticado' });

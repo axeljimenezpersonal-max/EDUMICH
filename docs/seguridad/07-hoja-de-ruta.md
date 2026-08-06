@@ -82,6 +82,32 @@ acceso sobre una columna vacía.
 **Es un cambio al login**, o sea lo más delicado del sistema. No se mete junto
 con otra cosa y se prueba con una cuenta de prueba antes de tocar una real.
 
+### A-bis. Vista previa de roles — **HECHA 2026-08-06**
+
+> El creador puede ver el portal **como lo ve** un alumno, un centro o un
+> administrador, sin entrar a su cuenta: `/direccion/preview`. La aplicación
+> real con los datos reales, servida por los mismos manejadores del rol — no
+> una maqueta que se quede vieja.
+>
+> Resuelve un riesgo que hasta ahora se cubría mal o no se cubría: para revisar
+> una pantalla de otro rol había que **pedir una contraseña prestada** o abrirle
+> la cuenta, lo que además dejaba la bitácora diciendo que esa persona entró.
+>
+> Candados (`artifacts/api-server/src/middleware/preview.ts`):
+>
+> - Sólo `GET`/`HEAD`. Cualquier otro método se rechaza **antes** de adoptar la
+>   identidad prestada.
+> - Sólo sesiones de rol `direccion`; el intento desde otro rol queda asentado.
+> - No se puede previsualizar otra cuenta de creador.
+> - Cada observación queda en la bitácora encadenada (`preview_inicio`), con
+>   quién miró y a quién, una vez cada diez minutos para no inundarla.
+> - Los **cuatro `GET` que escriben al leerse** —las tres `ficha-preregistro`,
+>   que generan el folio, y `chat/mi-conversacion`, que marca leído— están
+>   bloqueados por lista: un filtro por método no los detiene porque son `GET`
+>   de verdad.
+> - La telemetría de uso se apaga dentro de la vista previa: si no, los clics
+>   del creador revisando falsearían el ranking de pantallas.
+
 ### B. Recordatorios automáticos — **HECHO 2026-08-05** (el de examen)
 
 > Ya existe el recordatorio de examen: 9:00 de la víspera, correo al alumno

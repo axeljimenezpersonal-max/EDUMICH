@@ -1525,6 +1525,132 @@ function maskIpBitacora(ip: string | null): string | null {
  * martes cualquiera es la diferencia entre descubrir un error a tiempo y
  * descubrirlo cuando ya no se puede arreglar.
  */
+// ── GET /direccion/preview/candidatos?rol=&q= ────────────────────────────
+/**
+ * A quién se puede observar en la vista previa.
+ *
+ * Devuelve nombre y una línea de contexto —el centro del alumno, el municipio
+ * del gestor, el puesto del administrador— porque elegir entre cuarenta
+ * "Juan Pérez" sin más dato que el correo es elegir a ciegas.
+ *
+ * Sólo dice quién existe. Lo que se puede ver de cada quien lo decide
+ * `middleware/preview.ts`, no esta lista.
+ */
+router.get('/preview/candidatos', async (req, res) => {
+  const rol = String(req.query.rol ?? 'estudiante');
+  if (!['estudiante', 'gestor', 'admin'].includes(rol)) {
+    res.status(400).json({ error: 'Rol no válido' });
+    return;
+  }
+  const q = String(req.query.q ?? '').trim();
+  const patron = q ? patronLike(q) : null;
+
+  try {
+    if (rol === 'estudiante') {
+      const filas = await db
+        .select({
+          userId: users.id,
+          email: users.email,
+          activo: users.activo,
+          nombre: estudiantes.nombreCompleto,
+          matricula: estudiantes.matriculaOficialDGB,
+          centro: gestores.nombreCompleto,
+        })
+        .from(users)
+        .innerJoin(estudiantes, eq(estudiantes.userId, users.id))
+        .leftJoin(gestores, eq(gestores.userId, estudiantes.gestorId))
+        .where(
+          patron
+            ? and(
+                eq(users.rol, 'estudiante'),
+                sql`(${estudiantes.nombreCompleto} ILIKE ${patron} OR ${users.email} ILIKE ${patron} OR COALESCE(${estudiantes.matriculaOficialDGB}, '') ILIKE ${patron})`,
+              )
+            : eq(users.rol, 'estudiante'),
+        )
+        .orderBy(estudiantes.nombreCompleto)
+        .limit(40);
+      res.json(
+        filas.map((f) => ({
+          userId: f.userId,
+          nombre: f.nombre ?? f.email,
+          email: f.email,
+          activo: f.activo,
+          detalle: [f.matricula, f.centro].filter(Boolean).join(' · ') || 'Sin centro asignado',
+        })),
+      );
+      return;
+    }
+
+    if (rol === 'gestor') {
+      const filas = await db
+        .select({
+          userId: users.id,
+          email: users.email,
+          activo: users.activo,
+          nombre: gestores.nombreCompleto,
+          municipio: municipios.nombre,
+        })
+        .from(users)
+        .innerJoin(gestores, eq(gestores.userId, users.id))
+        .leftJoin(municipios, eq(municipios.id, gestores.municipioId))
+        .where(
+          patron
+            ? and(
+                eq(users.rol, 'gestor'),
+                sql`(${gestores.nombreCompleto} ILIKE ${patron} OR ${users.email} ILIKE ${patron})`,
+              )
+            : eq(users.rol, 'gestor'),
+        )
+        .orderBy(gestores.nombreCompleto)
+        .limit(40);
+      res.json(
+        filas.map((f) => ({
+          userId: f.userId,
+          nombre: f.nombre ?? f.email,
+          email: f.email,
+          activo: f.activo,
+          detalle: f.municipio ?? 'Sin municipio',
+        })),
+      );
+      return;
+    }
+
+    const filas = await db
+      .select({
+        userId: users.id,
+        email: users.email,
+        activo: users.activo,
+        nombre: administradores.nombreCompleto,
+        puesto: administradores.puesto,
+        esJefe: administradores.esJefe,
+      })
+      .from(users)
+      .innerJoin(administradores, eq(administradores.userId, users.id))
+      .where(
+        patron
+          ? and(
+              eq(users.rol, 'admin'),
+              sql`(${administradores.nombreCompleto} ILIKE ${patron} OR ${users.email} ILIKE ${patron})`,
+            )
+          : eq(users.rol, 'admin'),
+      )
+      .orderBy(administradores.nombreCompleto)
+      .limit(40);
+    res.json(
+      filas.map((f) => ({
+        userId: f.userId,
+        nombre: f.nombre ?? f.email,
+        email: f.email,
+        activo: f.activo,
+        detalle: f.puesto ?? (f.esJefe ? 'Titular' : 'Operativo'),
+      })),
+    );
+  } catch (e) {
+    console.error('[direccion/preview/candidatos]', e);
+    res.status(500).json({ error: 'No se pudo cargar la lista' });
+  }
+});
+
 router.get('/recordatorios/ensayo', async (_req, res) => {
   try {
     res.json(await recordarExamenesDeManana({ ensayo: true }));

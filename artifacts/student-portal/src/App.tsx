@@ -90,6 +90,9 @@ import DireccionCentros from './pages/direccion/DireccionCentros';
 import DireccionAcceso from './pages/direccion/DireccionAcceso';
 import DireccionNotas from './pages/direccion/DireccionNotas';
 import DireccionBitacora from './pages/direccion/DireccionBitacora';
+import DireccionPreview from './pages/direccion/DireccionPreview';
+import SelloVistaPrevia from './components/SelloVistaPrevia';
+import { EN_VISTA_PREVIA } from './lib/preview';
 import CapacitacionPortada from './pages/capacitacion/CapacitacionPortada';
 import ManualAlumno from './pages/capacitacion/ManualAlumno';
 import ManualGestor from './pages/capacitacion/ManualGestor';
@@ -108,7 +111,12 @@ function TelemetriaDeUso() {
   const [ruta] = useLocation();
 
   useEffect(() => {
-    iniciarTelemetria({ demo: demoActive() });
+    // En vista previa no se mide: son clics del creador revisando la
+    // aplicación, no uso real. Contarlos falsearía el ranking de pantallas que
+    // después decide los accesos rápidos — y `sendBeacon`, que la telemetría
+    // usa al cerrar, no pasa por el enganche de la vista previa, así que estos
+    // eventos SÍ llegarían, atribuidos a la cuenta del creador.
+    iniciarTelemetria({ demo: demoActive() || EN_VISTA_PREVIA });
   }, []);
 
   useEffect(() => {
@@ -151,6 +159,7 @@ export default function App() {
     <Confirmador />
     <TelemetriaDeUso />
     <Canonico />
+    <SelloVistaPrevia />
     <Switch>
       {/* Puerta nacional: el selector de estados. Es lo único que NO pertenece
           a un estado, y por eso vive en la raíz y fuera del <Router base>. */}
@@ -294,6 +303,7 @@ function PortalDelEstado() {
         <Route path="/direccion/centros" component={DireccionCentros} />
         <Route path="/direccion/acceso" component={DireccionAcceso} />
         <Route path="/direccion/bitacora" component={DireccionBitacora} />
+        <Route path="/direccion/preview" component={DireccionPreview} />
         <Route path="/direccion/notas" component={DireccionNotas} />
         <Route path="/direccion" component={DireccionPanorama} />
 
