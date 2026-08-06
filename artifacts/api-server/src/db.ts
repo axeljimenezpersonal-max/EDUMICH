@@ -419,6 +419,17 @@ const migrations = [
   `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_error text`,
   `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ultimo_dia_corrido varchar(10)`,
   `ALTER TABLE job_locks ADD COLUMN IF NOT EXISTS ejecuciones integer NOT NULL DEFAULT 0`,
+  // Recordatorios ya enviados: la clave única es lo que hace idempotente al
+  // trabajo programado. Ver schema.recordatoriosEnviados.
+  `CREATE TABLE IF NOT EXISTS recordatorios_enviados (
+     id serial PRIMARY KEY,
+     tipo varchar(40) NOT NULL,
+     clave varchar(80) NOT NULL,
+     user_id integer REFERENCES users(id),
+     enviado_en timestamp NOT NULL DEFAULT now()
+   )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS recordatorios_enviados_uq ON recordatorios_enviados(tipo, clave)`,
+  `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
 
   // Notas tipo post-it del panel del creador.
   `CREATE TABLE IF NOT EXISTS notas_creador (

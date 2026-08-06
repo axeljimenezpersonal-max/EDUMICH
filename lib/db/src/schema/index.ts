@@ -638,6 +638,32 @@ export const jobLocks = pgTable('job_locks', {
   ejecuciones: integer('ejecuciones').notNull().default(0),
 });
 
+/**
+ * Qué recordatorio ya se mandó, para no mandarlo dos veces.
+ *
+ * Un aviso repetido no es un detalle cosmético: al tercer correo idéntico la
+ * gente deja de abrirlos, y el día que llegue uno que sí importaba ya nadie lo
+ * lee. La clave única es lo que hace idempotente al trabajo programado —puede
+ * correr de más, reintentarse o solaparse, y cada persona recibe su aviso una
+ * sola vez—.
+ *
+ * `clave` identifica el HECHO que se avisa (`insc:1234`, `centro:7:etapa:9`),
+ * no el envío.
+ */
+export const recordatoriosEnviados = pgTable(
+  'recordatorios_enviados',
+  {
+    id: serial('id').primaryKey(),
+    tipo: varchar('tipo', { length: 40 }).notNull(),
+    clave: varchar('clave', { length: 80 }).notNull(),
+    userId: integer('user_id').references(() => users.id),
+    enviadoEn: timestamp('enviado_en').notNull().defaultNow(),
+  },
+  (t) => ({
+    tipoClaveUq: uniqueIndex('recordatorios_enviados_uq').on(t.tipo, t.clave),
+  })
+);
+
 // Notas tipo post-it del panel del creador (Sinapsis). Recordatorios sueltos,
 // visibles solo para quien los escribe.
 export const notasCreador = pgTable('notas_creador', {
