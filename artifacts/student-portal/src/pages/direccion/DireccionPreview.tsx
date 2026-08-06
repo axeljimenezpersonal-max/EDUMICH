@@ -18,10 +18,10 @@
  * (ver `middleware/preview.ts` en el API). Aquí no se puede guardar nada en
  * nombre de nadie, ni por accidente ni a propósito.
  */
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  MonitorSmartphone, Search, Smartphone, Monitor, RotateCw, ExternalLink,
-  Eye, GraduationCap, Building2, ShieldCheck, Lock, X,
+  MonitorSmartphone, Search, Smartphone, Monitor, Tablet, RotateCw, ExternalLink,
+  Eye, GraduationCap, Building2, ShieldCheck, Lock, X, Maximize2, Minimize2,
 } from 'lucide-react';
 import { DireccionLayout } from './DireccionLayout';
 import { api } from '../../lib/api';
@@ -84,10 +84,26 @@ const ATAJOS: Record<Rol, { ruta: string; label: string }[]> = {
   ],
 };
 
-/** Anchos de marco. El teléfono va primero porque es como entra casi toda la gente. */
+/**
+ * Los aparatos, con MEDIDAS REALES.
+ *
+ * Esto es lo que hace que la vista previa sirva para juzgar. Un marco que
+ * simplemente ocupa el ancho disponible —unos 950 px dentro del panel— le hace
+ * creer a la aplicación que está en una pantalla mediana, y lo que se ve es el
+ * diseño de TABLETA. Se estaría revisando una pantalla que ningún usuario tiene.
+ *
+ * Así que el marco se pinta a su tamaño de verdad (1440 px de ancho para
+ * escritorio) y después se REDUCE con `transform: scale`. La aplicación de
+ * adentro sigue midiendo 1440 y aplica sus reglas de escritorio; lo que se
+ * encoge es la imagen, como una maqueta a escala. Se ve más chico, pero se ve
+ * lo que hay.
+ *
+ * El teléfono va primero porque es como entra casi toda la gente.
+ */
 const APARATOS = [
-  { id: 'telefono',  label: 'Teléfono',  icono: Smartphone, ancho: 390,  alto: 780 },
-  { id: 'escritorio', label: 'Escritorio', icono: Monitor,   ancho: 0,    alto: 780 },
+  { id: 'telefono',   label: 'Teléfono',   icono: Smartphone, ancho: 390,  alto: 844, radio: 26 },
+  { id: 'tableta',    label: 'Tableta',    icono: Tablet,     ancho: 820,  alto: 1100, radio: 18 },
+  { id: 'escritorio', label: 'Escritorio', icono: Monitor,    ancho: 1440, alto: 900, radio: 10 },
 ] as const;
 
 export default function DireccionPreview() {
@@ -100,6 +116,10 @@ export default function DireccionPreview() {
   const [elegido, setElegido] = useState<Candidato | null>(null);
   const [ruta, setRuta] = useState<string>('/estudiante');
   const [aparato, setAparato] = useState<(typeof APARATOS)[number]['id']>('telefono');
+  // Cuando se expande, la columna de selección se esconde y el marco se queda
+  // con todo el ancho: es la diferencia entre ver el escritorio al 60% y verlo
+  // casi a tamaño real.
+  const [expandido, setExpandido] = useState(false);
   // Cambiar esto obliga al marco a remontarse: es la forma de recargar sin
   // depender de tocar el `contentWindow`, que aquí no hace falta.
   const [generacion, setGeneracion] = useState(0);
@@ -131,6 +151,27 @@ export default function DireccionPreview() {
   }
 
   const marco = APARATOS.find((a) => a.id === aparato)!;
+
+  // Cuánto espacio hay de verdad para pintar el marco. Se mide en lugar de
+  // suponerse: cambia al esconder la columna, al girar la tableta y al
+  // arrastrar el borde de la ventana.
+  const cajaRef = useRef<HTMLDivElement | null>(null);
+  const [anchoCaja, setAnchoCaja] = useState(0);
+  const medir = useCallback((n: HTMLDivElement | null) => {
+    cajaRef.current = n;
+    if (n) setAnchoCaja(n.clientWidth);
+  }, []);
+  useEffect(() => {
+    const n = cajaRef.current;
+    if (!n || typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver(([e]) => setAnchoCaja(e.contentRect.width));
+    ro.observe(n);
+    return () => ro.disconnect();
+  }, [elegido, expandido]);
+
+  // Nunca se agranda: un marco de teléfono estirado a 1200 px sería otra
+  // mentira, la contraria.
+  const escala = anchoCaja > 0 ? Math.min(1, (anchoCaja - 24) / marco.ancho) : 1;
   const url = useMemo(
     () => (elegido ? `${BASE_ESTADO}${ruta}?preview=${elegido.userId}` : ''),
     [elegido, ruta],
@@ -164,9 +205,9 @@ export default function DireccionPreview() {
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[340px_1fr]">
+        <div className={`grid gap-5 ${expandido ? '' : 'lg:grid-cols-[340px_1fr]'}`}>
           {/* ── Columna de selección ─────────────────────────────────────── */}
-          <div className="rounded-2xl border bg-white p-4" style={{ borderColor: '#eadfd7' }}>
+          <div className={`rounded-2xl border bg-white p-4 ${expandido ? 'hidden' : ''}`} style={{ borderColor: '#eadfd7' }}>
             <div className="mb-3 flex gap-1.5">
               {ROLES.map((r) => {
                 const Icono = r.icono;
@@ -276,6 +317,14 @@ export default function DireccionPreview() {
                       );
                     })}
                     <button
+                      onClick={() => setExpandido((v) => !v)}
+                      title={expandido ? 'Mostrar la lista' : 'Esconder la lista y ganar ancho'}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg border"
+                      style={{ borderColor: '#eadfd7', color: '#78716c' }}
+                    >
+                      {expandido ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                    </button>
+                    <button
                       onClick={() => setGeneracion((g) => g + 1)}
                       title="Recargar"
                       className="flex h-8 w-8 items-center justify-center rounded-lg border"
@@ -325,28 +374,43 @@ export default function DireccionPreview() {
                   })}
                 </div>
 
-                <div className="flex justify-center rounded-xl p-3" style={{ background: '#f2ece5' }}>
-                  <iframe
-                    key={`${elegido.userId}:${generacion}`}
-                    // El nombre del marco es lo que le dice al portal, ya dentro,
-                    // que arranque en vista previa — y sobrevive a que se navegue
-                    // ahí adentro, cosa que el parámetro de la dirección no hace.
-                    // Ver lib/preview.ts.
-                    name={marcaDeMarco(elegido.userId)}
-                    src={url}
-                    title={`Vista previa de ${elegido.nombre}`}
-                    style={{
-                      width: marco.ancho ? marco.ancho : '100%',
-                      height: marco.alto,
-                      border: '1px solid #ded3c8',
-                      borderRadius: marco.ancho ? 26 : 12,
-                      background: 'white',
-                      boxShadow: '0 6px 24px rgba(0,0,0,0.09)',
-                    }}
-                  />
+                <div ref={medir} className="flex justify-center rounded-xl p-3" style={{ background: '#f2ece5' }}>
+                  {/* La caja de afuera ocupa el tamaño YA REDUCIDO. Si no, el
+                      marco a tamaño real seguiría empujando el ancho de la
+                      página aunque visualmente se vea chico, y aparecería una
+                      barra de desplazamiento horizontal que no corresponde a
+                      nada. */}
+                  <div style={{ width: marco.ancho * escala, height: marco.alto * escala, overflow: 'hidden' }}>
+                    <iframe
+                      key={`${elegido.userId}:${generacion}`}
+                      // El nombre del marco es lo que le dice al portal, ya dentro,
+                      // que arranque en vista previa — y sobrevive a que se navegue
+                      // ahí adentro, cosa que el parámetro de la dirección no hace.
+                      // Ver lib/preview.ts.
+                      name={marcaDeMarco(elegido.userId)}
+                      src={url}
+                      title={`Vista previa de ${elegido.nombre}`}
+                      style={{
+                        width: marco.ancho,
+                        height: marco.alto,
+                        transform: `scale(${escala})`,
+                        transformOrigin: 'top left',
+                        border: '1px solid #ded3c8',
+                        borderRadius: marco.radio,
+                        background: 'white',
+                        boxShadow: '0 6px 24px rgba(0,0,0,0.09)',
+                      }}
+                    />
+                  </div>
                 </div>
 
                 <p className="mt-2.5 text-center text-[11px] leading-relaxed text-stone-400">
+                  {marco.label} · {marco.ancho} × {marco.alto} px
+                  {escala < 0.995 && (
+                    <> · se ve al <strong>{Math.round(escala * 100)}%</strong>, pero la aplicación de adentro
+                    mide {marco.ancho} px de verdad{!expandido && <> — con <Maximize2 size={10} className="inline" /> se ve más grande</>}</>
+                  )}
+                  <br />
                   Los botones de guardar están vivos, pero no guardan: al intentarlo aparece el aviso de
                   sólo lectura. Es a propósito — así se puede probar el recorrido completo hasta el final
                   sin tocar los datos de esta persona.

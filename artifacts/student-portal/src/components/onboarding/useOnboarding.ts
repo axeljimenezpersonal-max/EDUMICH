@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
+import { EN_VISTA_PREVIA } from '../../lib/preview';
 import type { Rol } from '../../lib/api';
 import { STEPS_BY_ROL, type TourStep } from './steps';
 import { cargarTutoriales, estaVisto, marcarVisto } from '../../lib/tutoriales';
@@ -42,6 +43,12 @@ export function useOnboarding(rol: Rol | null | undefined): UseOnboarding {
 
   useEffect(() => {
     if (!rol || total === 0) return;
+    // En vista previa el tutorial NO se abre solo. Se abriria encima de la
+    // pantalla que se esta yendo a revisar, y cerrarlo no serviria de nada:
+    // marcar el tutorial como visto es una escritura, y la vista previa es de
+    // solo lectura, asi que volveria a salir en cada recarga. El boton "Ver
+    // tutorial" sigue ahi para cuando lo que se quiera revisar sea el tutorial.
+    if (EN_VISTA_PREVIA) return;
     let vivo = true;
     let t: ReturnType<typeof setTimeout> | undefined;
     cargarTutoriales().then(() => {
