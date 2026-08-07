@@ -130,7 +130,7 @@ const DEMO_EXPEDIENTE = {
   folioPreregistro: 'PRE-2026-000482',
 };
 
-const DEMO_CONFIG_PAGO = { costoExamen: 131, datosBancarios: null };
+const DEMO_CONFIG_PAGO = { costoExamen: 101, datosBancarios: null };
 
 const DEMO_CONVOCATORIA = {
   gestor: null,
@@ -289,7 +289,7 @@ const AV_CONVOCATORIA = {
 const AV_ORDENES = [
   {
     id: 9101, folio: 'OP-2699B-0031', estado: 'pagado',
-    concepto: 'Examen: M4 Matemáticas', cantidadExamenes: 1, montoTotal: 131,
+    concepto: 'Examen: M4 Matemáticas', cantidadExamenes: 1, montoTotal: 101,
     referencia: 'REF-990031', metodoPago: 'banco', lineaCaptura: '9800 0131 4402 8821',
     tieneOrden: true, linkPago: null,
     fechaEmision: '2026-07-27', fechaVencimiento: '2026-08-03', fechaPago: '2026-07-28',
@@ -298,7 +298,7 @@ const AV_ORDENES = [
   },
   {
     id: 9102, folio: 'OP-2699B-0032', estado: 'emitida',
-    concepto: 'Examen: M5 Argumentación', cantidadExamenes: 1, montoTotal: 131,
+    concepto: 'Examen: M5 Argumentación', cantidadExamenes: 1, montoTotal: 101,
     referencia: null, metodoPago: null, lineaCaptura: '9800 0131 4402 8834',
     tieneOrden: true, linkPago: 'https://tesoreria.michoacan.gob.mx/pago-demo',
     fechaEmision: '2026-07-28', fechaVencimiento: '2026-08-04', fechaPago: null,
@@ -307,7 +307,7 @@ const AV_ORDENES = [
   },
   {
     id: 9103, folio: 'OP-2699B-0033', estado: 'pendiente_emision',
-    concepto: 'Examen: pendiente de emitir', cantidadExamenes: 1, montoTotal: 131,
+    concepto: 'Examen: pendiente de emitir', cantidadExamenes: 1, montoTotal: 101,
     referencia: null, metodoPago: null, lineaCaptura: null,
     tieneOrden: false, linkPago: null,
     fechaEmision: null, fechaVencimiento: null, fechaPago: null,
@@ -445,7 +445,7 @@ const DEMO_CALENDARIO = {
 
 const DEMO_FAQ = {
   preguntas: [
-    { id: 1, pregunta: '¿Cuánto cuesta el examen?', respuesta: 'Cada examen cuesta $131. La orden de pago la emite la Tesorería del Estado y se paga en banco, tienda o en línea.', categoria: 'Pagos', principal: true },
+    { id: 1, pregunta: '¿Cuánto cuesta el examen?', respuesta: 'Cada examen cuesta $101. La orden de pago la emite la Tesorería del Estado y se paga en banco, tienda o en línea.', categoria: 'Pagos', principal: true },
     { id: 2, pregunta: '¿Cuándo puedo inscribirme?', respuesta: 'Solo dentro de la ventana de inscripción de cada etapa (4 a 5 días). Consulta el Calendario para ver las fechas.', categoria: 'Inscripción', principal: true },
     { id: 3, pregunta: '¿Qué documentos necesita mi expediente?', respuesta: 'Cinco: CURP, acta de nacimiento, identificación, comprobante de domicilio y certificado de secundaria, más tu fotografía.', categoria: 'Documentos', principal: true },
     { id: 4, pregunta: '¿Qué llevo el día del examen?', respuesta: 'Tu pase de examen con código QR (se descarga en ID) y una identificación. Llega con anticipación a tu sede.', categoria: 'Examen', principal: false },

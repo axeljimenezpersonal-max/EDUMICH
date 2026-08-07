@@ -223,7 +223,7 @@ export const TOUR_G_INSCRIPCION: TourStep[] = [
     id: 'g-insc-intro',
     icon: 'ClipboardList',
     title: 'Inscribe en lote',
-    body: 'Inscribes a varios alumnos a uno o más módulos de una sola vez. Cada examen cuesta $131.',
+    body: 'Inscribes a varios alumnos a uno o más módulos de una sola vez. Cada examen cuesta $101.',
     illustration: 'inscribeLote',
   },
   {

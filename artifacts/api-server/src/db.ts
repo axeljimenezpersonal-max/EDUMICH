@@ -43,7 +43,10 @@ const migrations = [
      telefono_publico varchar(30),
      created_at timestamp NOT NULL DEFAULT now()
    )`,
-  // Concepto "derecho de examen" a $131 (Tesorería del Estado). Idempotente:
+  // Concepto "derecho de examen" (Tesorería del Estado). El monto de aquí es
+  // sólo la SIEMBRA de una base nueva; el vigente lo fija
+  // config/precioExamen.ts y se sincroniza con lib/db/precio-examen.mjs.
+  // Idempotente:
   // solo se siembra si no existe; ediciones posteriores del admin persisten.
   `INSERT INTO conceptos_pago (clave, nombre, descripcion, monto, vigencia, activo)
      VALUES ('derecho_examen', 'Derecho de examen', 'Pago de derecho de examen ante la Tesorería del Estado', 131.00, 2026, true)
@@ -52,6 +55,13 @@ const migrations = [
   `UPDATE conceptos_pago SET monto = 131.00 WHERE clave = 'derecho_examen' AND monto = 145.00`,
   // El precio en el texto de las preguntas frecuentes ($145 → $131).
   `UPDATE preguntas_frecuentes SET respuesta = replace(respuesta, '145 pesos', '131 pesos') WHERE respuesta LIKE '%145 pesos%'`,
+  // Agosto 2026: la parte de Synapsis entra en pausa y el examen baja a $101.
+  // Va como migración —y no sólo en el script— para que el precio quede bien
+  // aunque alguien despliegue sin acordarse de correrlo. Condicionada a que
+  // esté en 131: si mañana se sube a otra cosa desde el script, esto no la
+  // pisa. Al reactivar los $30 hay que agregar la migración inversa aquí.
+  `UPDATE conceptos_pago SET monto = 101.00 WHERE clave = 'derecho_examen' AND monto = 131.00`,
+  `UPDATE preguntas_frecuentes SET respuesta = replace(respuesta, '131 pesos', '101 pesos') WHERE respuesta LIKE '%131 pesos%'`,
   // Renombre de marca "Prepa Abierta" → "Preparatoria Abierta" en datos ya
   // sembrados en producción. Idempotente (solo afecta filas con el texto viejo).
   `UPDATE plantillas_correo SET

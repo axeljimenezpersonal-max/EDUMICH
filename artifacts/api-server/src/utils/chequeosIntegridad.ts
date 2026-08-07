@@ -81,13 +81,40 @@ export const CHEQUEOS: Chequeo[] = [
              AND (monto_iemsys + monto_synapsis) <> monto_total`,
   },
   {
-    clave: 'total_no_es_tarifa',
-    titulo: 'Fichas cuyo total no es $131 por examen',
+    clave: 'total_no_cuadra_con_partes',
+    titulo: 'Fichas cuyo total no cuadra con su desglose',
     nivel: 'aviso',
-    significa: 'El importe cobrado no corresponde a la tarifa vigente por la cantidad de exámenes.',
-    arreglo: 'Revisar si es un caso legítimo (descuento, reposición) o un error de captura.',
+    significa: 'El importe cobrado no es la suma de la parte del IEMSyS más la de Synapsis: el desglose de esa ficha no cierra.',
+    arreglo: 'Revisar la ficha: alguno de los tres montos se guardó mal.',
+    // Se compara contra SUS PROPIAS partes, no contra la tarifa vigente.
+    //
+    // Antes decía `monto_total <> cantidad_examenes * 131`, y eso convertía
+    // cada cambio de precio en una alarma masiva: las fichas viejas conservan
+    // el monto con el que nacieron (regla del producto), así que al bajar la
+    // tarifa TODAS habrían salido marcadas como error. Una alarma que se
+    // enciende sola cuando no pasa nada malo es peor que no tenerla: enseña a
+    // ignorarla.
+    //
+    // Esto, en cambio, es cierto en cualquier época: el total siempre tiene
+    // que ser la suma de sus partes.
     sql: `SELECT count(*)::int AS n FROM pagos_examen
-           WHERE estado <> 'cancelado' AND monto_total <> cantidad_examenes * 131`,
+           WHERE estado <> 'cancelado'
+             AND monto_total <> monto_iemsys + monto_synapsis`,
+  },
+  {
+    clave: 'monto_por_examen_invalido',
+    titulo: 'Fichas con un importe por examen fuera de lo esperado',
+    nivel: 'aviso',
+    significa: 'El importe unitario de esa ficha no corresponde a ninguna tarifa que la plataforma haya usado.',
+    arreglo: 'Revisar si es un caso legítimo (descuento, reposición) o un error de captura.',
+    // Las tarifas que esta plataforma ha cobrado, en orden histórico: $145 y
+    // $131 (con la parte de Synapsis) y $101 (con esa parte en pausa desde
+    // agosto de 2026). Al reactivarse los $30 hay que agregar el nuevo total
+    // a esta lista, no quitar los viejos: las fichas de antes siguen siendo
+    // correctas con su importe de entonces.
+    sql: `SELECT count(*)::int AS n FROM pagos_examen
+           WHERE estado <> 'cancelado' AND cantidad_examenes > 0
+             AND (monto_total / cantidad_examenes) NOT IN (101, 131, 145)`,
   },
   {
     clave: 'curp_duplicada',

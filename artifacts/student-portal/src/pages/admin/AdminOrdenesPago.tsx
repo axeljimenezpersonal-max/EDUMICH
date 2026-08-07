@@ -21,6 +21,7 @@ import { ContabilidadExamenesPanel } from './AdminContabilidadExamenes';
 import { ConfirmModal } from '../../components/ConfirmModal';
 import { PagoStepper } from '../../components/PagoStepper';
 import { CentroFiscalCard } from '../../components/CentroFiscalCard';
+import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
 import { api, type PagoExamenAdmin, type PagoExamenEstado, type PagoExamenCandidato, type PagoExamenDesglose } from '../../lib/api';
 
 const FILTROS: { key: string; label: string }[] = [
@@ -724,7 +725,7 @@ function Dato({ label, val }: { label: string; val: string }) {
 }
 
 // ─── Nueva orden ───────────────────────────────────────────────────────────
-const COSTO_EXAMEN = 131;
+const COSTO_EXAMEN = COSTO_EXAMEN_RESPALDO;
 
 interface AlumnoBusqueda {
   id: number; nombreCompleto: string; curp: string | null;

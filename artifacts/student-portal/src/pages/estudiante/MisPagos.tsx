@@ -12,6 +12,7 @@ import {
   Download, ExternalLink, FileText, Landmark, Loader2, MapPin, UploadCloud,
   X, AlertTriangle, Eye, RefreshCw, UserCheck, Phone, Mail,
 } from 'lucide-react';
+import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
 import { EstudianteLayout } from './EstudianteLayout';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -91,7 +92,7 @@ export default function MisPagos() {
 
   const sinPagar = inscripcionesActivas.filter((e) => estadoPagoDe(e.id) === 'sin_pagar');
   const pagados = inscripcionesActivas.filter((e) => estadoPagoDe(e.id) === 'pagado');
-  const costoExamen = configPago?.costoExamen ?? 131;
+  const costoExamen = configPago?.costoExamen ?? COSTO_EXAMEN_RESPALDO;
   // Si el alumno pertenece a un gestor / centro de asesoría, NO gestiona su pago:
   // su gestor solicita la ficha y sube el comprobante. El alumno solo consulta.
   const gestor = convData?.gestor ?? null;

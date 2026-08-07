@@ -27,6 +27,7 @@ import { EstudianteLayout } from './EstudianteLayout';
 import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_INSCRIPCION, TOUR_INSCRIPCION_ACTIVA, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
+import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
 import { api } from '../../lib/api';
 import type { ConvocatoriaResponse, CalendarioMes, ExamenInscrito, EtapaConvocatoria, ExpedienteResponse } from '../../lib/api';
 import { urlComoLlegar } from '../../lib/ubicacionMaps';
@@ -675,7 +676,7 @@ export default function MiConvocatoria() {
   }, []);
 
   // Costo por examen (para el total al solicitar la inscripción)
-  const [costoExamen, setCostoExamen] = useState(131);
+  const [costoExamen, setCostoExamen] = useState(COSTO_EXAMEN_RESPALDO);
   useEffect(() => {
     api.get<{ costoExamen: number }>('/estudiante/config-pago')
       .then((r) => { if (r?.costoExamen) setCostoExamen(r.costoExamen); })

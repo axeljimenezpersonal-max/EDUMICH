@@ -800,10 +800,17 @@ export const pagosExamen = pgTable(
     metodoPago: varchar('metodo_pago', { length: 30 }),
     concepto: pagoConceptoEnum('concepto').notNull().default('derecho_examen'),
     cantidadExamenes: integer('cantidad_examenes').notNull().default(1),
-    // $131 = $101 IEMSyS + $30 Synapsis. El split es INTERNO (solo reportes admin).
-    montoTotal: numeric('monto_total', { precision: 10, scale: 2 }).notNull().default('131.00'),
+    // El split IEMSyS/Synapsis es INTERNO (solo reportes admin); al alumno se
+    // le muestra el total y nada más.
+    //
+    // Estos valores por omisión son un RESPALDO de la base y no la fuente del
+    // precio: toda inserción real pasa por `montosDeFicha()` de
+    // `artifacts/api-server/src/config/precioExamen.ts`, que es donde vive el
+    // precio vigente. Desde agosto de 2026 la parte de Synapsis está en pausa
+    // y el examen cuesta $101 — ver ese archivo para reactivar los $30.
+    montoTotal: numeric('monto_total', { precision: 10, scale: 2 }).notNull().default('101.00'),
     montoIemsys: numeric('monto_iemsys', { precision: 10, scale: 2 }).notNull().default('101.00'),
-    montoSynapsis: numeric('monto_synapsis', { precision: 10, scale: 2 }).notNull().default('30.00'),
+    montoSynapsis: numeric('monto_synapsis', { precision: 10, scale: 2 }).notNull().default('0.00'),
     // Referencia visible: CURP o matrícula MIC-AAAA-NNNNN (nunca datos bancarios)
     referencia: varchar('referencia', { length: 40 }),
     // Emitido por el Estado y capturado por el admin/enlace — nunca generado aquí

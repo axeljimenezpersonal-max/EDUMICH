@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { ExamenesProximos } from '../../components/gestor/ExamenesProximos';
 import { GestorLayout } from './GestorLayout';
+import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
 import { api } from '../../lib/api';
 import { fechaCorta } from '../../lib/fechas';
 import { confirmar } from '../../components/Confirmador';
@@ -82,7 +83,7 @@ export default function GestorInscripcion() {
     if (!q) return elegibles;
     return elegibles.filter((a) => a.nombre.toLowerCase().includes(q) || (a.matricula ?? '').toLowerCase().includes(q));
   }, [elegibles, filtroAlumno]);
-  const costo = datos?.costoExamen ?? 131;
+  const costo = datos?.costoExamen ?? COSTO_EXAMEN_RESPALDO;
   const maxMod = datos?.maxModulos ?? 4;
   // Un alumno "lleno" ya tiene el máximo de módulos en la etapa: no se puede
   // inscribir a más y se muestra bloqueado con los módulos que ya trae.

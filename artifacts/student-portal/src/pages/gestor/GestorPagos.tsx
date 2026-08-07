@@ -12,6 +12,7 @@ import {
   Plus, Download, UploadCloud, Loader2, CheckCircle2, Clock,
   AlertCircle, ChevronLeft, FileText, Landmark, Copy, Check, ExternalLink, Ban, Trash2, X,
 } from 'lucide-react';
+import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
 import { GestorLayout } from './GestorLayout';
 import { PagoStepper } from '../../components/PagoStepper';
 import { CentroFiscalCard } from '../../components/CentroFiscalCard';
@@ -255,7 +256,7 @@ function NuevoView({ onCancel, onCreado, onError }: {
   onCancel: () => void; onCreado: (id: number) => void; onError: (m: string) => void;
 }) {
   const [examenes, setExamenes] = useState<ExamenDisponible[]>([]);
-  const [costo, setCosto] = useState(131);
+  const [costo, setCosto] = useState(COSTO_EXAMEN_RESPALDO);
   const [loading, setLoading] = useState(true);
   const [sel, setSel] = useState<Set<number>>(new Set());
   const [creando, setCreando] = useState(false);

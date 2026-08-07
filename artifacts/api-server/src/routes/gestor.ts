@@ -20,6 +20,7 @@ import path from 'path';
 import fs from 'node:fs/promises';
 import { guardarSubida, archivoStream, archivoExiste, archivoEliminar } from '../services/storage';
 import { db } from '../db';
+import { PRECIO_EXAMEN, montosDeFicha } from '../config/precioExamen';
 import {
   users,
   estudiantes,
@@ -87,10 +88,11 @@ async function getConfigPago() {
     .from(conceptosPago)
     .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
     .limit(1);
-  // Respaldo si el concepto no existe: el precio REAL ($131, ver CLAUDE.md).
-  // Decia 150 - un numero inventado que, con la fila de conceptos_pago caida,
-  // se habria mostrado como precio oficial sin que nadie lo notara.
-  const costoExamen = concepto ? parseFloat(String(concepto.monto)) : 131;
+  // Respaldo si el concepto no existe: el precio vigente de
+  // config/precioExamen.ts. Antes decía 150 — un número inventado que, con la
+  // fila de conceptos_pago caída, se habría mostrado como precio oficial sin
+  // que nadie lo notara.
+  const costoExamen = concepto ? parseFloat(String(concepto.monto)) : PRECIO_EXAMEN;
 
   const [banco] = await db
     .select()
@@ -2432,7 +2434,8 @@ async function engancharABorradorPago(params: {
   await db.insert(pagosExamenInscripciones)
     .values(inscripcionIds.map((iid) => ({ pagoExamenId: pagoId, examenInscripcionId: iid })));
 
-  // Recalcular cantidad y montos desde el puente (131 = 101 IEMSyS + 30 Synapsis).
+  // Recalcular cantidad y montos desde el puente. Los importes salen de
+  // config/precioExamen.ts, nunca escritos a mano.
   const [{ n }] = await db
     .select({ n: count() })
     .from(pagosExamenInscripciones)
@@ -2440,9 +2443,7 @@ async function engancharABorradorPago(params: {
   const cant = Number(n) || inscripcionIds.length;
   await db.update(pagosExamen).set({
     cantidadExamenes: cant,
-    montoTotal: (cant * 131).toFixed(2),
-    montoIemsys: (cant * 101).toFixed(2),
-    montoSynapsis: (cant * 30).toFixed(2),
+    ...montosDeFicha(cant),
   }).where(eq(pagosExamen.id, pagoId));
 
   // Avisar a la administración solo al crear la ficha (no en cada alta), para
@@ -2823,9 +2824,7 @@ async function cancelarInscripcionesEtapa(params: {
     } else {
       await db.update(pagosExamen).set({
         cantidadExamenes: cant,
-        montoTotal: (cant * 131).toFixed(2),
-        montoIemsys: (cant * 101).toFixed(2),
-        montoSynapsis: (cant * 30).toFixed(2),
+        ...montosDeFicha(cant),
       }).where(eq(pagosExamen.id, pid));
     }
   }

@@ -81,10 +81,28 @@ dice con claridad qué se comprobó y qué no.
 - **Ventanas de solicitud con candado estricto**: fuera de la ventana no se
   puede inscribir ni pagar. Son 8 etapas al año, de 4-5 días cada una.
 - **Pagos**: Módula **no cobra**. La línea de captura la emite el Estado; aquí
-  sólo se almacena, se sirve y se concilia. **$131 por examen** ($101 IEMSyS +
-  $30 Synapsis; el split es interno). **Un cambio de precio aplica SOLO a fichas
-  nuevas**: las fichas ya creadas conservan el monto con que nacieron (no se
-  recalcula hacia atrás).
+  sólo se almacena, se sirve y se concilia. **Un cambio de precio aplica SOLO a
+  fichas nuevas**: las fichas ya creadas conservan el monto con que nacieron (no
+  se recalcula hacia atrás).
+
+  **El precio vive en UN archivo**: `artifacts/api-server/src/config/precioExamen.ts`.
+  Antes estaba escrito a mano en 22 sitios. No lo escribas en ningún otro lado.
+
+  > ⏸️ **Agosto 2026 — los $30 de Synapsis están EN PAUSA.** El examen cuesta
+  > **$101**, todo al IEMSyS, porque la tarifa ante la Tesorería no se podía
+  > modificar todavía y la plataforma tenía que entrar en operación ya.
+  >
+  > **Para volver a cobrarlos** (cuando la Tesorería lo permita):
+  > 1. `PARTE_SYNAPSIS = 30` en `config/precioExamen.ts` — el total y el split
+  >    se recalculan solos.
+  > 2. `docker exec -it modula22 node lib/db/precio-examen.mjs --aplicar`
+  >    (actualiza el concepto y el texto de las preguntas frecuentes).
+  > 3. Agrega el nuevo total a la lista de tarifas válidas del chequeo
+  >    `monto_por_examen_invalido` en `utils/chequeosIntegridad.ts` — **sin
+  >    quitar las viejas**: las fichas de antes siguen siendo correctas.
+  > 4. Redespliega.
+  >
+  > Hay una nota en el panel del creador (Notas) con estos mismos pasos.
 - **Matrícula oficial (DGB/GIMS)**: la genera el Estado, no la app (aquí se
   captura). Estructura de 14 dígitos `AAAA 16 01 NNNNNN`: año de inscripción +
   `16` (Michoacán, INEGI) + subcódigo (`01`; era `33` en 2022) + un consecutivo

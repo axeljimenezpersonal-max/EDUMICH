@@ -11,6 +11,7 @@ import { PDFDocument, StandardFonts, rgb, PDFFont, PDFPage } from 'pdf-lib';
 import { eq, and } from 'drizzle-orm';
 import { sql } from 'drizzle-orm';
 import { db } from '../db';
+import { PRECIO_EXAMEN } from '../config/precioExamen';
 import { convocatoriasEtapas, conceptosPago } from '@workspace/db/schema';
 import { winAnsiSafe } from '../utils/pdfText';
 
@@ -44,7 +45,7 @@ export async function generarInscritosPagados(
     .from(conceptosPago)
     .where(and(eq(conceptosPago.clave, 'derecho_examen'), eq(conceptosPago.activo, true)))
     .limit(1);
-  const precio = concepto ? Math.round(parseFloat(String(concepto.monto))) : 131;
+  const precio = concepto ? Math.round(parseFloat(String(concepto.monto))) : PRECIO_EXAMEN;
 
   // Alumnos con exámenes PAGADOS en esta etapa (ficha en estado 'pagado').
   // Los módulos agregados son solo los cubiertos por una ficha pagada.

@@ -6,7 +6,8 @@
  *  - La orden de pago con línea de captura la emite la plataforma del Estado;
  *    aquí SOLO se almacena (la captura un admin/enlace) y se sirve.
  *  - 'pagado' SOLO se setea por conciliación/verificación de un admin.
- *  - Al alumno se le muestra únicamente el total ($131); el split 101/30 es interno.
+ *  - Al alumno se le muestra únicamente el TOTAL; el split IEMSyS/Synapsis es
+ *    interno. Los montos salen de `config/precioExamen.ts`, nunca escritos a mano.
  *
  * Montado en /api/pagos-examen con authRequired; cada handler valida el rol.
  */
@@ -17,6 +18,7 @@ import { createReadStream, existsSync } from 'fs';
 import fsp from 'node:fs/promises';
 import multer from 'multer';
 import { db } from '../db';
+import { PRECIO_EXAMEN, PARTE_IEMSYS, montosDeFicha } from '../config/precioExamen';
 import {
   pagosExamen,
   pagosExamenInscripciones,
@@ -240,7 +242,7 @@ async function detallePago(pagoId: number) {
   return { pago, items };
 }
 
-/** Vista pública para el ALUMNO — nunca expone el split 101/30. */
+/** Vista pública para el ALUMNO — nunca expone el split interno. */
 function vistaAlumno(pago: typeof pagosExamen.$inferSelect, items: any[]) {
   return {
     id: pago.id,
@@ -482,7 +484,7 @@ router.get('/gestor-candidatos', async (req, res) => {
       .from(gestores)
       .where(eq(gestores.userId, gestorId));
     return res.json({
-      costoExamen: 131,
+      costoExamen: PRECIO_EXAMEN,
       permisos: { individual: perm?.ind ?? true, grupal: perm?.gru ?? true },
       examenes: rows.rows.map((r) => ({
         id: Number(r.id), folio: r.folio, estudianteId: Number(r.estudiante_id), alumno: r.alumno,
@@ -595,9 +597,7 @@ router.post('/solicitar', async (req, res) => {
       solicitadoPorUserId: userId,
       concepto: 'derecho_examen',
       cantidadExamenes: cantidad,
-      montoTotal: (cantidad * 131).toFixed(2),
-      montoIemsys: (cantidad * 101).toFixed(2),
-      montoSynapsis: (cantidad * 30).toFixed(2),
+      ...montosDeFicha(cantidad),
       referencia,
       estado: 'pendiente_emision',
     }).returning({ id: pagosExamen.id });
@@ -699,11 +699,24 @@ export async function recalcularFicha(pagoId: number, estadoActual: PagoExamenEs
   const estudianteIds = new Set(items.map((i) => i.estudianteId));
   const cantidad = items.length;
   const invalidar = estadoActual === 'emitida';
+  // El precio con el que NACIÓ esta ficha, no el vigente hoy.
+  //
+  // Regla del producto (CLAUDE.md): un cambio de precio aplica sólo a fichas
+  // nuevas. Recalcular con el precio de hoy le cambiaría el importe a una ficha
+  // cuya línea de captura ya está impresa con otro — la plataforma diría un
+  // número y el banco cobraría otro. Se deduce del monto guardado; si la ficha
+  // venía vacía, se usa el vigente, que para una ficha sin exámenes es correcto.
+  const previo = await db
+    .select({ total: pagosExamen.montoTotal, iemsys: pagosExamen.montoIemsys, cant: pagosExamen.cantidadExamenes })
+    .from(pagosExamen).where(eq(pagosExamen.id, pagoId)).limit(1).then((r) => r[0]);
+  const cantPrevia = previo?.cant ?? 0;
+  const unitTotal = cantPrevia > 0 ? parseFloat(String(previo!.total)) / cantPrevia : PRECIO_EXAMEN;
+  const unitIemsys = cantPrevia > 0 ? parseFloat(String(previo!.iemsys)) / cantPrevia : PARTE_IEMSYS;
   await db.update(pagosExamen).set({
     cantidadExamenes: cantidad,
-    montoTotal: (cantidad * 131).toFixed(2),
-    montoIemsys: (cantidad * 101).toFixed(2),
-    montoSynapsis: (cantidad * 30).toFixed(2),
+    montoTotal: (cantidad * unitTotal).toFixed(2),
+    montoIemsys: (cantidad * unitIemsys).toFixed(2),
+    montoSynapsis: (cantidad * (unitTotal - unitIemsys)).toFixed(2),
     estudianteId: estudianteIds.size === 1 ? [...estudianteIds][0] : null,
     ...(invalidar ? {
       estado: 'pendiente_emision' as const,
@@ -932,10 +945,7 @@ router.post('/', async (req, res) => {
     const etapaId = inscs[0]?.etapaId ?? null;
 
     const cantidad = examenInscripcionIds.length;
-    const UNIT = 131;
-    const total = (cantidad * UNIT).toFixed(2);
-    const iemsys = (cantidad * 101).toFixed(2);
-    const synapsis = (cantidad * 30).toFixed(2);
+    const { montoTotal: total, montoIemsys: iemsys, montoSynapsis: synapsis } = montosDeFicha(cantidad);
     const referencia = alu.matricula || alu.curp || null;
 
     const gestorAtribuido = await gestorParaFicha(
@@ -1132,7 +1142,7 @@ router.post('/:id/cancelar', async (req, res) => {
   }
 });
 
-// GET /api/pagos-examen/reportes/desglose — split interno 101/30 (solo admin)
+// GET /api/pagos-examen/reportes/desglose — split interno IEMSyS/Synapsis (solo admin)
 router.get('/reportes/desglose', async (req, res) => {
   if (!esAdmin(req.user!.rol)) return res.status(403).json({ error: 'Solo administración' });
   try {
