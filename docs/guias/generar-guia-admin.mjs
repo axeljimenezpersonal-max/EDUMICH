@@ -104,6 +104,7 @@ const cita = (texto) => `<div class="cita">${texto}</div>`;
  * que hacía ver de alarma algo que casi siempre es una aclaración.
  */
 const ojo = (texto) => `<div class="cita ojo">${texto}</div>`;
+const tarjetaAncha = (titulo, cuerpo) => `<div class="tarjeta tarjeta-ancha"><h4>${esc(titulo)}</h4><p>${cuerpo}</p></div>`;
 const tarjeta = (titulo, cuerpo) => `<div class="tarjeta"><h4>${esc(titulo)}</h4><p>${cuerpo}</p></div>`;
 
 function encabezadoCap(numero, titulo, lede) {
@@ -661,7 +662,7 @@ const CAP10 = pagina(`
   ${cita(`La etiqueta junto a tu nombre dice qué perfil eres. Si un botón no aparece, no está
   fallando el sistema: es facultad del otro perfil.`)}
   <div class="tarjetas" style="margin-top:4mm">
-    ${tarjeta('Soporte de la plataforma', `Si el sistema falla, no puedes entrar o encuentras un
+    ${tarjetaAncha('Soporte de la plataforma', `Si el sistema falla, no puedes entrar o encuentras un
       error, el contacto directo es <strong>contacto@sinapsys.mx</strong> ·
       <strong>+52 443 380 7977</strong> (encargado en Michoacán). Módula 22 es operada por
       Synapsis; lo del trámite educativo sigue siendo del Instituto.`)}
@@ -901,6 +902,15 @@ const HTML = `<!doctype html>
   .tarjeta { background: #fff; border: 0.35mm solid ${C.linea}; border-radius: 3.5mm; padding: 6mm; }
   .tarjeta h4 { font-size: 11.5pt; font-weight: 700; color: ${C.guindaNoche}; margin-bottom: 2mm; }
   .tarjeta p { font-size: 9.5pt; color: ${C.gris}; }
+  /* La tarjeta de soporte ocupa el ancho completo y pesa más: es la salida
+     cuando la plataforma falla, y sola en media columna se leía como una nota
+     al pie. Va abajo del todo porque primero se agotan los canales del
+     trámite. */
+  .tarjeta-ancha { grid-column: 1 / -1; background: ${C.crema}; border-color: ${C.dorado};
+                   border-left: 1.6mm solid ${C.guinda}; padding: 7mm 8mm; text-align: center; }
+  .tarjeta-ancha h4 { font-size: 13pt; margin-bottom: 2.5mm; }
+  .tarjeta-ancha p { font-size: 11pt; line-height: 1.55; }
+  .tarjeta-ancha strong { color: ${C.guindaNoche}; font-size: 12pt; }
   .cotejo { margin-top: 1mm; }
   .cot { display: flex; align-items: center; gap: 5mm; padding: 4.2mm 0; font-size: 11.5pt;
          border-bottom: 0.3mm dashed ${C.linea}; }
