@@ -324,6 +324,19 @@ export const estudiantes = pgTable(
     cp: varchar('cp', { length: 10 }),
     ciudad: varchar('ciudad', { length: 120 }),
     estadoDomicilio: varchar('estado_domicilio', { length: 80 }),
+    /**
+     * De dónde salió cada dato: `{ curp: 'pdf_curp', fechaNacimiento: 'ine_mrz' }`.
+     *
+     * Un dato leído de un documento y uno tecleado a mano NO valen lo mismo, y
+     * hasta hoy la base no podía distinguirlos. Importa para dos cosas
+     * concretas: cuando un expediente resulte tener un dato malo, saber si lo
+     * escribió una persona o lo propuso una lectura es lo que permite corregir
+     * la causa; y si algún día una lectura resultara defectuosa, esto dice
+     * exactamente a qué expedientes hay que volver.
+     *
+     * Los campos ausentes se capturaron a mano, que es lo normal.
+     */
+    datosLeidosDe: jsonb('datos_leidos_de'),
     observaciones: text('observaciones'), // opcional — se imprime en la cédula
     // PDF de calificaciones que sube la administración (preview + descarga)
     calificacionesPdfPath: varchar('calificaciones_pdf_path', { length: 500 }),
@@ -924,6 +937,9 @@ export const solicitudesCuenta = pgTable('solicitudes_cuenta', {
   nombres: varchar('nombres', { length: 120 }),
   apellidoPaterno: varchar('apellido_paterno', { length: 100 }),
   apellidoMaterno: varchar('apellido_materno', { length: 100 }),
+  // De dónde salió cada dato de esta solicitud (ver `datosLeidosDe` en
+  // `estudiantes`). Viaja con la solicitud para no perderse al aprobarla.
+  datosLeidosDe: jsonb('datos_leidos_de'),
   curp: varchar('curp', { length: 18 }).notNull(),
   fechaNacimiento: date('fecha_nacimiento').notNull(),
   sexo: varchar('sexo', { length: 20 }),

@@ -41,6 +41,8 @@ import { autoregistroConfirmacionTemplate } from '../services/templates/autoregi
 import { notifAdminAutoregistroTemplate } from '../services/templates/notif-admin-autoregistro';
 import { tryAuditLog } from '../utils/audit';
 import { notificarATodosLosAdmins } from '../utils/notificar';
+import multer from 'multer';
+import { leerDocumento } from '../services/lecturaDocumentos';
 import { validarCurp } from '../utils/curp';
 import { validarEdad } from '../utils/edad';
 import rateLimit from 'express-rate-limit';
@@ -99,6 +101,20 @@ async function curpOcupada(curp: string): Promise<{ mensaje: string; motivo: Mot
 // Privacidad: el correo SIEMPRE se devuelve enmascarado (por CURP o por nombre).
 // La recuperación se dispara con un token firmado, sin revelar el correo completo
 // (evita cosechar emails aunque alguien tenga la CURP o el nombre).
+/**
+ * Leer un documento cuesta CPU de verdad —abrir un PDF, o reconocer caracteres
+ * en una imagen— a diferencia de validar una CURP, que es aritmética. Por eso
+ * tiene su propio tope, más bajo: sin él, un endpoint público que acepta
+ * archivos es una forma cómoda de tumbar el servidor.
+ */
+const lecturaLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 12,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, aviso: 'Demasiadas lecturas seguidas. Espera unos minutos o captura los datos a mano.' },
+});
+
 const buscarCuentaLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 10,
@@ -243,6 +259,45 @@ const validarCurpSchema = z.object({
   apellidoMaterno: z.string().max(100).optional(),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   sexo: z.string().max(20).optional(),
+});
+
+// ─── POST /publico/leer-documento ────────────────────────────────────────
+/**
+ * Lee un documento y PROPONE los datos que trae. No guarda nada.
+ *
+ * Es público —sin sesión— porque el aspirante que se registra por su cuenta
+ * todavía no la tiene, y es justo quien más gana con esto. A cambio lleva
+ * cuatro candados: tope de peticiones, tope de tamaño, tipos permitidos, y
+ * **el archivo nunca toca el disco**: se procesa en memoria y se descarta. Un
+ * documento que no se guarda no se puede filtrar.
+ *
+ * Responde 200 incluso cuando no pudo leer: "no se pudo" es una respuesta
+ * legítima de esta función, no un error del sistema. La persona teclea, como
+ * siempre.
+ */
+const subidaLectura = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024, files: 1 },
+});
+
+router.post('/leer-documento', lecturaLimiter, subidaLectura.single('archivo'), async (req, res) => {
+  const archivo = req.file;
+  if (!archivo) {
+    res.json({ ok: false, aviso: 'No llegó ningún archivo.' });
+    return;
+  }
+  const permitidos = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+  if (!permitidos.includes(archivo.mimetype)) {
+    res.json({ ok: false, aviso: 'Sube un PDF o una foto (JPG o PNG).' });
+    return;
+  }
+  try {
+    const lectura = await leerDocumento(archivo.buffer, archivo.mimetype);
+    res.json(lectura);
+  } catch (e) {
+    console.error('[publico/leer-documento]', e);
+    res.json({ ok: false, aviso: 'No se pudo leer el documento. Captura los datos a mano.' });
+  }
 });
 
 router.post('/validar-curp', curpLimiter, async (req, res) => {
@@ -744,6 +799,12 @@ const solicitudSchema = z.object({
     .refine((v): v is string => v !== null, 'El teléfono debe tener 10 dígitos, sin la lada de país.'),
   municipioId: z.number().int().positive(),
   mensaje: z.string().optional(),
+  /**
+   * De dónde salió cada dato: `{ curp: 'pdf_curp' }`. Se valida contra la lista
+   * cerrada de fuentes en vez de aceptar cualquier objeto — es un campo que
+   * llega de fuera y termina guardado, así que no puede ser texto libre.
+   */
+  datosLeidosDe: z.record(z.enum(['pdf_curp', 'pdf_acta', 'ine_mrz'])).optional(),
   modalidadPreferida: z.enum(['con_gestor', 'auto_gestion']).optional(),
   quiereInfoGestores: z.boolean().optional(),
   ...camposDesglosados,
@@ -811,6 +872,7 @@ router.post('/solicitudes-cuenta', async (req, res) => {
     apellidoPaterno: data.apellidoPaterno,
     apellidoMaterno: data.apellidoMaterno,
     curp: curpNormalizada,
+    datosLeidosDe: data.datosLeidosDe ?? null,
     fechaNacimiento: data.fechaNacimiento,
     sexo: data.sexo,
     lugarNacimiento: data.lugarNacimiento,

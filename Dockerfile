@@ -1,6 +1,20 @@
 FROM node:24-slim
 WORKDIR /app
 
+# Reconocimiento de caracteres para leer la banda de datos del reverso del INE
+# (ver services/lecturaDocumentos.ts).
+#
+# Va DENTRO de la imagen y no en un servicio de terceros a propósito: mandar la
+# identificación o el acta de un menor a la nube de otra empresa es una
+# transferencia de datos personales que la LGPDPPSO exige tener en el aviso de
+# privacidad y respaldada por contrato. Aquí el documento no sale del servidor
+# del Estado.
+#
+# Sólo el idioma español; el paquete completo son cientos de MB y no se usan.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-spa \
+ && rm -rf /var/lib/apt/lists/*
+
 # Install pnpm
 RUN npm install -g pnpm@11
 

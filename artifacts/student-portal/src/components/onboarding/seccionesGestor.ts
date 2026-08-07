@@ -72,6 +72,14 @@ export const TOUR_G_NUEVO_ALUMNO: TourStep[] = [
     illustration: 'altaConvocatoria',
   },
   {
+    id: 'g-alta-lectura',
+    anchor: 'g-alta-lectura',
+    placement: 'bottom',
+    icon: 'ScanLine',
+    title: 'No teclees lo que ya está escrito',
+    body: 'Sube la constancia de CURP del alumno, su acta o una foto del reverso de su credencial: los datos que se puedan leer se llenan solos y tú los confirmas. El PDF se lee exacto; la foto puede fallar, y si falla te lo dice y capturas a mano.',
+  },
+  {
     id: 'g-alta-pasos',
     anchor: 'g-alta-pasos',
     placement: 'bottom',

@@ -290,6 +290,20 @@ const crearAlumnoSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   telefono: z.string().min(7).max(30).optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v) ?? undefined)),
   fechaNacimiento: z.string().optional(),
+  /**
+   * De dónde salió cada dato. Llega como JSON en el formulario (multipart no
+   * lleva objetos), así que se convierte aquí; si viene mal formado se ignora
+   * en silencio — es un dato de trazabilidad y jamás debe tumbar un alta.
+   */
+  datosLeidosDe: z.string().optional().transform((v) => {
+    if (!v) return undefined;
+    try {
+      const o = JSON.parse(v) as Record<string, string>;
+      const fuentes = new Set(['pdf_curp', 'pdf_acta', 'ine_mrz']);
+      const limpio = Object.fromEntries(Object.entries(o).filter(([, f]) => fuentes.has(f)));
+      return Object.keys(limpio).length > 0 ? limpio : undefined;
+    } catch { return undefined; }
+  }),
   // OBLIGATORIOS: van en la cédula de inscripción y en la Relación que se
   // entrega a la SEP-DGB. Si faltan, el trámite se cae más adelante y para
   // entonces el alumno ya se fue del centro de asesoría — así que se exigen
@@ -379,6 +393,7 @@ router.post('/alumnos', async (req, res) => {
     apellidoPaterno: data.apellidoPaterno,
     apellidoMaterno: data.apellidoMaterno,
     curp: data.curp.toUpperCase(),
+    datosLeidosDe: data.datosLeidosDe ?? null,
     fechaNacimiento: data.fechaNacimiento,
     sexo: data.sexo,
     lugarNacimiento: data.lugarNacimiento,

@@ -82,7 +82,45 @@ export interface DatosDeclarados {
 export interface ResultadoCurp {
   valida: boolean;
   errores: string[];
-  entidadNacimiento?: string; // derivada de la CURP, para autollenar
+  /**
+   * Lo que la CURP YA DICE, para llenar el formulario en vez de pedirlo.
+   *
+   * La CURP no es un identificador opaco: sus 18 caracteres codifican la fecha
+   * de nacimiento, el sexo y la entidad de nacimiento. Esta capa ya los
+   * calculaba —para regañar cuando no coincidían con lo tecleado—, y hacer que
+   * la persona escriba a mano un dato que el sistema puede deducir, para
+   * después corregirla, es pedirle trabajo y castigarla por hacerlo.
+   *
+   * Sólo se devuelve cuando la CURP pasó la verificación completa (formato +
+   * dígito de control): deducir de una CURP inválida sería inventar.
+   */
+  derivado?: {
+    fechaNacimiento: string; // YYYY-MM-DD
+    sexo: 'hombre' | 'mujer' | 'no_definir';
+    entidadNacimiento?: string;
+  };
+  /** @deprecated Usa `derivado.entidadNacimiento`. Se conserva por compatibilidad. */
+  entidadNacimiento?: string;
+}
+
+/**
+ * La fecha de nacimiento que trae la CURP.
+ *
+ * Posiciones 5-10 (AAMMDD). El siglo lo decide el carácter 17: en las CURP del
+ * siglo XX es un dígito, y en las del XXI una letra — RENAPO lo usó justamente
+ * para desempatar. Sin esa regla, alguien nacido en 2005 se registraría como
+ * nacido en 1905.
+ */
+export function fechaNacimientoDeCurp(curp: string): string {
+  const esSiglo21 = /[A-Z]/.test(curp[16]);
+  return `${esSiglo21 ? '20' : '19'}${curp.slice(4, 6)}-${curp.slice(6, 8)}-${curp.slice(8, 10)}`;
+}
+
+/** El sexo que trae la CURP (posición 11). `X` = no binario, en las recientes. */
+export function sexoDeCurp(curp: string): 'hombre' | 'mujer' | 'no_definir' {
+  if (curp[10] === 'H') return 'hombre';
+  if (curp[10] === 'M') return 'mujer';
+  return 'no_definir';
 }
 
 export function validarCurp(curpRaw: string, datos: DatosDeclarados = {}): ResultadoCurp {
@@ -150,8 +188,26 @@ export function validarCurp(curpRaw: string, datos: DatosDeclarados = {}): Resul
     }
   }
 
-  // Entidad (posiciones 12-13) — se devuelve para autollenar el formulario.
+  // ── Lo que la CURP dice, para llenar el formulario ──
+  //
+  // Se calcula SÓLO si no hubo errores: si la CURP no cuadra con lo que la
+  // persona ya escribió, autollenar el resto encima sería empeorar el enredo
+  // en vez de resolverlo. Primero se aclara la contradicción.
   const entidad = ENTIDADES_CURP[curp.slice(11, 13)];
+  const valida = errores.length === 0;
 
-  return { valida: errores.length === 0, errores, entidadNacimiento: entidad };
+  return {
+    valida,
+    errores,
+    entidadNacimiento: entidad,
+    ...(valida
+      ? {
+          derivado: {
+            fechaNacimiento: fechaNacimientoDeCurp(curp),
+            sexo: sexoDeCurp(curp),
+            entidadNacimiento: entidad,
+          },
+        }
+      : {}),
+  };
 }

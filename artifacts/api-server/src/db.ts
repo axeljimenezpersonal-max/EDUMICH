@@ -441,6 +441,10 @@ const migrations = [
   `CREATE UNIQUE INDEX IF NOT EXISTS recordatorios_enviados_uq ON recordatorios_enviados(tipo, clave)`,
   `ALTER TYPE outbox_evento ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
   `ALTER TYPE notif_tipo ADD VALUE IF NOT EXISTS 'recordatorio_examen'`,
+  // Procedencia de los datos del expediente: qué se leyó de un documento y
+  // qué se tecleó. Ver `datosLeidosDe` en el esquema.
+  `ALTER TABLE estudiantes ADD COLUMN IF NOT EXISTS datos_leidos_de jsonb`,
+  `ALTER TABLE solicitudes_cuenta ADD COLUMN IF NOT EXISTS datos_leidos_de jsonb`,
   // v2.2: el correo de acceso es insensible a mayúsculas. La entrada ya se
   // normaliza en cada esquema (trim + minúsculas); esto empareja lo GUARDADO,
   // para que 'UTEC@MODULA22.MX' escrito en el teléfono encuentre su cuenta.

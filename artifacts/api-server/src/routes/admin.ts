@@ -976,6 +976,10 @@ router.post('/solicitudes-cuenta/:id/aprobar', async (req, res) => {
       apellidoPaterno: solicitud.apellidoPaterno,
       apellidoMaterno: solicitud.apellidoMaterno,
       curp: solicitud.curp,
+      // La procedencia viaja de la solicitud al expediente: si el dato se leyó
+      // de un documento cuando el aspirante se registró, eso sigue siendo
+      // cierto después de que la administración aprueba.
+      datosLeidosDe: solicitud.datosLeidosDe ?? null,
       fechaNacimiento: solicitud.fechaNacimiento,
       sexo: solicitud.sexo,
       lugarNacimiento: solicitud.lugarNacimiento,
@@ -4191,6 +4195,10 @@ router.post('/solicitudes/:solicitudId/aprobar', async (req, res) => {
       apellidoPaterno: solicitud.apellidoPaterno,
       apellidoMaterno: solicitud.apellidoMaterno,
       curp: solicitud.curp,
+      // La procedencia viaja de la solicitud al expediente: si el dato se leyó
+      // de un documento cuando el aspirante se registró, eso sigue siendo
+      // cierto después de que la administración aprueba.
+      datosLeidosDe: solicitud.datosLeidosDe ?? null,
       fechaNacimiento: solicitud.fechaNacimiento,
       sexo: solicitud.sexo,
       lugarNacimiento: solicitud.lugarNacimiento,

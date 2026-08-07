@@ -5,7 +5,8 @@ import {
   Edit3, CheckCircle2, Loader2, RefreshCw, KeyRound, ShieldCheck,
   User, MapPin, Mail, Check, ArrowLeft, ArrowRight,
   FileSearch, UserCheck, MailCheck, Clock, Phone, Home, Search, ChevronRight, AlertTriangle } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { LeerDocumento, type CamposLeidos, type FuenteDato } from '../../components/LeerDocumento';
 import { AutoRegistroLayout } from './AutoRegistroLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
@@ -136,6 +137,8 @@ export default function SolicitarCuenta() {
   // Por qué está ocupada la CURP, cuando lo está. Cambia la salida que se
   // ofrece: con cuenta ya creada se recupera el acceso; con una solicitud aún
   // en revisión no hay nada que recuperar y lo correcto es esperar.
+  /** Qué campo salió de qué documento. Viaja al servidor con la solicitud. */
+  const [leidosDe, setLeidosDe] = useState<Partial<Record<keyof CamposLeidos, FuenteDato>>>({});
   const [curpOcupada, setCurpOcupada] = useState<'alumno' | 'solicitud_pendiente' | 'solicitud_aprobada' | null>(null);
 
   // Autollenado de domicilio por código postal (catálogo SEPOMEX de Michoacán).
@@ -287,6 +290,7 @@ export default function SolicitarCuenta() {
           ocupada?: 'alumno' | 'solicitud_pendiente' | 'solicitud_aprobada';
           errores: string[];
           entidadNacimiento?: string;
+          derivado?: { fechaNacimiento: string; sexo: 'hombre' | 'mujer' | 'no_definir'; entidadNacimiento?: string };
         }>(
           '/publico/validar-curp',
           {
@@ -307,8 +311,17 @@ export default function SolicitarCuenta() {
           return;
         }
         setCurpOcupada(null);
-        // Autollenar la entidad de nacimiento con la que codifica la CURP.
-        if (r.entidadNacimiento && !form.entidadNacimiento) {
+        // La CURP codifica entidad, fecha de nacimiento y sexo: se autollena lo
+        // que siga vacío, sin pisar nada de lo que el aspirante ya escribió.
+        const d0 = r.derivado;
+        if (d0) {
+          setForm((prev) => ({
+            ...prev,
+            entidadNacimiento: prev.entidadNacimiento || d0.entidadNacimiento || '',
+            sexo: prev.sexo || d0.sexo,
+          }));
+          if (!fechaNacimiento) setFechaNacimiento(parseISO(d0.fechaNacimiento));
+        } else if (r.entidadNacimiento && !form.entidadNacimiento) {
           setForm((prev) => ({ ...prev, entidadNacimiento: r.entidadNacimiento! }));
         }
       } catch (err) {
@@ -327,6 +340,44 @@ export default function SolicitarCuenta() {
     setFormError(null);
     setCurpOcupada(null);
     setPaso((p) => Math.max(1, p - 1));
+  }
+
+
+  /**
+   * Aplica lo leído de un documento, sin pisar lo que la persona ya escribió.
+   *
+   * Devuelve qué campos cambió para que el lector pueda decirlo con nombre: un
+   * "listo" sin señalar qué se movió obliga a revisar todo el formulario a ojo,
+   * que es justo el trabajo que se quería ahorrar.
+   */
+  function aplicarLeido(c: CamposLeidos, fuente: FuenteDato): (keyof CamposLeidos)[] {
+    const cambiados: (keyof CamposLeidos)[] = [];
+    setForm((prev) => {
+      const sig = { ...prev };
+      const poner = <K extends keyof typeof sig>(k: K, v: string | undefined, campo: keyof CamposLeidos) => {
+        if (v && !String(sig[k] ?? '').trim()) { (sig[k] as string) = v; cambiados.push(campo); }
+      };
+      poner('curp', c.curp, 'curp');
+      poner('nombres', c.nombres, 'nombres');
+      poner('apellidoPaterno', c.apellidoPaterno, 'apellidoPaterno');
+      poner('apellidoMaterno', c.apellidoMaterno, 'apellidoMaterno');
+      poner('sexo', c.sexo, 'sexo');
+      poner('entidadNacimiento', c.entidadNacimiento, 'entidadNacimiento');
+      return sig;
+    });
+    if (c.fechaNacimiento && !fechaNacimiento) {
+      setFechaNacimiento(parseISO(c.fechaNacimiento));
+      cambiados.push('fechaNacimiento');
+    }
+    // De dónde salió cada dato, para que viaje con la solicitud hasta la base.
+    if (cambiados.length > 0) {
+      setLeidosDe((prev) => {
+        const sig = { ...prev };
+        for (const k of cambiados) sig[k] = fuente;
+        return sig;
+      });
+    }
+    return cambiados;
   }
 
   async function handleSolicitarCodigo(e: React.FormEvent) {
@@ -404,6 +455,9 @@ export default function SolicitarCuenta() {
         apellidoPaterno: form.apellidoPaterno,
         apellidoMaterno: form.apellidoMaterno,
         curp: form.curp.toUpperCase(),
+        // La procedencia viaja con la solicitud: al aprobarla, el expediente
+        // hereda de dónde salió cada dato.
+        datosLeidosDe: Object.keys(leidosDe).length > 0 ? leidosDe : undefined,
         fechaNacimiento: fechaNacimiento ? format(fechaNacimiento, 'yyyy-MM-dd') : '',
         sexo: form.sexo || undefined,
         lugarNacimiento: form.lugarNacimiento || undefined,
@@ -689,6 +743,13 @@ export default function SolicitarCuenta() {
           {/* ── PASO 1 · Datos personales ── */}
           {paso === 1 && (
             <>
+              {/* Va ARRIBA del formulario: ofrecerlo después de que la persona
+                  ya tecleó todo no le ahorra nada. */}
+              <LeerDocumento
+                onLeido={aplicarLeido}
+                titulo="¿Quieres ahorrarte el tecleo?"
+                descripcion="Sube tu constancia de CURP, tu acta de nacimiento o una foto del reverso de tu identificación, y llenamos lo que podamos. Después lo revisas."
+              />
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div>
                   <label className="gov-label" htmlFor="sc-nombres">Nombre(s) *</label>

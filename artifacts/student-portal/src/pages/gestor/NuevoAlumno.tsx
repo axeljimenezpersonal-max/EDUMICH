@@ -12,7 +12,8 @@ import {
   MapPin,
   GraduationCap,
 } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { LeerDocumento, type CamposLeidos, type FuenteDato } from '../../components/LeerDocumento';
 import { GestorLayout } from './GestorLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
@@ -195,6 +196,8 @@ export default function NuevoAlumno() {
   // registrar; hay que seguir el proceso con la Secretaría.
   const [cuentaDuplicada, setCuentaDuplicada] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ curp?: string; email?: string }>({});
+  /** Qué campo salió de qué documento. Acompaña al alta hasta la base. */
+  const [leidosDe, setLeidosDe] = useState<Partial<Record<keyof CamposLeidos, FuenteDato>>>({});
   const [validandoCurp, setValidandoCurp] = useState(false);
   const [exito, setExito] = useState<RegistroExito | null>(null);
   const [mostrarModalSinDocs, setMostrarModalSinDocs] = useState(false);
@@ -358,11 +361,55 @@ export default function NuevoAlumno() {
    * significaba que una CURP mal tecleada llegaba hasta el final del alta y
    * reventaba al guardar, con el alumno ya sentado enfrente.
    */
+
+  /**
+   * Aplica lo leído de un documento sin pisar lo que el gestor ya capturó.
+   *
+   * Es el mismo criterio del autorregistro del alumno, a propósito: el centro y
+   * el aspirante ven la misma herramienta comportarse igual, así que cuando el
+   * gestor le explique a alguien cómo funciona, le está explicando lo que esa
+   * persona va a encontrar.
+   */
+  function aplicarLeido(c: CamposLeidos, fuente: FuenteDato): (keyof CamposLeidos)[] {
+    const cambiados: (keyof CamposLeidos)[] = [];
+    setDatos((prev) => {
+      const sig = { ...prev };
+      const poner = (k: 'curp' | 'nombres' | 'apellidoPaterno' | 'apellidoMaterno' | 'sexo' | 'entidadNacimiento',
+                     v: string | undefined, campo: keyof CamposLeidos) => {
+        if (v && !String(sig[k] ?? '').trim()) { (sig[k] as string) = v; cambiados.push(campo); }
+      };
+      poner('curp', c.curp, 'curp');
+      poner('nombres', c.nombres, 'nombres');
+      poner('apellidoPaterno', c.apellidoPaterno, 'apellidoPaterno');
+      poner('apellidoMaterno', c.apellidoMaterno, 'apellidoMaterno');
+      poner('sexo', c.sexo, 'sexo');
+      poner('entidadNacimiento', c.entidadNacimiento, 'entidadNacimiento');
+      if (c.fechaNacimiento && !sig.fechaNacimiento) {
+        sig.fechaNacimiento = parseISO(c.fechaNacimiento);
+        cambiados.push('fechaNacimiento');
+      }
+      return sig;
+    });
+    if (cambiados.length > 0) {
+      setLeidosDe((prev) => {
+        const sig = { ...prev };
+        for (const k of cambiados) sig[k] = fuente;
+        return sig;
+      });
+    }
+    return cambiados;
+  }
+
   async function continuarAPaso2() {
     setValidandoCurp(true);
     setFieldErrors((prev) => ({ ...prev, curp: undefined }));
     try {
-      const r = await api.post<{ valida: boolean; errores: string[]; entidadNacimiento?: string }>(
+      const r = await api.post<{
+        valida: boolean;
+        errores: string[];
+        entidadNacimiento?: string;
+        derivado?: { fechaNacimiento: string; sexo: 'hombre' | 'mujer' | 'no_definir'; entidadNacimiento?: string };
+      }>(
         '/publico/validar-curp',
         {
           curp: datos.curp,
@@ -379,9 +426,23 @@ export default function NuevoAlumno() {
         setFieldErrors((prev) => ({ ...prev, curp: r.errores[0] ?? 'La CURP no es válida.' }));
         return;
       }
-      // La entidad de nacimiento la codifica la propia CURP: se autollena para
-      // no pedir dos veces el mismo dato.
-      if (r.entidadNacimiento && !datos.entidadNacimiento) {
+      // La CURP codifica la entidad, la fecha de nacimiento y el sexo: se
+      // autollenan los que sigan vacíos. Antes sólo se aprovechaba la entidad,
+      // así que al gestor se le pedían dos datos que el sistema ya tenía —y si
+      // los tecleaba distinto, se le regañaba por contradecir algo que nunca
+      // debió escribir.
+      //
+      // Sólo lo VACÍO: si el gestor ya capturó algo, no se le cambia por
+      // debajo. Lo que uno escribió con su mano gana.
+      const d0 = r.derivado;
+      if (d0) {
+        setDatos((d) => ({
+          ...d,
+          entidadNacimiento: d.entidadNacimiento || d0.entidadNacimiento || '',
+          fechaNacimiento: d.fechaNacimiento ?? parseISO(d0.fechaNacimiento),
+          sexo: d.sexo || d0.sexo,
+        }));
+      } else if (r.entidadNacimiento && !datos.entidadNacimiento) {
         setDatos((d) => ({ ...d, entidadNacimiento: r.entidadNacimiento! }));
       }
       setPaso(2);
@@ -460,6 +521,7 @@ export default function NuevoAlumno() {
     fd.append('sexo', datos.sexo);
     fd.append('lugarNacimiento', datos.lugarNacimiento);
     fd.append('entidadNacimiento', datos.entidadNacimiento);
+    if (Object.keys(leidosDe).length > 0) fd.append('datosLeidosDe', JSON.stringify(leidosDe));
     fd.append('estadoCivil', datos.estadoCivil);
     fd.append('ultimoEstudio', datos.ultimoEstudio);
     fd.append('calleNumero', datos.calleNumero);
@@ -503,6 +565,7 @@ export default function NuevoAlumno() {
     fd.append('sexo', datos.sexo);
     fd.append('lugarNacimiento', datos.lugarNacimiento);
     fd.append('entidadNacimiento', datos.entidadNacimiento);
+    if (Object.keys(leidosDe).length > 0) fd.append('datosLeidosDe', JSON.stringify(leidosDe));
     fd.append('estadoCivil', datos.estadoCivil);
     fd.append('ultimoEstudio', datos.ultimoEstudio);
     fd.append('calleNumero', datos.calleNumero);
@@ -662,6 +725,16 @@ export default function NuevoAlumno() {
       {/* ── PASO 1: Datos personales ─────────────────────────────────── */}
       {paso === 1 && (
         <div data-tour="g-alta-datos" className="gov-card p-6 max-w-3xl mx-auto space-y-5">
+          {/* Antes del formulario: ofrecer el atajo cuando ya se tecleó todo no
+              ahorra nada. Y con el alumno enfrente, la foto de su INE está a
+              un toque. */}
+          <div data-tour="g-alta-lectura">
+            <LeerDocumento
+              onLeido={aplicarLeido}
+              titulo="¿Trae su documento? Léelo y se llena solo"
+              descripcion="Sube la constancia de CURP del alumno, su acta, o toma una foto del reverso de su credencial. Lo que se pueda leer se llena y tú lo confirmas."
+            />
+          </div>
           {padronMatch && (
             <div className="rounded-xl border border-emerald-300 bg-emerald-50 p-4">
               <div className="flex items-start gap-3">
