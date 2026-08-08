@@ -50,7 +50,7 @@ const POPPINS = "'Poppins', sans-serif";
  * está inscrito y confunde). El alumno tiene su tarjeta personal "Tu próximo
  * examen". El gestor sí ve el calendario completo.
  */
-export function AvisosCalendario({ ocultarExamen = false, ocultarProxima = false, hrefInscripcion, dataTour, examenGestor = false }: { ocultarExamen?: boolean; ocultarProxima?: boolean; hrefInscripcion?: string; dataTour?: string; examenGestor?: boolean } = {}) {
+export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataTour, examenGestor = false }: { ocultarExamen?: boolean; hrefInscripcion?: string; dataTour?: string; examenGestor?: boolean } = {}) {
   const [eventos, setEventos] = useState<EventoCalendario[]>([]);
 
   useEffect(() => {
@@ -61,12 +61,13 @@ export function AvisosCalendario({ ocultarExamen = false, ocultarProxima = false
     return () => { alive = false; };
   }, []);
 
-  // `ocultarProxima`: el gestor no necesita la cuenta regresiva "abre en X días"
-  // antes de que abra la ventana (ya tiene el calendario completo abajo). Solo se
-  // le muestra la ventana cuando REALMENTE está abierta.
-  const visibles = eventos.filter(
-    (e) => !(ocultarExamen && e.tipo === 'examen') && !(ocultarProxima && e.tipo === 'ventana_proxima')
-  );
+  // Hubo una bandera `ocultarProxima` que escondía el aviso de "abre en X días"
+  // en el inicio del gestor, con el argumento de que el calendario completo
+  // estaba en esa misma pantalla. El calendario se mudó a su propia sección y
+  // la bandera se quedó: el resultado era un inicio que no decía ni que venía
+  // una ventana ni cuándo. Se quitó, no se apagó — una bandera sin usuarios
+  // vuelve a encenderse sola la próxima vez que alguien pase por aquí.
+  const visibles = eventos.filter((e) => !(ocultarExamen && e.tipo === 'examen'));
   // Si no hay ventana/examen próximo no renderiza nada: así el tour de esta
   // sección no encuentra el anclaje y su tarjeta se centra (caso alumno nuevo).
   if (visibles.length === 0) return null;
@@ -76,7 +77,7 @@ export function AvisosCalendario({ ocultarExamen = false, ocultarProxima = false
       {visibles.map((e, i) => {
         if (e.tipo === 'ventana_abierta') return <BannerVentanaAbierta key={i} e={e} href={hrefInscripcion} />;
         if (e.tipo === 'examen') return <BannerExamen key={i} e={e} gestor={examenGestor} />;
-        return <BannerVentanaProxima key={i} e={e} />;
+        return <BannerVentanaProxima key={i} e={e} href={hrefInscripcion} />;
       })}
     </div>
   );
@@ -247,10 +248,46 @@ function BannerExamen({ e, gestor = false }: { e: EventoCalendario; gestor?: boo
   );
 }
 
-// ── Banner ligero: próxima ventana (aún no abre) ────────────────────────────
-function BannerVentanaProxima({ e }: { e: EventoCalendario }) {
+/**
+ * Sólo la próxima ventana, para pantallas que están CERRADAS por fecha.
+ *
+ * "Vuelve cuando abra la siguiente" no le sirve a nadie: la pregunta que trae
+ * quien llega a una pantalla cerrada es *cuándo*, y esa fecha ya la tenemos.
+ * Sin ella, la única salida es irse al Calendario a buscarla a mano.
+ *
+ * Devuelve `null` mientras carga y también si no hay ninguna ventana próxima
+ * —lo segundo pasa de verdad: entre el último examen de un cuatrimestre y la
+ * carga del calendario siguiente no hay fecha que prometer, y es mejor no
+ * decir nada que inventar una.
+ */
+export function AvisoProximaVentana() {
+  const [e, setE] = useState<EventoCalendario | null>(null);
+  useEffect(() => {
+    let alive = true;
+    api.get<{ eventos: EventoCalendario[] }>('/anuncios/calendario')
+      .then((r) => { if (alive) setE(r.eventos?.find((x) => x.tipo === 'ventana_proxima') ?? null); })
+      .catch(() => {});
+    return () => { alive = false; };
+  }, []);
+  if (!e) return null;
   return (
-    <div className="flex items-start gap-3 rounded-xl border p-4" style={{ background: '#eff6ff', borderColor: '#bfdbfe' }}>
+    <p className="mt-3 text-sm font-semibold text-stone-700">
+      La siguiente es la <span className="uppercase">etapa {e.clave}</span>: abre el{' '}
+      <span style={{ color: CAL_INSCRIPCION.texto }}>{fmtLargo(e.fecha)}</span> ({enDias(e.dias)})
+      {e.fechaFin ? <> y cierra el <span style={{ color: CAL_INSCRIPCION.texto }}>{fmtLargo(e.fechaFin)}</span></> : null}.
+    </p>
+  );
+}
+
+// ── Banner ligero: próxima ventana (aún no abre) ────────────────────────────
+//
+// Con `href` ofrece la salida a Inscripción. La ventana todavía no abre, así
+// que el enlace NO promete inscribir —dice "Ver Inscripción"— y el texto ya
+// trae la fecha en que abre. Del otro lado, la pantalla de Inscripción explica
+// que está cerrada y desde cuándo: se llega a una respuesta, no a un muro.
+function BannerVentanaProxima({ e, href }: { e: EventoCalendario; href?: string }) {
+  const contenido = (
+    <div className="flex items-start gap-3 p-4">
       <CalendarClock size={16} style={{ color: '#3b82f6', flexShrink: 0, marginTop: 2 }} />
       <div className="min-w-0">
         <div className="text-sm font-semibold" style={{ color: '#1d4ed8' }}>
@@ -259,7 +296,22 @@ function BannerVentanaProxima({ e }: { e: EventoCalendario }) {
         <p className="mt-0.5 text-xs leading-relaxed" style={{ color: '#57504a' }}>
           Abre el <strong>{fmtLargo(e.fecha)}</strong> ({enDias(e.dias)}){e.fechaFin ? ` y cierra el ${fmtLargo(e.fechaFin)}` : ''}.
         </p>
+        {href && (
+          <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold" style={{ color: '#1d4ed8' }}>
+            Ver Inscripción <ChevronRight size={13} />
+          </span>
+        )}
       </div>
     </div>
+  );
+  const cls = 'block rounded-xl border';
+  const style = { background: '#eff6ff', borderColor: '#bfdbfe' };
+  return href ? (
+    <Link href={href} className={`${cls} group cursor-pointer transition-colors hover:bg-[#e0edff]`} style={style}
+          aria-label={`Ver la inscripción de la etapa ${e.clave}, que abre el ${fmtLargo(e.fecha)}`}>
+      {contenido}
+    </Link>
+  ) : (
+    <div className={cls} style={style}>{contenido}</div>
   );
 }

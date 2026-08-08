@@ -15,6 +15,7 @@ import {
   CreditCard, X, Lock, Search, Clock, CalendarCheck, ExternalLink, Trash2,
 } from 'lucide-react';
 import { ExamenesProximos } from '../../components/gestor/ExamenesProximos';
+import { AvisoProximaVentana } from '../../components/AvisosCalendario';
 import { GestorLayout } from './GestorLayout';
 import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
 import { api } from '../../lib/api';
@@ -224,9 +225,14 @@ export default function GestorInscripcion() {
         <div className="border-2 border-dashed border-stone-200 rounded-xl p-12 text-center">
           <CalendarClock size={30} className="mx-auto text-stone-300 mb-3" />
           <div className="font-bold text-stone-900 mb-1">No hay una etapa con inscripción abierta</div>
-          <p className="text-sm text-stone-500 max-w-md mx-auto">
-            La inscripción solo está disponible dentro de la ventana de solicitud de una etapa. Vuelve cuando abra la siguiente.
-          </p>
+          <div className="max-w-md mx-auto">
+            <p className="text-sm text-stone-500">
+              La inscripción solo está disponible dentro de la ventana de solicitud de una etapa.
+            </p>
+            {/* Con la fecha. "Vuelve cuando abra la siguiente" mandaba al
+                gestor al Calendario a buscar el dato que aquí ya tenemos. */}
+            <AvisoProximaVentana />
+          </div>
         </div>
       ) : (
         <div className="space-y-5 pb-24">

@@ -170,10 +170,18 @@ export default function GestorDashboard() {
         </div>
       )}
 
-      {/* Fechas del calendario oficial (ventana de solicitud/pago, examen) */}
-      <div className="mb-6"><AvisosCalendario examenGestor ocultarProxima dataTour="g-ini-fechas" /></div>
-
-      {/* Calendario oficial completo (colapsable) */}
+      {/* Fechas del calendario oficial (ventana de solicitud/pago, examen).
+          Va con `hrefInscripcion`: cuando la ventana abre, el aviso ES el
+          camino a inscribir — sin él la pantalla anuncia que ya se puede y
+          deja al gestor buscando por dónde.
+          Ya NO lleva `ocultarProxima`: se ocultaba el aviso de "abre en X
+          días" porque el calendario completo estaba aquí abajo, y ese
+          calendario se movió a su propia sección hace tiempo. El motivo
+          desapareció y el aviso se quedó oculto: el gestor no veía en su
+          inicio ni que venía una ventana ni cuándo. */}
+      <div className="mb-6">
+        <AvisosCalendario examenGestor hrefInscripcion="/gestor/inscripcion" dataTour="g-ini-fechas" />
+      </div>
 
       {/* KPIs — cada tarjeta lleva a su lista filtrada */}
       <div data-tour="g-ini-kpis" className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
