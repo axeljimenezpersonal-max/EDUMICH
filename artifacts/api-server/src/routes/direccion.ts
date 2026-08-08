@@ -16,6 +16,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import crypto from 'node:crypto';
 import { sql, eq, count, gte, lte, like, isNull, and, countDistinct, inArray, desc } from 'drizzle-orm';
 import { db } from '../db';
 import {
@@ -35,17 +36,18 @@ import {
   notasCreador,
   auditLog,
   centrosPadron,
+  passwordResetTokens,
 } from '@workspace/db/schema';
 import { authRequired, requireRol } from '../middleware/auth';
 import { patronLike } from '../utils/like';
 import { generarPasswordTemporal } from '../utils/password';
-import { urlPortalLogin } from '../utils/portal';
+import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
 import { verificarBitacora } from '../services/verificarBitacora';
 import { recordarExamenesDeManana } from '../services/recordatoriosExamen';
 import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
-import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendBienvenidaCredenciales, sendCorreoAccesoCambiado } from '../services/email';
+import { puedeRevelarCredenciales, sendBienvenidaGestor, sendBienvenidaAdmin, sendBienvenidaCredenciales, sendCorreoAccesoCambiado, sendRecuperarPassword } from '../services/email';
 import { metricasSinMovimiento } from '../services/depuracion';
 import { resumenMetricas, serieMetricas, PROCESS_START, obtenerErroresRecientes } from '../middleware/metrics';
 import { correrChequeos } from '../utils/chequeosIntegridad';
@@ -1137,6 +1139,97 @@ router.post('/accesos/:userId/reenviar', async (req, res) => {
   }
 });
 
+/**
+ * Enviar un ENLACE DE RECUPERACIÓN a cualquier cuenta, desde el panel.
+ *
+ * ── Por qué existe, si ya está "Reenviar acceso" ────────────────────────────
+ *
+ * "Reenviar acceso" sólo sirve para quien NUNCA entró: genera otra contraseña
+ * temporal y la manda. En cuanto la persona entra una vez, esa puerta se cierra
+ * a propósito (arriba: `if (!u.passwordTemporal)`) — regenerarle la contraseña a
+ * alguien que ya tiene la suya es tumbarle la sesión sin avisarle.
+ *
+ * Pero entonces no quedaba NADA: quien ya había entrado y luego olvidó su
+ * contraseña tenía que usar "¿Olvidaste tu contraseña?" del login, y eso falla
+ * justamente en las cuentas de staff, cuyo correo de acceso es institucional y
+ * no tiene buzón. Se quedaban sin ninguna vía.
+ *
+ * Este endpoint es la vía que faltaba, y es de una naturaleza distinta al
+ * reenvío: NO toca la contraseña actual. Genera el mismo token que produce el
+ * login —una hora de vida, un solo uso— y lo manda. Si la persona no lo abre,
+ * su contraseña de siempre sigue funcionando.
+ *
+ * Va a donde de verdad llega el correo: `sendEmail` traduce la dirección de
+ * acceso a la de contacto. Si no hay contacto y la de acceso es institucional,
+ * se rechaza ANTES de generar el token — mandar un enlace a un buzón que no
+ * existe deja al creador creyendo que ya lo resolvió.
+ */
+router.post('/accesos/:userId/enlace-recuperacion', async (req, res) => {
+  const userId = Number(req.params.userId);
+  if (Number.isNaN(userId)) {
+    res.status(400).json({ error: 'ID inválido' });
+    return;
+  }
+  try {
+    const [u] = await db
+      .select({
+        email: users.email,
+        rol: users.rol,
+        activo: users.activo,
+        contacto: users.correoNotificaciones,
+      })
+      .from(users)
+      .where(eq(users.id, userId));
+
+    if (!u || (u.rol !== 'admin' && u.rol !== 'gestor' && u.rol !== 'estudiante')) {
+      res.status(404).json({ error: 'Cuenta no encontrada' });
+      return;
+    }
+    if (!u.activo) {
+      res.status(400).json({
+        error: 'La cuenta está desactivada. Reactívala primero: un enlace de recuperación no le serviría para entrar.',
+      });
+      return;
+    }
+
+    const entrega = u.contacto?.trim() || u.email;
+    if (!u.contacto?.trim() && /@modula22\.mx$/i.test(u.email)) {
+      res.status(400).json({
+        error: `${u.email} es una dirección interna sin buzón, y la cuenta no tiene correo de contacto. Registra su correo personal en "Editar" y vuelve a intentarlo.`,
+      });
+      return;
+    }
+
+    // Mismo token que emite el login: 32 bytes, guardado en hash, una hora.
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
+    await db.insert(passwordResetTokens).values({ userId, tokenHash, expiraEn });
+
+    const resetUrl = `${urlPortalEstado()}/reset-password?token=${token}`;
+    const { enviado } = await sendRecuperarPassword(
+      u.email,
+      { nombre: u.email.split('@')[0], resetUrl, token },
+      { relatedUserId: userId, triggeredBy: req.user!.userId },
+    );
+
+    await tryAuditLog({
+      userId: req.user!.userId,
+      accion: 'enviar_enlace_recuperacion',
+      entidad: 'users',
+      entidadId: userId,
+      detalle: `El creador envió un enlace de recuperación para ${u.email}`,
+      metadata: { rol: u.rol, entregadoA: entrega, enviado },
+      req,
+    });
+
+    res.json({ ok: true, correoEnviado: enviado, entregadoA: entrega });
+  } catch (e) {
+    console.error('[direccion/accesos/enlace-recuperacion]', e);
+    res.status(500).json({ error: 'No se pudo enviar el enlace de recuperación' });
+  }
+});
+
 const editarAccesoSchema = z.object({
   nombreCompleto: z.string().trim().min(1).max(200).optional(),
   email: z.string().trim().toLowerCase().email().optional(),
@@ -1147,7 +1240,10 @@ const editarAccesoSchema = z.object({
   // Correo institucional (el que se publica). Cadena vacía = quitarlo.
   emailPublico: z.string().trim().max(255).nullable().optional(),
   // Correo de CONTACTO: a donde se entrega de verdad. Nulo = al de acceso.
-  correoNotificaciones: z.string().trim().max(255).nullable().optional(),
+  // En minúsculas, como todos los correos del sistema: si se guarda
+  // `Rau.Ocana@Gmail.com`, la recuperación —que busca por este campo— no lo
+  // encuentra cuando la persona lo teclea de otra forma.
+  correoNotificaciones: z.string().trim().toLowerCase().max(255).nullable().optional(),
 });
 
 router.patch('/accesos/:userId', async (req, res) => {

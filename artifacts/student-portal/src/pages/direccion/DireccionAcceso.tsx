@@ -5,7 +5,7 @@
  * escribe datos; el resto es solo lectura.
  */
 import { useEffect, useState } from 'react';
-import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock, Pencil, Trash2, Ban, Power } from 'lucide-react';
+import { UserPlus, Building2, ShieldCheck, Send, CheckCircle2, AlertCircle, RefreshCw, Mail, Clock, Pencil, Trash2, Ban, Power, KeyRound } from 'lucide-react';
 import { DireccionLayout } from './DireccionLayout';
 import { api } from '../../lib/api';
 import { avisar } from '../../components/Avisador';
@@ -39,6 +39,21 @@ type Municipio = { id: number; nombre: string };
 
 const GUINDA = 'var(--color-guinda-700)';
 
+/**
+ * ¿Es una dirección que Módula emitió y que NO tiene buzón detrás?
+ *
+ * `utec@modula22.mx` identifica al centro dentro de la plataforma, pero nadie
+ * la abre nunca: no existe como cuenta de correo. Un mensaje enviado ahí se
+ * pierde en silencio.
+ *
+ * Misma regla que aplica el servidor antes de generar un enlace de
+ * recuperación (`routes/direccion.ts` y `routes/auth.ts`). Si un día cambia el
+ * dominio, hay que cambiarla en los tres.
+ */
+function esInstitucional(email: string): boolean {
+  return /@modula22\.mx$/i.test(email.trim());
+}
+
 export default function DireccionAcceso() {
   const [tipo, setTipo] = useState<Tipo>('gestor');
   const [nombre, setNombre] = useState('');
@@ -62,6 +77,8 @@ export default function DireccionAcceso() {
   const [accesos, setAccesos] = useState<Acceso[]>([]);
   const [cargandoAccesos, setCargandoAccesos] = useState(true);
   const [reenviando, setReenviando] = useState<number | null>(null);
+  const [enlazando, setEnlazando] = useState<number | null>(null);
+
   const [editandoId, setEditandoId] = useState<number | null>(null);
   const [edit, setEdit] = useState<FormEdit>({ nombreCompleto: '', email: '', emailPublico: '', correoNotificaciones: '', municipioId: '', telefono: '', puesto: '', esJefe: false });
   const [guardandoEdit, setGuardandoEdit] = useState(false);
@@ -216,6 +233,44 @@ export default function DireccionAcceso() {
       avisar((e as Error).message || 'No se pudo reenviar.', 'error');
     } finally {
       setReenviando(null);
+    }
+  }
+
+  /**
+   * Enviar un enlace de recuperación. Es lo contrario del reenvío: NO toca la
+   * contraseña actual, así que se puede usar con quien ya entró — que es
+   * justamente quien no tenía ninguna vía, porque su correo de acceso es
+   * institucional y "¿Olvidaste tu contraseña?" del login le manda a un buzón
+   * inexistente.
+   */
+  async function enviarEnlace(a: Acceso) {
+    const destino = a.correoNotificaciones || a.email;
+    // Se corta aquí, no en el diálogo: preguntar "¿enviar a utec@modula22.mx?"
+    // sería ofrecer algo que no puede pasar. El servidor también lo rechaza —
+    // esto sólo evita el viaje.
+    if (!a.correoNotificaciones && esInstitucional(a.email)) {
+      avisar(`${a.email} no recibe mensajes y esta cuenta no tiene correo de contacto. Registra su correo personal en «Editar» y vuelve a intentarlo.`, 'error');
+      return;
+    }
+    const ok = await confirmar({
+      title: 'Enviar enlace de recuperación',
+      message:
+        `Se enviará a ${destino} un enlace para que ${formatearNombre(a.nombre)} elija una contraseña nueva. ` +
+        'Vence en 1 hora y sirve una sola vez. Su contraseña actual NO cambia: sigue funcionando mientras no use el enlace.',
+      confirmLabel: 'Enviar enlace',
+    });
+    if (!ok) return;
+    setEnlazando(a.userId);
+    try {
+      const r = await api.post<{ correoEnviado: boolean; entregadoA: string }>(`/direccion/accesos/${a.userId}/enlace-recuperacion`, {});
+      avisar(
+        r.correoEnviado ? `Enlace enviado a ${r.entregadoA}.` : 'Se generó el enlace, pero el correo no salió (revisa la configuración).',
+        r.correoEnviado ? 'ok' : 'error',
+      );
+    } catch (e) {
+      avisar((e as Error).message || 'No se pudo enviar el enlace.', 'error');
+    } finally {
+      setEnlazando(null);
     }
   }
 
@@ -459,16 +514,24 @@ export default function DireccionAcceso() {
                         </span>
                       </div>
                       <div className="mt-0.5 truncate text-xs text-stone-500">{a.email}</div>
-                      {/* A dónde LLEGA. Se marca en ámbar cuando no hay uno
-                          aparte y el de acceso es institucional: ahí es donde
-                          las credenciales se irían a un buzón que no existe. */}
+                      {/* A dónde LLEGA de verdad.
+                          Sin contacto hay dos casos muy distintos y antes se
+                          pintaban igual: si el de acceso es personal (el alumno
+                          que se registró con su Gmail) no pasa nada; si es
+                          institucional, NADA le llega —ni credenciales ni
+                          recuperación— porque detrás no hay buzón. Ése es el
+                          único que hay que arreglar, y se dice así. */}
                       {a.correoNotificaciones ? (
                         <div className="mt-0.5 truncate text-[11px] text-stone-400">
                           Le llega a <span className="text-stone-500">{a.correoNotificaciones}</span>
                         </div>
+                      ) : esInstitucional(a.email) ? (
+                        <div className="mt-0.5 text-[11px] font-semibold text-amber-700">
+                          Sin correo de contacto · su correo de acceso no recibe mensajes. Regístralo en «Editar».
+                        </div>
                       ) : (
-                        <div className="mt-0.5 truncate text-[11px] text-amber-700">
-                          Sin correo de contacto · todo se manda al de acceso
+                        <div className="mt-0.5 truncate text-[11px] text-stone-400">
+                          Le llega a su correo de acceso
                         </div>
                       )}
                       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
@@ -489,6 +552,17 @@ export default function DireccionAcceso() {
                         <button type="button" onClick={() => reenviar(a)} disabled={reenviando === a.userId}
                           className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-guinda-700)]/30 px-2.5 py-1.5 text-xs font-semibold text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] disabled:opacity-50">
                           <RefreshCw size={13} /> {reenviando === a.userId ? 'Reenviando…' : 'Reenviar'}
+                        </button>
+                      )}
+                      {/* Enlace de recuperación: para quien YA entró y olvidó su
+                          contraseña. No se ofrece a quien nunca ha entrado —ahí
+                          el botón correcto es "Reenviar", que le manda su
+                          credencial— ni a cuentas inactivas, que no pueden
+                          iniciar sesión aunque cambien de contraseña. */}
+                      {!a.puedeReenviar && a.activo && (
+                        <button type="button" onClick={() => enviarEnlace(a)} disabled={enlazando === a.userId}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--color-guinda-700)]/30 px-2.5 py-1.5 text-xs font-semibold text-[var(--color-guinda-700)] hover:bg-[var(--color-crema-100)] disabled:opacity-50">
+                          <KeyRound size={13} /> {enlazando === a.userId ? 'Enviando…' : 'Enviar enlace'}
                         </button>
                       )}
                       {a.activo ? (

@@ -498,7 +498,7 @@ export interface RecuperarPasswordData {
 export async function sendRecuperarPassword(
   email: string,
   data: RecuperarPasswordData,
-  opts?: { relatedUserId?: number }
+  opts?: { relatedUserId?: number; triggeredBy?: number }
 ): Promise<{ enviado: boolean; modo: 'dev' | 'production' }> {
   const html = getRecuperarPasswordHTML(data);
   const textPlain = [
@@ -521,6 +521,7 @@ export async function sendRecuperarPassword(
     textPlain,
     evento: 'recuperar_password',
     relatedUserId: opts?.relatedUserId,
+    triggeredBy: opts?.triggeredBy,
   });
 }
 

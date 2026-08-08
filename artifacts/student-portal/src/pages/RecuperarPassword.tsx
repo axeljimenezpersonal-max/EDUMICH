@@ -2,9 +2,19 @@ import { useState } from 'react';
 import { useLocation } from 'wouter';
 import { api } from '../lib/api';
 import { GraduationCap, Mail, HelpCircle, ShieldCheck, MapPin, Phone, Info, CheckCircle, Loader2 } from 'lucide-react';
-import { CONTACTO_CORREO } from '../lib/contacto';
+import { CONTACTO_CORREO, CONTACTO_TELEFONO } from '../lib/contacto';
 
 type Metodo = 'correo' | 'admin' | null;
+
+interface RespuestaRecuperar {
+  ok: boolean;
+  existe?: boolean;
+  /** A dónde llegó de verdad, enmascarado (`a•••@gmail.com`). */
+  entregadoA?: string;
+  /** La cuenta sólo tiene correo institucional, que no recibe mensajes. */
+  sinBuzon?: boolean;
+  aviso?: string;
+}
 
 export default function RecuperarPassword() {
   const [, setLocation] = useLocation();
@@ -13,6 +23,7 @@ export default function RecuperarPassword() {
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
   const [existeCuenta, setExisteCuenta] = useState(true);
+  const [resultado, setResultado] = useState<RespuestaRecuperar | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleEnviarCorreo(e: React.FormEvent) {
@@ -20,16 +31,24 @@ export default function RecuperarPassword() {
     setError(null);
     setLoading(true);
     try {
-      const r = await api.post<{ ok: boolean; existe?: boolean }>('/auth/recuperar-password', { email });
+      const r = await api.post<RespuestaRecuperar>('/auth/recuperar-password', { email });
       setExisteCuenta(r.existe !== false);
+      setResultado(r);
       setEnviado(true);
     } catch {
       // Ante un fallo de red no delatamos: se muestra "revisa tu correo".
       setExisteCuenta(true);
+      setResultado(null);
       setEnviado(true);
     } finally {
       setLoading(false);
     }
+  }
+
+  function reiniciar() {
+    setEnviado(false);
+    setEmail('');
+    setResultado(null);
   }
 
   const panelIzquierdo = (
@@ -174,22 +193,30 @@ export default function RecuperarPassword() {
                   </div>
                   <h2 className="font-serif font-bold text-stone-900 mb-1" style={{ fontSize: 26 }}>Te enviaremos un enlace</h2>
                   <p className="text-sm text-stone-600 mb-5">
-                    Escribe el correo institucional con el que te registraste. Si existe en el sistema, recibirás un correo con instrucciones para crear una nueva contraseña.
+                    Escribe tu correo y te mandamos las instrucciones para crear una
+                    contraseña nueva. Sirve <strong>cualquiera de los dos</strong>: el
+                    correo con el que entras a la plataforma o el correo personal que
+                    tienes registrado para recibir avisos.
                   </p>
 
                   <form onSubmit={handleEnviarCorreo} className="space-y-3">
                     <div>
-                      <label className="gov-label" htmlFor="email-rec">Correo institucional</label>
+                      <label className="gov-label" htmlFor="email-rec">Tu correo</label>
                       <div className="relative">
                         <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400" />
                         <input
                           id="email-rec"
                           type="email"
                           autoComplete="email"
+                          // Sin autocorrección: el teclado del teléfono capitaliza la
+                          // primera letra y el correo llegaba con mayúscula.
+                          autoCapitalize="none"
+                          autoCorrect="off"
+                          spellCheck={false}
                           required
                           value={email}
                           onChange={(e) => setEmail(e.target.value)}
-                          placeholder="usuario@michoacan.gob.mx"
+                          placeholder="nombre@correo.com"
                           className="gov-input pl-10"
                         />
                       </div>
@@ -218,6 +245,52 @@ export default function RecuperarPassword() {
                     ← Volver al inicio de sesión
                   </button>
                 </>
+              ) : resultado?.sinBuzon ? (
+                /*
+                 * La cuenta existe, pero su ÚNICA dirección es la institucional
+                 * (`…@modula22.mx`), que no tiene buzón detrás. Antes esta
+                 * pantalla decía "revisa tu correo" y el enlace se perdía: la
+                 * persona quedaba esperando algo que nunca iba a llegar. Se le
+                 * dice la verdad y a quién pedirle ayuda.
+                 */
+                <div className="text-center">
+                  <div
+                    className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5"
+                    style={{ background: '#fef3c7' }}
+                  >
+                    <Info size={30} style={{ color: '#b45309' }} />
+                  </div>
+                  <h2 className="font-serif font-bold text-stone-900 mb-3" style={{ fontSize: 24 }}>Este correo no recibe mensajes</h2>
+                  <p className="text-sm text-stone-600 mb-2" style={{ lineHeight: 1.6 }}>
+                    <strong>{email}</strong> es la dirección con la que entras a la
+                    plataforma, pero es una dirección interna: no hay buzón detrás y
+                    tu cuenta todavía no tiene un correo personal registrado.
+                  </p>
+                  <p className="text-sm text-stone-600 mb-2" style={{ lineHeight: 1.6 }}>
+                    Escríbele a la coordinación para que te reenvíen el acceso y
+                    registren tu correo personal.
+                  </p>
+                  <div className="mb-6 mt-4 text-left" style={{ background: 'var(--color-crema-50)', border: '1px solid #eadfd7', borderRadius: 10, padding: '14px 18px' }}>
+                    <a href={`mailto:${CONTACTO_CORREO}`} className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
+                      {CONTACTO_CORREO}
+                    </a>
+                    <a href={`tel:${CONTACTO_TELEFONO.replace(/\s/g, '')}`} className="text-sm hover:text-[var(--color-guinda-700)] transition-colors" style={{ color: '#6b635e' }}>
+                      {CONTACTO_TELEFONO}
+                    </a>
+                  </div>
+                  <div className="space-y-2">
+                    <button onClick={reiniciar} className="w-full gov-btn-secondary text-sm">
+                      Intentar con mi correo personal
+                    </button>
+                    <button
+                      onClick={() => setLocation('/login')}
+                      className="gov-btn-primary w-full text-sm"
+                      style={{ paddingTop: 10, paddingBottom: 10 }}
+                    >
+                      Volver al inicio de sesión
+                    </button>
+                  </div>
+                </div>
               ) : existeCuenta ? (
                 /* La cuenta existe → se envió el correo */
                 <div className="text-center">
@@ -228,17 +301,26 @@ export default function RecuperarPassword() {
                     <CheckCircle size={32} style={{ color: '#2d7d46' }} />
                   </div>
                   <h2 className="font-serif font-bold text-stone-900 mb-3" style={{ fontSize: 24 }}>Revisa tu correo</h2>
+                  {/*
+                    * Se dice A DÓNDE llegó, no a dónde se pidió. Una cuenta puede
+                    * tener dos direcciones —la de acceso y la de contacto— y el
+                    * enlace va siempre a la de contacto: decir "{email}" mandaba a
+                    * la persona a mirar el buzón equivocado.
+                    */}
                   <p className="text-sm text-stone-600 mb-2" style={{ lineHeight: 1.6 }}>
-                    Enviamos a <strong>{email}</strong> un correo con un enlace para restablecer tu contraseña. Debería llegar en los próximos minutos.
+                    Enviamos a <strong>{resultado?.entregadoA ?? email}</strong> un correo con un enlace para restablecer tu contraseña. Debería llegar en los próximos minutos.
                   </p>
+                  {resultado?.entregadoA && resultado.entregadoA !== email && (
+                    <p className="text-xs text-stone-500 mb-2" style={{ lineHeight: 1.5 }}>
+                      Ése es el correo de contacto registrado en tu cuenta, que puede
+                      ser distinto del que usas para entrar.
+                    </p>
+                  )}
                   <p className="text-xs text-stone-400 mb-6" style={{ lineHeight: 1.5 }}>
                     ¿No ves el correo? Revisa tu carpeta de spam. El enlace vence en 1 hora.
                   </p>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => { setEnviado(false); setEmail(''); }}
-                      className="w-full gov-btn-secondary text-sm"
-                    >
+                    <button onClick={reiniciar} className="w-full gov-btn-secondary text-sm">
                       Intentar con otro correo
                     </button>
                     <button
@@ -267,10 +349,7 @@ export default function RecuperarPassword() {
                     1) Revisar que escribiste bien tu correo, o 2) solicitar una cuenta si aún no tienes.
                   </p>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => { setEnviado(false); setEmail(''); }}
-                      className="w-full gov-btn-secondary text-sm"
-                    >
+                    <button onClick={reiniciar} className="w-full gov-btn-secondary text-sm">
                       Revisar mi correo e intentar de nuevo
                     </button>
                     <button
@@ -350,8 +429,8 @@ export default function RecuperarPassword() {
                 </div>
                 <div>
                   <div className="text-[10px] font-semibold uppercase tracking-widest mb-1" style={{ color: '#6b635e' }}>Teléfono de atención</div>
-                  <a href="tel:4433223456" className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
-                    (443) 322-3456
+                  <a href={`tel:${CONTACTO_TELEFONO.replace(/\s/g, '')}`} className="font-serif font-bold hover:text-[var(--color-guinda-700)] transition-colors" style={{ fontSize: 14, color: '#1c1917', display: 'block' }}>
+                    {CONTACTO_TELEFONO}
                   </a>
                   <div className="text-xs mt-1" style={{ color: '#6b635e' }}>Lunes a viernes · 9:00 a 17:00 hrs</div>
                 </div>

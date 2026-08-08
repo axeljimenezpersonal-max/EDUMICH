@@ -9,7 +9,7 @@
  */
 
 import { Router } from 'express';
-import { eq, and, gt } from 'drizzle-orm';
+import { eq, and, or, gt, sql } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 import { z } from 'zod';
@@ -23,6 +23,7 @@ import {
 } from '../middleware/auth';
 import { sendRecuperarPassword } from '../services/email';
 import { tryAuditLog } from '../utils/audit';
+import { enmascararCorreo } from '../utils/correo';
 import { urlPortalEstado } from '../utils/portal';
 import { bloqueoDeCuenta, registrarFalloDeCuenta, limpiarFallosDeCuenta } from '../utils/bloqueoCuenta';
 import { registrarCorteLocal } from '../utils/revocacion';
@@ -412,9 +413,54 @@ router.post('/recuperar-password', async (req, res) => {
   const email = parse.data.email.toLowerCase();
 
   try {
-    const [user] = await db.select({ id: users.id, activo: users.activo }).from(users).where(eq(users.email, email));
+    // Se busca por el correo de ACCESO **o** por el de CONTACTO.
+    //
+    // El de acceso puede ser institucional (`utec@modula22.mx`) y no tener
+    // buzón detrás: quien atiende ese centro conoce su correo personal, no
+    // necesariamente el institucional con el que la plataforma lo identifica.
+    // Exigirle el de acceso era pedirle justo el dato que se le olvidó.
+    //
+    // Esto no revela nada nuevo: este endpoint ya dice si una cuenta existe
+    // (decisión de producto documentada abajo).
+    //
+    // El de contacto se compara con `lower()` y no con `=`: los correos de
+    // acceso ya están normalizados en minúsculas, pero el de contacto se
+    // capturó a mano durante meses y hay direcciones guardadas con mayúscula.
+    //
+    // Y se ORDENA para que gane el correo de acceso: un mismo correo personal
+    // puede estar de contacto en dos cuentas (la coordinadora que además
+    // atiende un centro), y ahí el enlace debe ir a la cuenta cuyo correo se
+    // escribió, no a la primera que devuelva la base.
+    const [user] = await db
+      .select({
+        id: users.id,
+        activo: users.activo,
+        email: users.email,
+        contacto: users.correoNotificaciones,
+      })
+      .from(users)
+      .where(or(eq(users.email, email), sql`lower(${users.correoNotificaciones}) = ${email}`))
+      .orderBy(sql`case when ${users.email} = ${email} then 0 else 1 end`, users.id)
+      .limit(1);
 
     if (user && user.activo) {
+      // A dónde va a llegar de verdad. Si no hay contacto, al de acceso.
+      const entrega = user.contacto?.trim() || user.email;
+
+      // Un correo de acceso institucional SIN contacto es una dirección que
+      // Módula emitió y que no tiene buzón: el enlace se mandaría al vacío y la
+      // pantalla diría "revisa tu correo". Mentir así deja a la persona
+      // esperando algo que no va a llegar nunca; es mejor decirle a quién
+      // pedirle ayuda.
+      if (!user.contacto?.trim() && /@modula22\.mx$/i.test(user.email)) {
+        res.json({
+          ok: true,
+          existe: true,
+          sinBuzon: true,
+          aviso: 'Tu cuenta usa un correo institucional que no recibe mensajes, y todavía no tiene un correo de contacto registrado. Pide a la coordinación que te reenvíe el acceso.',
+        });
+        return;
+      }
       const token = crypto.randomBytes(32).toString('hex');
       const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
       const expiraEn = new Date(Date.now() + 60 * 60 * 1000);
@@ -425,8 +471,14 @@ router.post('/recuperar-password', async (req, res) => {
       // de dominios muertos. Ver utils/portal.
       const resetUrl = `${urlPortalEstado()}/reset-password?token=${token}`;
 
-      await sendRecuperarPassword(email, { nombre: email.split('@')[0], resetUrl, token });
-      res.json({ ok: true, existe: true });
+      // Se manda a la dirección de ACCESO: `sendEmail` la traduce a la de
+      // entrega (ver `direccionDeEntrega`). Así el outbox conserva de quién era
+      // el correo aunque se haya entregado en otro buzón.
+      await sendRecuperarPassword(user.email, { nombre: user.email.split('@')[0], resetUrl, token });
+      // Se dice A DÓNDE llegó, enmascarado. "Revisa tu correo" no sirve cuando
+      // la cuenta tiene dos direcciones distintas y el enlace fue a la que la
+      // persona quizá no está mirando.
+      res.json({ ok: true, existe: true, entregadoA: enmascararCorreo(entrega) });
       return;
     }
 
