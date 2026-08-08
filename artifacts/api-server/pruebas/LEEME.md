@@ -10,9 +10,16 @@ paquete que se despliega. No tocan la base ni la red — sólo llaman funciones.
 cd artifacts/api-server
 npx tsx pruebas/lectura-nombre.mts    # partir el nombre usando la CURP
 npx tsx pruebas/curp-validacion.mts   # que validarCurp no reclame de más
+npx tsx pruebas/subida-a-pdf.mts      # convertir a PDF lo que se sube
 ```
 
-`lectura-nombre.mts` sale con código 1 si algún caso falla.
+`lectura-nombre.mts` y `subida-a-pdf.mts` salen con código 1 si algún caso falla.
+
+`subida-a-pdf.mts` prueba de verdad la rama de IMAGEN (pdf-lib no necesita nada
+externo). La de WORD depende de LibreOffice: si `soffice` no está en la máquina
+donde se corre, ese caso comprueba lo otro que importa — que se rechace con un
+motivo legible en vez de romperse, que es como se comportaría la imagen de
+producción si se quitara `libreoffice-writer` del Dockerfile.
 
 ## Por qué existen justo para esto
 

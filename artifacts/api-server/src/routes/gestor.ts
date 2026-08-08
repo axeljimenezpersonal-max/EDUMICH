@@ -51,6 +51,7 @@ import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/passwor
 import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
 import { verifyUrlFicha } from '../utils/credencialQr';
 import { esCorreoSinBuzon, correoSinBuzonPara } from '../utils/correo';
+import { MIMES_SUBIDA_EXPEDIENTE, dejarArchivoEnPdf, NoSePudoConvertir } from '../services/aPdf';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { validarCurp } from '../utils/curp';
 import { nombreArchivoExpediente } from '../utils/nombreArchivo';
@@ -121,7 +122,10 @@ const upload = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (file.mimetype !== 'application/pdf') {
+    // Se pide PDF en la pantalla, pero aquí entran también foto y Word: se
+    // convierten al vuelo (services/aPdf.ts) y lo que se guarda es siempre un
+    // PDF. Ver ahí por qué no se anuncia.
+    if (!(MIMES_SUBIDA_EXPEDIENTE as readonly string[]).includes(file.mimetype)) {
       cb(new Error('Solo se aceptan archivos PDF'));
       return;
     }
@@ -616,6 +620,22 @@ router.post(
         campo: tieneCorreoRC ? 'email' : 'curp',
       });
       return;
+    }
+
+    // Los cinco documentos, convertidos a PDF ANTES de abrir la transacción.
+    // Convertir un Word puede tardar segundos, y hacerlo con la transacción
+    // abierta la dejaría esperando a un proceso externo — con cinco documentos,
+    // medio minuto de bloqueo por cada alta.
+    for (const f of allFiles) {
+      try {
+        await dejarArchivoEnPdf(f);
+      } catch (e) {
+        for (const otro of allFiles) await fs.unlink(otro.path).catch(() => {});
+        res.status(400).json({
+          error: e instanceof NoSePudoConvertir ? e.message : 'No se pudo procesar uno de los archivos. Súbelo en PDF.',
+        });
+        return;
+      }
     }
 
     const uploadedFiles = allFiles;
@@ -1386,8 +1406,7 @@ const uploadExpedienteGestor = multer({
   }),
   limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    const allowed = ['application/pdf', 'image/jpeg', 'image/png'];
-    if (!allowed.includes(file.mimetype)) {
+    if (!(MIMES_SUBIDA_EXPEDIENTE as readonly string[]).includes(file.mimetype)) {
       cb(new Error('Formato no aceptado. Usa PDF, JPG o PNG.'));
       return;
     }
@@ -1472,15 +1491,23 @@ router.post(
     // La foto debe ser IMAGEN (JPG/PNG) para poder incrustarla en la cédula y
     // la credencial; nunca PDF (evita documentos escaneados). El resto, solo PDF.
     if (tipo === 'foto') {
+      // La FOTO no se convierte: se incrusta como imagen en la cedula y en la
+      // credencial, y un PDF ahi no sirve para nada.
       if (!['image/jpeg', 'image/png'].includes(req.file.mimetype)) {
         await fs.unlink(req.file.path).catch(() => {});
         res.status(400).json({ error: 'La foto debe ser una imagen JPG o PNG (no PDF)' });
         return;
       }
-    } else if (req.file.mimetype !== 'application/pdf') {
-      await fs.unlink(req.file.path).catch(() => {});
-      res.status(400).json({ error: 'Solo se aceptan archivos PDF para este documento' });
-      return;
+    } else {
+      try {
+        await dejarArchivoEnPdf(req.file);
+      } catch (e) {
+        await fs.unlink(req.file.path).catch(() => {});
+        res.status(400).json({
+          error: e instanceof NoSePudoConvertir ? e.message : 'No se pudo procesar el archivo. Súbelo en PDF.',
+        });
+        return;
+      }
     }
 
     const alumno = await verificarAlumnoDelGestor(gestorId, alumnoId);

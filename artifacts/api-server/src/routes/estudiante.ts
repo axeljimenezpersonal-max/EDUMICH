@@ -77,6 +77,7 @@ import {
   cedulaDatosSchema,
 } from '../services/cedula';
 import { armarNombreCompleto, armarDireccion, normalizarNombre } from '../utils/estudianteDatos';
+import { MIMES_SUBIDA_EXPEDIENTE, dejarArchivoEnPdf, NoSePudoConvertir } from '../services/aPdf';
 import { nombreArchivoAscii } from '../utils/archivo';
 import { aplanarAcentos } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
@@ -107,10 +108,14 @@ const uploadExpediente = multer({
   fileFilter: (req, file, cb) => {
     // La fotografía debe ser una IMAGEN (para poder incrustarla en la cédula y
     // la credencial). No se acepta PDF: evita que suban documentos escaneados.
-    // El resto de documentos, solo PDF.
+    //
+    // El resto se PIDE en PDF, pero también entran foto y Word: se convierten
+    // al vuelo (services/aPdf.ts) y lo que se guarda es siempre un PDF. El
+    // alumno que sólo tiene la foto del acta en el teléfono es el caso que
+    // antes se quedaba sin poder completar su expediente.
     const tipo = (req.params as { tipo?: string }).tipo;
-    const permitidos =
-      tipo === 'foto' ? ['image/jpeg', 'image/png'] : ['application/pdf'];
+    const permitidos: readonly string[] =
+      tipo === 'foto' ? ['image/jpeg', 'image/png'] : MIMES_SUBIDA_EXPEDIENTE;
     if (!permitidos.includes(file.mimetype)) {
       cb(new Error(tipo === 'foto' ? 'La foto debe ser una imagen JPG o PNG (no PDF)' : 'Solo se aceptan archivos PDF'));
       return;
@@ -1074,6 +1079,20 @@ router.post(
     if (!req.file) {
       res.status(400).json({ error: 'No se recibió archivo' });
       return;
+    }
+
+    // A PDF antes de guardar. La foto de perfil no: se incrusta como imagen en
+    // la cedula y en la credencial.
+    if (tipo !== 'foto') {
+      try {
+        await dejarArchivoEnPdf(req.file);
+      } catch (e) {
+        await fsp.unlink(req.file.path).catch(() => {});
+        res.status(400).json({
+          error: e instanceof NoSePudoConvertir ? e.message : 'No se pudo procesar el archivo. Súbelo en PDF.',
+        });
+        return;
+      }
     }
 
     // Persistir en el almacenamiento definitivo (S3 si está activo; local si no)

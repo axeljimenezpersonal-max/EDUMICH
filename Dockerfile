@@ -11,8 +11,21 @@ WORKDIR /app
 # del Estado.
 #
 # Sólo el idioma español; el paquete completo son cientos de MB y no se usan.
+#
+# `libreoffice-writer` convierte a PDF los documentos de Word que manda la
+# gente (ver services/aPdf.ts). Es lo más pesado de esta imagen — del orden de
+# medio giga con sus dependencias, Java incluido — y por eso el código NO
+# depende de que esté: si se quita esta palabra, las fotos se siguen
+# convirtiendo (eso lo hace `pdf-lib`, sin instalar nada) y sólo los .docx se
+# rechazan con un mensaje que dice qué hacer. Es decir: esta línea se puede
+# borrar sin tocar una sola línea de TypeScript.
+#
+# `--no-install-recommends` importa aquí más que en ningún otro lado: sin él
+# entran el escritorio, las fuentes y los diccionarios de todos los idiomas.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-spa \
+ && apt-get install -y --no-install-recommends \
+      tesseract-ocr tesseract-ocr-spa \
+      libreoffice-writer \
  && rm -rf /var/lib/apt/lists/*
 
 # Install pnpm

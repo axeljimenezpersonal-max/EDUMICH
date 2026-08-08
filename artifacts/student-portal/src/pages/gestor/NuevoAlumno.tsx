@@ -140,6 +140,28 @@ function fmtSize(bytes: number): string {
     : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/**
+ * Lo que el selector de archivos deja escoger.
+ *
+ * La pantalla sigue PIDIENDO PDF —a propósito: es lo que queremos que
+ * manden— pero si alguien sólo tiene la foto del acta o el certificado en
+ * Word, el servidor lo convierte a PDF al recibirlo (`services/aPdf.ts`).
+ * Sin ampliar este `accept`, el selector del sistema ni siquiera dejaría
+ * elegir esos archivos y la conversión nunca llegaría a ocurrir.
+ *
+ * No se anuncia en el texto de la tarjeta. Es una red por debajo para quien
+ * no pudo cumplir, no una invitación a mandar cualquier cosa.
+ */
+const TIPOS_ACEPTADOS = [
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.oasis.opendocument.text',
+];
+const ACCEPT_DOCUMENTOS = `${TIPOS_ACEPTADOS.join(',')},.pdf,.jpg,.jpeg,.png,.doc,.docx,.odt`;
+
 function emailValido(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
@@ -313,7 +335,7 @@ export default function NuevoAlumno() {
   }
 
   function processFile(file: File, key: DocKey) {
-    if (file.type !== 'application/pdf') {
+    if (!TIPOS_ACEPTADOS.includes(file.type)) {
       showFileError(key, 'Solo se aceptan archivos PDF');
       return;
     }
@@ -1128,7 +1150,7 @@ export default function NuevoAlumno() {
                   {/* Hidden input */}
                   <input
                     type="file"
-                    accept="application/pdf"
+                    accept={ACCEPT_DOCUMENTOS}
                     className="hidden"
                     ref={(el) => { inputRefs.current[key] = el; }}
                     onChange={(e) => {
