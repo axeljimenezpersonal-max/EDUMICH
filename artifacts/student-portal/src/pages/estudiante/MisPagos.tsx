@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   AlertCircle, Calendar, Check, CheckCircle2, Clock, Copy, CreditCard,
-  Download, ExternalLink, FileText, Landmark, Loader2, MapPin, UploadCloud,
+  Download, ExternalLink, FileText, Landmark, Loader2, MapPin,
   X, AlertTriangle, Eye, RefreshCw, UserCheck, Phone, Mail,
 } from 'lucide-react';
 import { COSTO_EXAMEN_RESPALDO } from '../../lib/precio';
@@ -18,6 +18,7 @@ import { AyudaMensajes } from '../../components/AyudaMensajes';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_PAGOS, GATE_ESTUDIANTE } from '../../components/onboarding/seccionesEstudiante';
 import PagoCard from '../../components/PagoCard';
+import { ZonaComprobante } from '../../components/ZonaComprobante';
 import { PagoStepper } from '../../components/PagoStepper';
 import {
   api,
@@ -535,11 +536,11 @@ function OrdenesPagoExamen({ ordenes, onReload, gestionadoPorGestor = false }: {
                               </button>
                             ))}
                           </div>
-                          <label className={`flex items-center gap-3 border-2 border-dashed rounded-xl p-3 transition-colors ${!metodoPorId[o.id] ? 'opacity-50 cursor-not-allowed border-stone-200' : subiendo === o.id ? 'opacity-60 border-stone-300' : 'border-stone-300 hover:border-[var(--color-guinda-700)] cursor-pointer'}`}>
-                            {subiendo === o.id ? <Loader2 size={18} className="animate-spin text-stone-400" /> : <UploadCloud size={18} className="text-stone-400" />}
-                            <span className="text-sm text-stone-500">{subiendo === o.id ? 'Enviando…' : !metodoPorId[o.id] ? 'Primero elige el método de pago' : 'Seleccionar comprobante (PDF o imagen)'}</span>
-                            <input type="file" accept="application/pdf,image/*" className="hidden" disabled={subiendo === o.id || !metodoPorId[o.id]} onChange={(e) => { const f = e.target.files?.[0]; if (f) subirComprobante(o.id, f); }} />
-                          </label>
+                          <ZonaComprobante
+                            onArchivo={(f) => subirComprobante(o.id, f)}
+                            subiendo={subiendo === o.id}
+                            bloqueadoPor={metodoPorId[o.id] ? null : 'Primero elige el método de pago'}
+                          />
                         </div>
                       </div>
                     )}

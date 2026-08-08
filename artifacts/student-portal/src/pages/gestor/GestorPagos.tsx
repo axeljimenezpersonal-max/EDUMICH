@@ -19,6 +19,7 @@ import { CentroFiscalCard } from '../../components/CentroFiscalCard';
 import { SectionTour } from '../../components/onboarding/SectionTour';
 import { TOUR_G_PAGOS, GATE_GESTOR } from '../../components/onboarding/seccionesGestor';
 import { SoloEscritorio, SoloMovil, ListaCards, FilaCard, DatoCard } from '../../components/ui/responsive';
+import { ZonaComprobante } from '../../components/ZonaComprobante';
 import { confirmar } from '../../components/Confirmador';
 import {
   api,
@@ -627,12 +628,12 @@ function DetalleView({ id, onBack, onToast }: { id: number; onBack: () => void; 
                       </button>
                     ))}
                   </div>
-                  <label className={`flex flex-col items-center justify-center gap-2 border-2 border-dashed rounded-xl py-7 px-4 cursor-pointer text-center transition-colors ${file ? 'border-[var(--color-guinda-700)] bg-[var(--color-guinda-50,#faf0f3)]' : 'border-stone-300 hover:border-[var(--color-guinda-700)] hover:bg-stone-50'}`}>
-                    <UploadCloud size={30} className={file ? 'text-[var(--color-guinda-700)]' : 'text-stone-400'} />
-                    <div className="text-sm font-bold uppercase tracking-wide text-stone-700">Comprobante</div>
-                    <span className="text-xs text-stone-500 truncate max-w-full">{file ? file.name : 'Toca para subir el PDF o la foto de tu recibo'}</span>
-                    <input type="file" accept="application/pdf,image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-                  </label>
+                  <ZonaComprobante
+                    variante="alta"
+                    onArchivo={setFile}
+                    nombreArchivo={file?.name ?? null}
+                    subiendo={subiendo}
+                  />
                   <button onClick={subir} disabled={!file || !metodo || subiendo} className="w-full inline-flex items-center justify-center gap-2 py-2.5 bg-[var(--color-guinda-700)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-guinda-800)] disabled:opacity-50">
                     {subiendo ? <Loader2 size={15} className="animate-spin" /> : <UploadCloud size={15} />} Enviar comprobante
                   </button>

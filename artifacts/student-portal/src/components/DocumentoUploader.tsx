@@ -3,6 +3,7 @@
  * Usada tanto en Mi Expediente (estudiante) como en AlumnoDetalle (gestor).
  */
 import { useRef, useState } from 'react';
+import { useSoltarArchivo } from '../lib/useSoltarArchivo';
 import {
   CheckCircle2,
   Clock,
@@ -120,12 +121,16 @@ export default function DocumentoUploader({
 
   // La foto es solo imagen (JPG/PNG) — nunca PDF, para incrustarla en la cédula
   // y la credencial y evitar documentos escaneados.
+  //
+  // El resto se PIDE en PDF, pero el selector deja escoger foto y Word: el
+  // servidor los convierte a PDF al recibirlos (`services/aPdf.ts`). Sin
+  // ampliarlo aquí, el selector del sistema ni siquiera dejaría elegirlos.
   const acceptAttr =
     tipo === 'foto'
       ? 'image/jpeg,image/png'
-      : acceptImages
-        ? 'application/pdf,image/jpeg,image/png'
-        : 'application/pdf';
+      : 'application/pdf,image/jpeg,image/png,application/msword,' +
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document,' +
+        'application/vnd.oasis.opendocument.text,.pdf,.jpg,.jpeg,.png,.doc,.docx,.odt';
 
   async function handleFile(file: File) {
     setUploading(true);
@@ -151,6 +156,11 @@ export default function DocumentoUploader({
     }
   }
 
+  // Toda la tarjeta recibe el archivo, no sólo el botón: arrastrar y soltar
+  // resultó ser como la gente prefiere subir documentos, y apuntar a un botón
+  // pequeño con un archivo en la mano es justo lo que lo vuelve incómodo.
+  const zona = useSoltarArchivo(handleFile, !uploading);
+
   const iconBg = doc?.estado === 'aprobado'
     ? 'bg-green-50'
     : doc?.estado === 'rechazado'
@@ -169,7 +179,14 @@ export default function DocumentoUploader({
 
   return (
     <>
-      <div className="bg-white border border-stone-200 rounded-lg p-4">
+      <div
+        {...zona.props}
+        className={`rounded-lg p-4 border transition-colors ${
+          zona.encima
+            ? 'border-[var(--color-guinda-500)] border-dashed bg-[var(--color-guinda-50)]'
+            : 'border-stone-200 bg-white'
+        }`}
+      >
         <div className="flex items-start justify-between gap-3">
           {/* Icon + info */}
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -255,6 +272,24 @@ export default function DocumentoUploader({
             )}
           </div>
         </div>
+
+        {/* Que se puede arrastrar hay que DECIRLO: es un gesto que nadie
+            descubre solo si nada lo insinúa. Sólo mientras el documento se
+            puede cambiar —en uno ya aprobado la zona no hace nada— y en el
+            teléfono no, donde no existe arrastrar. */}
+        {doc?.estado !== 'aprobado' && (
+          <p
+            className={`mt-2.5 hidden text-[11px] sm:block ${
+              zona.encima ? 'font-semibold text-[var(--color-guinda-700)]' : 'text-stone-400'
+            }`}
+          >
+            {zona.encima
+              ? `Suelta aquí para ${doc ? 'reemplazar' : 'subir'}`
+              : uploading
+                ? 'Subiendo…'
+                : `O arrastra el archivo a esta tarjeta para ${doc ? 'reemplazarlo' : 'subirlo'}.`}
+          </p>
+        )}
 
         {/* Requisitos visuales — solo para la fotografía */}
         {tipo === 'foto' && <RequisitosFoto />}

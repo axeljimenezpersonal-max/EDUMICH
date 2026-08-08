@@ -19,6 +19,7 @@ import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api, ApiError } from '../../lib/api';
 import { enMayusculas } from '../../lib/nombre';
+import { useSoltarArchivo } from '../../lib/useSoltarArchivo';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -166,6 +167,91 @@ function emailValido(v: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 }
 
+/**
+ * Una tarjeta de documento del alta.
+ *
+ * Es un componente y no JSX dentro del `.map` porque cada tarjeta necesita su
+ * PROPIO estado de "hay algo encima", y eso vive en un hook — que no se puede
+ * llamar dentro de un bucle.
+ */
+function TarjetaDocumento({
+  nombre, subtitulo, icon, archivo, error, onArchivo,
+}: {
+  nombre: string;
+  subtitulo: string;
+  icon: React.ReactNode;
+  archivo: File | null;
+  error?: string;
+  onArchivo: (f: File) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const zona = useSoltarArchivo(onArchivo);
+
+  return (
+    <div>
+      <input
+        type="file"
+        accept={ACCEPT_DOCUMENTOS}
+        className="hidden"
+        ref={input}
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) onArchivo(f);
+          // Siempre: si no, volver a elegir el MISMO archivo no dispara el
+          // evento y parece que el campo se descompuso.
+          e.target.value = '';
+        }}
+      />
+
+      <div
+        onClick={() => !archivo && input.current?.click()}
+        {...zona.props}
+        className={`rounded-md border-2 p-4 transition-colors min-h-[120px] flex flex-col
+          ${archivo
+            ? 'border-green-400 bg-green-50 cursor-default'
+            : zona.encima
+            ? 'border-[var(--color-guinda-500)] bg-[var(--color-guinda-50)] cursor-copy'
+            : 'border-dashed border-stone-300 bg-white hover:border-[var(--color-guinda-400)] hover:bg-[var(--color-crema-50)] cursor-pointer'
+          }`}
+      >
+        <div className="flex items-center gap-2 mb-2">
+          <span className={archivo ? 'text-green-600' : 'text-[var(--color-guinda-700)]'}>
+            {archivo ? <CheckCircle2 size={20} /> : icon}
+          </span>
+          <div>
+            <div className="text-sm font-semibold text-stone-800">{nombre}</div>
+            <div className="text-xs text-stone-500">{subtitulo} · PDF · máx 10 MB</div>
+          </div>
+        </div>
+
+        {archivo ? (
+          <div className="mt-auto">
+            <div className="text-xs text-green-700 font-medium truncate">{archivo.name}</div>
+            <div className="text-xs text-stone-500">{fmtSize(archivo.size)}</div>
+            <button
+              onClick={(e) => { e.stopPropagation(); input.current?.click(); }}
+              className="mt-1 text-xs text-[var(--color-guinda-700)] hover:underline"
+            >
+              Reemplazar
+            </button>
+          </div>
+        ) : (
+          <div className="mt-auto text-xs text-stone-400 text-center pt-2">
+            {zona.encima ? 'Suelta el PDF aquí' : 'Arrastra el PDF aquí o haz click'}
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="mt-1 flex items-center gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
+          <AlertCircle size={11} />
+          {error}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Step indicator ─────────────────────────────────────────────────────────
 
 function StepPill({
@@ -210,7 +296,6 @@ export default function NuevoAlumno() {
   const [paso, setPaso] = useState<1 | 2>(1);
   const [datos, setDatos] = useState<DatosPersonales>(DATOS_INIT);
   const [archivos, setArchivos] = useState<Archivos>(ARCHIVOS_INIT);
-  const [dragOver, setDragOver] = useState<Partial<Record<DocKey, boolean>>>({});
   const [fileErrors, setFileErrors] = useState<Partial<Record<DocKey, string>>>({});
 
   const [loading, setLoading] = useState(false);
@@ -281,15 +366,6 @@ export default function NuevoAlumno() {
       fechaNacimiento: fechaLocal(f.fechaNacimiento) ?? d.fechaNacimiento,
     }));
   }
-
-  // One ref per file input
-  const inputRefs = useRef<Record<DocKey, HTMLInputElement | null>>({
-    curp: null,
-    acta: null,
-    ine: null,
-    domicilio: null,
-    certificado: null,
-  });
 
 
   // ── Beforeunload ─────────────────────────────────────────────────────
@@ -1140,94 +1216,17 @@ export default function NuevoAlumno() {
 
           {/* Zonas de upload en grid 2×2 */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {DOC_DEFS.map(({ key, nombre, subtitulo, icon }) => {
-              const archivo = archivos[key];
-              const isDragOver = !!dragOver[key];
-              const error = fileErrors[key];
-
-              return (
-                <div key={key}>
-                  {/* Hidden input */}
-                  <input
-                    type="file"
-                    accept={ACCEPT_DOCUMENTOS}
-                    className="hidden"
-                    ref={(el) => { inputRefs.current[key] = el; }}
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) processFile(f, key);
-                      e.target.value = '';
-                    }}
-                  />
-
-                  <div
-                    onClick={() => !archivo && inputRefs.current[key]?.click()}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOver((p) => ({ ...p, [key]: true }));
-                    }}
-                    onDragLeave={() => setDragOver((p) => ({ ...p, [key]: false }))}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOver((p) => ({ ...p, [key]: false }));
-                      const f = e.dataTransfer.files[0];
-                      if (f) processFile(f, key);
-                    }}
-                    className={`rounded-md border-2 p-4 transition-colors min-h-[120px] flex flex-col
-                      ${archivo
-                        ? 'border-green-400 bg-green-50 cursor-default'
-                        : isDragOver
-                        ? 'border-[var(--color-guinda-500)] bg-[var(--color-guinda-50)] cursor-copy'
-                        : 'border-dashed border-stone-300 bg-white hover:border-[var(--color-guinda-400)] hover:bg-[var(--color-crema-50)] cursor-pointer'
-                      }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <span
-                        className={`${archivo ? 'text-green-600' : 'text-[var(--color-guinda-700)]'}`}
-                      >
-                        {archivo ? <CheckCircle2 size={20} /> : icon}
-                      </span>
-                      <div>
-                        <div className="text-sm font-semibold text-stone-800">{nombre}</div>
-                        <div className="text-xs text-stone-500">{subtitulo} · PDF · máx 10 MB</div>
-                      </div>
-                    </div>
-
-                    {archivo ? (
-                      <div className="mt-auto">
-                        <div className="text-xs text-green-700 font-medium truncate">
-                          {archivo.name}
-                        </div>
-                        <div className="text-xs text-stone-500">{fmtSize(archivo.size)}</div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            inputRefs.current[key]?.click();
-                          }}
-                          className="mt-1 text-xs text-[var(--color-guinda-700)] hover:underline"
-                        >
-                          Reemplazar
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="mt-auto text-xs text-stone-400 text-center pt-2">
-                        {isDragOver
-                          ? 'Suelta el PDF aquí'
-                          : 'Arrastra el PDF aquí o haz click'}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Inline error toast */}
-                  {error && (
-                    <div className="mt-1 flex items-center gap-1.5 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
-                      <AlertCircle size={11} />
-                      {error}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {DOC_DEFS.map(({ key, nombre, subtitulo, icon }) => (
+              <TarjetaDocumento
+                key={key}
+                nombre={nombre}
+                subtitulo={subtitulo}
+                icon={icon}
+                archivo={archivos[key]}
+                error={fileErrors[key]}
+                onArchivo={(f) => processFile(f, key)}
+              />
+            ))}
           </div>
 
           {/* Error global */}
