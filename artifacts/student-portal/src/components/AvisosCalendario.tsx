@@ -67,26 +67,65 @@ export function AvisosCalendario({ ocultarExamen = false, hrefInscripcion, dataT
   // la bandera se quedó: el resultado era un inicio que no decía ni que venía
   // una ventana ni cuándo. Se quitó, no se apagó — una bandera sin usuarios
   // vuelve a encenderse sola la próxima vez que alguien pase por aquí.
-  const visibles = eventos.filter((e) => !(ocultarExamen && e.tipo === 'examen'));
+  const visibles = eventos
+    .filter((e) => !(ocultarExamen && e.tipo === 'examen'))
+    // La INSCRIPCIÓN primero, siempre. Es lo que un centro de asesorías hace
+    // en esta plataforma: el examen lo presenta el alumno y sólo se acompaña,
+    // pero inscribir tiene ventana con candado y si se pasa, se pasó. El orden
+    // venía del servidor y ahí es un detalle de cómo se arma la lista; aquí es
+    // una decisión de producto, y se escribe donde se decide.
+    .sort((a, b) => ORDEN[a.tipo] - ORDEN[b.tipo]);
   // Si no hay ventana/examen próximo no renderiza nada: así el tour de esta
   // sección no encuentra el anclaje y su tarjeta se centra (caso alumno nuevo).
   if (visibles.length === 0) return null;
 
   return (
     <div data-tour={dataTour} className="space-y-3">
-      {visibles.map((e, i) => {
-        if (e.tipo === 'ventana_abierta') return <BannerVentanaAbierta key={i} e={e} href={hrefInscripcion} />;
-        if (e.tipo === 'examen') return <BannerExamen key={i} e={e} gestor={examenGestor} />;
-        return <BannerVentanaProxima key={i} e={e} href={hrefInscripcion} />;
-      })}
+      {visibles.map((e, i) =>
+        e.tipo === 'examen'
+          ? <BannerExamen key={i} e={e} gestor={examenGestor} />
+          : <BannerInscripcion key={i} e={e} abierta={e.tipo === 'ventana_abierta'} href={hrefInscripcion} />
+      )}
     </div>
   );
 }
 
-// ── Banner PROMINENTE: inscripción abierta ──────────────────────────────────
-// Si recibe `href`, todo el banner es clickeable y lleva a la inscripción.
-function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string }) {
-  const urgente = e.urgencia === 'alta';
+const ORDEN: Record<EventoCalendario['tipo'], number> = {
+  ventana_abierta: 0,
+  ventana_proxima: 1,
+  examen: 2,
+};
+
+// ── Banner PROMINENTE: la inscripción (abierta o por abrir) ─────────────────
+//
+// UNA tarjeta para los dos estados, no dos componentes.
+//
+// Antes "todavía no abre" era un recuadro azul chico, con forma de alerta. Y
+// estaba mal por lo que ES: para un centro de asesorías la inscripción no es
+// una alerta ocasional —algo que salta, se atiende y se va— sino lo más
+// importante de su pantalla y algo que está SIEMPRE, porque siempre hay una
+// ventana siguiente. Lo permanente y central se ve como las demás tarjetas de
+// la pantalla; lo excepcional es lo que puede darse el lujo de verse distinto.
+// Que "abierta" y "por abrir" fueran dos diseños hacía además que la pantalla
+// cambiara de forma sola al pasar de un día a otro.
+//
+// Es la misma tarjeta que "Examen de tus alumnos", con los colores de
+// inscripción. Lo único que cambia entre estados es el texto y el contador —
+// que es justamente donde debe cambiar.
+//
+// ⚠ CUIDADO CON `fecha`: significa lo CONTRARIO en cada evento. En
+// `ventana_abierta` es el CIERRE (y `fechaInicio` la apertura); en
+// `ventana_proxima` es la APERTURA (y `fechaFin` el cierre). Ver
+// `routes/anuncios.ts`. Por eso se normaliza aquí arriba y el resto del
+// componente ya no vuelve a tocar `e.fecha`: leerlo directo abajo pone la
+// fecha de cierre donde va la de apertura, y nadie lo nota hasta que un
+// gestor llega el día equivocado.
+function BannerInscripcion({ e, abierta, href }: { e: EventoCalendario; abierta: boolean; href?: string }) {
+  const inicio = abierta ? e.fechaInicio : e.fecha;
+  const fin = abierta ? e.fecha : e.fechaFin;
+  // `dias` también cambia de sentido: al cierre si está abierta, a la apertura
+  // si todavía no.
+  const urgente = abierta && e.urgencia === 'alta';
   // Inscripción SIEMPRE en guinda (la marca). La urgencia se comunica con el
   // contador de días, no cambiando el color a rojo/ámbar.
   const acento = CAL_INSCRIPCION.texto;
@@ -100,26 +139,28 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.15em]" style={{ color: acento }}>
           {urgente ? <AlertTriangle size={13} /> : <CalendarClock size={13} />}
-          Inscripción abierta
+          {abierta ? 'Inscripción abierta' : 'Próxima inscripción'}
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-2 font-serif text-xl font-bold uppercase tracking-tight text-stone-900 sm:text-2xl">
           Etapa {e.clave}
           {href && <ChevronRight size={20} className="transition-transform group-hover:translate-x-1" style={{ color: acento }} />}
         </div>
         <p className="mt-1.5 max-w-xl text-[13px] text-stone-600 sm:text-sm">
-          La ventana para <strong className="text-stone-800">inscribir tu examen</strong> está abierta.
+          {abierta
+            ? <>La ventana para <strong className="text-stone-800">inscribir tu examen</strong> está abierta.</>
+            : <>La ventana para <strong className="text-stone-800">inscribir</strong> todavía no abre. Éstos son los únicos días en que se podrá.</>}
         </p>
         <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          {e.fechaInicio && (
+          {inicio && fin && (
             <span
               className="inline-flex items-center gap-2 rounded-lg border bg-white/80 px-3 py-1.5 text-[13px] font-bold"
               style={{ borderColor: borde, color: acento }}
             >
               <CalendarClock size={14} />
-              {rangoLargo(e.fechaInicio, e.fecha)}
+              {rangoLargo(inicio, fin)}
             </span>
           )}
-          {e.fechaInicio && (
+          {inicio && fin && (
             <span
               className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[11px] font-semibold"
               style={{ borderColor: borde, background: CAL_INSCRIPCION.fondo, color: acento }}
@@ -134,7 +175,7 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
         </p>
         {href && (
           <span className="mt-2 inline-flex items-center gap-1 text-[13px] font-bold underline decoration-2 underline-offset-2" style={{ color: acento }}>
-            Ir a mi inscripción <ChevronRight size={14} />
+            {abierta ? 'Ir a mi inscripción' : 'Ver Inscripción'} <ChevronRight size={14} />
           </span>
         )}
       </div>
@@ -144,7 +185,9 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
       >
         <div className="text-3xl font-bold leading-none" style={{ color: acento, fontFamily: POPPINS }}>{Math.max(0, e.dias)}</div>
         <div className="mt-1 whitespace-pre-line text-[9px] font-semibold uppercase leading-tight tracking-wide" style={{ color: acento }}>
-          {e.dias <= 1 ? (e.dias === 0 ? 'cierra hoy' : 'cierra mañana') : 'días para\nel cierre'}
+          {abierta
+            ? (e.dias <= 1 ? (e.dias === 0 ? 'cierra hoy' : 'cierra mañana') : 'días para\nel cierre')
+            : (e.dias <= 1 ? (e.dias === 0 ? 'abre hoy' : 'abre mañana') : 'días para\nla apertura')}
         </div>
       </div>
     </div>
@@ -152,7 +195,8 @@ function BannerVentanaAbierta({ e, href }: { e: EventoCalendario; href?: string 
   const cls = 'block overflow-hidden rounded-2xl border-2 shadow-sm';
   const style = { borderColor: borde, background: `linear-gradient(135deg, ${CAL_INSCRIPCION.fondoSuave} 0%, #ffffff 70%)` };
   return href ? (
-    <Link href={href} className={`${cls} group cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md`} style={style} aria-label={`Ir a la inscripción de la etapa ${e.clave}`}>
+    <Link href={href} className={`${cls} group cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-md`} style={style}
+          aria-label={abierta ? `Ir a la inscripción de la etapa ${e.clave}` : `Ver la inscripción de la etapa ${e.clave}, que aún no abre`}>
       {contenido}
     </Link>
   ) : (
@@ -279,39 +323,5 @@ export function AvisoProximaVentana() {
   );
 }
 
-// ── Banner ligero: próxima ventana (aún no abre) ────────────────────────────
-//
-// Con `href` ofrece la salida a Inscripción. La ventana todavía no abre, así
-// que el enlace NO promete inscribir —dice "Ver Inscripción"— y el texto ya
-// trae la fecha en que abre. Del otro lado, la pantalla de Inscripción explica
-// que está cerrada y desde cuándo: se llega a una respuesta, no a un muro.
-function BannerVentanaProxima({ e, href }: { e: EventoCalendario; href?: string }) {
-  const contenido = (
-    <div className="flex items-start gap-3 p-4">
-      <CalendarClock size={16} style={{ color: '#3b82f6', flexShrink: 0, marginTop: 2 }} />
-      <div className="min-w-0">
-        <div className="text-sm font-semibold" style={{ color: '#1d4ed8' }}>
-          Próxima inscripción — <span className="uppercase">Etapa {e.clave}</span>
-        </div>
-        <p className="mt-0.5 text-xs leading-relaxed" style={{ color: '#57504a' }}>
-          Abre el <strong>{fmtLargo(e.fecha)}</strong> ({enDias(e.dias)}){e.fechaFin ? ` y cierra el ${fmtLargo(e.fechaFin)}` : ''}.
-        </p>
-        {href && (
-          <span className="mt-1.5 inline-flex items-center gap-1 text-xs font-bold" style={{ color: '#1d4ed8' }}>
-            Ver Inscripción <ChevronRight size={13} />
-          </span>
-        )}
-      </div>
-    </div>
-  );
-  const cls = 'block rounded-xl border';
-  const style = { background: '#eff6ff', borderColor: '#bfdbfe' };
-  return href ? (
-    <Link href={href} className={`${cls} group cursor-pointer transition-colors hover:bg-[#e0edff]`} style={style}
-          aria-label={`Ver la inscripción de la etapa ${e.clave}, que abre el ${fmtLargo(e.fecha)}`}>
-      {contenido}
-    </Link>
-  ) : (
-    <div className={cls} style={style}>{contenido}</div>
-  );
-}
+// El recuadro azul de "próxima ventana" vivía aquí. Lo absorbió
+// `BannerInscripcion`, que muestra los dos estados con la misma tarjeta.
