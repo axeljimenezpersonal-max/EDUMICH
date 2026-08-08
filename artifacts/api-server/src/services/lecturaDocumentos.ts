@@ -40,7 +40,7 @@
  * sale de la infraestructura del Estado.
  */
 import { spawn } from 'node:child_process';
-import { validarCurp, fechaNacimientoDeCurp, sexoDeCurp, ENTIDADES_CURP } from '../utils/curp';
+import { validarCurp, fechaNacimientoDeCurp, sexoDeCurp, ENTIDADES_CURP, inicialesParaCurp, PARTICULAS } from '../utils/curp';
 
 /** De dónde salió cada dato. Viaja hasta la base para poder auditarlo después. */
 export type FuenteDato = 'pdf_curp' | 'pdf_acta' | 'ine_mrz';
@@ -116,28 +116,208 @@ function curpDeTexto(texto: string): string | null {
 }
 
 /**
- * El nombre, tal como lo escribe la constancia de RENAPO.
+ * Qué documento es. Importa porque la pantalla se lo dice a la persona ("se
+ * llenó desde tu acta de nacimiento"), y decirlo mal hace dudar de todo lo
+ * demás: si se equivoca en cuál papel subí, ¿por qué le creo los datos?
  *
- * El documento rotula sus campos ("NOMBRE(S)", "PRIMER APELLIDO"...), así que
- * se buscan esas etiquetas en vez de adivinar por posición: una constancia con
- * otra maquetación seguiría funcionando mientras conserve sus rótulos.
+ * La constancia se reconoce PRIMERO y por su título. Antes se preguntaba sólo
+ * si el texto mencionaba "REGISTRO CIVIL", y toda constancia de CURP trae al
+ * pie "CURP Certificada: verificada con el Registro Civil" — así que TODAS se
+ * anunciaban como actas de nacimiento.
  */
-function nombreDeConstancia(texto: string): Pick<CamposLeidos, 'nombres' | 'apellidoPaterno' | 'apellidoMaterno'> {
-  const campo = (etiquetas: string[]): string | undefined => {
+function tipoDeDocumento(texto: string): FuenteDato {
+  if (/CLAVE ÚNICA DE REGISTRO DE POBLACIÓN|CLAVE UNICA DE REGISTRO DE POBLACION|CONSTANCIA DE LA CLAVE/.test(texto)) {
+    return 'pdf_curp';
+  }
+  // El acta se declara en su título o en la estructura del libro registral. Se
+  // exige "ACTA" junto a algo del registro: "REGISTRO CIVIL" suelto aparece en
+  // la letra chica de documentos que no son actas.
+  if (/ACTA DE NACIMIENTO|ACTA DE REGISTRO|LIBRO\b.*\bOFICIAL[IÍ]A|OFICIAL[IÍ]A\b.*\bLIBRO/.test(texto)) {
+    return 'pdf_acta';
+  }
+  return 'pdf_curp';
+}
+
+type Nombre = { nombres: string; apellidoPaterno: string; apellidoMaterno: string };
+
+/**
+ * Palabras que estos documentos traen impresas y que nunca son parte de un
+ * nombre: rótulos, membretes y la letra chica. Se excluyen para que un tramo
+ * de texto administrativo no pueda hacerse pasar por el nombre de alguien.
+ *
+ * Las partículas ("DE", "LA", "DEL"...) NO están aquí a propósito: son parte
+ * legítima de muchos apellidos mexicanos.
+ */
+const PALABRAS_DEL_DOCUMENTO = new Set([
+  'ESTADOS', 'UNIDOS', 'MEXICANOS', 'CONSTANCIA', 'CLAVE', 'UNICA', 'ÚNICA',
+  'REGISTRO', 'POBLACION', 'POBLACIÓN', 'DIRECCION', 'DIRECCIÓN', 'GENERAL',
+  'NACIONAL', 'IDENTIDAD', 'SECRETARIA', 'SECRETARÍA', 'GOBERNACION',
+  'GOBERNACIÓN', 'SEGOB', 'NOMBRE', 'NOMBRES', 'APELLIDO', 'APELLIDOS',
+  'PATERNO', 'MATERNO', 'PRIMER', 'SEGUNDO', 'FECHA', 'INSCRIPCION',
+  'INSCRIPCIÓN', 'FOLIO', 'ENTIDAD', 'SEXO', 'CURP', 'CERTIFICADA',
+  'VERIFICADA', 'CIVIL', 'NACIMIENTO', 'ACTA', 'CIUDAD', 'HOMBRE', 'MUJER',
+  'MASCULINO', 'FEMENINO', 'DATOS', 'PERSONALES', 'EDAD', 'AÑOS', 'ANOS',
+  'MUNICIPIO', 'LOCALIDAD', 'DOMICILIO', 'LIBRO', 'OFICIALIA', 'OFICIALÍA',
+  'JUEZ', 'OFICIAL', 'TOMO', 'FOJA', 'ANIO', 'AÑO', 'ANO',
+]);
+// Aquí NO van los nombres de las entidades, aunque "MICHOACAN DE OCAMPO" esté
+// impreso al lado del nombre y tenga su misma forma. Se intentó y salió peor:
+// "Ciudad de México" mete DE a la lista, "San Luis Potosí" mete SAN y LUIS,
+// "Nuevo León" mete NUEVO — y con eso se rompen los apellidos compuestos (DE LA
+// CRUZ, DE JESÚS) y nombres de pila comunes. Contra las entidades ya protegen
+// la comprobación contra la CURP y la exigencia de que la respuesta sea única.
+
+const ES_PALABRA_DE_NOMBRE = /^[A-ZÁÉÍÓÚÑ]{1,25}$/;
+
+/** Vacío es válido (no hay materno); con contenido, no puede colgar de una partícula. */
+function trozoMalFormado(trozo: string): boolean {
+  const p = trozo.split(' ').filter(Boolean).map((x) => quitarAcentosSimple(x));
+  if (p.length === 0) return false;
+  return PARTICULAS.has(p[p.length - 1]) || p.every((x) => PARTICULAS.has(x));
+}
+
+function quitarAcentosSimple(s: string): string {
+  return s.replace(/Á/g, 'A').replace(/É/g, 'E').replace(/Í/g, 'I').replace(/Ó/g, 'O').replace(/Ú/g, 'U');
+}
+
+/**
+ * Los tres campos del nombre cuando la constancia los trae rotulados por
+ * separado. Devuelve `null` si falta el paterno o el nombre: media partición no
+ * sirve para nada, y quien llama lo verifica contra la CURP antes de usarlo.
+ */
+function nombrePorRotulos(texto: string): Nombre | null {
+  const campo = (etiquetas: string[]): string => {
     for (const e of etiquetas) {
-      // Hasta el siguiente rótulo conocido o el fin: los valores no traen
-      // separador propio.
-      const m = new RegExp(`${e}[:\\s]+([A-ZÁÉÍÓÚÑ ]{2,60}?)(?=\\s*(?:PRIMER|SEGUNDO|NOMBRE|FECHA|SEXO|ENTIDAD|CURP|CLAVE|$))`).exec(texto);
+      const m = new RegExp(`${e}[:\\s]+([A-ZÁÉÍÓÚÑ ]{2,60}?)(?=\\s*(?:PRIMER|SEGUNDO|NOMBRE|FECHA|SEXO|ENTIDAD|FOLIO|CURP|CLAVE|$))`).exec(texto);
       const v = m?.[1]?.trim();
       if (v && v.length >= 2) return v;
     }
-    return undefined;
+    return '';
   };
-  return {
-    apellidoPaterno: campo(['PRIMER APELLIDO', 'APELLIDO PATERNO']),
-    apellidoMaterno: campo(['SEGUNDO APELLIDO', 'APELLIDO MATERNO']),
-    nombres: campo(['NOMBRE\\(S\\)', 'NOMBRES', 'NOMBRE']),
+  const apellidoPaterno = campo(['PRIMER APELLIDO', 'APELLIDO PATERNO']);
+  const nombres = campo(['NOMBRE\\(S\\)', 'NOMBRES']);
+  if (!apellidoPaterno || !nombres) return null;
+  return { nombres, apellidoPaterno, apellidoMaterno: campo(['SEGUNDO APELLIDO', 'APELLIDO MATERNO']) };
+}
+
+/**
+ * Parte un nombre corrido usando la CURP como llave.
+ *
+ * ── Por qué no se leen los rótulos ──────────────────────────────────────────
+ *
+ * Antes se buscaban las etiquetas del documento ("PRIMER APELLIDO", "NOMBRE(S)")
+ * y se tomaba lo que seguía. Falla por dos razones, y las dos se vieron en una
+ * sola constancia real:
+ *
+ *   1. Hay constancias con UN solo campo "Nombre" —el nombre completo corrido—
+ *      y no los tres rótulos separados.
+ *   2. `pdfjs` devuelve el texto en el orden en que el PDF lo DIBUJA, que no es
+ *      el orden en que se lee. En una maqueta de columnas, lo que sigue al
+ *      rótulo "Nombre" puede ser el rótulo "Folio" y no el nombre. Eso fue
+ *      exactamente lo que acabó escrito en el formulario: "FOLIO".
+ *
+ * Cualquier arreglo basado en rótulos sigue dependiendo de cómo esté maquetado
+ * cada PDF, y hay tantas maquetas como generadores de constancias.
+ *
+ * ── Lo que sí es invariante ─────────────────────────────────────────────────
+ *
+ * La CURP codifica cómo se parte el nombre: inicial del apellido paterno, su
+ * primera vocal interna, inicial del materno e inicial del nombre de pila. Con
+ * "ADAN ALONSO TINOCO" y `AOTA`, sólo una partición reproduce esas letras —
+ * ALONSO(A,O) TINOCO(T) ADAN(A)— y las otras quedan descartadas por aritmética,
+ * no por parecer menos probables.
+ *
+ * Así que se busca, en el texto alrededor de la CURP, un tramo de palabras y
+ * una forma de partirlo que la reproduzcan. Y se exige que sea **el único**: si
+ * dos tramos distintos cuadran, no se propone nada. Un nombre equivocado en un
+ * expediente es peor que un campo vacío, porque el vacío se ve y el error no.
+ *
+ * La vocal interna sólo desempata, nunca descarta: RENAPO la sustituye cuando
+ * las cuatro letras forman una palabra inconveniente (ver `inicialesParaCurp`).
+ */
+export function partirNombreConCurp(texto: string, curp: string): Nombre | null {
+  const objetivo = { paterno: curp[0], materno: curp[2], nombre: curp[3], vocal: curp[1] };
+
+  const cuadra = (n: Nombre) => {
+    const ini = inicialesParaCurp(n.nombres, n.apellidoPaterno, n.apellidoMaterno);
+    return ini.paterno === objetivo.paterno && ini.materno === objetivo.materno && ini.nombre === objetivo.nombre;
   };
+
+  // Camino 1: el documento ya trae la partición hecha en tres rótulos. Cuando
+  // están, mandan — nadie sabe mejor que RENAPO dónde parte ese nombre. Pero se
+  // comprueba igual contra la CURP: los rótulos se leen por posición en el
+  // texto, y esa posición depende de la maqueta. Verificados, un mal recorte
+  // simplemente no pasa y se sigue al camino 2.
+  const rotulado = nombrePorRotulos(texto);
+  if (rotulado && cuadra(rotulado)) return rotulado;
+
+  const todas = texto.split(/\s+/).filter(Boolean);
+
+  // Se busca cerca de la CURP, no en toda la hoja: el nombre siempre está en el
+  // recuadro de datos, y la letra chica del pie son cientos de palabras que sólo
+  // aportan coincidencias falsas.
+  const iCurp = todas.findIndex((t) => t.includes(curp));
+  const region = iCurp >= 0
+    ? todas.slice(Math.max(0, iCurp - 40), iCurp + 40)
+    : todas.slice(0, 120);
+
+  const candidatos = new Map<string, Nombre>();
+  const registrar = (n: Nombre) => {
+    if (!n.nombres || !n.apellidoPaterno) return;
+    // Ningún trozo puede TERMINAR en partícula ni ser sólo partículas. Las
+    // partículas se pegan a lo que va DESPUÉS —"de la Cruz", nunca "Cruz de"—
+    // y esto es lo que desambigua sin adivinar: sin la regla, "MARÍA DE LOS
+    // ÁNGELES DE | LA CRUZ | GARCÍA" reproduce las mismas letras de la CURP que
+    // la partición correcta, y las dos se quedarían empatadas.
+    if ([n.nombres, n.apellidoPaterno, n.apellidoMaterno].some(trozoMalFormado)) return;
+    if (!cuadra(n)) return;
+    candidatos.set(`${n.nombres}|${n.apellidoPaterno}|${n.apellidoMaterno}`, n);
+  };
+
+  // Se parten TRAMOS COMPLETOS de palabras seguidas, no cualquier subventana.
+  //
+  // Un nombre ocupa un campo entero, y en el texto ese campo viene delimitado
+  // por un rótulo, un número o el borde de la región. Tomar subventanas hacía
+  // que de "JOSÉ DE JESÚS MARTÍNEZ LÓPEZ" también salieran "DE JESÚS MARTÍNEZ
+  // LÓPEZ" y "JESÚS MARTÍNEZ LÓPEZ" —las tres cuadran con la CURP, porque
+  // quitar nombres de pila del principio no cambia ninguna de las cuatro
+  // letras— y el empate obligaba a no proponer nada. Un tramo completo no tiene
+  // ese problema: las palabras impresas están todas, y lo único que se decide
+  // es dónde parten.
+  const tramos: string[][] = [];
+  let actual: string[] = [];
+  for (const t of region) {
+    if (ES_PALABRA_DE_NOMBRE.test(t) && !PALABRAS_DEL_DOCUMENTO.has(t)) actual.push(t);
+    else { if (actual.length >= 2) tramos.push(actual); actual = []; }
+  }
+  if (actual.length >= 2) tramos.push(actual);
+
+  for (const tramo of tramos) {
+    // Más de nueve palabras seguidas no es un nombre, es un renglón de prosa.
+    // ("María de los Ángeles de la Cruz García" son ocho.)
+    if (tramo.length > 9) continue;
+    // Orden natural del documento: nombre(s), paterno, materno.
+    for (let nNom = 1; nNom < tramo.length; nNom++) {
+      for (let nPat = 1; nNom + nPat <= tramo.length; nPat++) {
+        registrar({
+          nombres: tramo.slice(0, nNom).join(' '),
+          apellidoPaterno: tramo.slice(nNom, nNom + nPat).join(' '),
+          apellidoMaterno: tramo.slice(nNom + nPat).join(' '),
+        });
+      }
+    }
+  }
+
+  const unicos = [...candidatos.values()];
+  if (unicos.length === 1) return unicos[0];
+  if (unicos.length === 0) return null;
+
+  // Empate: desempata la vocal interna del paterno. Si sigue habiendo más de
+  // uno, no se propone — adivinar aquí es escribir el apellido de otro.
+  const conVocal = unicos.filter(
+    (n) => inicialesParaCurp(n.nombres, n.apellidoPaterno, n.apellidoMaterno).vocalPaterno === objetivo.vocal,
+  );
+  return conVocal.length === 1 ? conVocal[0] : null;
 }
 
 // ─── 2. INE: la zona de lectura mecánica ──────────────────────────────────
@@ -255,16 +435,18 @@ export async function leerDocumento(archivo: Buffer, mime: string): Promise<Lect
       if (!curp) {
         return SIN_LECTURA('No se encontró una CURP válida en el documento. Revisa que sea el archivo correcto.');
       }
-      const esActa = /ACTA DE NACIMIENTO|REGISTRO CIVIL/.test(texto);
       return {
         ok: true,
-        fuente: esActa ? 'pdf_acta' : 'pdf_curp',
+        fuente: tipoDeDocumento(texto),
         campos: {
           curp,
           fechaNacimiento: fechaNacimientoDeCurp(curp),
           sexo: sexoDeCurp(curp),
           entidadNacimiento: ENTIDADES_CURP[curp.slice(11, 13)],
-          ...nombreDeConstancia(texto),
+          // Puede venir vacío: si el nombre no se pudo partir con certeza, esos
+          // tres campos se quedan como estaban y la persona los teclea. El aviso
+          // de la pantalla nombra sólo lo que de verdad se llenó.
+          ...(partirNombreConCurp(texto, curp) ?? {}),
         },
       };
     }

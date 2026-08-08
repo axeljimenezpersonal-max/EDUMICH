@@ -45,7 +45,7 @@ function quitarAcentos(s: string): string {
 }
 
 // Partículas que RENAPO ignora en apellidos/nombres compuestos.
-const PARTICULAS = new Set(['DA', 'DAS', 'DE', 'DEL', 'DER', 'DI', 'DIE', 'DD', 'EL', 'LA', 'LOS', 'LAS', 'LE', 'LES', 'MAC', 'MC', 'VAN', 'VON', 'Y']);
+export const PARTICULAS = new Set(['DA', 'DAS', 'DE', 'DEL', 'DER', 'DI', 'DIE', 'DD', 'EL', 'LA', 'LOS', 'LAS', 'LE', 'LES', 'MAC', 'MC', 'VAN', 'VON', 'Y']);
 
 /** Primera palabra significativa (ignora partículas tipo "DE LA"). */
 function palabraSignificativa(texto: string): string {
@@ -62,13 +62,66 @@ function inicialCurp(palabra: string): string {
   return ch === 'Ñ' ? 'X' : ch;
 }
 
-/** Nombre de pila que usa la CURP: si el primero es MARIA/JOSE y hay más, usa el segundo. */
+const NOMBRES_QUE_SE_SALTAN = ['MARIA', 'MA', 'MA.', 'JOSE', 'J', 'J.'];
+
+/**
+ * Nombre de pila que usa la CURP: si el primero es MARIA/JOSE y hay más, usa
+ * el segundo — porque hay tantos "José" y "María" que la inicial no
+ * distinguiría a nadie.
+ *
+ * Se salta las PARTÍCULAS al buscar ese segundo nombre. Antes tomaba la
+ * siguiente palabra a secas, y en "MARÍA DE LOS ÁNGELES" eso da "DE" → inicial
+ * 'D', cuando RENAPO usa ÁNGELES → 'A'. Igual con "JOSÉ DE JESÚS" → 'D' en vez
+ * de 'J'. Los dos son de los nombres más frecuentes en Michoacán, así que esto
+ * hacía que `validarCurp` reclamara "el nombre no coincide" a gente cuya CURP
+ * estaba perfectamente bien.
+ */
 function nombreParaCurp(nombres: string): string {
   const palabras = quitarAcentos(nombres).split(/\s+/).filter(Boolean);
-  if (palabras.length > 1 && ['MARIA', 'MA', 'MA.', 'JOSE', 'J', 'J.'].includes(palabras[0])) {
-    return palabras[1];
+  const significativas = palabras.filter((p) => !PARTICULAS.has(p));
+  if (significativas.length > 1 && NOMBRES_QUE_SE_SALTAN.includes(significativas[0])) {
+    return significativas[1];
   }
-  return palabraSignificativa(nombres);
+  return significativas[0] ?? palabras[0] ?? '';
+}
+
+/** Primera vocal INTERNA de una palabra (posición 2 de la CURP). 'X' si no hay. */
+function vocalInterna(palabra: string): string {
+  for (let i = 1; i < palabra.length; i++) {
+    if ('AEIOU'.includes(palabra[i])) return palabra[i];
+  }
+  return 'X';
+}
+
+/**
+ * Las cuatro primeras letras que le tocarían a una CURP con este nombre.
+ *
+ * Sirve para el camino inverso al habitual: en vez de comprobar un nombre ya
+ * capturado contra su CURP, permite AVERIGUAR el nombre a partir de ella —
+ * concretamente, dónde termina el nombre de pila y empieza el apellido, que es
+ * lo único que un texto corrido no dice. "ADAN ALONSO TINOCO" puede partirse de
+ * varias formas y todas se ven razonables; sólo una reproduce `AOTA`.
+ *
+ * `vocalPaterno` va aparte porque NO es comparable a ciegas: RENAPO la
+ * sustituye cuando las cuatro letras forman una palabra inconveniente (BUEI →
+ * BUEX). Por eso `validarCurp` ya la omite, y aquí se usa sólo para desempatar
+ * entre dos particiones que empataron en las otras tres — nunca para descartar.
+ */
+export function inicialesParaCurp(
+  nombres: string,
+  apellidoPaterno: string,
+  apellidoMaterno: string,
+): { paterno: string; vocalPaterno: string; materno: string; nombre: string } {
+  const pat = palabraSignificativa(apellidoPaterno);
+  const mat = apellidoMaterno.trim() ? palabraSignificativa(apellidoMaterno) : '';
+  return {
+    paterno: inicialCurp(pat),
+    vocalPaterno: vocalInterna(pat),
+    // Sin apellido materno la CURP lleva 'X' en esa posición: no es un hueco,
+    // es un valor. Mucha gente registrada con un solo apellido cae aquí.
+    materno: mat ? inicialCurp(mat) : 'X',
+    nombre: inicialCurp(nombreParaCurp(nombres)),
+  };
 }
 
 export interface DatosDeclarados {
