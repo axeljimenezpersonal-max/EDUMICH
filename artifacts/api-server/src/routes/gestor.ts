@@ -50,6 +50,7 @@ import { puedeRevelarCredenciales, sendBienvenidaCredenciales } from '../service
 import { generarPasswordTemporal, generarCodigoTemporal } from '../utils/password';
 import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
 import { verifyUrlFicha } from '../utils/credencialQr';
+import { esCorreoSinBuzon, correoSinBuzonPara } from '../utils/correo';
 import { generarFolioPreregistro, agregarDiasHabiles } from '../utils/folio';
 import { validarCurp } from '../utils/curp';
 import { nombreArchivoExpediente } from '../utils/nombreArchivo';
@@ -70,7 +71,7 @@ import { resolverSedeParaInscripcion } from '../utils/sedeInscripcion';
 import { DOCUMENTOS_OBLIGATORIOS } from '../config/reglas';
 import { validarEdad } from '../utils/edad';
 import { notificar, notificarATodosLosAdmins } from '../utils/notificar';
-import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { armarNombreCompleto, armarDireccion, normalizarNombre } from '../utils/estudianteDatos';
 import { generarFichaPagoGrupal } from '../services/fichaPagoGrupal';
 import { generarRelacionCalificacionesReporte } from '../services/relacionCalificacionesReportePdf';
 import { nombreArchivoAscii } from '../utils/archivo';
@@ -282,12 +283,18 @@ router.get('/alumnos', async (req, res) => {
 // ─── POST /gestor/alumnos ────────────────────────────────────────────
 const crearAlumnoSchema = z.object({
   // nombreCompleto sigue aceptándose (compat) pero si vienen las partes se deriva
-  nombreCompleto: z.string().min(3).max(200).optional(),
-  nombres: z.string().max(120).optional(),
-  apellidoPaterno: z.string().max(100).optional(),
-  apellidoMaterno: z.string().max(100).optional(),
+  nombreCompleto: z.string().min(3).max(200).transform(normalizarNombre).optional(),
+  nombres: z.string().max(120).transform(normalizarNombre).optional(),
+  apellidoPaterno: z.string().max(100).transform(normalizarNombre).optional(),
+  apellidoMaterno: z.string().max(100).transform(normalizarNombre).optional(),
   curp: z.string().length(18),
-  email: z.string().trim().toLowerCase().email(),
+  /**
+   * OPCIONAL. Hay alumnos reales que no tienen correo, y exigirlo detenía el
+   * alta de alguien que está enfrente del mostrador con todos sus papeles. Si
+   * no viene, la cuenta nace con una dirección interna derivada de su CURP
+   * (`utils/correo.ts`) y el centro la sustituye cuando el alumno consiga uno.
+   */
+  email: z.string().trim().toLowerCase().email().optional().or(z.literal('')),
   telefono: z.string().min(7).max(30).optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v) ?? undefined)),
   fechaNacimiento: z.string().optional(),
   /**
@@ -311,11 +318,21 @@ const crearAlumnoSchema = z.object({
   fechaNacimientoReq: z.string().optional(), // (compat: se usa fechaNacimiento)
   sexo: z.string().min(1, 'Falta el sexo').max(20),
   lugarNacimiento: z.string().min(2, 'Falta el lugar de nacimiento').max(120),
-  estadoCivil: z.string().min(1, 'Falta el estado civil').max(30),
   calleNumero: z.string().min(3, 'Falta la calle y número').max(200),
   colonia: z.string().min(2, 'Falta la colonia').max(120),
   cp: z.string().min(4, 'Falta el código postal').max(10),
   ciudad: z.string().min(2, 'Falta la ciudad').max(120),
+  /**
+   * OPCIONAL. No se puede deducir de ningún documento del expediente: la CURP
+   * no lo codifica, la banda del INE no lo trae y el acta de nacimiento habla
+   * del nacimiento. Sólo lo diría un acta de matrimonio, que no se pide. O sea
+   * que es un dato que hay que preguntarle a la persona, y no siempre está a la
+   * mano en el momento del alta.
+   *
+   * Va en un campo de la cédula: si queda vacío, esa casilla sale en blanco.
+   * Se completa después en la ficha del alumno, antes de generar la cédula.
+   */
+  estadoCivil: z.string().max(30).optional(),
   // Se deducen o son de apoyo: no bloquean.
   entidadNacimiento: z.string().max(80).optional(),
   ultimoEstudio: z.string().max(120).optional(),
@@ -354,9 +371,22 @@ router.post('/alumnos', async (req, res) => {
     if (errEdad) { res.status(400).json({ error: errEdad, campo: 'fechaNacimiento' }); return; }
   }
 
-  const [emailExists] = await db.select().from(users).where(eq(users.email, data.email.toLowerCase()));
+  // Sin correo, la cuenta nace con una dirección interna derivada de la CURP:
+  // una cuenta necesita un identificador único para iniciar sesión, aunque
+  // nadie vaya a escribirle ahí. La CURP ya se comprobó única más abajo, así
+  // que la dirección también lo es.
+  const correoDado = (data.email ?? '').trim().toLowerCase();
+  const tieneCorreo = correoDado.length > 0;
+  const correoCuenta = tieneCorreo ? correoDado : correoSinBuzonPara(data.curp);
+
+  const [emailExists] = await db.select().from(users).where(eq(users.email, correoCuenta));
   if (emailExists) {
-    res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico', campo: 'email' });
+    res.status(409).json({
+      error: tieneCorreo
+        ? 'Ya existe una cuenta con ese correo electrónico'
+        : 'Ya existe una cuenta registrada con ese CURP',
+      campo: tieneCorreo ? 'email' : 'curp',
+    });
     return;
   }
 
@@ -375,7 +405,7 @@ router.post('/alumnos', async (req, res) => {
   const [user] = await db
     .insert(users)
     .values({
-      email: data.email.toLowerCase(),
+      email: correoCuenta,
       passwordHash,
       rol: 'estudiante',
       passwordTemporal: true,
@@ -429,29 +459,33 @@ router.post('/alumnos', async (req, res) => {
       .returning();
   }
 
-  // Send welcome email
+  // Correo de bienvenida. Sin correo real no se intenta: mandarlo a la
+  // dirección interna sería un rebote garantizado que además ensucia la
+  // reputación del dominio. El centro entrega el acceso cuando capture uno.
   let emailEnviado = false;
   let modoEmail: 'dev' | 'production' = 'dev';
-  try {
-    const result = await sendBienvenidaCredenciales(data.email.toLowerCase(), {
-      nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
-      email: data.email.toLowerCase(),
-      passwordTemporal: tempPassword,
-      portalUrl: urlPortalLogin(),
-      gestor: {
-        nombre: ctx.nombreCompleto,
-        telefono: null,
-        municipio: ctx.nombreMunicipio ?? null,
-      },
-    });
-    emailEnviado = result.enviado;
-    modoEmail = result.modo;
-    if (emailEnviado) {
-      await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, user.id));
+  if (tieneCorreo) {
+    try {
+      const result = await sendBienvenidaCredenciales(correoCuenta, {
+        nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
+        email: correoCuenta,
+        passwordTemporal: tempPassword,
+        portalUrl: urlPortalLogin(),
+        gestor: {
+          nombre: ctx.nombreCompleto,
+          telefono: null,
+          municipio: ctx.nombreMunicipio ?? null,
+        },
+      });
+      emailEnviado = result.enviado;
+      modoEmail = result.modo;
+      if (emailEnviado) {
+        await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, user.id));
+      }
+    } catch (err) {
+      // No frena el alta, pero SÍ se registra: si el correo falla, hay que verlo.
+      console.error('[CORREO] Falló el envío de bienvenida al registrar alumno:', err instanceof Error ? err.message : err);
     }
-  } catch (err) {
-    // No frena el alta, pero SÍ se registra: si el correo falla, hay que verlo.
-    console.error('[CORREO] Falló el envío de bienvenida al registrar alumno:', err instanceof Error ? err.message : err);
   }
 
   await tryAuditLog({
@@ -459,17 +493,21 @@ router.post('/alumnos', async (req, res) => {
     accion: 'crear_alumno',
     entidad: 'estudiante',
     entidadId: user.id,
-    detalle: `Registró nuevo alumno CURP ${data.curp}`,
-    metadata: { curp: data.curp, convocatoriaId: data.convocatoriaId, emailEnviado },
+    detalle: `Registró nuevo alumno CURP ${data.curp}${tieneCorreo ? '' : ' (sin correo)'}`,
+    metadata: { curp: data.curp, convocatoriaId: data.convocatoriaId, emailEnviado, sinCorreo: !tieneCorreo },
     req,
   });
 
   res.status(201).json({
+    // `sinCorreo` no es un error: es lo que el centro tiene que saber para
+    // cerrar el trámite —que este alumno todavía no tiene por dónde recibir su
+    // acceso— y qué hacer cuando consiga uno.
+    sinCorreo: !tieneCorreo,
     alumno: {
       userId: user.id,
-      nombreCompleto: data.nombreCompleto,
+      nombreCompleto: armarNombreCompleto(data) || data.nombreCompleto,
       curp: data.curp.toUpperCase(),
-      email: data.email.toLowerCase(),
+      email: tieneCorreo ? correoCuenta : null,
     },
     inscripcionId: insc?.id ?? null,
     emailEnviado,
@@ -560,13 +598,23 @@ router.post(
       return;
     }
 
+    // Misma regla que en el alta simple: sin correo, direccion interna.
+    const correoDadoRC = (data.email ?? '').trim().toLowerCase();
+    const tieneCorreoRC = correoDadoRC.length > 0;
+    const correoCuentaRC = tieneCorreoRC ? correoDadoRC : correoSinBuzonPara(data.curp);
+
     const [emailExistsRC] = await db
       .select()
       .from(users)
-      .where(eq(users.email, data.email.toLowerCase()));
+      .where(eq(users.email, correoCuentaRC));
     if (emailExistsRC) {
       for (const f of allFiles) if (f) await fs.unlink(f.path).catch(() => {});
-      res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico', campo: 'email' });
+      res.status(409).json({
+        error: tieneCorreoRC
+          ? 'Ya existe una cuenta con ese correo electrónico'
+          : 'Ya existe una cuenta registrada con ese CURP',
+        campo: tieneCorreoRC ? 'email' : 'curp',
+      });
       return;
     }
 
@@ -582,7 +630,7 @@ router.post(
 
         const [user] = await tx
           .insert(users)
-          .values({ email: data.email.toLowerCase(), passwordHash, rol: 'estudiante', passwordTemporal: true })
+          .values({ email: correoCuentaRC, passwordHash, rol: 'estudiante', passwordTemporal: true })
           .returning();
 
         await tx.insert(estudiantes).values({
@@ -675,9 +723,9 @@ router.post(
         return {
           alumno: {
             userId: user.id,
-            nombreCompleto: data.nombreCompleto,
+            nombreCompleto: armarNombreCompleto(data) || data.nombreCompleto,
             curp: data.curp.toUpperCase(),
-            email: data.email.toLowerCase(),
+            email: tieneCorreoRC ? correoCuentaRC : null,
           },
           inscripcionId: insc?.id ?? null,
           credencialTemporal: tempPassword,
@@ -695,33 +743,37 @@ router.post(
         req,
       });
 
-      // Send welcome email after transaction
+      // Correo de bienvenida, despues de la transaccion. Sin correo real no se
+      // intenta: no es un fallo, es que no hay a donde escribir.
       let emailEnviado = false;
       let modoEmail: 'dev' | 'production' = 'dev';
-      try {
-        const emailResult = await sendBienvenidaCredenciales(data.email.toLowerCase(), {
-          nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
-          email: data.email.toLowerCase(),
-          passwordTemporal: result.credencialTemporal,
-          portalUrl: urlPortalLogin(),
-          gestor: {
-            nombre: ctx.nombreCompleto,
-            telefono: null,
-            municipio: ctx.nombreMunicipio ?? null,
-          },
-        });
-        emailEnviado = emailResult.enviado;
-        modoEmail = emailResult.modo;
-        if (emailEnviado) {
-          await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, result.alumno.userId));
+      if (tieneCorreoRC) {
+        try {
+          const emailResult = await sendBienvenidaCredenciales(correoCuentaRC, {
+            nombreAlumno: armarNombreCompleto(data) || data.nombreCompleto || '',
+            email: correoCuentaRC,
+            passwordTemporal: result.credencialTemporal,
+            portalUrl: urlPortalLogin(),
+            gestor: {
+              nombre: ctx.nombreCompleto,
+              telefono: null,
+              municipio: ctx.nombreMunicipio ?? null,
+            },
+          });
+          emailEnviado = emailResult.enviado;
+          modoEmail = emailResult.modo;
+          if (emailEnviado) {
+            await db.update(users).set({ bienvenidaEnviadaEn: new Date() }).where(eq(users.id, result.alumno.userId));
+          }
+        } catch (err) {
+          // No frena el alta, pero SÍ se registra para poder diagnosticar.
+          console.error('[CORREO] Falló el envío de bienvenida (registro-completo):', err instanceof Error ? err.message : err);
         }
-      } catch (err) {
-        // No frena el alta, pero SÍ se registra para poder diagnosticar.
-        console.error('[CORREO] Falló el envío de bienvenida (registro-completo):', err instanceof Error ? err.message : err);
       }
 
       res.status(201).json({
         ...result,
+        sinCorreo: !tieneCorreoRC,
         emailEnviado,
         modoEmail,
         ...(puedeRevelarCredenciales() ? {} : { credencialTemporal: undefined }),
@@ -845,9 +897,20 @@ router.get('/alumnos/:id', async (req, res) => {
 });
 
 // ─── PATCH /gestor/alumnos/:id ───────────────────────────────────────
-// Gestor can update basic student profile fields (not email, not curp after initial entry)
 const editarAlumnoSchema = z.object({
-  nombreCompleto: z.string().min(2).max(200).optional(),
+  nombreCompleto: z.string().min(2).max(200).transform(normalizarNombre).optional(),
+  /**
+   * Sólo se puede PONER, nunca cambiar.
+   *
+   * El alta ya no exige correo, así que hace falta una forma de capturarlo
+   * después — si no, el alumno que no lo tenía se queda para siempre sin vía
+   * para recibir su acceso, y la opción de "no es obligatorio" sería una
+   * trampa. Pero cambiar el correo de una cuenta que ya tiene uno es apropiarse
+   * de ella: con eso se pide un enlace de recuperación y se entra. Por eso el
+   * manejador sólo lo acepta cuando la dirección actual es la interna que se
+   * generó por no haber correo.
+   */
+  email: z.string().trim().toLowerCase().email().optional(),
   telefono: z.string().max(30).nullable().optional().transform((v) => (v == null ? v : normalizarTelefonoOMantener(v))),
   direccion: z.string().max(500).nullable().optional(),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
@@ -919,6 +982,35 @@ router.patch('/alumnos/:id', async (req, res) => {
     data.curp = curpNueva;
   }
 
+  // Capturar el correo que faltaba. Sólo si hoy tiene la dirección interna:
+  // sustituir un correo real es tomar posesión de la cuenta ajena, porque con
+  // el correo nuevo se pide un enlace de recuperación y se entra.
+  let correoCapturado = false;
+  if (data.email !== undefined) {
+    const [cuenta] = await db.select({ email: users.email }).from(users).where(eq(users.id, alumnoId));
+    if (!cuenta) {
+      res.status(404).json({ error: 'Alumno no encontrado' });
+      return;
+    }
+    if (!esCorreoSinBuzon(cuenta.email)) {
+      res.status(409).json({
+        error: 'Este alumno ya tiene un correo registrado. Cambiarlo no se hace desde aquí: pídelo a la administración.',
+        campo: 'email',
+      });
+      return;
+    }
+    const [ocupado] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(and(eq(users.email, data.email), ne(users.id, alumnoId)));
+    if (ocupado) {
+      res.status(409).json({ error: 'Ya existe una cuenta con ese correo electrónico', campo: 'email' });
+      return;
+    }
+    await db.update(users).set({ email: data.email, updatedAt: new Date() }).where(eq(users.id, alumnoId));
+    correoCapturado = true;
+  }
+
   const updateFields: Record<string, unknown> = {};
   if (data.nombreCompleto !== undefined) updateFields.nombreCompleto = data.nombreCompleto;
   if (data.telefono !== undefined) updateFields.telefono = data.telefono;
@@ -932,17 +1024,21 @@ router.patch('/alumnos/:id', async (req, res) => {
     .set(updateFields)
     .where(and(eq(estudiantes.userId, alumnoId), eq(estudiantes.gestorId, userId)));
 
+  const campos = Object.keys(updateFields).filter((k) => k !== 'updatedAt');
+  if (correoCapturado) campos.push('email');
   await tryAuditLog({
     userId,
     accion: 'editar_alumno',
     entidad: 'estudiantes',
     entidadId: alumnoId,
-    detalle: `Gestor actualizó datos del alumno: ${Object.keys(updateFields).filter(k => k !== 'updatedAt').join(', ')}`,
-    metadata: { campos: Object.keys(updateFields).filter(k => k !== 'updatedAt') },
+    detalle: `Gestor actualizó datos del alumno: ${campos.join(', ')}`,
+    metadata: { campos, correoCapturado },
     req,
   });
 
-  res.json({ ok: true });
+  // Se avisa para que la pantalla ofrezca enviarle sus credenciales: hasta
+  // ahora no había forma de hacérselas llegar.
+  res.json({ ok: true, correoCapturado });
 });
 
 // ─── POST /gestor/alumnos/:id/documentos ─────────────────────────────

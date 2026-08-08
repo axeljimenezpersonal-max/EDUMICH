@@ -35,6 +35,27 @@ function capitalizarPalabra(palabra: string): string {
 }
 
 /**
+ * La forma en que un nombre se CAPTURA y se guarda: MAYÚSCULAS, con acentos.
+ *
+ * Es el espejo de `normalizarNombre` del API (`utils/estudianteDatos.ts`), que
+ * es quien manda: el servidor normaliza pase lo que pase. Esto existe para que
+ * la persona lo VEA mientras teclea, y entienda sin que nadie se lo explique
+ * que da igual cómo lo escriba — que es justo la duda que genera capturar al
+ * mismo alumno dos veces desde dos lugares distintos.
+ *
+ * A diferencia del servidor, aquí NO se recortan ni colapsan los espacios: se
+ * está escribiendo, y quitarle el espacio que acaba de teclear le impide
+ * escribir el segundo apellido.
+ *
+ * Los acentos se conservan (`toLocaleUpperCase('es-MX')` hace á→Á y ñ→Ñ): la
+ * regla de ASCII del proyecto es para archivos y claves, no para el nombre de
+ * una persona.
+ */
+export function enMayusculas(valor: string): string {
+  return valor.toLocaleUpperCase('es-MX');
+}
+
+/**
  * Formatea un nombre para mostrarlo. Devuelve cadena vacía si la entrada es
  * vacía/nula. Colapsa espacios de más.
  */

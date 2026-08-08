@@ -23,7 +23,7 @@ import {
 } from '../middleware/auth';
 import { sendRecuperarPassword } from '../services/email';
 import { tryAuditLog } from '../utils/audit';
-import { enmascararCorreo } from '../utils/correo';
+import { enmascararCorreo, esCorreoSinBuzon } from '../utils/correo';
 import { urlPortalEstado } from '../utils/portal';
 import { bloqueoDeCuenta, registrarFalloDeCuenta, limpiarFallosDeCuenta } from '../utils/bloqueoCuenta';
 import { registrarCorteLocal } from '../utils/revocacion';
@@ -452,7 +452,7 @@ router.post('/recuperar-password', async (req, res) => {
       // pantalla diría "revisa tu correo". Mentir así deja a la persona
       // esperando algo que no va a llegar nunca; es mejor decirle a quién
       // pedirle ayuda.
-      if (!user.contacto?.trim() && /@modula22\.mx$/i.test(user.email)) {
+      if (!user.contacto?.trim() && esCorreoSinBuzon(user.email)) {
         res.json({
           ok: true,
           existe: true,

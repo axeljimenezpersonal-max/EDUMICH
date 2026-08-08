@@ -31,7 +31,7 @@ import {
   codigosPostales,
 } from '@workspace/db/schema';
 import { setSessionCookie } from '../middleware/auth';
-import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { armarNombreCompleto, armarDireccion, normalizarNombre } from '../utils/estudianteDatos';
 import { urlPortalEstado } from '../utils/portal';
 import { patronLike } from '../utils/like';
 import { parseCredencialQr } from '../utils/credencialQr';
@@ -134,9 +134,9 @@ function enmascararEmail(email: string): string {
 const buscarCuentaSchema = z
   .object({
     curp: z.string().length(18).optional(),
-    nombres: z.string().min(2).max(120).optional(),
-    apellidoPaterno: z.string().min(2).max(100).optional(),
-    apellidoMaterno: z.string().max(100).optional(),
+    nombres: z.string().min(2).max(120).transform(normalizarNombre).optional(),
+    apellidoPaterno: z.string().min(2).max(100).transform(normalizarNombre).optional(),
+    apellidoMaterno: z.string().max(100).transform(normalizarNombre).optional(),
   })
   .refine((d) => d.curp || (d.nombres && d.apellidoPaterno), {
     message: 'Proporciona tu CURP, o tu nombre y apellido paterno.',
@@ -254,9 +254,9 @@ router.post('/buscar-cuenta/recuperar', buscarCuentaLimiter, async (req, res) =>
 
 const validarCurpSchema = z.object({
   curp: z.string().min(1).max(18),
-  nombres: z.string().max(120).optional(),
-  apellidoPaterno: z.string().max(100).optional(),
-  apellidoMaterno: z.string().max(100).optional(),
+  nombres: z.string().max(120).transform(normalizarNombre).optional(),
+  apellidoPaterno: z.string().max(100).transform(normalizarNombre).optional(),
+  apellidoMaterno: z.string().max(100).transform(normalizarNombre).optional(),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   sexo: z.string().max(20).optional(),
 });
@@ -634,9 +634,9 @@ router.post('/email/verificar-codigo', async (req, res) => {
 
 // Campos desglosados opcionales (compartidos por auto-registro y solicitud)
 const camposDesglosados = {
-  nombres: z.string().max(120).optional(),
-  apellidoPaterno: z.string().max(100).optional(),
-  apellidoMaterno: z.string().max(100).optional(),
+  nombres: z.string().max(120).transform(normalizarNombre).optional(),
+  apellidoPaterno: z.string().max(100).transform(normalizarNombre).optional(),
+  apellidoMaterno: z.string().max(100).transform(normalizarNombre).optional(),
   sexo: z.string().max(20).optional(),
   lugarNacimiento: z.string().max(120).optional(),
   entidadNacimiento: z.string().max(80).optional(),
@@ -668,7 +668,7 @@ const camposObligatorios = {
 const autoRegistroSchema = z.object({
   emailVerificadoToken: z.string(),
   email: z.string().trim().toLowerCase().email(),
-  nombreCompleto: z.string().min(2).max(200),
+  nombreCompleto: z.string().min(2).max(200).transform(normalizarNombre),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   telefono: z
     .string()
@@ -787,7 +787,7 @@ router.post('/auto-registro', async (req, res) => {
 // ─── POST /publico/solicitudes-cuenta ─────────────────────────────────────
 const solicitudSchema = z.object({
   emailVerificadoToken: z.string(),
-  nombreCompleto: z.string().min(2).max(200),
+  nombreCompleto: z.string().min(2).max(200).transform(normalizarNombre),
   curp: z.string().length(18),
   fechaNacimiento: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   email: z.string().trim().toLowerCase().email(),

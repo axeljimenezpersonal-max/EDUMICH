@@ -18,6 +18,7 @@ import { GestorLayout } from './GestorLayout';
 import { DatePicker } from '../../components/DatePicker';
 import { CurpHelpLink } from '../../components/CurpHelpLink';
 import { api, ApiError } from '../../lib/api';
+import { enMayusculas } from '../../lib/nombre';
 import { useCodigoPostal } from '../../lib/useCodigoPostal';
 import { fechaMinNacimiento, fechaMaxNacimiento, validarEdad } from '../../lib/edad';
 import { SectionTour } from '../../components/onboarding/SectionTour';
@@ -333,15 +334,17 @@ export default function NuevoAlumno() {
   if (!datos.apellidoPaterno.trim()) faltantesObligatorios.push('apellido paterno');
   if (!datos.apellidoMaterno.trim()) faltantesObligatorios.push('apellido materno');
   if (datos.curp.length !== 18) faltantesObligatorios.push('CURP completa');
-  if (!emailValido(datos.email)) faltantesObligatorios.push('correo válido');
   if (!datos.fechaNacimiento) faltantesObligatorios.push('fecha de nacimiento');
   if (!datos.sexo) faltantesObligatorios.push('sexo');
-  if (!datos.estadoCivil) faltantesObligatorios.push('estado civil');
   if (!datos.lugarNacimiento.trim()) faltantesObligatorios.push('lugar de nacimiento');
   if (!datos.calleNumero.trim()) faltantesObligatorios.push('calle y número');
   if (!datos.colonia.trim()) faltantesObligatorios.push('colonia');
   if (!datos.cp.trim()) faltantesObligatorios.push('código postal');
   if (!datos.ciudad.trim()) faltantesObligatorios.push('ciudad');
+  // El correo dejo de ser obligatorio —hay alumnos que no tienen— pero si se
+  // escribe uno, tiene que estar bien: un correo con dedazo es peor que
+  // ninguno, porque las credenciales salen y se pierden sin que nadie se entere.
+  if (datos.email.trim() && !emailValido(datos.email)) faltantesObligatorios.push('correo bien escrito');
 
   // Registrar a un alumno NO exige convocatoria activa: siempre se puede dar de
   // alta. Si hay convocatoria, además se le crea la inscripción.
@@ -515,7 +518,7 @@ export default function NuevoAlumno() {
     fd.append('apellidoPaterno', datos.apellidoPaterno.trim());
     fd.append('apellidoMaterno', datos.apellidoMaterno.trim());
     fd.append('curp', datos.curp.toUpperCase());
-    fd.append('email', datos.email.toLowerCase());
+    fd.append('email', datos.email.trim().toLowerCase());
     fd.append('telefono', datos.telefono);
     if (datos.fechaNacimiento) fd.append('fechaNacimiento', format(datos.fechaNacimiento, 'yyyy-MM-dd'));
     fd.append('sexo', datos.sexo);
@@ -559,7 +562,7 @@ export default function NuevoAlumno() {
     fd.append('apellidoPaterno', datos.apellidoPaterno.trim());
     fd.append('apellidoMaterno', datos.apellidoMaterno.trim());
     fd.append('curp', datos.curp.toUpperCase());
-    fd.append('email', datos.email.toLowerCase());
+    fd.append('email', datos.email.trim().toLowerCase());
     fd.append('telefono', datos.telefono);
     if (datos.fechaNacimiento) fd.append('fechaNacimiento', format(datos.fechaNacimiento, 'yyyy-MM-dd'));
     fd.append('sexo', datos.sexo);
@@ -764,9 +767,12 @@ export default function NuevoAlumno() {
               <input
                 id="nombres"
                 value={datos.nombres}
-                onChange={(e) => setDatos((d) => ({ ...d, nombres: e.target.value }))}
-                className="gov-input"
-                placeholder="Ej. José María"
+                onChange={(e) => setDatos((d) => ({ ...d, nombres: enMayusculas(e.target.value) }))}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                className="gov-input uppercase"
+                placeholder="Ej. JOSÉ MARÍA"
               />
             </div>
             <div>
@@ -776,9 +782,12 @@ export default function NuevoAlumno() {
               <input
                 id="apP"
                 value={datos.apellidoPaterno}
-                onChange={(e) => setDatos((d) => ({ ...d, apellidoPaterno: e.target.value }))}
-                className="gov-input"
-                placeholder="Ej. Morelos"
+                onChange={(e) => setDatos((d) => ({ ...d, apellidoPaterno: enMayusculas(e.target.value) }))}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                className="gov-input uppercase"
+                placeholder="Ej. MORELOS"
               />
             </div>
             <div>
@@ -788,9 +797,12 @@ export default function NuevoAlumno() {
               <input
                 id="apM"
                 value={datos.apellidoMaterno}
-                onChange={(e) => setDatos((d) => ({ ...d, apellidoMaterno: e.target.value }))}
-                className="gov-input"
-                placeholder="Ej. Pavón"
+                onChange={(e) => setDatos((d) => ({ ...d, apellidoMaterno: enMayusculas(e.target.value) }))}
+                autoCapitalize="characters"
+                autoCorrect="off"
+                spellCheck={false}
+                className="gov-input uppercase"
+                placeholder="Ej. PAVÓN"
               />
             </div>
           </div>
@@ -851,7 +863,7 @@ export default function NuevoAlumno() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="gov-label" htmlFor="email">
-                Correo electrónico <span className="text-red-600">*</span>
+                Correo electrónico
               </label>
               <input
                 id="email"
@@ -864,11 +876,21 @@ export default function NuevoAlumno() {
                 className={`gov-input ${fieldErrors.email ? 'border-red-500 focus:ring-red-400' : ''}`}
                 placeholder="jose.morelos@ejemplo.com"
               />
-              {fieldErrors.email && (
+              {fieldErrors.email ? (
                 <div className="flex items-center gap-1.5 text-xs text-red-700 mt-1">
                   <AlertCircle size={12} className="flex-shrink-0" />
                   {fieldErrors.email}
                 </div>
+              ) : (
+                /* Se dice la consecuencia, no sólo "es opcional": dejarlo vacío
+                   no es gratis —el alumno no recibe sus datos de acceso— pero
+                   tampoco detiene el alta, que es lo que importa cuando la
+                   persona está enfrente con todos sus papeles. */
+                <p className="mt-1 text-[11px] leading-relaxed text-stone-500">
+                  {datos.email.trim()
+                    ? 'Ahí le llegarán sus datos de acceso.'
+                    : 'Puedes dejarlo vacío si el alumno no tiene. El registro se completa igual, pero no recibirá sus datos de acceso hasta que lo captures en su ficha.'}
+                </p>
               )}
             </div>
             <div>
@@ -916,7 +938,7 @@ export default function NuevoAlumno() {
               </select>
             </div>
             <div>
-              <label className="gov-label" htmlFor="ecivil">Estado civil <span className="text-red-500">*</span></label>
+              <label className="gov-label" htmlFor="ecivil">Estado civil</label>
               <select
                 id="ecivil"
                 value={datos.estadoCivil}

@@ -44,6 +44,7 @@ import { generarPasswordTemporal } from '../utils/password';
 import { urlPortalLogin, urlPortalEstado } from '../utils/portal';
 import { invalidarSesiones } from '../utils/revocacion';
 import { tryAuditLog } from '../utils/audit';
+import { esCorreoSinBuzon } from '../utils/correo';
 import { verificarBitacora } from '../services/verificarBitacora';
 import { recordarExamenesDeManana } from '../services/recordatoriosExamen';
 import { CALIF_MINIMA_APROBATORIA, TOTAL_MODULOS_PLAN22 } from '../utils/calificacion';
@@ -1193,7 +1194,7 @@ router.post('/accesos/:userId/enlace-recuperacion', async (req, res) => {
     }
 
     const entrega = u.contacto?.trim() || u.email;
-    if (!u.contacto?.trim() && /@modula22\.mx$/i.test(u.email)) {
+    if (!u.contacto?.trim() && esCorreoSinBuzon(u.email)) {
       res.status(400).json({
         error: `${u.email} es una dirección interna sin buzón, y la cuenta no tiene correo de contacto. Registra su correo personal en "Editar" y vuelve a intentarlo.`,
       });

@@ -76,7 +76,7 @@ import {
   dispositionCedula,
   cedulaDatosSchema,
 } from '../services/cedula';
-import { armarNombreCompleto, armarDireccion } from '../utils/estudianteDatos';
+import { armarNombreCompleto, armarDireccion, normalizarNombre } from '../utils/estudianteDatos';
 import { nombreArchivoAscii } from '../utils/archivo';
 import { aplanarAcentos } from '../utils/nombreArchivo';
 import { tryAuditLog } from '../utils/audit';
@@ -978,10 +978,10 @@ router.get('/expediente', async (req, res) => {
 
 // ─── PATCH /estudiante/datos-personales ───────────────────────────────────
 const datosPersonalesSchema = z.object({
-  nombreCompleto: z.string().min(3).max(200).optional(),
-  nombres: z.string().max(120).optional(),
-  apellidoPaterno: z.string().max(100).optional(),
-  apellidoMaterno: z.string().max(100).optional(),
+  nombreCompleto: z.string().min(3).max(200).transform(normalizarNombre).optional(),
+  nombres: z.string().max(120).transform(normalizarNombre).optional(),
+  apellidoPaterno: z.string().max(100).transform(normalizarNombre).optional(),
+  apellidoMaterno: z.string().max(100).transform(normalizarNombre).optional(),
   curp: z
     .string()
     .regex(/^[A-Z]{4}\d{6}[HM][A-Z]{5}[A-Z\d]\d$/, 'CURP inválida')

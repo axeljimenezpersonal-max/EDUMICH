@@ -3,6 +3,35 @@
  */
 
 /**
+ * El dominio de las direcciones que Módula emite y que NO tienen buzón detrás.
+ *
+ * Son de dos clases y las dos se comportan igual —nada de lo que se les mande
+ * llega a ninguna parte— así que se reconocen con la misma regla:
+ *
+ *   · `utec@modula22.mx`  — identifica a un centro dentro de la plataforma.
+ *   · `AOTA060308…@sin-correo.modula22.mx` — la que se le pone a un alumno que
+ *     no tiene correo. Existe sólo porque una cuenta necesita un identificador
+ *     único para iniciar sesión, no porque se pretenda escribirle ahí.
+ */
+const DOMINIO_SIN_BUZON = /@(?:[a-z0-9-]+\.)?modula22\.mx$/i;
+
+/** ¿Es una dirección emitida por Módula, sin buzón detrás? */
+export function esCorreoSinBuzon(email: string | null | undefined): boolean {
+  return !!email && DOMINIO_SIN_BUZON.test(email.trim());
+}
+
+/**
+ * La dirección interna de un alumno que no dio correo.
+ *
+ * Se deriva de la CURP porque es lo único único que ese alumno ya tiene, y en
+ * ASCII —la CURP lo es por construcción— para que sea una dirección válida.
+ * Cuando la persona consiga un correo, el centro lo captura y esta desaparece.
+ */
+export function correoSinBuzonPara(curp: string): string {
+  return `${curp.trim().toLowerCase()}@sin-correo.modula22.mx`;
+}
+
+/**
  * Enmascara una dirección para poder decir A DÓNDE se envió algo sin revelarla.
  *
  * Hace falta porque una cuenta de Módula tiene DOS direcciones: la de acceso
